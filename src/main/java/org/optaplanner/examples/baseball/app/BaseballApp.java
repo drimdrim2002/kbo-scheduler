@@ -529,6 +529,7 @@ public class BaseballApp {
         List<Match> matchList = makeMatchInfo(jsonObject, teamHashMap);
 
         List<Calendar> calendarList = new ArrayList<>();
+        
         JSONArray periodArray = (JSONArray) jsonObject.get("calendar");
         Calendar prev = null;
         for (int i = 0; i < periodArray.size(); i++) {
@@ -564,16 +565,34 @@ public class BaseballApp {
     }
 
     private static List<Match> makeMatchInfo(JSONObject jsonObject, HashMap<String, Team> teamHashMap) {
+//        List<Match> matchList = new ArrayList<>();
+//        JSONArray matchJsonArray = (JSONArray) jsonObject.get("matches");
+//        IntStream.range(0, matchJsonArray.size()).forEach(i -> {
+//            JSONObject matchInfo = (JSONObject) matchJsonArray.get(i);
+//            Team homeTeam = teamHashMap.get(matchInfo.get("home"));
+//            Team awayTeam = teamHashMap.get(matchInfo.get("away"));
+//            long consecutive = (Long) matchInfo.get("consecutive");
+//            Match match = new Match(i, homeTeam, awayTeam, (int) consecutive);
+//            matchList.add(match);
+//        });
+
         List<Match> matchList = new ArrayList<>();
-        JSONArray matchJsonArray = (JSONArray) jsonObject.get("matches");
-        IntStream.range(0, matchJsonArray.size()).forEach(i -> {
-            JSONObject matchInfo = (JSONObject) matchJsonArray.get(i);
-            Team homeTeam = teamHashMap.get(matchInfo.get("home"));
-            Team awayTeam = teamHashMap.get(matchInfo.get("away"));
-            long consecutive = (Long) matchInfo.get("consecutive");
-            Match match = new Match(i, homeTeam, awayTeam, (int) consecutive);
+        int index = 0;
+        JSONArray initialPlan = (JSONArray) jsonObject.get("initialPlan");
+        for (Object o : initialPlan) {
+            JSONObject initialPlanObject = (JSONObject) o;
+            String homeStr = (String) initialPlanObject.get("home");
+            String awayStr = (String) initialPlanObject.get("away");
+
+            Team homeTeam = teamHashMap.get(homeStr);
+            Team awayTeam = teamHashMap.get(awayStr);
+            int consecutive = Integer.parseInt(initialPlanObject.get("consecutive").toString());
+
+            Match match = new Match(index, homeTeam, awayTeam, consecutive);
             matchList.add(match);
-        });
+            index += 1;
+        }
+
         return matchList;
     }
 
@@ -617,7 +636,7 @@ public class BaseballApp {
         JSONParser parser = new JSONParser();
         JSONObject jsonObject;
         try {
-            Reader reader = new FileReader("data/baseball/input_2024.json");
+            Reader reader = new FileReader(Constants.inputFileName);
 //            Reader reader = new FileReader("../../../data/baseball/input.json");
             jsonObject = (JSONObject) parser.parse(reader);
 

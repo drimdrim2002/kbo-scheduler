@@ -1,6 +1,7 @@
 package org.optaplanner.examples.baseball.domain;
 
 
+import java.util.Objects;
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.entity.PlanningPin;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
@@ -8,6 +9,7 @@ import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 @PlanningEntity
 public class Match extends AbstractPersistable {
+
     private Team home;
     private Team away;
     private int consecutive;
@@ -28,6 +30,7 @@ public class Match extends AbstractPersistable {
         this.consecutive = consecutive;
     }
 
+
     @PlanningPin
     public boolean isPinned() {
         return pinned;
@@ -36,7 +39,6 @@ public class Match extends AbstractPersistable {
     public void setPinned(boolean pinned) {
         this.pinned = pinned;
     }
-
 
 
     public Team getHome() {
@@ -75,9 +77,27 @@ public class Match extends AbstractPersistable {
     @Override
     public String toString() {
         return "Match{" +
-                "home=" + home +
-                ", away=" + away +
-                ", consecutive=" + consecutive +
-                '}';
+            "home=" + home +
+            ", away=" + away +
+            ", consecutive=" + consecutive +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Match match = (Match) o;
+        return consecutive == match.consecutive && pinned == match.pinned && Objects.equals(home, match.home)
+            && Objects.equals(away, match.away) && Objects.equals(calendar, match.calendar);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(home, away, consecutive, pinned, calendar);
     }
 }

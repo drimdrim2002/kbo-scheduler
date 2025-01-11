@@ -1,11 +1,13 @@
 package org.optaplanner.examples.baseball.domain;
 
+import java.util.Objects;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 
 public class Team extends AbstractPersistable {
+
     private String name;
     private String stadium;
     private HashMap<String, BigDecimal> distanceMap;
@@ -14,6 +16,7 @@ public class Team extends AbstractPersistable {
     public Team() {
 
     }
+
     public Team(long id, String name, String stadium) {
         super(id);
         this.name = name;
@@ -67,8 +70,25 @@ public class Team extends AbstractPersistable {
     @Override
     public String toString() {
         return "Team{" +
-                "name='" + name + '\'' +
-                ", stadium='" + stadium + '\'' +
-                '}';
+            "name='" + name + '\'' +
+            ", stadium='" + stadium + '\'' +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Team team = (Team) o;
+        return Objects.equals(name, team.name) && Objects.equals(stadium, team.stadium);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, stadium);
     }
 }
