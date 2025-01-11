@@ -528,10 +528,37 @@ public class BaseballApp {
 
         List<Match> matchList = makeMatchInfo(jsonObject, teamHashMap);
 
-        List<Calendar> calendarList = new ArrayList<>();
-        
-        JSONArray periodArray = (JSONArray) jsonObject.get("calendar");
+        List<Calendar> calendarList2 = new ArrayList<>();
+
+        JSONArray initialPlanArray = (JSONArray) jsonObject.get("initialPlan");
+        HashSet<LocalDateTime> matchStartDateSet = new HashSet<>();
+        int calendarIndex = 0;
         Calendar prev = null;
+        for (Object o : initialPlanArray) {
+            JSONObject initialPlanObejct = (JSONObject) o;
+            LocalDateTime startTime =
+                LocalDateTime.parse(initialPlanObejct.get("datetime").toString(), formatter);
+
+            if (!matchStartDateSet.contains(startTime)) {
+                long consecutive = (Long) initialPlanObejct.get("consecutive");
+                Long holiday = (Long) initialPlanObejct.get("holiday");
+                Long weekend = (Long) initialPlanObejct.get("weekend");
+
+                Calendar period = new Calendar(calendarIndex, startTime, (int) consecutive, weekend.intValue(),
+                    holiday.intValue());
+                period.setPrev(prev);
+                calendarList2.add(period);
+                prev = period;
+
+                calendarIndex += 1;
+                matchStartDateSet.add(startTime);
+            }
+
+        }
+
+        List<Calendar> calendarList = new ArrayList<>();
+        JSONArray periodArray = (JSONArray) jsonObject.get("calendar");
+        prev = null;
         for (int i = 0; i < periodArray.size(); i++) {
             JSONObject calendarInfo = (JSONObject) periodArray.get(i);
             LocalDateTime startTime =
@@ -545,6 +572,15 @@ public class BaseballApp {
             calendarList.add(period);
             prev = period;
         }
+
+        if (calendarList.size() != calendarList2.size()) {
+            throw new UnsupportedOperationException("aaaa");
+        }
+
+        for (int i = 0; i < calendarList.size(); i++) {
+
+        }
+
         LocalDateTime lastDate = LocalDateTime.parse(Constants.PLAN_END_TIME, formatter);
         Calendar dummy = new Calendar(9999L, lastDate, 0, 0, 0);
         dummy.setPrev(calendarList.get(calendarList.size() - 1));
