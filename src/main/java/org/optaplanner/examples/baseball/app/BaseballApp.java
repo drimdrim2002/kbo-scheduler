@@ -357,9 +357,11 @@ public class BaseballApp {
                 String weekdayOrWeekend = "주말 이동";
                 if (prevMatch != null) {
                     LocalDateTime prevDate = prevMatch.getCalendar().getStartTime();
-                    if (!isAllStarBreak(prevDate) && prevDate.getDayOfWeek().equals(DayOfWeek.TUESDAY)) {
+                    if (prevDate.getDayOfWeek().equals(DayOfWeek.TUESDAY)) {
                         weekdayOrWeekend = "주중 이동";
                     }
+                } else {
+                    weekdayOrWeekend = "주중 이동";
                 }
 
                 cell.setCellValue(weekdayOrWeekend);
@@ -382,12 +384,6 @@ public class BaseballApp {
         }
     }
 
-    private static boolean isAllStarBreak(LocalDateTime prevDate) {
-        if (prevDate.getMonth().equals(Month.JULY) && prevDate.getDayOfMonth() == 11) { // 올스타 브레이크
-            return true;
-        }
-        return false;
-    }
 
     private static void createScheduleSheet(TreeMap<LocalDateTime, List<Match>> matchResultsOrderByTime,
         XSSFWorkbook workbook) {
@@ -510,9 +506,10 @@ public class BaseballApp {
                 Calendar calendar = calendarHashMap.get(datetime);
                 match.setCalendar(calendar);
                 LocalDateTime matchStartTime = calendar.getStartTime();
-                if (matchStartTime.getMonth().equals(Month.MARCH) && matchStartTime.getDayOfMonth() == 23) { // 개막전 고정
+                boolean isFirstDay = matchStartTime.toString().contains(Constants.MATCH_START_DATE);
+                if (isFirstDay) { // 개막전 고정
                     match.setPinned(true);
-                    logger.info("initial plan fixed: " + initialPlanInfo.toString());
+                    logger.info("initial plan fixed: " + initialPlanInfo);
                 }
 //                } else if (matchStartTime.getMonth().equals(Month.MAY)
 //                    && matchStartTime.getDayOfMonth() == 5) { // 어린이날 고정
@@ -538,10 +535,7 @@ public class BaseballApp {
             JSONObject calendarInfo = (JSONObject) periodArray.get(i);
             LocalDateTime startTime =
                 LocalDateTime.parse(calendarInfo.get("datetime").toString(), formatter);
-//            logger.info(startTime.toString());
             long consecutive = (Long) calendarInfo.get("consecutive");
-//            boolean holiday = (Long) calendarInfo.get("holiday") == 0 ? false : true;
-//            boolean weekend = (Long) calendarInfo.get("weekend") == 0 ? false : true;
             Long holiday = (Long) calendarInfo.get("holiday");
             Long weekend = (Long) calendarInfo.get("weekend");
 
@@ -550,7 +544,7 @@ public class BaseballApp {
             calendarList.add(period);
             prev = period;
         }
-        LocalDateTime lastDate = LocalDateTime.parse("2024-12-31 00:00:00", formatter);
+        LocalDateTime lastDate = LocalDateTime.parse(Constants.PLAN_END_TIME, formatter);
         Calendar dummy = new Calendar(9999L, lastDate, 0, 0, 0);
         dummy.setPrev(calendarList.get(calendarList.size() - 1));
         calendarList.add(dummy);
