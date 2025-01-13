@@ -29,7 +29,7 @@
   <!-- Optimization algorithms configuration -->
   <termination>
     <minutesSpentLimit>10</minutesSpentLimit>
-    <unimprovedSecondsSpentLimit>120</unimprovedSecondsSpentLimit>
+    <unimprovedSecondsSpentLimit>300</unimprovedSecondsSpentLimit>
   </termination>
 
   <!-- Power tweaked optimization algorithms configuration -->
@@ -39,10 +39,10 @@
   <localSearch>
 
     <termination>
-      <stepCountLimit>1000</stepCountLimit>
+      <stepCountLimit>10000</stepCountLimit>
       <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
       <!--      <unimprovedStepCountLimit>100</unimprovedStepCountLimit>-->
-      <unimprovedStepCountLimit>100</unimprovedStepCountLimit>
+      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>
     </termination>
     <unionMoveSelector>
       <changeMoveSelector/>
@@ -52,7 +52,7 @@
     </unionMoveSelector>
     <acceptor>
       <!--      <lateAcceptanceSize>20000</lateAcceptanceSize>-->
-      <lateAcceptanceSize>1000</lateAcceptanceSize>
+      <lateAcceptanceSize>2000</lateAcceptanceSize>
     </acceptor>
     <forager>
       <acceptedCountLimit>20</acceptedCountLimit>

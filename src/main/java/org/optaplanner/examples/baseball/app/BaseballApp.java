@@ -617,7 +617,7 @@ public class BaseballApp {
         JSONParser parser = new JSONParser();
         JSONObject jsonObject;
         try {
-            Reader reader = new FileReader("data/baseball/input_2024.json");
+            Reader reader = new FileReader(Constants.inputFileName);
 //            Reader reader = new FileReader("../../../data/baseball/input.json");
             jsonObject = (JSONObject) parser.parse(reader);
 
