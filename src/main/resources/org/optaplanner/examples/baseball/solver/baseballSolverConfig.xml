@@ -51,10 +51,11 @@
       <pillarSwapMoveSelector/>
     </unionMoveSelector>
     <acceptor>
-      <lateAcceptanceSize>4000</lateAcceptanceSize>
+      <!--      <lateAcceptanceSize>20000</lateAcceptanceSize>-->
+      <lateAcceptanceSize>1000</lateAcceptanceSize>
     </acceptor>
     <forager>
-      <acceptedCountLimit>200</acceptedCountLimit>
+      <acceptedCountLimit>20</acceptedCountLimit>
     </forager>
   </localSearch>
 
