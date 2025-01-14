@@ -216,7 +216,7 @@ public class BaseballEasyScoreCalculator implements EasyScoreCalculator<Baseball
 
         return BendableLongScore.of(new long[]{duplicationHardScore, successiveHardScore},
             new long[]{minimizeShortScore, stabilizeMoveCountScore,
-                stabilizeHolidayScore, stabilizeDistanceScore, totalDistanceScore});
+                stabilizeDistanceScore, stabilizeHolidayScore, totalDistanceScore});
 
 
     }

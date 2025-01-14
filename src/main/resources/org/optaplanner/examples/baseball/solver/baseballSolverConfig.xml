@@ -42,7 +42,7 @@
       <stepCountLimit>10000</stepCountLimit>
       <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
       <!--      <unimprovedStepCountLimit>100</unimprovedStepCountLimit>-->
-      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>
+      <unimprovedStepCountLimit>300</unimprovedStepCountLimit>
     </termination>
     <unionMoveSelector>
       <changeMoveSelector/>
@@ -55,7 +55,7 @@
       <lateAcceptanceSize>2000</lateAcceptanceSize>
     </acceptor>
     <forager>
-      <acceptedCountLimit>20</acceptedCountLimit>
+      <acceptedCountLimit>40</acceptedCountLimit>
     </forager>
   </localSearch>
 
