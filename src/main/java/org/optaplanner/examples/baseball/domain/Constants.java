@@ -26,7 +26,7 @@ public class Constants {
         TOTAL_DISTANCE(300),
         HOLIDAY(1.5),
         WEEKDAY_MOVE(1.5),
-        TOTAL_MOVE(2.5);
+        TOTAL_MOVE(2);
 
         private final double tolerance;
 
