@@ -59,7 +59,7 @@
           <!-- WARNING: This configuration must be run with "mvn exec:java" not "mvn exec:exec". -->
           <!-- It is impossible to write a configuration that is compatible with both exec:java and exec:exec -->
           <configuration>
-            <mainClass>org.optaplanner.examples.app.OptaPlannerExamplesApp</mainClass>
+            <mainClass>org.optaplanner.examples.baseball.app.BaseballApp</mainClass>
             <!-- For some reason, Drools cannot find domain classes unless they are specified as a Jar in the classpath -->
             <!-- (By default, exec:java add target/classes, not target/jarfile) -->
             <!-- REMOVE ME when https://issues.redhat.com/browse/KOGITO-3954 is fixed -->
