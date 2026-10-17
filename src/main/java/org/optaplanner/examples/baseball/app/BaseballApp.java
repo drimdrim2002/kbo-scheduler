@@ -15,7 +15,6 @@ import org.optaplanner.examples.baseball.domain.Calendar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.ValidationException;
 import java.io.*;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -613,7 +612,7 @@ public class BaseballApp {
         return totalDistanceMap;
     }
 
-    private static JSONObject readJsonFile() throws ValidationException {
+    private static JSONObject readJsonFile() {
         JSONParser parser = new JSONParser();
         JSONObject jsonObject;
         try {
@@ -624,7 +623,7 @@ public class BaseballApp {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e.getMessage());
-            throw new ValidationException("No json file");
+            throw new IllegalArgumentException("No json file");
         }
         return jsonObject;
     }
