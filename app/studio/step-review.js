@@ -60,7 +60,7 @@
       s += '<div class="label">' + LBL[g] + '<span class="cnt">' + list.length + '</span></div>';
       for (const it of list) {
         const on = u.sel === 'p:' + it.id;
-        s += '<button class="li v' + (on ? ' active' : '') + '" data-act="p-sel" data-id="' + esc(it.id) + '"><span class="ico">' + S.statIcon(KIND[it.status]) + '</span><span class="li-main">' + esc(it.title) + '<span class="li-sub">' + esc(it.detail) + '</span></span></button>';
+        s += '<button class="li v' + (on ? ' active' : '') + '" data-act="p-sel" data-id="' + esc(it.id) + '"><span class="ico">' + S.statIcon(KIND[it.status]) + '</span><span class="li-main">' + esc(S.plain(it.title)) + '<span class="li-sub">' + esc(S.plain(it.detail)) + '</span></span></button>';
       }
     }
     return s + '</div>';
