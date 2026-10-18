@@ -114,7 +114,7 @@ class BaseballScoreParityTest {
     }
 
     /**
-     * Runs the XML move selectors (change, swap, pillar swap) under FULL_ASSERT.
+     * Runs the XML move selectors (full-round pillar swap, Kempe chain, round block) under FULL_ASSERT.
      * The assertion director recalculates every move with {@link BaseballEasyScoreCalculator}.
      * Score corruption fails the solve before this method returns.
      */

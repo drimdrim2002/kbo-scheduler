@@ -40,9 +40,16 @@
       <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
     </termination>
     <unionMoveSelector>
-      <changeMoveSelector/>
-      <swapMoveSelector/>
-      <pillarSwapMoveSelector/>
+      <!-- Full rounds only. Sub-pillars of 1..4 series break the five-game matching and are not scored. -->
+      <pillarSwapMoveSelector>
+        <subPillarType>NONE</subPillarType>
+      </pillarSwapMoveSelector>
+      <moveIteratorFactory>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.solver.KempeChainMoveIteratorFactory</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+      <moveIteratorFactory>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.solver.RoundBlockMoveIteratorFactory</moveIteratorFactoryClass>
+      </moveIteratorFactory>
     </unionMoveSelector>
     <acceptor>
       <!--      <lateAcceptanceSize>20000</lateAcceptanceSize>-->

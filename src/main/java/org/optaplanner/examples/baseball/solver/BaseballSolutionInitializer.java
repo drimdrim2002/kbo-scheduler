@@ -2,11 +2,14 @@ package org.optaplanner.examples.baseball.solver;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SplittableRandom;
+import java.util.stream.IntStream;
 import org.optaplanner.core.api.score.buildin.bendablelong.BendableLongScore;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
@@ -22,6 +25,22 @@ import org.slf4j.LoggerFactory;
  * {@code initialPlan} is not read. Match list order is ignored: series are bucketed by
  * consecutive length, home index, away index, and id.
  * <p>
+ * Construction is a GRASP multi-start. Each start runs three steps:
+ * <ol>
+ * <li>Phase A decomposes the 3-game series into perfect matchings (rounds) with exactly one
+ * shared-stadium home each. Edges with the same remaining multiplicity are tried in random order.</li>
+ * <li>Phase B orders the rounds over the free 3-game slots with a weighted nearest-neighbour DFS.
+ * The transition cost is {@code sum_t w_t * d(loc_t(r), loc_t(r'))}. After each construction a
+ * Lagrangian update raises {@code w_t} for teams that travel more than the league mean and lowers
+ * it for teams that travel less.</li>
+ * <li>A late-acceptance local search applies swap, Or-opt insertion, and 2-opt reversal moves over
+ * the free slots. Each candidate must pass the adjacent-matchup and four-in-a-row bitmask checks.
+ * Candidates are compared on soft levels 1..4 of {@link ScoreFormulas} in score order, so a shorter
+ * total distance can never be bought with a worse distance-variance penalty.</li>
+ * </ol>
+ * The best start wins. A start depends only on {@code (seed, start index)}, so the result is
+ * deterministic even when starts run in parallel.
+ * <p>
  * Opening day and Children's Day are pinned only after every regular slot is assigned.
  * The finished solution has hard scores 0/0 and no unassigned series.
  */
@@ -34,12 +53,42 @@ public final class BaseballSolutionInitializer {
     private static final int MAX_CONSECUTIVE = 4;
     private static final int CHILD_PERMUTATIONS = 120;
     private static final int DECOMPOSE_NODE_LIMIT = 4_000;
-    private static final int PLACE_NODE_LIMIT = 5_000;
+    private static final int PLACE_NODE_LIMIT = 20_000;
+    private static final int ATTEMPTS_PER_START = 40;
+    private static final int MULTIPLICITY_CEILING = 64;
+    /** GRASP noise: a candidate's weighted cost is scaled by a random factor in [1, 1 + noise). */
+    private static final double CONSTRUCTION_NOISE = 0.15;
+    /** Lagrangian step per tolerance unit (300 km) of deviation from the league mean. */
+    private static final double LAGRANGE_STEP = 0.35;
+    private static final double MIN_WEIGHT = 0.25;
+    private static final double MAX_WEIGHT = 4.0;
     private static final Comparator<Match> CANONICAL = Comparator
             .comparingInt(Match::getConsecutive)
             .thenComparingInt(match -> match.getHome().getIndex())
             .thenComparingInt(match -> match.getAway().getIndex())
             .thenComparingLong(match -> match.getId());
+
+    /**
+     * Search budget. Every limit is a count, never a wall-clock time, so a given seed always
+     * produces the same schedule.
+     *
+     * @param starts independent GRASP starts
+     * @param lagrangeRounds weighted constructions per start. Team weights are updated between them
+     * @param improveIterations late-acceptance iterations per start
+     * @param lateAcceptanceSize late-acceptance history length
+     * @param parallel run starts on the common fork-join pool
+     */
+    public record Settings(int starts, int lagrangeRounds, int improveIterations, int lateAcceptanceSize,
+            boolean parallel) {
+
+        public static final Settings DEFAULT = new Settings(80, 8, 60_000, 300, true);
+
+        public Settings {
+            if (starts <= 0 || lagrangeRounds <= 0 || improveIterations < 0 || lateAcceptanceSize <= 0) {
+                throw new IllegalArgumentException("invalid initializer settings");
+            }
+        }
+    }
 
     private BaseballSolutionInitializer() {
     }
@@ -49,13 +98,21 @@ public final class BaseballSolutionInitializer {
     }
 
     /**
-     * @param seed selects the first Children's Day matching to try. The next matchings are tried,
-     *        in permutation order, when decomposition or slot placement exceeds its node limit.
+     * @param seed master seed. Start {@code k} draws its Children's Day matchings, Phase A tie-breaks,
+     *        construction noise, and local-search moves from a generator seeded by {@code (seed, k)}.
      */
     public static void initialize(BaseballSolution solution, long seed) {
+        initialize(solution, seed, Settings.DEFAULT);
+    }
+
+    public static void initialize(BaseballSolution solution, long seed, Settings settings) {
         if (solution == null) {
             throw new IllegalArgumentException("solution is null");
         }
+        if (settings == null) {
+            throw new IllegalArgumentException("settings is null");
+        }
+        long startNanos = System.nanoTime();
         List<Team> teams = solution.getTeamList();
         List<Calendar> calendars = solution.getCalendarList();
         List<Match> matches = solution.getMatchList();
@@ -133,25 +190,33 @@ public final class BaseballSolutionInitializer {
             throw new IllegalStateException("2-game and 4-game series must each form one round of " + SERIES_PER_DAY);
         }
 
-        int start = Math.floorMod(seed, CHILD_PERMUTATIONS);
-        Round[] placed = null;
-        int usedPerm = -1;
-        for (int offset = 0; offset < CHILD_PERMUTATIONS; offset++) {
-            int permIndex = (start + offset) % CHILD_PERMUTATIONS;
-            Round[] schedule = attempt(baseRemaining, childHomes, childAways, permIndex, jamsil, teamByIndex,
-                    bySlot, opening, fourGame, children, openingRound, fourRound, roundCount);
-            if (schedule != null) {
-                placed = schedule;
-                usedPerm = permIndex;
-                break;
+        Problem problem = new Problem(teamByIndex, jamsil, childHomes, childAways, bySlot, opening.getSlotIndex(),
+                fourGame.getSlotIndex(), children.getSlotIndex(), baseRemaining, openingRound, fourRound, roundCount);
+
+        IntStream startIndexes = IntStream.range(0, settings.starts());
+        if (settings.parallel()) {
+            startIndexes = startIndexes.parallel();
+        }
+        Candidate[] results = startIndexes
+                .mapToObj(start -> runStart(problem, seed, start, settings))
+                .toArray(Candidate[]::new);
+        Candidate best = null;
+        int feasibleStarts = 0;
+        for (Candidate candidate : results) {
+            if (candidate == null) {
+                continue;
+            }
+            feasibleStarts++;
+            if (best == null || candidate.isBetterThan(best)) {
+                best = candidate;
             }
         }
-        if (placed == null) {
+        if (best == null) {
             throw new IllegalStateException(
-                    "No feasible initial solution within " + CHILD_PERMUTATIONS + " seeds starting at " + seed);
+                    "No feasible initial solution within " + settings.starts() + " starts from seed " + seed);
         }
 
-        assign(buckets, bySlot, placed);
+        assign(buckets, bySlot, best.schedule);
         pin(matches, opening, children);
         requireBucketsEmpty(buckets);
 
@@ -159,18 +224,52 @@ public final class BaseballSolutionInitializer {
         if (score.hardScore(0) != 0L || score.hardScore(1) != 0L || score.softScore(0) != 0L) {
             throw new IllegalStateException("constructed initial solution is not feasible: " + score);
         }
-        LOGGER.info("Constructed initial solution from seed {} using children's matching {} with score {}",
-                seed, usedPerm, score);
+        for (int level = 1; level < ScoreFormulas.SOFT_LEVELS; level++) {
+            if (-score.softScore(level) != best.soft[level - 1]) {
+                throw new IllegalStateException("initializer soft " + level + " = " + best.soft[level - 1]
+                        + " disagrees with ScoreFormulas: " + score);
+            }
+        }
+        LOGGER.info("Constructed initial solution from seed {} in {} ms: {} of {} starts feasible, best start {} "
+                + "(children's matching {}), score {}", seed, (System.nanoTime() - startNanos) / 1_000_000L,
+                feasibleStarts, settings.starts(), best.start, best.childPermutation, score);
     }
 
-    private static Round[] attempt(int[][] baseRemaining, int[] childHomes, int[] childAways, int permIndex,
-            boolean[] jamsil, Team[] teamByIndex, Calendar[] bySlot, Calendar opening, Calendar fourGame,
-            Calendar children, Round openingRound, Round fourRound, int roundCount) {
-        int[][] remaining = copy(baseRemaining);
-        int[] awayPerm = nthPermutation(childAways, permIndex);
+    // ************************************************************************
+    // One GRASP start
+    // ************************************************************************
+
+    private static Candidate runStart(Problem problem, long seed, int start, Settings settings) {
+        SplittableRandom random = new SplittableRandom(mix(seed, start));
+        for (int attempt = 0; attempt < ATTEMPTS_PER_START; attempt++) {
+            int permIndex = random.nextInt(CHILD_PERMUTATIONS);
+            Round[] rounds = decomposeAttempt(problem, permIndex, random);
+            if (rounds == null) {
+                continue;
+            }
+            Sequencer sequencer = new Sequencer(problem, rounds);
+            int[] perm = sequencer.lagrangianConstruction(settings.lagrangeRounds(), random);
+            if (perm == null) {
+                continue;
+            }
+            perm = sequencer.improve(perm, settings.improveIterations(), settings.lateAcceptanceSize(), random);
+            sequencer.evaluate(perm);
+            return new Candidate(start, permIndex, sequencer.schedule(perm), sequencer.key1, sequencer.key2,
+                    sequencer.softLevels());
+        }
+        return null;
+    }
+
+    /**
+     * @return the 3-game rounds ({@code roundCount} free rounds followed by the Children's Day round),
+     *         or null when this matching or the decomposition fails
+     */
+    private static Round[] decomposeAttempt(Problem problem, int permIndex, SplittableRandom random) {
+        int[][] remaining = copy(problem.baseRemaining);
+        int[] awayPerm = nthPermutation(problem.childAways, permIndex);
         int[] childEdges = new int[SERIES_PER_DAY];
         for (int i = 0; i < SERIES_PER_DAY; i++) {
-            int home = childHomes[i];
+            int home = problem.childHomes[i];
             int away = awayPerm[i];
             if (remaining[home][away] <= 0) {
                 return null;
@@ -178,11 +277,11 @@ public final class BaseballSolutionInitializer {
             remaining[home][away]--;
             childEdges[i] = pack(home, away);
         }
-        Round childRound = toRound(childEdges, teamByIndex, jamsil, true);
+        Round childRound = toRound(childEdges, problem.teamByIndex, problem.jamsil, true);
 
-        List<Round> rounds = new ArrayList<>(roundCount);
+        List<Round> rounds = new ArrayList<>(problem.roundCount);
         int[] nodes = {0};
-        if (!decompose(remaining, jamsil, teamByIndex, rounds, roundCount, nodes)) {
+        if (!decompose(remaining, problem.jamsil, problem.teamByIndex, rounds, problem.roundCount, nodes, random)) {
             return null;
         }
         for (int home = 0; home < TEAM_COUNT; home++) {
@@ -192,20 +291,17 @@ public final class BaseballSolutionInitializer {
                 }
             }
         }
-
-        Round[] fixed = new Round[bySlot.length];
-        fixed[opening.getSlotIndex()] = openingRound;
-        fixed[fourGame.getSlotIndex()] = fourRound;
-        fixed[children.getSlotIndex()] = childRound;
-        return place(fixed, rounds, bySlot);
+        Round[] result = rounds.toArray(new Round[problem.roundCount + 1]);
+        result[problem.roundCount] = childRound;
+        return result;
     }
 
     private static boolean decompose(int[][] remaining, boolean[] jamsil, Team[] teamByIndex, List<Round> rounds,
-            int roundCount, int[] nodes) {
+            int roundCount, int[] nodes, SplittableRandom random) {
         if (rounds.size() == roundCount) {
             return true;
         }
-        for (int edge : jamsilCandidates(remaining, jamsil)) {
+        for (int edge : jamsilCandidates(remaining, jamsil, random)) {
             nodes[0]++;
             if (nodes[0] > DECOMPOSE_NODE_LIMIT) {
                 return false;
@@ -216,9 +312,9 @@ public final class BaseballSolutionInitializer {
             int[] edges = new int[SERIES_PER_DAY];
             edges[0] = edge;
             int used = bit(home) | bit(away);
-            if (completeRound(remaining, jamsil, used, edges, 1, nodes)) {
+            if (completeRound(remaining, jamsil, used, edges, 1, nodes, random)) {
                 rounds.add(toRound(edges, teamByIndex, jamsil, true));
-                if (decompose(remaining, jamsil, teamByIndex, rounds, roundCount, nodes)) {
+                if (decompose(remaining, jamsil, teamByIndex, rounds, roundCount, nodes, random)) {
                     return true;
                 }
                 rounds.remove(rounds.size() - 1);
@@ -231,7 +327,7 @@ public final class BaseballSolutionInitializer {
     }
 
     private static boolean completeRound(int[][] remaining, boolean[] jamsil, int used, int[] edges, int count,
-            int[] nodes) {
+            int[] nodes, SplittableRandom random) {
         nodes[0]++;
         if (nodes[0] > DECOMPOSE_NODE_LIMIT) {
             return false;
@@ -240,12 +336,12 @@ public final class BaseballSolutionInitializer {
             return true;
         }
         int pivot = lowestUnset(used);
-        for (int edge : edgeCandidates(remaining, jamsil, pivot, used)) {
+        for (int edge : edgeCandidates(remaining, jamsil, pivot, used, random)) {
             int home = unpackHome(edge);
             int away = unpackAway(edge);
             remaining[home][away]--;
             edges[count] = edge;
-            if (completeRound(remaining, jamsil, used | bit(home) | bit(away), edges, count + 1, nodes)) {
+            if (completeRound(remaining, jamsil, used | bit(home) | bit(away), edges, count + 1, nodes, random)) {
                 return true;
             }
             remaining[home][away]++;
@@ -253,120 +349,541 @@ public final class BaseballSolutionInitializer {
         return false;
     }
 
-    private static Round[] place(Round[] fixed, List<Round> rounds, Calendar[] bySlot) {
-        int slotCount = bySlot.length;
-        boolean[] filled = new boolean[slotCount];
-        Round[] schedule = new Round[slotCount];
-        int[] empty = new int[rounds.size()];
-        int emptyCount = 0;
-        for (int slot = 0; slot < slotCount; slot++) {
-            if (fixed[slot] != null) {
-                filled[slot] = true;
-                schedule[slot] = fixed[slot];
-            } else {
-                if (bySlot[slot].getConsecutive() != 3) {
-                    throw new IllegalStateException("unfilled slot " + slot + " is not a 3-game slot");
-                }
-                empty[emptyCount++] = slot;
-            }
-        }
-        if (emptyCount != rounds.size()) {
-            throw new IllegalStateException("round count " + rounds.size() + " does not match empty slots " + emptyCount);
-        }
-        boolean[] used = new boolean[rounds.size()];
-        int[] nodes = {0};
-        if (!placeAt(0, empty, rounds, used, filled, schedule, nodes)) {
-            return null;
-        }
-        return schedule;
-    }
+    // ************************************************************************
+    // Phase B: distance- and variance-aware sequencing
+    // ************************************************************************
 
-    private static boolean placeAt(int index, int[] empty, List<Round> rounds, boolean[] used, boolean[] filled,
-            Round[] schedule, int[] nodes) {
-        nodes[0]++;
-        if (nodes[0] > PLACE_NODE_LIMIT) {
-            return false;
+    /**
+     * Orders one start's rounds over the slots. Round ids {@code 0..roundCount-1} are free,
+     * {@code roundCount} is Children's Day, then opening and the 4-game round. A permutation
+     * {@code perm[p]} is the round in free slot {@code freeSlots[p]}.
+     */
+    private static final class Sequencer {
+        private final Problem problem;
+        private final Round[] rounds;
+        private final int roundTotal;
+        private final int slotCount;
+        private final int[] freeSlots;
+        private final int[] homeMask;
+        private final long[] pairMask;
+        /** {@code legs[(from * roundTotal + to) * TEAM_COUNT + team]} in tenths of a kilometre. */
+        private final long[] legs;
+        private final double[] weightedCost;
+        /** Fixed slots only; free slots are -1. */
+        private final int[] template;
+        /** Evaluation buffer: fixed slots plus the permutation last written by {@link #fill}. */
+        private final int[] seq;
+        private final long[] distance = new long[TEAM_COUNT];
+        private final long[] moves = new long[TEAM_COUNT];
+        private final long[] holiday = new long[TEAM_COUNT];
+        private final long[] soft = new long[ScoreFormulas.SOFT_LEVELS - 1];
+        private long key1;
+        private long key2;
+
+        private Sequencer(Problem problem, Round[] threeGameRounds) {
+            this.problem = problem;
+            int free = problem.roundCount;
+            roundTotal = free + 3;
+            rounds = Arrays.copyOf(threeGameRounds, roundTotal);
+            rounds[free + 1] = problem.openingRound;
+            rounds[free + 2] = problem.fourRound;
+            slotCount = problem.bySlot.length;
+            freeSlots = problem.freeSlots;
+            homeMask = new int[roundTotal];
+            pairMask = new long[roundTotal];
+            int[][] location = new int[roundTotal][TEAM_COUNT];
+            for (int r = 0; r < roundTotal; r++) {
+                homeMask[r] = rounds[r].homeMask;
+                pairMask[r] = rounds[r].pairMask;
+                for (int edge : rounds[r].edges) {
+                    int home = unpackHome(edge);
+                    location[r][home] = home;
+                    location[r][unpackAway(edge)] = home;
+                }
+            }
+            legs = new long[roundTotal * roundTotal * TEAM_COUNT];
+            for (int from = 0; from < roundTotal; from++) {
+                for (int to = 0; to < roundTotal; to++) {
+                    int base = (from * roundTotal + to) * TEAM_COUNT;
+                    for (int team = 0; team < TEAM_COUNT; team++) {
+                        legs[base + team] = problem.distance[location[from][team]][location[to][team]];
+                    }
+                }
+            }
+            weightedCost = new double[roundTotal * roundTotal];
+            template = new int[slotCount];
+            Arrays.fill(template, -1);
+            template[problem.childSlot] = free;
+            template[problem.openingSlot] = free + 1;
+            template[problem.fourSlot] = free + 2;
+            seq = template.clone();
         }
-        if (index == empty.length) {
-            return true;
+
+        /**
+         * Builds {@code roundsToTry} weighted constructions. The first uses unit weights; each later one
+         * reweights teams by their deviation from the league mean in the previous construction.
+         *
+         * @return the construction with the best soft levels, or null when none was found
+         */
+        private int[] lagrangianConstruction(int roundsToTry, SplittableRandom random) {
+            double[] weights = new double[TEAM_COUNT];
+            Arrays.fill(weights, 1.0d);
+            int[] best = null;
+            long bestKey1 = Long.MAX_VALUE;
+            long bestKey2 = Long.MAX_VALUE;
+            for (int round = 0; round < roundsToTry; round++) {
+                updateWeightedCost(weights);
+                int[] perm = construct(random, CONSTRUCTION_NOISE);
+                if (perm == null) {
+                    continue;
+                }
+                evaluate(perm);
+                if (best == null || isLess(key1, key2, bestKey1, bestKey2)) {
+                    best = perm;
+                    bestKey1 = key1;
+                    bestKey2 = key2;
+                }
+                lagrangeUpdate(weights);
+            }
+            if (best == null) {
+                // A weighted order can corner the DFS near the fixed slots. Index order is the old first-fit.
+                best = construct(null, 0.0d);
+            }
+            return best;
         }
-        int slot = empty[index];
-        int roundCount = rounds.size();
-        for (int i = 0; i < roundCount; i++) {
-            if (used[i]) {
-                continue;
+
+        private void updateWeightedCost(double[] weights) {
+            for (int pair = 0; pair < weightedCost.length; pair++) {
+                int base = pair * TEAM_COUNT;
+                double cost = 0.0d;
+                for (int team = 0; team < TEAM_COUNT; team++) {
+                    cost += weights[team] * legs[base + team];
+                }
+                weightedCost[pair] = cost;
             }
-            Round round = rounds.get(i);
-            if (!fits(slot, round, filled, schedule)) {
-                continue;
+        }
+
+        /** Uses {@link #distance} from the latest {@link #evaluate}. */
+        private void lagrangeUpdate(double[] weights) {
+            long sum = 0L;
+            for (long value : distance) {
+                sum += value;
             }
-            used[i] = true;
-            filled[slot] = true;
-            schedule[slot] = round;
-            if (placeAt(index + 1, empty, rounds, used, filled, schedule, nodes)) {
-                return true;
+            double mean = (double) sum / TEAM_COUNT;
+            double total = 0.0d;
+            for (int team = 0; team < TEAM_COUNT; team++) {
+                double deviation = (distance[team] - mean) / ScoreFormulas.DISTANCE_TOLERANCE_TENTHS;
+                double weight = weights[team] * Math.exp(LAGRANGE_STEP * deviation);
+                weights[team] = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, weight));
+                total += weights[team];
             }
-            schedule[slot] = null;
-            filled[slot] = false;
-            used[i] = false;
+            double scale = TEAM_COUNT / total;
+            for (int team = 0; team < TEAM_COUNT; team++) {
+                weights[team] *= scale;
+            }
+        }
+
+        /**
+         * Depth-first fill of the free slots in slot order. Candidates are tried cheapest first by
+         * weighted transition cost from the previous slot (and into a fixed next slot), each cost
+         * scaled by GRASP noise. A null {@code random} tries rounds in index order.
+         */
+        private int[] construct(SplittableRandom random, double noise) {
+            int[] work = seq.clone();
+            boolean[] used = new boolean[problem.roundCount];
+            int[] nodes = {0};
+            if (!placeAt(0, work, used, nodes, random, noise)) {
+                return null;
+            }
+            int[] perm = new int[freeSlots.length];
+            for (int p = 0; p < freeSlots.length; p++) {
+                perm[p] = work[freeSlots[p]];
+            }
+            return perm;
+        }
+
+        private boolean placeAt(int index, int[] work, boolean[] used, int[] nodes, SplittableRandom random,
+                double noise) {
+            nodes[0]++;
             if (nodes[0] > PLACE_NODE_LIMIT) {
                 return false;
             }
+            if (index == freeSlots.length) {
+                return true;
+            }
+            int slot = freeSlots[index];
+            int free = problem.roundCount;
+            int[] order = new int[free];
+            double[] cost = new double[free];
+            int count = 0;
+            int previous = slot > 0 ? work[slot - 1] : -1;
+            int next = slot + 1 < slotCount ? work[slot + 1] : -1;
+            for (int r = 0; r < free; r++) {
+                if (used[r] || !fits(slot, r, work)) {
+                    continue;
+                }
+                double c = 0.0d;
+                if (random != null) {
+                    if (previous >= 0) {
+                        c += weightedCost[previous * roundTotal + r];
+                    }
+                    if (next >= 0) {
+                        c += weightedCost[r * roundTotal + next];
+                    }
+                    c *= 1.0d + noise * random.nextDouble();
+                }
+                order[count] = r;
+                cost[count] = c;
+                count++;
+            }
+            if (random != null) {
+                sortByCost(order, cost, count);
+            }
+            for (int i = 0; i < count; i++) {
+                int r = order[i];
+                used[r] = true;
+                work[slot] = r;
+                if (placeAt(index + 1, work, used, nodes, random, noise)) {
+                    return true;
+                }
+                work[slot] = -1;
+                used[r] = false;
+                if (nodes[0] > PLACE_NODE_LIMIT) {
+                    return false;
+                }
+            }
+            return false;
         }
-        return false;
+
+        /**
+         * Rejects a round that repeats an unordered pair on either filled neighbouring slot, or that
+         * would make some team home or away for four slot indexes in a row. Slot index order matches
+         * {@code ScoreFormulas}, including across date gaps such as the all-star break.
+         */
+        private boolean fits(int slot, int round, int[] work) {
+            long pairs = pairMask[round];
+            if (slot > 0 && work[slot - 1] >= 0 && (pairMask[work[slot - 1]] & pairs) != 0L) {
+                return false;
+            }
+            if (slot + 1 < slotCount && work[slot + 1] >= 0 && (pairMask[work[slot + 1]] & pairs) != 0L) {
+                return false;
+            }
+            int windowStart = Math.max(0, slot - 3);
+            int windowEnd = Math.min(slotCount - 4, slot);
+            for (int window = windowStart; window <= windowEnd; window++) {
+                int all = FULL_MASK;
+                int any = 0;
+                boolean ready = true;
+                for (int offset = 0; offset < 4; offset++) {
+                    int index = window + offset;
+                    int mask;
+                    if (index == slot) {
+                        mask = homeMask[round];
+                    } else if (work[index] >= 0) {
+                        mask = homeMask[work[index]];
+                    } else {
+                        ready = false;
+                        break;
+                    }
+                    all &= mask;
+                    any |= mask;
+                }
+                if (ready && (all != 0 || (~any & FULL_MASK) != 0)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /** Full hard check of a complete sequence. */
+        private boolean feasible(int[] full) {
+            for (int slot = 1; slot < slotCount; slot++) {
+                if ((pairMask[full[slot - 1]] & pairMask[full[slot]]) != 0L) {
+                    return false;
+                }
+            }
+            for (int window = 0; window + 3 < slotCount; window++) {
+                int m0 = homeMask[full[window]];
+                int m1 = homeMask[full[window + 1]];
+                int m2 = homeMask[full[window + 2]];
+                int m3 = homeMask[full[window + 3]];
+                if ((m0 & m1 & m2 & m3) != 0 || (~(m0 | m1 | m2 | m3) & FULL_MASK) != 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Late acceptance over the free-slot permutation. Moves: swap two slots, move one slot
+         * elsewhere (Or-opt), reverse a segment (2-opt). Half of the moves stay within 8 positions.
+         */
+        private int[] improve(int[] start, int iterations, int historySize, SplittableRandom random) {
+            int n = start.length;
+            int[] current = start.clone();
+            int[] candidate = new int[n];
+            int[] best = start.clone();
+            evaluate(current);
+            long currentKey1 = key1;
+            long currentKey2 = key2;
+            long bestKey1 = key1;
+            long bestKey2 = key2;
+            long[] history1 = new long[historySize];
+            long[] history2 = new long[historySize];
+            Arrays.fill(history1, currentKey1);
+            Arrays.fill(history2, currentKey2);
+            for (int iteration = 0; iteration < iterations; iteration++) {
+                System.arraycopy(current, 0, candidate, 0, n);
+                int p = random.nextInt(n);
+                int q;
+                if (random.nextBoolean()) {
+                    int offset = 1 + random.nextInt(8);
+                    q = random.nextBoolean() ? p + offset : p - offset;
+                    if (q < 0 || q >= n) {
+                        continue;
+                    }
+                } else {
+                    q = random.nextInt(n - 1);
+                    if (q >= p) {
+                        q++;
+                    }
+                }
+                switch (random.nextInt(3)) {
+                    case 0 -> {
+                        int tmp = candidate[p];
+                        candidate[p] = candidate[q];
+                        candidate[q] = tmp;
+                    }
+                    case 1 -> {
+                        int moved = candidate[p];
+                        if (p < q) {
+                            System.arraycopy(candidate, p + 1, candidate, p, q - p);
+                        } else {
+                            System.arraycopy(candidate, q, candidate, q + 1, p - q);
+                        }
+                        candidate[q] = moved;
+                    }
+                    default -> {
+                        int low = Math.min(p, q);
+                        int high = Math.max(p, q);
+                        while (low < high) {
+                            int tmp = candidate[low];
+                            candidate[low] = candidate[high];
+                            candidate[high] = tmp;
+                            low++;
+                            high--;
+                        }
+                    }
+                }
+                int[] full = fill(candidate);
+                if (!feasible(full)) {
+                    continue;
+                }
+                evaluateFull(full);
+                int slot = iteration % historySize;
+                if (!isLess(currentKey1, currentKey2, key1, key2)
+                        || !isLess(history1[slot], history2[slot], key1, key2)) {
+                    int[] swap = current;
+                    current = candidate;
+                    candidate = swap;
+                    currentKey1 = key1;
+                    currentKey2 = key2;
+                    if (isLess(currentKey1, currentKey2, bestKey1, bestKey2)) {
+                        System.arraycopy(current, 0, best, 0, n);
+                        bestKey1 = currentKey1;
+                        bestKey2 = currentKey2;
+                    }
+                }
+                history1[slot] = currentKey1;
+                history2[slot] = currentKey2;
+            }
+            return best;
+        }
+
+        private int[] fill(int[] perm) {
+            for (int p = 0; p < perm.length; p++) {
+                seq[freeSlots[p]] = perm[p];
+            }
+            return seq;
+        }
+
+        private void evaluate(int[] perm) {
+            evaluateFull(fill(perm));
+        }
+
+        /**
+         * Exact soft levels 1..4 of {@link ScoreFormulas#evaluate} for a hard-feasible sequence:
+         * each team plays one series per slot, so a route is the slot sequence of its locations.
+         */
+        private void evaluateFull(int[] full) {
+            Arrays.fill(distance, 0L);
+            Arrays.fill(moves, 0L);
+            Arrays.fill(holiday, 0L);
+            for (int slot = 1; slot < slotCount; slot++) {
+                int base = (full[slot - 1] * roundTotal + full[slot]) * TEAM_COUNT;
+                for (int team = 0; team < TEAM_COUNT; team++) {
+                    long leg = legs[base + team];
+                    distance[team] += leg;
+                    if (leg > 0L) {
+                        moves[team]++;
+                    }
+                }
+            }
+            for (int slot : problem.holidaySlots) {
+                int weight = problem.holidayBySlot[slot];
+                int mask = homeMask[full[slot]];
+                while (mask != 0) {
+                    int team = Integer.numberOfTrailingZeros(mask);
+                    holiday[team] += weight;
+                    mask &= mask - 1;
+                }
+            }
+            soft[0] = ScoreFormulas.moveVariancePenalty(moves);
+            soft[1] = ScoreFormulas.distanceVariancePenalty(distance);
+            soft[2] = ScoreFormulas.holidayVariancePenalty(holiday);
+            soft[3] = ScoreFormulas.totalDistanceKm(distance);
+            key1 = (saturate(soft[0], 28) << 34) | saturate(soft[1], 34);
+            key2 = (saturate(soft[2], 38) << 24) | saturate(soft[3], 24);
+        }
+
+        private long[] softLevels() {
+            return soft.clone();
+        }
+
+        private Round[] schedule(int[] perm) {
+            int[] full = fill(perm);
+            Round[] schedule = new Round[slotCount];
+            for (int slot = 0; slot < slotCount; slot++) {
+                schedule[slot] = rounds[full[slot]];
+            }
+            return schedule;
+        }
+    }
+
+    private static void sortByCost(int[] order, double[] cost, int count) {
+        for (int i = 1; i < count; i++) {
+            int r = order[i];
+            double c = cost[i];
+            int j = i - 1;
+            while (j >= 0 && cost[j] > c) {
+                order[j + 1] = order[j];
+                cost[j + 1] = cost[j];
+                j--;
+            }
+            order[j + 1] = r;
+            cost[j + 1] = c;
+        }
+    }
+
+    /** Lexicographic {@code (a1, a2) < (b1, b2)}. Lower penalty is better. */
+    private static boolean isLess(long a1, long a2, long b1, long b2) {
+        return a1 < b1 || (a1 == b1 && a2 < b2);
+    }
+
+    private static long saturate(long value, int bits) {
+        return Math.min(value, (1L << bits) - 1L);
+    }
+
+    private static long mix(long seed, int start) {
+        long z = seed + 0x9E3779B97F4A7C15L * (start + 1L);
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        return z ^ (z >>> 31);
     }
 
     /**
-     * Rejects a round that repeats an unordered pair on either neighboring slot, or that would
-     * make some team home or away for four slot indexes in a row. Slot index order matches
-     * {@code ScoreFormulas}, including across date gaps such as the all-star break.
+     * Soft levels 1..4 as penalties ({@code soft[0]} is score soft 1). {@code key1}/{@code key2}
+     * encode them for lexicographic comparison. Ties go to the lower start index.
      */
-    private static boolean fits(int slot, Round round, boolean[] filled, Round[] schedule) {
-        if (overlapsNeighbor(slot - 1, round, filled, schedule) || overlapsNeighbor(slot + 1, round, filled, schedule)) {
-            return false;
+    private record Candidate(int start, int childPermutation, Round[] schedule, long key1, long key2, long[] soft) {
+
+        boolean isBetterThan(Candidate other) {
+            if (isLess(key1, key2, other.key1, other.key2)) {
+                return true;
+            }
+            return key1 == other.key1 && key2 == other.key2 && start < other.start;
         }
-        int lastWindow = schedule.length - 4;
-        int windowStart = Math.max(0, slot - 3);
-        int windowEnd = Math.min(lastWindow, slot);
-        for (int window = windowStart; window <= windowEnd; window++) {
-            if (!windowReady(window, slot, filled)) {
-                continue;
-            }
-            int m0 = maskAt(window, slot, round, schedule);
-            int m1 = maskAt(window + 1, slot, round, schedule);
-            int m2 = maskAt(window + 2, slot, round, schedule);
-            int m3 = maskAt(window + 3, slot, round, schedule);
-            if ((m0 & m1 & m2 & m3) != 0) {
-                return false;
-            }
-            if (((~m0 & ~m1 & ~m2 & ~m3) & FULL_MASK) != 0) {
-                return false;
-            }
-        }
-        return true;
     }
 
-    private static boolean overlapsNeighbor(int neighbor, Round round, boolean[] filled, Round[] schedule) {
-        return neighbor >= 0 && neighbor < schedule.length && filled[neighbor]
-                && (schedule[neighbor].pairMask & round.pairMask) != 0L;
-    }
+    /** Immutable facts shared by every start. */
+    private static final class Problem {
+        private final Team[] teamByIndex;
+        private final boolean[] jamsil;
+        private final int[] childHomes;
+        private final int[] childAways;
+        private final Calendar[] bySlot;
+        private final int openingSlot;
+        private final int fourSlot;
+        private final int childSlot;
+        private final int[][] baseRemaining;
+        private final Round openingRound;
+        private final Round fourRound;
+        private final int roundCount;
+        private final int[] freeSlots;
+        private final long[][] distance;
+        private final int[] holidayBySlot;
+        private final int[] holidaySlots;
 
-    private static boolean windowReady(int window, int slot, boolean[] filled) {
-        for (int offset = 0; offset < 4; offset++) {
-            int index = window + offset;
-            if (index != slot && !filled[index]) {
-                return false;
+        private Problem(Team[] teamByIndex, boolean[] jamsil, int[] childHomes, int[] childAways, Calendar[] bySlot,
+                int openingSlot, int fourSlot, int childSlot, int[][] baseRemaining, Round openingRound,
+                Round fourRound, int roundCount) {
+            this.teamByIndex = teamByIndex;
+            this.jamsil = jamsil;
+            this.childHomes = childHomes;
+            this.childAways = childAways;
+            this.bySlot = bySlot;
+            this.openingSlot = openingSlot;
+            this.fourSlot = fourSlot;
+            this.childSlot = childSlot;
+            this.baseRemaining = baseRemaining;
+            this.openingRound = openingRound;
+            this.fourRound = fourRound;
+            this.roundCount = roundCount;
+            int slotCount = bySlot.length;
+            freeSlots = new int[roundCount];
+            int free = 0;
+            for (int slot = 0; slot < slotCount; slot++) {
+                if (slot == openingSlot || slot == fourSlot || slot == childSlot) {
+                    continue;
+                }
+                if (bySlot[slot].getConsecutive() != 3) {
+                    throw new IllegalStateException("unfilled slot " + slot + " is not a 3-game slot");
+                }
+                if (free == roundCount) {
+                    throw new IllegalStateException("more free 3-game slots than rounds " + roundCount);
+                }
+                freeSlots[free++] = slot;
+            }
+            if (free != roundCount) {
+                throw new IllegalStateException("round count " + roundCount + " does not match empty slots " + free);
+            }
+            distance = new long[TEAM_COUNT][TEAM_COUNT];
+            for (int from = 0; from < TEAM_COUNT; from++) {
+                for (int to = 0; to < TEAM_COUNT; to++) {
+                    distance[from][to] = teamByIndex[from].getDistanceTenthsTo(to);
+                }
+            }
+            holidayBySlot = new int[slotCount];
+            int holidayCount = 0;
+            for (int slot = 0; slot < slotCount; slot++) {
+                holidayBySlot[slot] = Math.max(0, bySlot[slot].getHoliday());
+                if (holidayBySlot[slot] > 0) {
+                    holidayCount++;
+                }
+            }
+            holidaySlots = new int[holidayCount];
+            int next = 0;
+            for (int slot = 0; slot < slotCount; slot++) {
+                if (holidayBySlot[slot] > 0) {
+                    holidaySlots[next++] = slot;
+                }
             }
         }
-        return true;
     }
 
-    private static int maskAt(int index, int slot, Round round, Round[] schedule) {
-        if (index == slot) {
-            return round.homeMask;
-        }
-        return schedule[index].homeMask;
-    }
+    // ************************************************************************
+    // Assignment, validation, and helpers
+    // ************************************************************************
 
     private static void assign(Deque<Match>[][][] buckets, Calendar[] bySlot, Round[] schedule) {
         for (int slot = 0; slot < schedule.length; slot++) {
@@ -437,6 +954,9 @@ public final class BaseballSolutionInitializer {
                 degree[away] += count;
                 if (jamsil[home]) {
                     jamsilHomes += count;
+                }
+                if (count >= MULTIPLICITY_CEILING) {
+                    throw new IllegalStateException("series multiplicity " + count + " is too large");
                 }
             }
         }
@@ -631,44 +1151,56 @@ public final class BaseballSolutionInitializer {
         return bySlot;
     }
 
-    private static List<Integer> jamsilCandidates(int[][] remaining, boolean[] jamsil) {
-        List<Integer> candidates = new ArrayList<>();
+    /**
+     * Shared-stadium home edges, most remaining copies first. Equal counts are shuffled by {@code random}.
+     */
+    private static int[] jamsilCandidates(int[][] remaining, boolean[] jamsil, SplittableRandom random) {
+        long[] keys = new long[TEAM_COUNT * TEAM_COUNT];
+        int count = 0;
         for (int home = 0; home < TEAM_COUNT; home++) {
             if (!jamsil[home]) {
                 continue;
             }
             for (int away = 0; away < TEAM_COUNT; away++) {
                 if (away != home && remaining[home][away] > 0) {
-                    candidates.add(pack(home, away));
+                    keys[count++] = edgeKey(remaining, pack(home, away), random);
                 }
             }
         }
-        candidates.sort(edgeOrder(remaining));
-        return candidates;
+        return sortedEdges(keys, count);
     }
 
-    private static List<Integer> edgeCandidates(int[][] remaining, boolean[] jamsil, int pivot, int used) {
-        List<Integer> candidates = new ArrayList<>();
+    private static int[] edgeCandidates(int[][] remaining, boolean[] jamsil, int pivot, int used,
+            SplittableRandom random) {
+        long[] keys = new long[2 * TEAM_COUNT];
+        int count = 0;
         for (int other = 0; other < TEAM_COUNT; other++) {
             if (other == pivot || (used & bit(other)) != 0) {
                 continue;
             }
             if (!jamsil[pivot] && remaining[pivot][other] > 0) {
-                candidates.add(pack(pivot, other));
+                keys[count++] = edgeKey(remaining, pack(pivot, other), random);
             }
             if (!jamsil[other] && remaining[other][pivot] > 0) {
-                candidates.add(pack(other, pivot));
+                keys[count++] = edgeKey(remaining, pack(other, pivot), random);
             }
         }
-        candidates.sort(edgeOrder(remaining));
-        return candidates;
+        return sortedEdges(keys, count);
     }
 
-    private static Comparator<Integer> edgeOrder(int[][] remaining) {
-        return Comparator
-                .comparingInt((Integer edge) -> -remaining[unpackHome(edge)][unpackAway(edge)])
-                .thenComparingInt(BaseballSolutionInitializer::unpackHome)
-                .thenComparingInt(BaseballSolutionInitializer::unpackAway);
+    /** Sort key: fewer missing copies first, then a random tie-break, then the edge in the low byte. */
+    private static long edgeKey(int[][] remaining, int edge, SplittableRandom random) {
+        long urgency = MULTIPLICITY_CEILING - remaining[unpackHome(edge)][unpackAway(edge)];
+        return (urgency << 40) | ((long) random.nextInt(1 << 30) << 8) | edge;
+    }
+
+    private static int[] sortedEdges(long[] keys, int count) {
+        Arrays.sort(keys, 0, count);
+        int[] edges = new int[count];
+        for (int i = 0; i < count; i++) {
+            edges[i] = (int) (keys[i] & 0xFFL);
+        }
+        return edges;
     }
 
     private static int lowestUnset(int used) {
