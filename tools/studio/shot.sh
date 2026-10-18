@@ -2,7 +2,7 @@
 # usage: shot.sh name "hash" [w] -> shots/name-W.png (viewport 1440x790 / 1920x970)
 NAME=$1; HASH=$2; ONLY=$3
 CH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-ROOT=/Users/brown/workspace/optaplanner-practice-ui/wizard-ui/alt-a
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p $ROOT/shots
 for W in 1440 1920; do
   [ -n "$ONLY" ] && [ "$ONLY" != "$W" ] && continue

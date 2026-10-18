@@ -24,3 +24,4 @@ x-teams|step=1&tab=teams
 x-holidays|step=1&tab=holidays
 x-events|step=1&tab=events
 x-slotlist|step=3&view=slots
+p5-block|step=2&demo=block

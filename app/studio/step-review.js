@@ -87,8 +87,8 @@
     const H = r.history;
     const W = S.wide ? 620 : 410;
     const labels = H.map((x) => fmt.time(x.t));
-    const hard = KBO.Chart.line({ series: [{ label: 'Hard 합', color: '#B3261E', values: H.map((x) => x.hard), emphasis: true }], xLabels: labels, xEvery: Math.ceil(H.length / 6), width: W, height: 210, title: 'Hard 점수 추이', endLabels: false });
-    const soft = KBO.Chart.line({ series: [{ label: 'Soft 합', color: '#1F5FD6', values: H.map((x) => Math.round(x.soft / 1000)), emphasis: true }], xLabels: labels, xEvery: Math.ceil(H.length / 6), width: W, height: 210, title: 'Soft 점수 추이', endLabels: false, format: (v) => fmt.int(v) + 'k' });
+    const hard = KBO.Chart.line({ series: [{ label: 'Hard 합', color: '#B3261E', values: H.map((x) => x.hard), emphasis: true }], xLabels: labels, xEvery: Math.ceil(H.length / 6), width: W, height: S.wide ? 210 : 180, title: 'Hard 점수 추이', endLabels: false });
+    const soft = KBO.Chart.line({ series: [{ label: 'Soft 합', color: '#1F5FD6', values: H.map((x) => Math.round(x.soft / 1000)), emphasis: true }], xLabels: labels, xEvery: Math.ceil(H.length / 6), width: W, height: S.wide ? 210 : 180, title: 'Soft 점수 추이', endLabels: false, format: (v) => fmt.int(v) + 'k' });
     const last = H[H.length - 1];
     return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
       '<div class="trend"><div class="chart-title"><b class="small">Hard 합</b><span class="mono small" style="color:var(--bad)">' + fmt.neg(last.hard) + '</span><span class="small muted">0이면 편성 가능</span></div>' + hard + '</div>' +
@@ -205,6 +205,15 @@
   });
   S.inputs.solver = (el) => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) app().updateSolverSettings({ [el.dataset.k]: v }); };
 
+  // 시연 상태 (P5): 차단 항목 — 시리즈 한 행을 넣어 3연전 용량을 넘긴다
+  S.demos.block = function () {
+    S.ui.step = 1; S.ui.tab = 'series'; S.ui.cell = { sheet: 'series', row: 10, col: 'home' };
+    S.insertRow('below');
+    const pf = app().preflight();
+    const b = pf.items.find((x) => x.status === 'block');
+    S.ui.step = 2; S.ui.sel = b ? 'p:' + b.id : null;
+    S.render();
+  };
   // 시연 상태 (P5): 실행 중 62%에서 멈춘 화면
   S.demos.running = function () {
     const limit = (app().state.settings.solver.timeLimitSec || 60) * 1000;

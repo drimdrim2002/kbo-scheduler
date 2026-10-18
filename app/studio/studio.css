@@ -724,3 +724,4 @@ svg.kmap { display: block; margin: 0 auto; max-height: 420px; }
 .kmap-sub { fill: #5F697D; font-size: 9px; }
 .kmap-active .kmap-dot { stroke: #1F5FD6; stroke-width: 2.5; }
 .kmap-ring { fill: none; stroke-width: 1.5; }
+@media (min-height: 900px) { .mt tbody td { height: 46px; } }

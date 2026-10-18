@@ -369,7 +369,7 @@
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : app().distanceOf(a, b))));
       s += '<details class="fold" style="margin-top:12px" data-feature="T7"><summary>' + icon('grid') + '거리 행렬 히트맵 <span class="muted">10 × 10 · km · 대칭 편집 켜짐</span></summary><div style="padding:8px 10px" class="chart-box">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 52, cellH: 24, labelW: 50, format: (v) => (v == null ? '' : Math.round(v)), title: '구단 간 이동거리' }) + '</div></details>';
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 58, cellH: 24, labelW: 50, format: (v) => (v == null ? '' : Number(v).toFixed(1)), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
     return s;

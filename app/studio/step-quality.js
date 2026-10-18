@@ -116,7 +116,7 @@
   function a1() {
     const L = league();
     const items = tms().map((t) => ({ label: t.name, value: t.distanceKm, color: t.team != null ? app().state.teams[t.team].color : '#1F5FD6', flag: t.overDistance, key: t.name, note: t.overDistance ? '허용오차 초과' : '' }));
-    return chartWrap('총 이동거리', '구단별 1차 편성 총 이동거리. 점선 = 리그 평균, 띠 = ±300km 허용오차, 빗금·▲ = 초과.', C().bar({ items, width: W(), height: S.wide ? 520 : 400, mean: L.meanDistanceKm, band: { lo: L.meanDistanceKm - 300, hi: L.meanDistanceKm + 300, label: '허용오차 ±300km' }, unit: 'km', format: (v) => fmt.int(v), yZero: false, title: '구단별 총 이동거리' }));
+    return chartWrap('총 이동거리', '구단별 1차 편성 총 이동거리. 점선 = 리그 평균, 띠 = ±300km 허용오차, 빗금·▲ = 초과.', C().bar({ items, width: W(), height: S.wide ? 520 : 400, mean: L.meanDistanceKm, band: { lo: L.meanDistanceKm - 300, hi: L.meanDistanceKm + 300, label: '허용오차 ±300km' }, unit: 'km', format: (v) => fmt.km(v), yZero: false, title: '구단별 총 이동거리' }));
   }
   function a2() {
     const L = league(), T = tms();
@@ -152,7 +152,7 @@
       for (const sl of c.slots) { const v = bySlot.get(sl.index); if (v) cum = v.cumTenths / 10; vals.push(cum); }
       return { label: t.name, color: app().state.teams[t.team].color, values: vals, emphasis: u.team === t.name, dim: !!u.team && u.team !== t.name };
     });
-    return chartWrap('누적 이동거리', '시즌 진행에 따른 구단별 누적 이동거리(km). 왼쪽에서 구단을 고르면 강조합니다.', C().line({ series, xLabels: c.slots.map((s) => Dates.fmtShort(s.day)), width: W(), height: S.wide ? 520 : 400, format: (v) => fmt.int(v), title: '누적 이동거리' }));
+    return chartWrap('누적 이동거리', '시즌 진행에 따른 구단별 누적 이동거리(km). 왼쪽에서 구단을 고르면 강조합니다.', C().line({ series, xLabels: c.slots.map((s) => Dates.fmtShort(s.day)), width: W(), height: S.wide ? 520 : 400, format: (v) => fmt.km(v), title: '누적 이동거리' }));
   }
   function a5() {
     const st = app().state;
@@ -209,7 +209,7 @@
         const st = app().state;
         const rows = [['슬롯', st.calendar.length, '시작일·연전·주말·휴일가중치·메모'], ['시리즈', st.matches.length, '홈·원정·연전·메모'], ['공휴일', st.settings.holidays.length, '날짜·이름'], ['휴식예외일', st.settings.restExceptions.length, '날짜·메모'], ['경기없는기간', st.settings.blackouts.length, '시작일·종료일·이름'], ['이벤트', st.events.length, '이름·유형·날짜·방식·홈·원정·구장'], ['안내', '-', '열 설명 · 시즌 골격 참고값(개막·종료·휴식 요일)']];
         return '<div style="padding:0 12px 12px"><div class="label" style="padding:4px 0 6px">.xlsx 배포본 구성 (가져오기와 같은 시트·열)</div><table class="itable" style="border:1px solid var(--line)"><thead><tr><th>시트</th><th class="num">행</th><th>열</th></tr></thead><tbody>' + rows.map((r) => '<tr><td><b>' + r[0] + '</b></td><td class="num">' + r[1] + '</td><td class="small muted">' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
-      })() + '<div class="small muted" style="padding:0 12px">현재 점수 ' + esc(fmt.score(D().ex.score)) + (D().ex.feasible ? '' : ' — Hard 위반이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
+      })() + '<div class="small muted" style="padding:0 12px">' + (D().ex.feasible ? '편성 가능한 상태입니다.' : 'Hard 위반이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
     return s;
   }
 

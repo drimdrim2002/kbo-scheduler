@@ -289,8 +289,7 @@
     const rule = Score.RULE_BY_CODE[v.code];
     let s = '<div class="insp-sec"><div class="insp-title"><span class="vrule" style="padding:0"><code>' + v.code + '</code></span>' + esc(rule.label) + (S.isVirtual(v) ? S.virt() : '') + '</div>' +
       '<div class="insp-sub">' + esc(rule.desc) + '</div></div>';
-    s += '<div class="insp-sec"><h4>원인</h4><div>' + esc(v.message) + '</div>' +
-      (S.isVirtual(v) ? '<div class="small muted" style="margin-top:6px">' + icon('info') + ' 시연용 가상 위반: ' + esc(virtNote(v)) + '</div>' : '') + '</div>';
+    if (S.isVirtual(v)) s += '<div class="insp-sec"><h4>가상 위반</h4><div class="small muted">' + icon('info') + ' 시연을 위해 넣은 위반입니다: ' + esc(virtNote(v)) + '. 원인 문장은 왼쪽 위반 목록에 있습니다.</div></div>';
     s += '<div class="insp-sec"><h4>위치<span class="r">' + esc(c.slots[v.slot].label) + '</span></h4>' +
       (v.matches || []).map((m) => '<button class="li" data-act="sel-match" data-m="' + m + '" style="padding-left:6px"><span class="ico">' + icon('target') + '</span><span class="li-main">' + esc(app().matchLabel(m)) + ' <span class="muted small">' + esc(c.plan[m] >= 0 ? fmt.date(c.slots[c.plan[m]].day) : '미배정') + '</span></span>' + icon('right') + '</button>').join('') +
       '</div>';
