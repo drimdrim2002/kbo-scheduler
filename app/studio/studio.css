@@ -968,3 +968,6 @@ svg.mc text { font-family: var(--font); }
 .rt-cancel { color: var(--bad); font-size: var(--fs-s); font-weight: 600; display: flex; gap: 4px; align-items: center; }
 .rt-next { margin-top: 8px; color: var(--blue); display: flex; gap: 5px; align-items: center; font-weight: 600; }
 .ws-route .pane.main { display: flex; flex-direction: column; }
+.cand .delta.plain { font-family: var(--font); gap: 10px; }
+.cand .delta.plain > span { display: inline-flex; align-items: center; gap: 3px; }
+.cand .delta.plain svg.i { width: 12px; height: 12px; }

@@ -80,7 +80,7 @@
     if (S.dev()) return '<span class="delta"><span class="' + hc + '">Hard ' + fmt.signed(h) + (h > 0 ? ' 해소' : '') + '</span>' + (s != null ? '<span class="' + sc + '">Soft ' + fmt.signed(s) + '</span>' : '') + '</span>';
     const ht = h > 0 ? icon('check') + '위반 ' + h + ' 줄어듦' : h < 0 ? icon('x') + '위반 ' + (-h) + ' 늘어남' : '위반 그대로';
     const st = s == null ? '' : s > 0 ? icon('check') + '공정성 좋아짐' : s < 0 ? icon('warn') + '공정성 나빠짐' : '공정성 그대로';
-    return '<span class="delta"><span class="' + hc + '">' + ht + '</span>' + (st ? '<span class="' + sc + '">' + st + '</span>' : '') + '</span>';
+    return '<span class="delta plain"><span class="' + hc + '">' + ht + '</span>' + (st ? '<span class="' + sc + '">' + st + '</span>' : '') + '</span>';
   };
   function deltaHtml(cd) {
     if (!S.feature('M2')) return '';

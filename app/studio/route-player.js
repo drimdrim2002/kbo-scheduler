@@ -199,8 +199,7 @@
       '<button class="btn sm" data-act="rt-restart" title="시즌 처음으로">' + icon('undo') + '처음</button>' +
       '<span class="seg" role="group" aria-label="재생 속도">' + SPEEDS.map((x) => '<button class="' + (x === speed ? 'on' : '') + '" data-act="rt-speed" data-v="' + x + '" aria-pressed="' + (x === speed) + '">' + x + '×</button>').join('') + '</span>' +
       '<input type="range" class="rt-range" id="rtRange" min="0" max="' + Math.max(0, legs.length - 1) + '" step="0.05" value="' + (u.routePos || 0).toFixed(2) + '" data-live="rt-range" aria-label="시즌 위치 (구간)">' +
-      '<span class="rt-pos mono" id="rtPos">' + (l ? esc(fmt.short(l.day)) + ' · ' + (k + 1) + '/' + legs.length : '-') + '</span>' +
-      S.mock('재생 속도 시연') + '</div>';
+      '<span class="rt-pos mono" id="rtPos">' + (l ? esc(fmt.short(l.day)) + ' · ' + (k + 1) + '/' + legs.length : '-') + '</span></div>';
     main += '<div class="rt-stage"><div class="rt-mapcol"><div class="rt-map" id="rtMap">' + baseMap(name) + '</div>' +
       '<div class="rt-tl-wrap"><div class="rt-tl-head small"><b>시즌 타임라인</b><span class="muted">칸 = 시리즈 · 진한 칸 홈 · 흰 칸 원정 · 빨간 ✕ 취소</span></div><div class="rt-tl" id="rtTl">' + timelineHtml(legs) + '</div></div></div>' +
       '<div class="rt-logcol"><div class="rt-log-head"><b>구간 기록</b><span class="muted small">최근 순 · km</span></div><div class="rt-log-cols"><span>#</span><span>기간</span><span></span><span>상대·구장</span><span>구간</span><span>누적</span></div><div class="rt-log" id="rtLog">' + logHtml(legs) + '</div></div></div>';
