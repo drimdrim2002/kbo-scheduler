@@ -186,7 +186,7 @@
         let extra = '';
         if (sl) {
           const hard = c.ex.slotHard[sl.index];
-          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (sl.weekend ? ' 주말' : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '');
+          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (sl.weekend && !hard ? ' 주말' : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '');
         }
         s += '<div class="cal-day' + (out ? ' out' : '') + (i === 6 ? ' sun' : '') + (hn ? ' hol' : '') + (d === ref ? ' today' : '') + '" style="grid-column:' + (i + 2) + '">' + Dates.fmtShort(d).split('/')[1] + (hn ? '<span class="hn">' + esc(hn) + '</span>' : '') + extra + '</div>';
         const inSlot = c.dayToSlot.has(d);

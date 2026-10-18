@@ -205,7 +205,11 @@
       card('bolt', '엔진 JSON', 'input_2025.json 형식(teams, distanceMatrix, calendar, matches, initialPlan). Java 엔진 입력용.', 'export', 'engine') +
       card('db', '프로젝트 JSON', '입력·배정·스냅샷·경기 기록·기능 켜기·끄기(meta.features) 전체.', 'export', 'project') +
       (S.feature('D4') ? card('table', '일정표 CSV', '날짜, 원정, 홈, 구장, 상태. 구단을 고르면 그 구단만.', 'export', 'csv', false, '<p class="small">대상: ' + esc(S.ui.team || '전체 구단') + '</p>') : '') +
-      '</div><div class="small muted" style="padding:0 12px">현재 점수 ' + esc(fmt.score(D().ex.score)) + (D().ex.feasible ? '' : ' — Hard 위반이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
+      '</div>' + (function () {
+        const st = app().state;
+        const rows = [['슬롯', st.calendar.length, '시작일·연전·주말·휴일가중치·메모'], ['시리즈', st.matches.length, '홈·원정·연전·메모'], ['공휴일', st.settings.holidays.length, '날짜·이름'], ['휴식예외일', st.settings.restExceptions.length, '날짜·메모'], ['경기없는기간', st.settings.blackouts.length, '시작일·종료일·이름'], ['이벤트', st.events.length, '이름·유형·날짜·방식·홈·원정·구장'], ['안내', '-', '열 설명 · 시즌 골격 참고값(개막·종료·휴식 요일)']];
+        return '<div style="padding:0 12px 12px"><div class="label" style="padding:4px 0 6px">.xlsx 배포본 구성 (가져오기와 같은 시트·열)</div><table class="itable" style="border:1px solid var(--line)"><thead><tr><th>시트</th><th class="num">행</th><th>열</th></tr></thead><tbody>' + rows.map((r) => '<tr><td><b>' + r[0] + '</b></td><td class="num">' + r[1] + '</td><td class="small muted">' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
+      })() + '<div class="small muted" style="padding:0 12px">현재 점수 ' + esc(fmt.score(D().ex.score)) + (D().ex.feasible ? '' : ' — Hard 위반이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
     return s;
   }
 

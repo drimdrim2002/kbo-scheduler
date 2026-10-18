@@ -126,7 +126,7 @@
       '<div><div class="k">개선 횟수</div><div class="v">' + (running ? r.improvements : S.lastRun ? S.lastRun.improvements : 0) + '</div></div>' +
       '<div><div class="k">현재 최고 (Hard / Soft 합)</div><div class="v">' + (best ? fmt.neg(best.hard) + ' / ' + fmt.neg(best.soft) : '-') + '</div></div></div>';
     s += '</div></div>';
-    s += '<div style="flex:1;min-height:0;display:flex;flex-direction:column"><div class="label" style="padding:0 0 6px">점수 추이 ' + S.mock() + '</div>' + trend() + '</div>';
+    s += '<div style="flex:1;min-height:0;display:flex;flex-direction:column"><div class="label" style="padding:0 0 6px">점수 추이 ' + (!running && S.lastRun && S.lastRun.when ? '<span class="tag ref">지난 실행 · ' + esc(S.lastRun.when) + '</span>' : '') + S.mock() + '</div>' + trend() + '</div>';
     s += '</div>';
     return s;
   }
@@ -154,6 +154,7 @@
 
   S.steps[2] = {
     render() {
+      if (S.lastRun === undefined) S.lastRun = { history: buildHistory(1), elapsed: 60000, improvements: 68, reason: '최대 실행 시간', count: 1, when: '1/14(화) 09:12' };
       S.wide = window.innerWidth >= 1800;
       const insp = renderInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '사전 점검' }) + '</div>';
@@ -186,7 +187,7 @@
     clearInterval(timer);
     const r = S.run;
     const why = { TIME_LIMIT: '최대 실행 시간', STOPPED: '사용자 중지' }[reason];
-    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1 };
+    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()) };
     S.run = null;
     setLock(false);
     const ex = D().ex;

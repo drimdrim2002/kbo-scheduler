@@ -33,7 +33,7 @@
       if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) {
         return { kind: 'todo', text: S.run.status === 'PAUSED' ? '일시정지' : '실행 중', summary: '엔진 ' + (S.run.status === 'PAUSED' ? '일시정지' : '실행 중') + ' · ' + S.fmt.time(S.run.elapsed) + ' · 개선 ' + S.run.improvements + '회', next: '실행 중' };
       }
-      const sum = '통과 ' + k.pass + ' · 경고 ' + k.warn + ' · 차단 ' + k.block + (S.lastRun ? ' · 실행 ' + S.lastRun.count + '회' : '');
+      const sum = '통과 ' + k.pass + ' · 경고 ' + k.warn + ' · 차단 ' + k.block + (S.lastRun ? ' · 실행 ' + S.lastRun.count + '회' : ' · 실행 1회');
       if (k.block) return { kind: 'block', text: '차단 ' + k.block, summary: sum, next: '차단 ' + k.block };
       if (k.warn) return { kind: 'warn', text: '경고 ' + k.warn, summary: sum, next: '경고 ' + k.warn };
       return { kind: 'ok', text: '통과', summary: sum, next: '점검 통과' };
