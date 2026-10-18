@@ -214,6 +214,11 @@
   S.ops = {
     render() {
       S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
+      if (S.ui.ops === 'route' && !S.feature('A6')) S.ui.ops = 'games';
+      if (S.ui.ops === 'route') {
+        const r = S.route.render();
+        return '<div class="stepview no-band">' + S.workspace({ list: r.list, main: r.main, insp: r.insp, inspTitle: r.title, listLabel: '구단 목록', cls: 'ws-route' }) + '</div>';
+      }
       if (S.ui.ops === 'reschedule') {
         const insp = rsInsp();
         return '<div class="stepview no-band">' + S.workspace({ list: rsList(), main: rsMain(), insp: insp.html, inspTitle: insp.title, listLabel: '재편성 대상' }) + '</div>';
@@ -226,7 +231,10 @@
       const insp = progressInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: gamesList(), main: gamesMain(), insp: insp.html, inspTitle: insp.title, listLabel: '경기일' }) + '</div>';
     },
-    after() { if (S.ui.ops === 'games') S.revealSelected('.li.active', '.pane.list .pane-body'); }
+    after() {
+      if (S.ui.ops === 'games') S.revealSelected('.li.active', '.pane.list .pane-body');
+      if (S.ui.ops === 'route') S.route.after(); else S.route.stop();
+    }
   };
 
   function gameByKey(key) { return app().games().find((g) => g.key === key); }
