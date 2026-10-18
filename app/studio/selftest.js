@@ -159,14 +159,76 @@
     const rbOk = document.querySelectorAll('.imp-viz[data-viz="ribbon"] .rd.chg').length > 0;
     ok('가져오기 미리보기 시각화 (시리즈 행렬·슬롯 띠)', mxOk && rbOk, 'matrix ' + mxOk + ' · ribbon ' + rbOk);
     click('[data-act="close-modal"]'); flush();
-    // 18. ④ 지표 차트 클릭 → 구단 강조
-    S.go({ step: 4, qv: 'metrics', team: null });
+    // 18. ④ 지표 차트 클릭 → 구단 강조 (opt-2: 비교표는 띠를 펼쳐야 DOM에 있다)
+    S.go({ step: 4, qv: 'metrics', team: null, mtOpen: true });
     click('.mc-item[data-team="NC"]'); flush();
     const selRow = document.querySelector('.mt tbody tr.sel');
     ok('지표 차트 클릭 → 구단 강조', S.ui.team === 'NC' && selRow && /NC/.test(selRow.textContent) && document.querySelectorAll('.mc-item.sel[data-team="NC"]').length === 4, 'sel ' + document.querySelectorAll('.mc-item.sel').length);
     const dot = document.querySelector('.mc-item[data-team="LG"]');
     dot.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush();
     ok('차트 요소 키보드(Enter) 선택', S.ui.team === 'LG');
+
+    // ───────── opt-2 추가 점검 ─────────
+    // 18a. 요약 카드 값 = 코어 지표에서 직접 계산한 값
+    S.go({ step: 4, qv: 'metrics', team: null, mtOpen: false });
+    {
+      const ex = S.app.derived().ex, T = ex.teamMetrics, L = ex.league;
+      const card = (id) => document.querySelector('.q-card[data-card="' + id + '"]');
+      const over = T.filter((t) => t.overDistance).map((t) => t.name);
+      const big = T.slice().sort((a, b) => Math.abs(b.distanceKm - L.meanDistanceKm) - Math.abs(a.distanceKm - L.meanDistanceKm))[0];
+      const wk = T.map((t) => t.weekendHome);
+      const c1 = card('mean'), c2 = card('over'), c3 = card('dev'), c4 = card('wk');
+      const v1 = c1 && c1.getAttribute('data-v') === L.meanDistanceKm.toFixed(1) && +c1.getAttribute('data-total') === L.totalKm && c1.textContent.includes(S.fmt.km(L.meanDistanceKm));
+      const v2 = c2 && +c2.getAttribute('data-v') === over.length && c2.getAttribute('data-teams') === over.join(',') && c2.querySelectorAll('.q-chip').length === over.length;
+      const v3 = c3 && c3.getAttribute('data-team') === big.name && c3.getAttribute('data-v') === (big.distanceKm - L.meanDistanceKm).toFixed(1);
+      const v4 = c4 && +c4.getAttribute('data-v') === Math.max(...wk) - Math.min(...wk);
+      ok('요약 카드 값 (평균·초과·최대 편차·주말 홈 편차)', v1 && v2 && v3 && v4, '평균 ' + (c1 && c1.getAttribute('data-v')) + ' · 초과 ' + (c2 && c2.getAttribute('data-v')) + ' · 편차 ' + (c3 && c3.getAttribute('data-team')) + ' ' + (c3 && c3.getAttribute('data-v')) + ' · 주말 ' + (c4 && c4.getAttribute('data-v')));
+      ok('차트 2×2 = 이동거리 막대 + 점 차트 3개', document.querySelectorAll('.q-charts .mc-box').length === 4 && document.querySelectorAll('.q-charts [data-chart="distance"] .mc-item').length === T.length && ['moves', 'holiday', 'weekend'].every((id) => document.querySelectorAll('.q-charts [data-chart="' + id + '"] .mc-item').length === T.length));
+    }
+    // 18b. 비교표 띠 접기·펼치기
+    {
+      const closed0 = !document.querySelector('.q-band .mt') && document.querySelector('.q-band-head').getAttribute('aria-expanded') === 'false';
+      click('[data-act="q-mt"]'); flush();
+      const open1 = document.querySelectorAll('.q-band-body .mt tbody tr').length === S.app.state.teams.length && /mt=1/.test(location.hash) && document.querySelector('.q-dash.open') && document.querySelector('.q-band-head').getAttribute('aria-expanded') === 'true';
+      click('[data-act="q-mt"]'); flush();
+      const closed2 = !document.querySelector('.q-band .mt') && !/mt=1/.test(location.hash);
+      ok('비교표 띠 접기 → 펼치기(표 10행·주소 mt=1) → 접기', closed0 && open1 && closed2, closed0 + ' · ' + !!open1 + ' · ' + closed2);
+    }
+    // 18c. 카드 클릭 → 대시보드 전체 강조 (카드·막대·점 3개·띠 요약, 펼치면 표 행)
+    {
+      const c3 = document.querySelector('.q-card[data-card="dev"]');
+      const big = c3.getAttribute('data-team');
+      click('.q-card[data-card="dev"]'); flush();
+      const all = (name) => document.querySelectorAll('.mc-item.sel[data-team="' + name + '"]').length === 4 && !!document.querySelector('.q-band-sel[data-team="' + name + '"]') && document.querySelectorAll('.q-card-sel.on').length === 4 && Array.from(document.querySelectorAll('.q-card-sel.on')).every((e) => e.textContent.includes(name));
+      ok('카드 클릭 → 막대·점·띠·카드 모두 강조', S.ui.team === big && document.querySelector('.q-card[data-card="dev"]').classList.contains('sel') && all(big), big);
+      click('.q-card[data-card="over"] .q-chip[data-team="SSG"]'); flush();
+      const chipSel = !!document.querySelector('.q-card[data-card="over"] .q-chip.sel[data-team="SSG"]') && !document.querySelector('.q-card[data-card="dev"]').classList.contains('sel');
+      S.go({ mtOpen: true });
+      const row = document.querySelector('.mt tbody tr.sel');
+      ok('카드 구단 칩 클릭 → 펼친 표 행까지 강조', S.ui.team === 'SSG' && chipSel && all('SSG') && row && /SSG/.test(row.textContent));
+      click('.q-charts [data-chart="holiday"] .mc-item[data-team="한화"]'); flush();
+      ok('점 차트 클릭 → 카드·표·막대 강조', S.ui.team === '한화' && all('한화') && /한화/.test((document.querySelector('.mt tbody tr.sel') || {}).textContent || ''));
+      S.go({ mtOpen: false });
+    }
+    // 18d. ② 큰 실행 시간 카드 → timeLimitSec
+    {
+      S.go({ step: 2, ops: null });
+      const cards = document.querySelectorAll('.choices.big .choice.bc[data-act="run-time"]');
+      const got = [];
+      for (const sec of [1800, 300, 60]) {
+        click('.choice.bc[data-act="run-time"][data-v="' + sec + '"]'); flush();
+        const on = document.querySelectorAll('.choice.bc[data-act="run-time"][aria-checked="true"]');
+        got.push(S.app.state.settings.solver.timeLimitSec === sec && on.length === 1 && on[0].getAttribute('data-v') === String(sec) && on[0].classList.contains('on') ? sec : 'x' + S.app.state.settings.solver.timeLimitSec);
+      }
+      click('.choice.bc[data-act="run-time"][data-v="1800"]'); flush();
+      const pick = /충분히 30분/.test(document.querySelector('.bc-pick').textContent);
+      click('.choice.bc[data-act="run-time"][data-v="60"]'); flush();
+      ok('큰 실행 시간 카드 3장 → timeLimitSec (1800·300·60), 요약 줄 반영', cards.length === 3 && got.join(',') === '1800,300,60' && pick, got.join(','));
+      click('.choice.bc[data-act="solver-init"][data-v="SCRATCH"]'); flush();
+      const sc = S.app.state.settings.solver.init === 'SCRATCH' && /처음부터 새로 짜기/.test(document.querySelector('.bc-pick').textContent);
+      click('.choice.bc[data-act="solver-init"][data-v="KEEP"]'); flush();
+      ok('큰 시작 방식 카드 2장 → init, 편성 시작 버튼', document.querySelectorAll('.choice.bc[data-act="solver-init"]').length === 2 && sc && S.app.state.settings.solver.init === 'KEEP' && !!document.querySelector('.btn.go[data-act="run-start"]'));
+    }
     // 19. 이동 경로 재생·정지
     S.go({ ops: 'route', team: 'KT', routePos: 0, drawer: null, modal: null });
     click('[data-act="rt-play"]');
@@ -210,6 +272,8 @@
     at({ step: 3, view: 'matrix' }, '③ 구단×슬롯');
     at({ step: 3, view: 'calendar' }, '③ 스냅샷 메뉴', () => { S.ui.menu = 'snap'; S.ui.menuPos = { x: 1200, y: 140 }; });
     at({ step: 3 }, '데이터 메뉴', () => { S.ui.menu = 'data'; S.ui.menuPos = { x: 1200, y: 44 }; });
+    at({ step: 4, qv: 'metrics', team: 'KT', mtOpen: true }, '④ metrics 표 펼침');
+    at({ step: 4, qv: 'metrics', team: null, mtOpen: false }, '④ metrics 구단 없음');
     for (const q of ['metrics', 'soft', 'a1', 'a2', 'a3', 'a4', 'a5', 'a8', 'a9', 'a10', 'a12', 'sched', 'export']) at({ step: 4, qv: q, team: 'KT' }, '④ ' + q);
     for (const lv of ['S0', 'S1', 'S2', 'S3', 'S4']) at({ step: 4, qv: 'soft', softLevel: lv }, '④ soft ' + lv);
     at({ ops: 'games' }, '시즌 운영 경기 기록');
@@ -232,4 +296,5 @@
     document.documentElement.setAttribute('data-selftest', (fails ? 'FAIL ' + fails : 'ALL PASS') + ' / ' + out.length + ' :: ' + out.join(' | '));
   }
   setTimeout(run, 50);
+  // opt-2: 점검 항목은 std 49개 + opt-2 8개
 })();

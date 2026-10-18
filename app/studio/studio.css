@@ -1079,3 +1079,4 @@ svg.mc text { font-family: var(--font); }
 @media (min-width: 1800px) { .choices.big .choice.bc { padding: 12px 14px; gap: 6px; } .bc-glyph { width: 42px; height: 42px; } .bc-time { font-size: 20px; } .bc-name b { font-size: 15px; } }
 .simple-opts.big > .field { display: flex; flex-direction: column; }
 .simple-opts.big .choices.big { flex: 1; }
+.q-charts .mc-box .blk-head > b { white-space: nowrap; flex: none; }

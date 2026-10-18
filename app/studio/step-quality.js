@@ -124,7 +124,7 @@
       m.dev ? ' data-act="q-team" data-team="' + esc(m.dev.name) + '" role="button" tabindex="0" aria-pressed="' + (sel === m.dev.name) + '" data-v="' + m.dev.km.toFixed(1) + '"' : '', 'click' + (m.dev && sel === m.dev.name ? ' sel' : ''));
     s += card('wk', icon('cal') + '주말 홈 편차 <span class="q-card-kx">참고</span>',
       '<b>' + m.wGap + '</b><span class="u">시리즈 차이</span>',
-      '최다 ' + m.wMax + ' · 최소 ' + m.wMin + ' <span class="muted">(' + m.wMaxTeams.length + '·' + m.wMinTeams.length + '구단)</span>',
+      S.wide ? '최다 ' + m.wMax + ' (' + m.wMaxTeams.length + '구단) · 최소 ' + m.wMin + ' (' + m.wMinTeams.length + '구단)' : '최다 ' + m.wMax + ' · 최소 ' + m.wMin + ' 시리즈',
       st ? '<b>' + esc(st.name) + '</b> ' + st.weekendHome + '시리즈 (평균 ' + fmt.signed1(st.weekendHome - m.wMean) + ')' : '',
       ' data-v="' + m.wGap + '" title="' + esc('최다 ' + m.wMax + ': ' + m.wMaxTeams.join(', ') + ' / 최소 ' + m.wMin + ': ' + m.wMinTeams.join(', ')) + '"');
     return s + '</div>';
@@ -366,6 +366,7 @@
         S._dashBox[u.open ? 'open' : 'closed'] = { w: mw, h: mh };
         if (mw > 60 && mh > 60 && (Math.abs(mw - u.w) > 4 || Math.abs(mh - u.h) > 4) && !S._dashRe) { S._dashRe = true; try { S.render(); } finally { S._dashRe = false; } }
       }
+      if (S.ui.qv === 'metrics' && S.ui.mtOpen) S.revealSelected('.mt tbody tr.sel', '.q-band-body');
       document.querySelectorAll('.kc-item[data-key]').forEach((g) => { g.setAttribute('data-act', 'q-team'); g.setAttribute('data-team', g.getAttribute('data-key')); });
     }
   };
