@@ -5,7 +5,7 @@
   <!--<environmentMode>FULL_ASSERT</environmentMode>--><!-- To slowly prove there are no bugs in this code -->
   <environmentMode>REPRODUCIBLE</environmentMode>
   <randomSeed>0</randomSeed>
-  <moveThreadCount>AUTO</moveThreadCount>
+  <moveThreadCount>4</moveThreadCount>
   <!-- To solve faster by saturating multiple CPU cores -->
 
   <!-- Domain model configuration -->
@@ -14,8 +14,7 @@
 
   <!-- Score configuration -->
   <scoreDirectorFactory>
-    <easyScoreCalculatorClass>org.optaplanner.examples.baseball.score.BaseballEasyScoreCalculator
-    </easyScoreCalculatorClass>
+    <constraintProviderClass>org.optaplanner.examples.baseball.score.BaseballConstraintProvider</constraintProviderClass>
     <!--<easyScoreCalculatorClass>org.optaplanner.examples.cloudbalancing.optional.score.CloudBalancingMapBasedEasyScoreCalculator</easyScoreCalculatorClass>-->
     <!--<constraintProviderClass>org.optaplanner.examples.cloudbalancing.optional.score.CloudBalancingConstraintProvider</constraintProviderClass>-->
     <!--    <incrementalScoreCalculatorClass>org.optaplanner.examples.ba.optional.score.CloudBalancingIncrementalScoreCalculator</incrementalScoreCalculatorClass>-->
@@ -43,7 +42,6 @@
     <unionMoveSelector>
       <changeMoveSelector/>
       <swapMoveSelector/>
-      <pillarChangeMoveSelector/>
       <pillarSwapMoveSelector/>
     </unionMoveSelector>
     <acceptor>

@@ -3,6 +3,7 @@ package org.optaplanner.examples.baseball.domain;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 
 public class Calendar extends AbstractPersistable implements Comparable<Calendar> {
 
@@ -12,6 +13,10 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
     private int consecutive;
     private int weekend;
     private int holiday;
+    private boolean dummy;
+    private int slotIndex;
+    private boolean childrenDay;
+    private boolean allStarBreakTuesday;
 
     public Calendar(long id, LocalDateTime startTime, int consecutive, int weekend, int holiday) {
         super(id);
@@ -19,6 +24,7 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
         this.consecutive = consecutive;
         this.weekend = weekend;
         this.holiday = holiday;
+        refreshPreprocessingFlags();
     }
 
     public LocalDateTime getStartTime() {
@@ -27,6 +33,7 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
 
     public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
+        refreshPreprocessingFlags();
     }
 
     public Calendar getNext() {
@@ -75,6 +82,36 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
 
     public int getHoliday() {
         return holiday;
+    }
+
+    public boolean isDummy() {
+        return dummy;
+    }
+
+    public boolean isChildrenDay() {
+        return childrenDay;
+    }
+
+    public boolean isAllStarBreakTuesday() {
+        return allStarBreakTuesday;
+    }
+
+    public int getSlotIndex() {
+        return slotIndex;
+    }
+
+    public boolean isRegular() {
+        return !dummy && slotIndex >= 0;
+    }
+
+    private void refreshPreprocessingFlags() {
+        dummy = id != null && id == 9999L;
+        slotIndex = (dummy || id == null) ? -1 : id.intValue();
+        childrenDay = startTime != null
+                && startTime.toLocalDate().toString().equals(Constants.CHILDREN_DAY_START);
+        allStarBreakTuesday = startTime != null
+                && startTime.getMonth() == Month.JULY
+                && startTime.getDayOfMonth() == 2;
     }
 
     @Override

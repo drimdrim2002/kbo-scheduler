@@ -3,12 +3,20 @@ package org.optaplanner.examples.baseball.domain;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 
 public class Team extends AbstractPersistable {
     private String name;
     private String stadium;
     private HashMap<String, BigDecimal> distanceMap;
+    private int index;
+    private int stadiumIndex;
+    private long[] distanceTenthsByTeamIndex;
 //    private HashMap<String, BigDecimal> distanceFrom;
 
     public Team() {
@@ -54,6 +62,63 @@ public class Team extends AbstractPersistable {
 
     public BigDecimal getDistanceTo(Team team) {
         return this.distanceMap.get(team.getName());
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public int getStadiumIndex() {
+        return stadiumIndex;
+    }
+
+    public boolean isIndexPrepared() {
+        return distanceTenthsByTeamIndex != null;
+    }
+
+    public long getDistanceTenthsTo(int teamIndex) {
+        if (!isIndexPrepared()) {
+            throw new IllegalStateException("Team index is not prepared");
+        }
+        return distanceTenthsByTeamIndex[teamIndex];
+    }
+
+    public static long toTenths(BigDecimal distance) {
+        if (distance == null) {
+            return 0L;
+        }
+        return distance.movePointRight(1).setScale(0, RoundingMode.HALF_UP).longValue();
+    }
+
+    public static List<Team> prepareIndices(Collection<Team> teams) {
+        ArrayList<Team> sorted = new ArrayList<>(teams);
+        sorted.sort(Comparator.comparing(Team::getId));
+        HashMap<String, Integer> stadiumIndexByName = new HashMap<>();
+        int nextStadiumIndex = 0;
+        for (int i = 0; i < sorted.size(); i++) {
+            Team team = sorted.get(i);
+            team.index = i;
+            String stadiumName = team.stadium == null ? "" : team.stadium;
+            Integer assigned = stadiumIndexByName.get(stadiumName);
+            if (assigned == null) {
+                assigned = nextStadiumIndex;
+                stadiumIndexByName.put(stadiumName, assigned);
+                nextStadiumIndex++;
+            }
+            team.stadiumIndex = assigned;
+        }
+        int teamCount = sorted.size();
+        for (Team team : sorted) {
+            long[] tenths = new long[teamCount];
+            HashMap<String, BigDecimal> distances = team.distanceMap;
+            for (int otherIndex = 0; otherIndex < teamCount; otherIndex++) {
+                Team other = sorted.get(otherIndex);
+                BigDecimal distance = distances == null ? null : distances.get(other.getName());
+                tenths[otherIndex] = toTenths(distance);
+            }
+            team.distanceTenthsByTeamIndex = tenths;
+        }
+        return sorted;
     }
 
 //    public HashMap<String, BigDecimal> getDistanceFrom() {

@@ -471,7 +471,7 @@ public class BaseballApp {
         }
     }
 
-    private static void setInitialPlan(JSONObject jsonObject, BaseballSolution unsolvedSolution) {
+    public static void setInitialPlan(JSONObject jsonObject, BaseballSolution unsolvedSolution) {
         JSONArray initialPlanArray = (JSONArray) jsonObject.get("initialPlan");
         HashMap<String, Queue<Match>> matchHashMap = new HashMap<>();
         for (Match match : unsolvedSolution.getMatchList()) {
@@ -520,7 +520,7 @@ public class BaseballApp {
         }
     }
 
-    private static BaseballSolution makeSolution(JSONObject jsonObject) {
+    public static BaseballSolution makeSolution(JSONObject jsonObject) {
         HashMap<String, HashMap<String, BigDecimal>> totalDistanceMap = makeDistanceMatrix(jsonObject);
 
         HashMap<String, Team> teamHashMap = makeTeamInfo(jsonObject, totalDistanceMap);
@@ -558,6 +558,7 @@ public class BaseballApp {
         baseballSolution.setMatchList(matchList);
         baseballSolution.setCalendarList(calendarList);
         baseballSolution.setId(0L);
+        baseballSolution.setTeamList(Team.prepareIndices(teamHashMap.values()));
 
         return baseballSolution;
     }

@@ -15,6 +15,7 @@ public class BaseballSolution extends AbstractPersistable {
 
     private List<Match> matchList;
     private  List<Calendar> calendarList;
+    private List<Team> teamList;
     private BendableLongScore bendableLongScore;
 
     @PlanningEntityCollectionProperty
@@ -36,7 +37,16 @@ public class BaseballSolution extends AbstractPersistable {
         this.calendarList = calendarList;
     }
 
-    @PlanningScore(bendableHardLevelsSize = 2, bendableSoftLevelsSize = 4)
+    @ProblemFactCollectionProperty
+    public List<Team> getTeamList() {
+        return teamList;
+    }
+
+    public void setTeamList(List<Team> teamList) {
+        this.teamList = teamList;
+    }
+
+    @PlanningScore(bendableHardLevelsSize = 2, bendableSoftLevelsSize = 5)
     public BendableLongScore getBendableLongScore() {
         return bendableLongScore;
     }
