@@ -34,10 +34,10 @@
   <localSearch>
 
     <termination>
-      <stepCountLimit>10000</stepCountLimit>
+      <stepCountLimit>100000</stepCountLimit>
       <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
       <!--      <unimprovedStepCountLimit>100</unimprovedStepCountLimit>-->
-      <unimprovedStepCountLimit>300</unimprovedStepCountLimit>
+      <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
     </termination>
     <unionMoveSelector>
       <changeMoveSelector/>

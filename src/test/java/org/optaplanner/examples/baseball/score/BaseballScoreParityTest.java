@@ -8,8 +8,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -27,8 +31,10 @@ import org.optaplanner.core.config.solver.termination.TerminationConfig;
 import org.optaplanner.examples.baseball.app.BaseballApp;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
+import org.optaplanner.examples.baseball.domain.Constants;
 import org.optaplanner.examples.baseball.domain.Match;
 import org.optaplanner.examples.baseball.domain.Team;
+import org.optaplanner.examples.baseball.solver.BaseballSolutionInitializer;
 import org.optaplanner.test.api.score.stream.ConstraintVerifier;
 
 class BaseballScoreParityTest {
@@ -118,6 +124,132 @@ class BaseballScoreParityTest {
         BaseballSolution solution = load2025WithInitialPlan();
         assertThat(solution.getMatchList().stream().filter(match -> match.getCalendar() != null).count()).isPositive();
 
+        BaseballSolution solved = solveFullAssert(solution, 100);
+
+        BendableLongScore solvedScore = solved.getBendableLongScore();
+        BendableLongScore easy = new BaseballEasyScoreCalculator().calculateScore(solved);
+        assertThat(solvedScore).isNotNull();
+        assertThat(solvedScore.withInitScore(0)).isEqualTo(easy);
+    }
+
+    @Test
+    void constructedInitialSolutionIsFeasibleDeterministicAndPinsOpeningAndChildrensDay() throws Exception {
+        BaseballSolution shuffled = load2025();
+        List<Long> originalOrder = matchIds(shuffled);
+        Collections.shuffle(shuffled.getMatchList(), new Random(20250322L));
+        assertThat(matchIds(shuffled)).isNotEqualTo(originalOrder);
+
+        BaseballSolution canonical = load2025();
+        BaseballSolutionInitializer.initialize(shuffled);
+        BaseballSolutionInitializer.initialize(canonical);
+
+        assertFeasibleInitialSolution(shuffled);
+        assertThat(calendarByMatchId(shuffled)).isEqualTo(calendarByMatchId(canonical));
+        assertThat(pinnedByMatchId(shuffled)).isEqualTo(pinnedByMatchId(canonical));
+    }
+
+    /**
+     * Local search starts from the constructed feasible solution. FULL_ASSERT recalculates every
+     * move with {@link BaseballEasyScoreCalculator}. An improving best score shows the search can
+     * move without score corruption.
+     */
+    @Test
+    @Timeout(value = 4, unit = TimeUnit.MINUTES)
+    void fullAssertSolverOnConstructedInitialSolutionImprovesSoftScore() throws Exception {
+        BaseballSolution solution = load2025();
+        BaseballSolutionInitializer.initialize(solution);
+        BendableLongScore initial = new BaseballEasyScoreCalculator().calculateScore(solution);
+        assertThat(initial.hardScore(0)).isZero();
+        assertThat(initial.hardScore(1)).isZero();
+        assertThat(initial.softScore(0)).isZero();
+        Map<Long, Long> pinnedCalendars = new HashMap<>();
+        for (Match match : solution.getMatchList()) {
+            if (match.isPinned()) {
+                pinnedCalendars.put(match.getId(), match.getCalendar().getId());
+            }
+        }
+        assertThat(pinnedCalendars).hasSize(10);
+
+        BaseballSolution solved = solveFullAssert(solution, 100);
+        BendableLongScore solvedScore = solved.getBendableLongScore();
+        BendableLongScore easy = new BaseballEasyScoreCalculator().calculateScore(solved);
+        assertThat(solvedScore).isNotNull();
+        assertThat(solvedScore.withInitScore(0)).isEqualTo(easy);
+        assertThat(solvedScore.hardScore(0)).isZero();
+        assertThat(solvedScore.hardScore(1)).isZero();
+        assertThat(solvedScore.softScore(0)).isZero();
+        assertThat(solvedScore.compareTo(initial)).isGreaterThan(0);
+        for (Match match : solved.getMatchList()) {
+            Long pinnedCalendarId = pinnedCalendars.get(match.getId());
+            if (pinnedCalendarId != null) {
+                assertThat(match.isPinned()).isTrue();
+                assertThat(match.getCalendar().getId()).isEqualTo(pinnedCalendarId);
+            }
+        }
+    }
+
+    private void assertFeasibleInitialSolution(BaseballSolution solution) {
+        List<Match> matches = solution.getMatchList();
+        assertThat(matches).hasSize(225);
+        assertThat(matches).allMatch(match -> match.getCalendar() != null && match.getCalendar().isRegular());
+
+        BendableLongScore easy = new BaseballEasyScoreCalculator().calculateScore(solution);
+        assertThat(easy.hardScore(0)).as("score %s", easy).isZero();
+        assertThat(easy.hardScore(1)).as("score %s", easy).isZero();
+        assertThat(easy.softScore(0)).as("score %s", easy).isZero();
+        assertProviderAgrees(solution, easy);
+
+        Map<Long, List<Match>> bySlot = new HashMap<>();
+        for (Match match : matches) {
+            bySlot.computeIfAbsent(match.getCalendar().getId(), key -> new ArrayList<>()).add(match);
+        }
+        assertThat(bySlot).hasSize(45);
+        assertThat(bySlot.values()).allMatch(slot -> slot.size() == 5);
+
+        List<Match> pinned = matches.stream().filter(Match::isPinned).toList();
+        assertThat(pinned).hasSize(10);
+        assertThat(pinned).allMatch(BaseballScoreParityTest::isOpeningOrChildrensDay);
+        List<Match> opening = matches.stream().filter(BaseballScoreParityTest::isOpeningDay).toList();
+        List<Match> children = matches.stream().filter(match -> match.getCalendar().isChildrenDay()).toList();
+        assertThat(opening).hasSize(5).allMatch(Match::isPinned);
+        assertThat(children).hasSize(5).allMatch(Match::isPinned);
+        assertThat(opening).allMatch(match -> match.getCalendar().getSlotIndex() == 0 && match.getConsecutive() == 2);
+        assertThat(children).allMatch(match -> match.getCalendar().getSlotIndex() == 13 && match.getConsecutive() == 3);
+        assertThat(children).extracting(match -> match.getHome().getName())
+                .containsExactlyInAnyOrder(Constants.HOME_OBLIGATION_CHILDREN_ARR);
+        List<Match> fourGame = matches.stream().filter(match -> match.getConsecutive() == 4).toList();
+        assertThat(fourGame).hasSize(5).allMatch(match -> !match.isPinned() && match.getCalendar().getSlotIndex() == 32);
+    }
+
+    private static boolean isOpeningDay(Match match) {
+        return match.getCalendar().getStartTime().toLocalDate().toString().equals(Constants.MATCH_START_DATE);
+    }
+
+    private static boolean isOpeningOrChildrensDay(Match match) {
+        return isOpeningDay(match) || match.getCalendar().isChildrenDay();
+    }
+
+    private static List<Long> matchIds(BaseballSolution solution) {
+        return solution.getMatchList().stream().map(Match::getId).toList();
+    }
+
+    private static Map<Long, Long> calendarByMatchId(BaseballSolution solution) {
+        Map<Long, Long> calendars = new HashMap<>();
+        for (Match match : solution.getMatchList()) {
+            calendars.put(match.getId(), match.getCalendar().getId());
+        }
+        return calendars;
+    }
+
+    private static Map<Long, Boolean> pinnedByMatchId(BaseballSolution solution) {
+        Map<Long, Boolean> pinned = new HashMap<>();
+        for (Match match : solution.getMatchList()) {
+            pinned.put(match.getId(), match.isPinned());
+        }
+        return pinned;
+    }
+
+    private static BaseballSolution solveFullAssert(BaseballSolution solution, int stepCountLimit) {
         SolverConfig config = SolverConfig.createFromXmlResource(
                 "org/optaplanner/examples/baseball/solver/baseballSolverConfig.xml");
         config.setEnvironmentMode(EnvironmentMode.FULL_ASSERT);
@@ -126,7 +258,7 @@ class BaseballScoreParityTest {
             for (var phase : config.getPhaseConfigList()) {
                 if (phase instanceof LocalSearchPhaseConfig localSearch) {
                     // StepCountTermination is phase-only. Solver-level termination stays the XML limit.
-                    localSearch.setTerminationConfig(new TerminationConfig().withStepCountLimit(100));
+                    localSearch.setTerminationConfig(new TerminationConfig().withStepCountLimit(stepCountLimit));
                     limitedPhase = true;
                 }
             }
@@ -136,12 +268,7 @@ class BaseballScoreParityTest {
                 new ScoreDirectorFactoryConfig().withEasyScoreCalculatorClass(BaseballEasyScoreCalculator.class));
 
         Solver<BaseballSolution> solver = SolverFactory.<BaseballSolution>create(config).buildSolver();
-        BaseballSolution solved = solver.solve(solution);
-
-        BendableLongScore solvedScore = solved.getBendableLongScore();
-        BendableLongScore easy = new BaseballEasyScoreCalculator().calculateScore(solved);
-        assertThat(solvedScore).isNotNull();
-        assertThat(solvedScore.withInitScore(0)).isEqualTo(easy);
+        return solver.solve(solution);
     }
 
     private void assertProviderAgrees(BaseballSolution solution, BendableLongScore easy) {

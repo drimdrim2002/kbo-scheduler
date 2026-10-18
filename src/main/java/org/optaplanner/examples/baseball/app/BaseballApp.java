@@ -12,6 +12,7 @@ import org.optaplanner.core.api.solver.Solver;
 import org.optaplanner.core.api.solver.SolverFactory;
 import org.optaplanner.examples.baseball.domain.*;
 import org.optaplanner.examples.baseball.domain.Calendar;
+import org.optaplanner.examples.baseball.solver.BaseballSolutionInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +40,8 @@ public class BaseballApp {
             // solution 만들기
             BaseballSolution unsolvedSolution = makeSolution(jsonObject);
 
-            // initial 만들기
-            setInitialPlan(jsonObject, unsolvedSolution);
+            // initialPlan 순서를 쓰지 않는 Hard 0/0 초기해
+            BaseballSolutionInitializer.initialize(unsolvedSolution);
 
             exportResult(unsolvedSolution, false);
 
@@ -524,6 +525,7 @@ public class BaseballApp {
         HashMap<String, HashMap<String, BigDecimal>> totalDistanceMap = makeDistanceMatrix(jsonObject);
 
         HashMap<String, Team> teamHashMap = makeTeamInfo(jsonObject, totalDistanceMap);
+        List<Team> teamList = Team.prepareIndices(teamHashMap.values());
 
         List<Match> matchList = makeMatchInfo(jsonObject, teamHashMap);
 
@@ -553,14 +555,33 @@ public class BaseballApp {
                 period.getPrev().setNext(period);
             }
         }
+        assignPossibleCalendars(matchList, calendarList);
 
         BaseballSolution baseballSolution = new BaseballSolution();
         baseballSolution.setMatchList(matchList);
         baseballSolution.setCalendarList(calendarList);
         baseballSolution.setId(0L);
-        baseballSolution.setTeamList(Team.prepareIndices(teamHashMap.values()));
+        baseballSolution.setTeamList(teamList);
 
         return baseballSolution;
+    }
+
+    private static void assignPossibleCalendars(List<Match> matchList, List<Calendar> calendarList) {
+        Map<Integer, List<Calendar>> byLength = new HashMap<>();
+        for (Calendar calendar : calendarList) {
+            if (!calendar.isRegular()) {
+                continue;
+            }
+            byLength.computeIfAbsent(calendar.getConsecutive(), key -> new ArrayList<>()).add(calendar);
+        }
+        byLength.replaceAll((length, calendars) -> List.copyOf(calendars));
+        for (Match match : matchList) {
+            List<Calendar> possible = byLength.get(match.getConsecutive());
+            if (possible == null || possible.isEmpty()) {
+                throw new IllegalArgumentException("no regular slot of length " + match.getConsecutive());
+            }
+            match.setPossibleCalendars(possible);
+        }
     }
 
     private static List<Match> makeMatchInfo(JSONObject jsonObject, HashMap<String, Team> teamHashMap) {
@@ -574,6 +595,12 @@ public class BaseballApp {
             Match match = new Match(i, homeTeam, awayTeam, (int) consecutive);
             matchList.add(match);
         });
+        // JSON match order follows initialPlan. Sort so later consumers do not inherit that order.
+        matchList.sort(Comparator
+                .comparingInt(Match::getConsecutive)
+                .thenComparingInt(match -> match.getHome().getIndex())
+                .thenComparingInt(match -> match.getAway().getIndex())
+                .thenComparingLong(match -> match.getId()));
         return matchList;
     }
 
