@@ -107,7 +107,7 @@
     set(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } },
     del(k) { try { window.localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
-  S.KEY = 'kbo-wizard:alt-a:';
+  S.KEY = 'kbo-wizard:std:';
 
   // ───────── 기능 켜기·끄기 레지스트리 (§6) ─────────
   S.FEATURES = [
