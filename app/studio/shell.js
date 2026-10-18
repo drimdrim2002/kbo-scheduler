@@ -187,7 +187,7 @@
     setTimeout(() => { pending = false; S.render(); }, 0);
   };
   S.go = function (patch) { Object.assign(S.ui, patch); S.ui.menu = null; S.render(); };
-  S.toast = (m, k, ms) => KBO.UI.toast(m, k, ms);
+  S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(m, k, ms); };
 
   /** 선택 항목을 보이게 스크롤 */
   S.revealSelected = function (sel, container) {
@@ -261,8 +261,9 @@
     window.addEventListener('resize', () => S.checkScroll());
     bindEvents();
     S.render();
-    if (S.ui.demo && S.demos[S.ui.demo]) S.demos[S.ui.demo]();
+    if (S.ui.demo && S.demos[S.ui.demo]) { S.quiet = true; try { S.demos[S.ui.demo](); } finally { S.quiet = false; } }
     setTimeout(() => S.checkScroll(), 300);
+    if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
   };
   S.demos = {};
 

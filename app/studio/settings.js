@@ -12,11 +12,11 @@
     const must = S.FEATURES.filter((f) => f.must), opt = S.FEATURES.filter((f) => !f.must);
     const on = opt.filter((f) => S.feature(f.id)).length;
     let s = '<div class="set-sec" style="display:flex;align-items:center;gap:8px"><div><h4 style="margin:0">기능 켜기·끄기</h4><p>꺼진 기능은 화면에서 사라지고 계산도 하지 않습니다. 채점에는 영향이 없습니다. 상태는 프로젝트 <code class="mono">meta.features</code>와 이 브라우저에 저장됩니다.</p></div><button class="btn sm" style="margin-left:auto;flex:none" data-act="feat-reset">' + icon('undo') + '기본값으로</button></div>';
-    s += '<div class="label">선택 기능<span class="cnt">' + on + ' / ' + opt.length + ' 켜짐</span></div>';
+    s += '<div class="label">필수 기능 (Must)<span class="cnt">' + icon('lock') + ' 항상 켜짐 · 끌 수 없음</span></div><div style="display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 10px">' +
+      must.map((f) => '<span class="tag ref" style="height:22px;padding:0 7px;font-size:11.5px" title="' + esc(f.desc) + '">' + icon('lock') + esc(f.name) + ' <span class="mono" style="font-weight:400;color:var(--text-3)">' + esc(f.ref.replace('FR-', '')) + '</span></span>').join('') + '</div>';
+    s += '<div class="label" style="border-top:1px solid var(--line)">선택 기능<span class="cnt">' + on + ' / ' + opt.length + ' 켜짐</span></div>';
     s += opt.map((f) => '<label class="feat"><span class="switch"><input type="checkbox" data-in="feat" data-id="' + f.id + '"' + (S.feature(f.id) ? ' checked' : '') + ' aria-label="' + esc(f.name) + '"><i></i></span>' +
       '<span class="nm">' + esc(f.name) + ' <span class="id">' + esc(f.ref) + '</span></span><span class="df">기본 ' + (f.def ? '켜짐' : '꺼짐') + (S.feature(f.id) !== f.def ? '<br><b style="color:var(--blue)">변경됨</b>' : '') + '</span><span class="ds">' + esc(f.desc) + '</span></label>').join('');
-    s += '<div class="label">필수 기능 (Must)<span class="cnt">끌 수 없음</span></div>';
-    s += must.map((f) => '<div class="feat must"><span class="lock" title="항상 켜짐">' + icon('lock') + '</span><span class="nm">' + esc(f.name) + ' <span class="id">' + esc(f.ref) + '</span></span><span class="df">항상 켜짐</span><span class="ds">' + esc(f.desc) + '</span></div>').join('');
     return s;
   }
   function scoring() {

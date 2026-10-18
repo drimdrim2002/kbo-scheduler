@@ -33,8 +33,8 @@
     S.go({ modal: 'import' });
   };
   function buildImp(kind, extra) {
-    if (kind === 'xlsx') S.ui.imp = { kind, source: '2025_KBO_편성_v3.xlsx', meta: '128KB · 시트 7개 · 읽기 0.4초', sheets: mockSheets(), sel: '시리즈', confirm: false, mock: true };
-    else if (kind === 'gsheet') S.ui.imp = { kind, source: '구글 시트 "2025 KBO 편성 작업본"', meta: (extra || '') + ' · 탭 7개 · 읽기 1.1초', sheets: mockSheets(), sel: '시리즈', confirm: false, mock: true };
+    if (kind === 'xlsx') S.ui.imp = { kind, source: '2025_KBO_편성_v3.xlsx', meta: '128KB · 시트 7개 · 읽기 0.4초', sheets: mockSheets(), sel: '시리즈', confirm: false, mock: true, allIssues: true };
+    else if (kind === 'gsheet') S.ui.imp = { kind, source: '구글 시트 "2025 KBO 편성 작업본"', meta: (extra || '') + ' · 탭 7개 · 읽기 1.1초', sheets: mockSheets(), sel: '시리즈', confirm: false, mock: true, allIssues: true };
     else if (kind === 'draft-slots') {
       const gen = CalendarGen.generateSlots(app().state.settings).slots;
       const cur = app().state.calendar;

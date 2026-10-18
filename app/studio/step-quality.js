@@ -39,7 +39,7 @@
     const badge = { metrics: over ? '<span class="st plain bad">' + icon('warn') + over + '</span>' : '', soft: '<span class="cnt mono">' + fmt.neg(D().ex.score.soft[2]) + '</span>', a3: D().ex.byCode['H0-f'].count ? '<span class="st plain bad">' + icon('x') + D().ex.byCode['H0-f'].count + '</span>' : '', export: S.ui.exported ? S.statIcon('ok') : S.statIcon('todo') };
     for (const v of visible()) {
       if (v.group !== g) { g = v.group; s += '<div class="label">' + esc(g) + '</div>'; }
-      s += '<button class="li' + (u.qv === v.id ? ' active' : '') + '" data-act="q-view" data-qv="' + v.id + '"><span class="ico">' + icon(v.icon) + '</span><span class="li-main">' + esc(v.label) + '<span class="li-sub">' + esc(v.ref) + '</span></span>' + (badge[v.id] || '') + '</button>';
+      s += '<button class="li' + (u.qv === v.id ? ' active' : '') + '" data-act="q-view" data-qv="' + v.id + '"><span class="ico">' + icon(v.icon) + '</span><span class="li-main">' + esc(v.label) + '</span><span class="xs muted mono">' + esc(v.ref.replace(/FR-/g, '')) + '</span>' + (badge[v.id] || '') + '</button>';
     }
     s += '<div class="list-sep"></div><div class="label">구단</div><div class="tf">' + app().state.teams.map((t) => '<button class="' + (u.team === t.name ? 'on' : '') + '" data-act="q-team" data-team="' + esc(t.name) + '"><i class="sw" style="background:' + esc(t.color) + '"></i>' + esc(t.name) + '<span class="ck">' + (u.team === t.name ? icon('check') : '') + '</span></button>').join('') + '</div>';
     return s + '</div>';
@@ -97,12 +97,12 @@
       const val = (x) => (lv === 'S4' ? x.value : x.contrib);
       const max = Math.max(1, ...items.map((x) => Math.abs(val(x))));
       items.sort((a, b) => Math.abs(val(b)) - Math.abs(val(a)));
-      s += '<div class="hbar" style="font-weight:700;color:var(--text-3);font-size:10.5px"><span>구단</span><span>' + (lv === 'S4' ? '이동거리' : '기여 (감점)') + '</span><span class="num">값</span><span class="num">평균 대비</span></div>';
+      s += '<div class="hbar" style="font-weight:700;color:var(--text-3);font-size:10.5px"><span>구단</span><span>' + (lv === 'S4' ? '이동거리' : '기여 (감점)') + '</span><span class="num">값</span><span class="num">평균 대비</span><span class="num">' + (lv === 'S4' ? '' : '감점') + '</span></div>';
       for (const x of items) {
         const t = app().state.teams[x.team];
         const v = val(x);
         s += '<div class="hbar" data-act="q-team" data-team="' + esc(t.name) + '" style="cursor:pointer;' + (S.ui.team === t.name ? 'background:var(--sel)' : '') + '"><span>' + S.team(t.name) + '</span><span class="bar"><i class="' + (lv === 'S4' ? '' : 'neg') + '" style="width:' + (Math.abs(v) / max * 100).toFixed(1) + '%"></i></span>' +
-          '<span class="num">' + (lv === 'S2' || lv === 'S4' ? fmt.km(x.value) : fmt.num1(x.value)) + '</span><span class="num">' + (x.dev != null ? fmt.signed1(x.dev) : '') + (lv !== 'S4' ? ' <b style="color:' + (v ? 'var(--bad)' : 'var(--text-3)') + '">' + (v ? '−' + fmt.int(v) : '0') + '</b>' : '') + '</span></div>';
+          '<span class="num">' + (lv === 'S2' || lv === 'S4' ? fmt.km(x.value) : fmt.num1(x.value)) + '</span><span class="num">' + (x.dev != null ? fmt.signed1(x.dev) : '') + '</span><span class="num">' + (lv !== 'S4' ? '<b style="color:' + (v ? 'var(--bad)' : 'var(--text-3)') + '">' + (v ? '−' + fmt.int(v) : '0') + '</b>' : '') + '</span></div>';
       }
     }
     return s + '</div>';
@@ -121,14 +121,14 @@
   function a2() {
     const L = league(), T = tms();
     const mk = (title, key, mean, tol, unit) => '<div class="blk"><div class="blk-head">' + esc(title) + '<span class="r small muted">평균 ' + fmt.num1(mean) + (tol ? ' · ±' + tol : '') + '</span></div><div class="blk-body">' +
-      C().bar({ items: T.map((t) => ({ label: t.name, value: t[key], color: app().state.teams[t.team].color, flag: tol ? Math.abs(t[key] - mean) >= tol : false, key: t.name })), width: 400, height: S.wide ? 360 : 300, mean, band: tol ? { lo: mean - tol, hi: mean + tol, label: '±' + tol } : null, unit, rotateLabels: true, yZero: false, title }) + '</div></div>';
+      C().bar({ items: T.map((t) => ({ label: t.name, value: t[key], color: app().state.teams[t.team].color, flag: tol ? Math.abs(t[key] - mean) >= tol : false, key: t.name })), width: W(), height: S.wide ? 200 : 140, mean, band: tol ? { lo: mean - tol, hi: mean + tol, label: '±' + tol } : null, unit, yZero: false, title }) + '</div></div>';
     return S.paneHead('이동·휴일·주말 비교', '세 지표를 같은 구단 순서로 나란히 봅니다. 주말 홈은 참고 지표입니다.') +
-      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi">' + mk('이동 횟수 (채점 S1)', 'moves', L.meanMoves, 2, '회') + mk('휴일 가중치 합 (채점 S3)', 'holidayWeight', L.meanHoliday, 1.5, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
+      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi" style="grid-template-columns:minmax(0,1fr);gap:8px">' + mk('이동 횟수 (채점 S1)', 'moves', L.meanMoves, 2, '회') + mk('휴일 가중치 합 (채점 S3)', 'holidayWeight', L.meanHoliday, 1.5, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
   }
   function a3() {
     const c = D(), T = tms(), u = S.ui;
     let s = S.paneHead('홈/원정 흐름', '구단 × 슬롯. 진한 칸 = 홈, 옅은 칸 = 원정. 빨간 테두리와 숫자 = 3연속 초과(H0-f).', '<span class="legend"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 2px var(--bad)"></i>초과</span></span>');
-    s += '<div class="pane-body pad" data-sk="q-chart"><table class="has"><thead><tr><td></td>' + c.slots.map((sl, i) => '<td>' + (i % 4 === 0 ? Dates.fmtShort(sl.day) : '') + '</td>').join('') + '</tr></thead><tbody>';
+    s += '<div class="pane-body pad" data-sk="q-chart"><table class="has"><colgroup><col style="width:72px">' + c.slots.map(() => '<col>').join('') + '<col style="width:64px"></colgroup><thead><tr><td></td>' + c.slots.map((sl, i) => '<td>' + (i % 4 === 0 ? Dates.fmtShort(sl.day) : '') + '</td>').join('') + '<td></td></tr></thead><tbody>';
     for (const t of T) {
       const bySlot = new Map(t.visits.map((v) => [v.slot, v]));
       const runAt = new Map();
@@ -242,6 +242,7 @@
       const u = S.ui;
       if (!visible().some((v) => v.id === u.qv)) u.qv = 'metrics';
       const fn = { metrics: renderMetrics, soft: renderSoft, a1, a2, a3, a4, a5, a8, a9, a10, a12, sched: renderSched, export: renderExport }[u.qv];
+      if (!u.team && !S._teamDefaulted) { S._teamDefaulted = true; const top = tms().slice().sort((a, b) => b.distanceKm - a.distanceKm)[0]; u.team = top ? top.name : null; }
       const insp = renderInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: fn(), insp: insp.html, inspTitle: insp.title, listLabel: '품질 보기' }) + '</div>';
     },

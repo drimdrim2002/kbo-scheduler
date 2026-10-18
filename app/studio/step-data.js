@@ -82,11 +82,13 @@
       label: '시리즈', sheet: '시리즈', unit: '시리즈', desc: '같은 두 구단이 같은 구장에서 치르는 2~4연전. 고정·슬롯은 ③에서 다룹니다.',
       rows: (st) => st.matches,
       cols: [
-        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="tag pin" title="개막전 대진 지정으로 고정">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
+        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="muted" title="개막전 대진 지정으로 고정(③에서 관리)">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
         { key: 'away', head: '원정', alias: 'away', req: true, w: 120, get: (r) => r.away, show: (r) => S.team(r.away), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.home ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.away = String(v).trim(); } },
         { key: 'games', head: '연전', alias: 'games', req: true, w: 70, num: true, get: (r) => r.consecutive, validate: vRange(2, 4, '연전'), set: (r, v) => { r.consecutive = P.int(v); } },
         { key: 'stadium', head: '구장', w: 170, ro: true, show: (r) => esc(((app().team(r.home) || {}).stadium) || '-'), html: true },
-        { key: 'note', head: '메모', alias: 'note', w: 0, get: (r) => r.note || '', set: (r, v) => { r.note = String(v); } }
+        { key: 'slot', head: '현재 배정(③)', w: 150, ro: true, show: (r, i) => { const c = D(); const sl = c.plan[i]; return sl >= 0 ? esc(c.slots[sl].label) : '<span class="muted">미배정</span>'; }, html: true },
+        { key: 'pair', head: '구단쌍 경기', w: 100, ro: true, show: (r) => { const n = app().state.matches.filter((m) => (m.home === r.home && m.away === r.away) || (m.home === r.away && m.away === r.home)).reduce((a, m) => a + m.consecutive, 0); return n + '경기'; } },
+        { key: 'note', head: '메모', alias: 'note', w: 120, get: (r) => r.note || '', set: (r, v) => { r.note = String(v); } }
       ],
       rowIssues(st, i) {
         const r = st.matches[i], out = [];
@@ -332,6 +334,11 @@
       s += '</div></div>';
     }
     s += '</div><div class="small muted" style="margin-top:8px">9~10월은 재편성 기간입니다(시즌 운영 메뉴).</div></div></div>';
+    const sub = (k, title, lines) => '<div class="blk"><div class="blk-head">' + icon('sheet') + esc(title) + '<span class="r"><span class="muted small">' + lines.length + '행</span><button class="btn xs" data-act="d-tab" data-tab="' + k + '">시트 열기' + icon('right') + '</button></span></div><div class="blk-body small" style="padding:6px 10px;display:flex;flex-direction:column;gap:2px">' + (lines.length ? lines.slice(0, 4).map((x) => '<div>' + x + '</div>').join('') + (lines.length > 4 ? '<div class="muted">외 ' + (lines.length - 4) + '건</div>' : '') : '<span class="muted">없음</span>') + '</div></div>';
+    s += '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">' +
+      sub('holidays', '공휴일', set.holidays.map((h) => '<span class="mono">' + esc(fmt.date(h.date)) + '</span> ' + esc(h.name))) +
+      sub('restex', '휴식예외일', set.restExceptions.map((d) => '<span class="mono">' + esc(fmt.date(d)) + '</span> 휴식 요일이지만 경기')) +
+      sub('blackouts', '경기없는기간', set.blackouts.map((b) => '<span class="mono">' + esc(fmt.date(b.start) + (b.end !== b.start ? ' ~ ' + fmt.date(b.end) : '')) + '</span> ' + esc(b.label || ''))) + '</div>';
     s += '</div>';
     return s;
   }
@@ -342,7 +349,7 @@
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
     let s = '<div class="pane-head"><span class="pane-title">구단과 거리</span><span class="pane-desc">구단 표와 작은 지도로 줄였습니다. 거리 행렬은 접어 둡니다. UI에서만 입력합니다.</span></div>';
-    s += '<div class="pane-body pad" data-sk="d-teams"><div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start">';
+    s += '<div class="pane-body pad" data-sk="d-teams"><div style="display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px;align-items:start">';
     s += '<div class="blk"><table class="sheet"><colgroup><col style="width:44px"><col style="width:110px"><col><col style="width:86px"><col style="width:86px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
         const sh = Array.from(shared.keys()).includes(t.stadium);
@@ -351,9 +358,9 @@
     const markers = st.teams.map((t, i) => ({ id: t.name, lat: t.latitude, lon: t.longitude, x: 0, y: 0, color: t.color, label: t.name, size: i === sel ? 7 : 5, active: i === sel }));
     let mapSvg = '';
     try {
-      const proj = KBO.MapKit.projection(300);
+      const proj = KBO.MapKit.projection(250);
       for (const mk of markers) { const p = proj.project(mk.lat, mk.lon); mk.x = p[0]; mk.y = p[1]; }
-      mapSvg = KBO.MapKit.render({ width: 300, markers, grid: false, spread: 10, title: '구장 위치' }).svg;
+      mapSvg = KBO.MapKit.render({ width: 250, markers, grid: false, spread: 10, title: '구장 위치' }).svg;
     } catch (e) { mapSvg = '<div class="empty">지도를 그릴 수 없습니다.</div>'; }
     s += '<div class="blk"><div class="blk-head">' + icon('map') + '구장 지도<span class="r"><span class="tag ref">내장 SVG</span></span></div><div class="blk-body mapbox" style="padding:6px">' + mapSvg + '</div>' +
       (S.feature('T4') ? '<div class="pane-foot small" data-feature="T4">' + icon('move') + '마커를 끌어 좌표를 미세 조정합니다 <span class="tag ref">FR-T4</span></div>' : '') + '</div>';
@@ -527,7 +534,7 @@
       S.ui.cell = { sheet: key, row, col };
       S.render();
     },
-    'cell-fix': () => { const e = S.ui.edit; if (!e || !e.fix) return; e.value = e.fix; e.error = null; commitEdit(false); },
+    'cell-fix': () => { const e = S.ui.edit; if (!e || !e.fix) return; e.value = e.fix; e.error = null; const ed = document.getElementById('cellEditor'); if (ed) ed.value = e.fix; commitEdit(false); },
     'cell-cancel': () => { S.ui.edit = null; S.render(); },
     'row-ins': (el) => insertRow(el.dataset.pos),
     'row-del': () => deleteRow(),

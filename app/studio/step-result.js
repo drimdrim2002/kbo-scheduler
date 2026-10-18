@@ -140,8 +140,9 @@
       fm = homeSide ? '<span class="fm h" title="홈">H</span>' : '<span class="fm a" title="원정">A</span>';
     }
     const sel = u.sel === 'm:' + m;
+    const vsel = S._selViol && (S._selViol.matches || []).includes(m);
     const flash = u.flashMatches && u.flashMatches.includes(m);
-    const cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
+    const cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (vsel ? ' vsel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
     const stad = (app().team(mt.home) || {}).stadium || '';
     return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(mt.away + ' @ ' + mt.home + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
       fm + (mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
@@ -360,6 +361,7 @@
   S.steps[3] = {
     render() {
       S.wide = window.innerWidth >= 1800;
+      S._selViol = S.ui.sel && S.ui.sel.startsWith('v:') ? S.findViolation(S.ui.sel.slice(2)) : null;
       const insp = renderInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '위반·구단 필터' }) + '</div>';
     },

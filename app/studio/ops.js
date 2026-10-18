@@ -171,8 +171,8 @@
         const inMo = Dates.month(d) === mo;
         const list = inMo ? (byDay.get(iso) || []) : [];
         const selU = list.some((y) => y.x.unit === u.opsUnit);
-        s += '<div class="' + (Dates.weekday(d) === 1 ? 'mon' : '') + (selU ? ' sel' : '') + '" style="height:' + (S.tall ? 74 : 52) + 'px"><span class="dn" style="' + (inMo ? '' : 'color:#C0C5CE') + '">' + Dates.fmtShort(d).split('/')[1] + '</span>' + (list.length ? ' <span class="muted">' + list.length + '경기</span>' : '') +
-          list.slice(0, S.tall ? 3 : 2).map((y) => '<span class="rsg new' + (y.dh ? ' dh' : '') + '" data-act="o-unit" data-unit="' + esc(y.x.unit) + '" style="cursor:pointer">' + esc(y.x.away + '@' + y.x.home) + '</span>').join('') + (list.length > (S.tall ? 3 : 2) ? '<span class="rsg muted">+' + (list.length - (S.tall ? 3 : 2)) + '</span>' : '') + '</div>';
+        s += '<div class="' + (Dates.weekday(d) === 1 ? 'mon' : '') + (selU ? ' sel' : '') + '" style="height:' + (S.tall ? 92 : 68) + 'px"><span class="dn" style="' + (inMo ? '' : 'color:#C0C5CE') + '">' + Dates.fmtShort(d).split('/')[1] + '</span>' + (list.length ? ' <span class="muted">' + list.length + '경기</span>' : '') +
+          list.slice(0, S.tall ? 4 : 3).map((y) => '<span class="rsg new' + (y.dh ? ' dh' : '') + '" data-act="o-unit" data-unit="' + esc(y.x.unit) + '" style="cursor:pointer">' + esc(y.x.away + '@' + y.x.home) + '</span>').join('') + (list.length > (S.tall ? 4 : 3) ? '<span class="rsg muted">+' + (list.length - (S.tall ? 4 : 3)) + '</span>' : '') + '</div>';
       }
       s += '</div></div>';
     }
