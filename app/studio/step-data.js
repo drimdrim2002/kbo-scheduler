@@ -525,7 +525,7 @@
       else if (u.tab === 'teams') main = renderTeams();
       else main = renderSheet(u.tab);
       const insp = renderInsp();
-      return '<div class="stepview">' + renderBand() + S.workspace({ list: renderList(), main, insp: insp.html, inspTitle: insp.title, listLabel: '시트 목록', cls: 'ws-data' }) + '</div>';
+      return '<div class="stepview">' + renderBand() + S.workspace({ list: renderList(), main, insp: insp.html, inspTitle: insp.title, listLabel: '시트 목록', cls: u.tab === 'teams' ? '' : 'ws-data' }) + '</div>';
     },
     after() {
       const ed = document.getElementById('cellEditor');

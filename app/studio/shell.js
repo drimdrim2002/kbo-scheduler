@@ -65,7 +65,7 @@
     let eng;
     if (r && r.status === 'RUNNING') eng = '<span class="eng run"><span class="dot"></span><b>실행 중</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
     else if (r && r.status === 'PAUSED') eng = '<span class="eng pause"><span class="dot"></span><b>일시정지</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
-    else eng = '<span class="eng"><span class="dot"></span>엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? 'REST' : 'Mock') + '</span>';
+    else eng = '<span class="eng"><span class="dot"></span>엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? (S.dev() ? 'REST' : '서버 엔진') : (S.dev() ? 'Mock' : '시안용')) + '</span>';
     return '' +
       '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">KBO 일정 편성 · 2025</span><span class="brand-sub">편성 스튜디오</span></div>' +
       '<span class="tb-sep"></span>' +

@@ -121,7 +121,7 @@
     const dis = running ? ' disabled' : '';
     const pinned = app().state.matches.filter((m) => m.pinned).length;
     const cur = S.TIME_PRESETS.find((p) => p.sec === sv.timeLimitSec);
-    const choice = (act, v, on, name, extra, sub) => '<button class="choice' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="' + act + '" data-v="' + v + '"' + dis + '><span class="c-dot" aria-hidden="true"></span><span class="c-main"><b>' + esc(name) + '</b>' + (extra ? '<span class="c-time">' + esc(extra) + '</span>' : '') + '<span class="c-sub">' + esc(sub) + '</span></span></button>';
+    const choice = (act, v, on, name, extra, sub) => '<button class="choice' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="' + act + '" data-v="' + v + '"' + dis + '><span class="c-dot" aria-hidden="true"></span><span class="c-main"><b>' + esc(name) + (extra ? ' <span class="c-time">' + esc(extra) + '</span>' : '') + '</b><span class="c-sub">' + esc(sub) + '</span></span></button>';
     return '<div class="simple-opts">' +
       '<div class="field"><span id="lbl-time">실행 시간</span><div class="choices" role="radiogroup" aria-labelledby="lbl-time">' +
         S.TIME_PRESETS.map((p) => choice('run-time', p.sec, p.sec === sv.timeLimitSec, p.name, p.time, p.sub)).join('') + '</div>' +
@@ -190,7 +190,9 @@
     s += '<div><div class="label" style="padding:0 0 6px">입력 요약</div>' + summary() + '</div>';
     s += '<div class="blk"><div class="blk-head">' + icon('bolt') + '편성 실행<span class="tag ref">시안용 시뮬레이션 — 결과 품질 보장 없음</span><span class="r">' +
       (running ? '<span class="lock-pill">' + icon('lock') + '입력 잠김 — ① 데이터 준비 편집 불가</span>' : '') + '</span></div><div class="blk-body engine">';
-    s += S.reviewSimpleOptions(sv, running);
+    // 실행 중에는 진행 막대·경과 시간·상태 문장만 보여 준다(W17)
+    if (!running) s += S.reviewSimpleOptions(sv, running);
+    else s += '<div class="keep-line">' + icon('clock') + '<span>' + esc((S.TIME_PRESETS.find((p) => p.sec === sv.timeLimitSec) || { name: '직접 지정' }).name) + ' ' + esc(fmt.time(r.limit)) + ' · ' + esc((S.INIT_MODES.find((m) => m.v === (sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP')) || {}).name || '') + '</span><span class="muted small">끝나면 ③ 결과·수정으로 갑니다. 그동안 ① 데이터 준비는 잠깁니다.</span></div>';
     if (blocked) s += '<div class="confirm-box" style="border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad)">' + icon('block') + '차단 ' + pf.counts.block + '건 — 왼쪽 목록의 차단 항목을 먼저 고치세요. <button class="btn xs" data-act="p-goto" data-target="' + esc(pf.items.find((x) => x.status === 'block').target) + '">입력 위치로 이동</button></div>';
     s += '<div class="run-line"><div class="run-prog"><div class="progress" role="progressbar" aria-label="편성 진행" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>' +
       '<div class="run-meta"><span class="run-status" aria-live="polite">' + (running ? '<span class="eng-dot' + (r.status === 'PAUSED' ? ' pause' : '') + '"></span>' : S.lastRun ? icon('check') : icon('clock')) + esc(statusLine(r, running)) + '</span><span class="mono small">' + pct + '% · 경과 ' + fmt.time(running ? r.elapsed : S.lastRun ? S.lastRun.elapsed : 0) + ' / ' + fmt.time(running ? r.limit : limit) + '</span></div></div>' +

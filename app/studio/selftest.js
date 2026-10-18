@@ -54,6 +54,7 @@
     click('.step[data-step="2"]'); flush();
     click('[data-act="run-start"]');
     ok('실행 중 입력 잠금', S.app.isRunning() && !!document.querySelector('.lock-pill'));
+    ok('실행 중에는 옵션 대신 진행 상태만', !document.querySelector('.choice') && !!document.querySelector('.run-status'));
     await wait(6800);
     ok('실행 종료 후 ③ 이동', S.ui.step === 3 && !S.app.isRunning(), 'step ' + S.ui.step);
     // 6. 위반 클릭 → 위치

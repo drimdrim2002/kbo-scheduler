@@ -112,7 +112,7 @@
         const isMirror = sel && sel.home === a && sel.away === h;
         const chg = changed.has(h + '|' + a);
         const fill = bad ? '#FFF3D9' : step(v);
-        const dark = !bad && v >= 6;
+        const dark = !bad && v >= 9; // 6~8 칸은 남색 글자(대비 4.5:1 이상)
         const prev = o.before && o.before.has(h + '|' + a) ? o.before.get(h + '|' + a) : null;
         const tip = a + ' @ ' + h + ' — ' + h + ' 홈 ' + v + '경기 · ' + a + ' 홈 ' + w + '경기 · 합 ' + (v + w) + (bad ? ' (목표 ' + target + '와 다름)' : '') + (chg ? ' · 방금 바뀜' + (prev != null ? ' (' + prev + ' → ' + v + ')' : '') : '');
         s += '<g class="vz-cell' + (bad ? ' bad' : '') + (chg ? ' chg' : '') + (isSel ? ' sel' : '') + '" data-pair="' + esc(h + '|' + a) + '" data-v="' + v + '"><title>' + esc(tip) + '</title>' +
