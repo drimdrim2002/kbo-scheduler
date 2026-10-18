@@ -248,7 +248,7 @@
     S.debugScroll = q.get('debug') === 'scroll';
     if (q.get('fresh') === '1') { S.ls.del(S.KEY + 'features'); }
     S.loadFeatures();
-    const app = S.app = new KBO.App({ appId: 'wizard-std', appName: '편성 스튜디오' });
+    const app = S.app = new KBO.App({ appId: 'wizard-opt-2', appName: '편성 스튜디오' });
     app.store.autosaveMs = -1;
     app.store.initial = S.seedProject;
     app.store.reset();
