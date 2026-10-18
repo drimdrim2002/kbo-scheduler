@@ -12,7 +12,7 @@
   const C = () => KBO.Chart;
 
   const VIEWS = [
-    { id: 'metrics', group: '표', label: '구단 지표 비교표', icon: 'table', ref: 'FR-Q1·Q2' },
+    { id: 'metrics', group: '표', label: '구단 지표 대시보드', icon: 'table', ref: 'FR-Q1·Q2' },
     { id: 'soft', group: '표', label: 'Soft 분해', icon: 'rule', ref: 'FR-Q3' },
     { id: 'a1', group: '필수 차트', label: '총 이동거리', icon: 'chart', ref: 'FR-A1' },
     { id: 'a2', group: '필수 차트', label: '이동·휴일·주말 비교', icon: 'chart', ref: 'FR-A2' },
@@ -78,31 +78,112 @@
     s += '</tbody><tfoot><tr><td>리그 평균</td>' + COLS.map((c, i) => '<td class="' + (i === 3 ? 'bl' : '') + '">' + (c.mean ? fmt.num1(c.mean()) : '') + '</td>').join('') + '</tr></tfoot></table>';
     return s;
   }
-  /** ④ 지표 간략 차트 2개 (W18). w = SVG 기준 폭 */
-  S.metricsCharts = function (w) {
+  // ───────── opt-2 지표 대시보드 ─────────
+  // 위: 요약 카드 4개 / 가운데: 차트 2×2 (펼치면 1×4 띠) / 아래: 접히는 비교표 띠.
+  // 카드의 구단 칩·막대·점·표 행은 모두 data-act="q-team"이라 한 곳을 누르면 모든 곳에서 같은 구단을 강조한다.
+
+  /** 요약 카드 값 (자가 점검도 이 값을 쓴다) */
+  S.metricsSummary = function () {
+    const L = league(), T = tms();
+    const byDist = T.slice().sort((a, b) => b.distanceKm - a.distanceKm);
+    const over = T.filter((t) => t.overDistance);
+    const dev = T.map((t) => ({ t, d: t.distanceKm - L.meanDistanceKm })).sort((a, b) => Math.abs(b.d) - Math.abs(a.d))[0];
+    const wk = T.map((t) => t.weekendHome);
+    const wMax = Math.max(...wk), wMin = Math.min(...wk);
+    return {
+      meanKm: L.meanDistanceKm, totalKm: L.totalKm, top: byDist[0], low: byDist[byDist.length - 1],
+      over: over.map((t) => t.name), overMoves: T.filter((t) => t.overMoves).length, overHoliday: T.filter((t) => t.overHoliday).length,
+      dev: dev ? { name: dev.t.name, km: dev.d, beyond: Math.max(0, Math.abs(dev.d) - 300) } : null,
+      wMax, wMin, wGap: wMax - wMin, wMaxTeams: T.filter((t) => t.weekendHome === wMax).map((t) => t.name), wMinTeams: T.filter((t) => t.weekendHome === wMin).map((t) => t.name), wMean: L.meanWeekendHome
+    };
+  };
+
+  function metricsCards() {
+    const m = S.metricsSummary(), sel = S.ui.team, T = tms(), L = league();
+    const st = sel ? T.find((t) => t.name === sel) : null;
+    const dv = (code) => (S.dev() ? ' <code class="rc">' + code + '</code>' : '');
+    const chip = (name, extra) => '<button class="q-chip' + (sel === name ? ' sel' : '') + '" data-act="q-team" data-team="' + esc(name) + '" aria-pressed="' + (sel === name) + '">' + esc(name) + (extra ? ' <span class="q-chip-v">' + esc(extra) + '</span>' : '') + '</button>';
+        const selLine = (html) => '<div class="q-card-sel' + (st ? ' on' : '') + '">' + (st ? html : '<span class="muted">구단을 고르면 그 구단 값이 나옵니다</span>') + '</div>';
+    const card = (id, label, value, sub, sl, attrs, cls) => '<div class="q-card' + (cls ? ' ' + cls : '') + '" data-card="' + id + '"' + (attrs || '') + '><div class="q-card-k">' + label + '</div><div class="q-card-v">' + value + '</div><div class="q-card-s">' + sub + '</div>' + selLine(sl) + '</div>';
+    const sd = st ? st.distanceKm - L.meanDistanceKm : 0;
+    let s = '<div class="q-cards">';
+    s += card('mean', icon('chart') + '평균 이동거리 <span class="q-card-kx">리그 합계 ' + fmt.int(m.totalKm) + 'km</span>' + dv('S4'),
+      '<b>' + fmt.km(m.meanKm) + '</b><span class="u">km</span>',
+      '최다 ' + chip(m.top.name, S.wide ? fmt.km(m.top.distanceKm) : '') + ' 최소 ' + chip(m.low.name, S.wide ? fmt.km(m.low.distanceKm) : ''),
+      st ? '<b>' + esc(st.name) + '</b> ' + fmt.km(st.distanceKm) + 'km · 평균 대비 ' + fmt.signed1(sd) : '',
+      ' data-v="' + m.meanKm.toFixed(1) + '" data-total="' + m.totalKm + '"');
+    s += card('over', icon('warn') + '허용 범위 초과 구단 <span class="q-card-kx">이동거리 평균 ±300km 밖</span>' + dv('S2'),
+      '<b class="' + (m.over.length ? 'bad' : 'good') + '">' + (m.over.length ? '▲ ' : '') + m.over.length + '</b><span class="u">구단</span><span class="q-card-aside">이동 횟수 초과 ' + m.overMoves + ' · 휴일 초과 ' + m.overHoliday + '</span>',
+      m.over.length ? m.over.map((n) => chip(n)).join('') : '<span class="muted">모든 구단이 범위 안</span>',
+      st ? '<b>' + esc(st.name) + '</b> ' + (st.overDistance ? '<span class="bad">▲ 범위 밖 (평균 대비 ' + fmt.signed1(sd) + 'km)</span>' : '범위 안 (평균 대비 ' + fmt.signed1(sd) + 'km)') : '',
+      ' data-v="' + m.over.length + '" data-teams="' + esc(m.over.join(',')) + '"', 'wide');
+    s += card('dev', icon('target') + '가장 큰 편차 구단 <span class="q-card-kx">이동거리 기준</span>' + dv('S2'),
+      m.dev ? '<b>' + esc(m.dev.name) + '</b><span class="q-card-num ' + (m.dev.beyond ? 'bad' : '') + '">' + fmt.signed1(m.dev.km) + '<span class="u">km</span></span>' : '-',
+      m.dev ? (m.dev.beyond ? '허용 범위 밖 <b class="bad">' + fmt.km(m.dev.beyond) + 'km</b>' : '허용 범위 안') + (S.wide ? ' · 평균보다 ' + (m.dev.km < 0 ? '적음' : '많음') : '') : '',
+      st ? '<b>' + esc(st.name) + '</b> ' + fmt.signed1(sd) + 'km' + (m.dev && st.name === m.dev.name ? ' · 가장 큼' : '') : '',
+      m.dev ? ' data-act="q-team" data-team="' + esc(m.dev.name) + '" role="button" tabindex="0" aria-pressed="' + (sel === m.dev.name) + '" data-v="' + m.dev.km.toFixed(1) + '"' : '', 'click' + (m.dev && sel === m.dev.name ? ' sel' : ''));
+    s += card('wk', icon('cal') + '주말 홈 편차 <span class="q-card-kx">참고</span>',
+      '<b>' + m.wGap + '</b><span class="u">시리즈 차이</span>',
+      '최다 ' + m.wMax + ' · 최소 ' + m.wMin + ' <span class="muted">(' + m.wMaxTeams.length + '·' + m.wMinTeams.length + '구단)</span>',
+      st ? '<b>' + esc(st.name) + '</b> ' + st.weekendHome + '시리즈 (평균 ' + fmt.signed1(st.weekendHome - m.wMean) + ')' : '',
+      ' data-v="' + m.wGap + '" title="' + esc('최다 ' + m.wMax + ': ' + m.wMaxTeams.join(', ') + ' / 최소 ' + m.wMin + ': ' + m.wMinTeams.join(', ')) + '"');
+    return s + '</div>';
+  }
+
+  /** ④ 지표 차트 4개 (2×2). w·h = SVG 기준 크기 */
+  S.metricsCharts = function (w, h, compact) {
     const L = league(), T = tms(), sel = S.ui.team;
-    const distance = S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: 300, sel, width: w, rowH: S.tall ? 28 : 18, title: '구단별 총 이동거리' });
-    const dots = S.mchart.dotRows({ sel, width: w, rowH: S.tall ? 100 : 66, title: '이동 횟수 · 휴일 가중치 · 주말 홈', rows: [
-      { title: '이동 횟수', items: T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), mean: L.meanMoves, tol: 2, fmt: (v) => fmt.num1(v) + '회' },
-      { title: '휴일 가중치', items: T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), mean: L.meanHoliday, tol: 1.5 },
-      { title: '주말 홈 (참고)', items: T.map((t) => ({ name: t.name, value: t.weekendHome, over: false })), mean: L.meanWeekendHome, tol: 2 }
-    ] });
+    const one = (title, items, mean, tol, f) => S.mchart.dotRows({ sel, width: w, rowH: h, bare: true, title, rows: [{ title, items, mean, tol, fmt: f }] });
+    const rowH = Math.max(9, Math.min(30, Math.floor((h - (compact ? 24 : 36)) / T.length)));
+    const tolNote = (t) => '띠 = 평균 ±' + t + ' · ▲ = 초과';
     return [
-      { id: 'distance', title: '차트 1 · 구단별 총 이동거리', note: '점선 = 평균 · 띠 = ±300km · 빗금 ▲ = 초과', svg: distance },
-      { id: 'dots', title: '차트 2 · 이동 횟수 · 휴일 가중치 · 주말 홈', note: '띠 = 평균 ± 허용오차 · 빨간 ▲ = 초과', svg: dots }
+      { id: 'distance', title: '총 이동거리', code: 'S2', note: compact ? '띠 ±300km · 빗금 ▲ 초과' : '점선 = 평균 · 띠 = ±300km · 빗금 ▲ = 초과', svg: S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: 300, sel, width: w, rowH, ticks: !compact, title: '구단별 총 이동거리' }) },
+      { id: 'moves', title: '이동 횟수', code: 'S1', note: tolNote('2회'), svg: one('이동 횟수', T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), L.meanMoves, 2, (v) => fmt.num1(v) + '회') },
+      { id: 'holiday', title: '휴일 가중치', code: 'S3', note: tolNote('1.5'), svg: one('휴일 가중치', T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), L.meanHoliday, 1.5) },
+      { id: 'weekend', title: '주말 홈 (참고)', code: '', note: compact ? '점수 미반영' : '띠 = 평균 ±2 · 점수 미반영', svg: one('주말 홈', T.map((t) => ({ name: t.name, value: t.weekendHome, over: false })), L.meanWeekendHome, 2) }
     ];
   };
-  /** 지표 화면 배치. 표준: 1440은 표 아래 차트 2개 나란히, 1800 이상은 표 오른쪽에 차트 세로로. opt-2는 이 함수를 바꾼다. */
-  S.metricsLayout = function (table, charts) {
-    const box = (c) => '<div class="blk mc-box" data-chart="' + c.id + '"><div class="blk-head">' + esc(c.title) + '<span class="r small muted">' + esc(c.note) + '</span></div><div class="blk-body">' + c.svg + '</div></div>';
-    return '<div class="q-met' + (S.wide ? ' wide' : '') + '"><div class="q-met-table">' + table + '</div><div class="q-met-charts">' + charts.map(box).join('') + '</div></div>';
+
+  /** 접힌 비교표 띠의 한 줄 요약 */
+  function bandSummary() {
+    const T = tms(), sel = S.ui.team;
+    const st = sel ? T.find((t) => t.name === sel) : null;
+    const cells = T.reduce((a, t) => a + (t.overDistance ? 1 : 0) + (t.overMoves ? 1 : 0) + (t.overHoliday ? 1 : 0) + (t.maxHomeRun > 3 ? 1 : 0) + (t.maxAwayRun > 3 ? 1 : 0), 0);
+    let s = '<span class="q-band-sum">' + T.length + '구단 · 채점 지표 3개 + 참고 지표 5개 · 허용 범위 넘은 칸 <b class="' + (cells ? 'bad' : '') + '">' + cells + '개</b></span>';
+    if (st) {
+      const v = (val, over) => (over ? '<b class="bad">▲' + val + '</b>' : '<b>' + val + '</b>');
+      s += '<span class="q-band-sel" data-team="' + esc(st.name) + '">' + S.team(st.name) + ' 이동거리 ' + v(fmt.km(st.distanceKm) + 'km', st.overDistance) + ' · 이동 ' + v(st.moves + '회', st.overMoves) + ' · 휴일 ' + v(st.holidayWeight, st.overHoliday) + ' · 주말 홈 ' + v(st.weekendHome) + ' · 최장 연속 ' + v('홈 ' + st.maxHomeRun + '·원정 ' + st.maxAwayRun, st.maxHomeRun > 3 || st.maxAwayRun > 3) + '</span>';
+    }
+    return s;
+  }
+
+  /** 지표 화면 배치 (opt-2): 카드 / 차트 격자 / 비교표 띠 */
+  S.metricsLayout = function (cards, charts, table, open) {
+    const box = (c) => '<div class="blk mc-box" data-chart="' + c.id + '"><div class="blk-head"><b>' + esc(c.title) + '</b>' + (S.dev() && c.code ? '<code class="rc">' + c.code + '</code>' : '') + '<span class="r small muted">' + esc(c.note) + '</span></div><div class="blk-body">' + c.svg + '</div></div>';
+    const band = '<div class="q-band' + (open ? ' open' : '') + '"><button class="q-band-head" data-act="q-mt" aria-expanded="' + open + '" aria-controls="qBandBody">' + icon(open ? 'down' : 'right') + '<b>구단 지표 비교표</b>' + bandSummary() + '<span class="q-band-tg">' + (open ? '접기' : '표 펼치기') + '</span></button>' +
+      (open ? '<div class="q-band-body" id="qBandBody" data-sk="q-band">' + table + '</div>' : '') + '</div>';
+    return '<div class="q-dash' + (open ? ' open' : '') + (S.wide ? ' wide' : '') + '">' + cards + '<div class="q-charts">' + charts.map(box).join('') + '</div>' + band + '</div>';
   };
   function renderMetrics() {
+    const open = !!S.ui.mtOpen;
     const mainW = window.innerWidth - (S.wide ? 260 : 232) - (S.ui.inspOff ? 30 : S.wide ? 360 : 320);
-    const w = S.wide ? Math.round(mainW * 0.46 - 40) : Math.round((mainW - 24 - 12) / 2 - 20);
-    let s = S.paneHead('구단 지표 비교표', '채점 지표는 엔진이 고르게 맞추는 값, 참고 지표는 보기만 합니다. ▲ = 허용오차 초과. 행·막대·점을 누르면 그 구단을 강조합니다.', '<span class="tag score">채점</span><span class="tag ref">참고</span>');
-    s += '<div class="pane-body" data-sk="q-metrics">' + S.metricsLayout(metricsTable(), S.metricsCharts(w)) +
-      '<div class="small muted q-met-foot">' + esc(S.plain('허용오차: 이동거리 평균 ±300km(S2), 이동 횟수 평균 ±2회(S1), 휴일 가중치 평균 ±1.5(S3). 열 머리글을 누르면 정렬합니다.')) + '</div></div>';
+    const bodyH = window.innerHeight - 178;
+    const cardsH = S.tall ? 92 : 82, bandH = 36, pad = S.tall ? 24 : 20, gap = 8;
+    let w, h;
+    if (!open) {
+      w = Math.round((mainW - pad - gap) / 2 - 16);
+      h = Math.round((bodyH - pad - cardsH - bandH - gap * 3 - gap) / 2 - 36);
+    } else {
+      w = Math.round((mainW - pad - gap * 3) / 4 - 16);
+      h = (S.tall ? 250 : 196) - 36;
+    }
+    // 실제 상자 크기를 재어 두었으면 그 값을 쓴다(after()에서 재고, 다르면 한 번 더 그린다)
+    const mb = S._dashBox && S._dashBox[open ? 'open' : 'closed'];
+    if (mb) { w = mb.w; h = mb.h; }
+    h = Math.max(100, h);
+    S._dashUsed = { open, w, h };
+    let s = S.paneHead('구단 지표 대시보드', '요약 카드 · 차트 4개 · 비교표. 카드의 구단·막대·점·표 행을 누르면 그 구단을 모든 곳에서 함께 강조합니다.', '<span class="tag score">채점</span><span class="tag ref">참고</span>');
+    s += '<div class="pane-body" data-sk="q-metrics">' + S.metricsLayout(metricsCards(), S.metricsCharts(w, h, open), open ? metricsTable() : '', open) + '</div>';
     return s;
   }
 
@@ -277,13 +358,25 @@
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: fn(), insp: insp.html, inspTitle: insp.title, listLabel: '품질 보기' }) + '</div>';
     },
     after() {
+      // opt-2: 대시보드 차트 상자 크기 재기 → 그린 크기와 4px 넘게 다르면 다시 그린다
+      const bb = S.ui.qv === 'metrics' && document.querySelector('.q-charts .mc-box .blk-body');
+      if (bb && S._dashUsed) {
+        const mw = Math.round(bb.clientWidth - 16), mh = Math.round(bb.clientHeight - 8), u = S._dashUsed;
+        S._dashBox = S._dashBox || {};
+        S._dashBox[u.open ? 'open' : 'closed'] = { w: mw, h: mh };
+        if (mw > 60 && mh > 60 && (Math.abs(mw - u.w) > 4 || Math.abs(mh - u.h) > 4) && !S._dashRe) { S._dashRe = true; try { S.render(); } finally { S._dashRe = false; } }
+      }
       document.querySelectorAll('.kc-item[data-key]').forEach((g) => { g.setAttribute('data-act', 'q-team'); g.setAttribute('data-team', g.getAttribute('data-key')); });
     }
   };
 
+  // opt-2: 창 크기가 바뀌면 대시보드 차트를 상자 크기에 맞춰 다시 그린다
+  window.addEventListener('resize', () => { if (S.ui && !S.ui.ops && S.ui.step === 4 && S.ui.qv === 'metrics') S.render(); });
+
   Object.assign(S.actions, {
     'q-view': (el) => S.go({ step: 4, qv: el.dataset.qv, ops: null }),
     'q-team': (el) => S.go({ team: S.ui.team === el.dataset.team && S.ui.qv !== 'sched' ? null : el.dataset.team }),
+    'q-mt': () => S.go({ mtOpen: !S.ui.mtOpen }),
     'q-sort': (el) => { const k = el.dataset.k; const cur = S.ui.sort; S.go({ sort: { key: k, dir: cur.key === k ? -cur.dir : (k === 'name' ? 1 : -1) } }); },
     'q-soft': (el) => S.go({ softLevel: el.dataset.lv }),
     'q-to-cal': (el) => S.go({ step: 3, teamFilter: [el.dataset.team], view: 'calendar', sel: null }),

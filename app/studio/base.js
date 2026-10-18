@@ -248,7 +248,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -269,7 +269,7 @@
       o.step = u.step;
       if (u.step === 1) o.tab = u.tab;
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
-      if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; }
+      if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
       if (u.sel) o.sel = u.sel;
     }
@@ -291,6 +291,7 @@
     } else u.ops = null;
     if (o.dev === '1') S.devOverride = true; else if (o.dev === '0') S.devOverride = false;
     u.devOpen = o.devopen === '1';
+    u.mtOpen = o.mt === '1'; // opt-2: ④ 지표 비교표 띠 펼침
     if (o.step) u.step = Math.max(1, Math.min(4, parseInt(o.step, 10) || 1));
     if (o.tab) u.tab = o.tab;
     if (o.month) u.month = parseInt(o.month, 10) || u.month;

@@ -26,12 +26,12 @@
    */
   M.distanceBars = function (o) {
     const items = o.items.slice().sort((a, b) => b.value - a.value);
-    const W = o.width || 420, rowH = o.rowH || 18, left = 46, right = 70, top = 18, bottom = 18;
+    const W = o.width || 420, rowH = o.rowH || 18, left = 46, right = 70, top = 18, bottom = o.ticks === false ? 6 : 18;
     const H = top + items.length * rowH + bottom;
     const f = o.fmt || ((v) => fmt.km(v));
     const vals = items.map((x) => x.value);
     const lo0 = Math.min(...vals, o.mean - o.tol), hi0 = Math.max(...vals, o.mean + o.tol);
-    const step = nice((hi0 - lo0) / 4);
+    const step = nice((hi0 - lo0) / (o.tickN || 4));
     const lo = Math.floor((lo0 - step * 0.5) / step) * step, hi = Math.ceil((hi0 + step * 0.2) / step) * step;
     const x = (v) => left + (W - left - right) * ((v - lo) / (hi - lo || 1));
     const pid = 'mch' + (++uid);
@@ -41,7 +41,7 @@
     s += '<rect class="mc-band" x="' + x(o.mean - o.tol).toFixed(1) + '" y="' + (top - 4) + '" width="' + (x(o.mean + o.tol) - x(o.mean - o.tol)).toFixed(1) + '" height="' + (yb - top + 6) + '"/>';
     for (let v = lo; v <= hi + 1e-6; v += step) {
       s += '<line class="mc-grid" x1="' + x(v).toFixed(1) + '" x2="' + x(v).toFixed(1) + '" y1="' + (top - 4) + '" y2="' + yb + '"/>';
-      s += '<text class="mc-tick" x="' + x(v).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + esc(fmt.int(v)) + '</text>';
+      if (o.ticks !== false) s += '<text class="mc-tick" x="' + x(v).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + esc(fmt.int(v)) + '</text>';
     }
     items.forEach((it, i) => {
       const y = top + i * rowH;
@@ -61,25 +61,43 @@
   };
 
   /**
-   * o: { rows:[{title, sub, items:[{name, value, over}], mean, tol, fmt}], sel, width, rowH }
+   * o: { rows:[{title, sub, items:[{name, value, over}], mean, tol, fmt}], sel, width, rowH, bare }
    * 점 위·아래로 구단 이름을 번갈아 적어 겹침을 피한다(alt-c 방식).
+   * opt-2: bare = true면 지표 하나짜리 차트로 그린다. 줄 제목은 상자 머리글로 옮기고(왼쪽 여백 없음),
+   *        아래에 눈금, 위에 평균 글자를 적는다. 대시보드 2×2 격자의 점 차트 3개가 이 모양이다.
    */
   M.dotRows = function (o) {
-    const W = o.width || 420, rowH = o.rowH || 66, left = 96, right = 14;
+    const bare = !!o.bare;
+    const W = o.width || 420, rowH = o.rowH || 66, left = bare ? 14 : 96, right = 14;
     const H = o.rows.length * rowH;
     let s = '<svg class="mc" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.title || '이동 횟수 · 휴일 가중치 · 주말 홈') + '">';
     o.rows.forEach((row, ri) => {
-      const top = ri * rowH, cy = top + rowH * 0.5;
+      const top = ri * rowH, cy = bare ? top + Math.round((rowH - 14) * 0.52) : top + rowH * 0.5;
       const f = row.fmt || ((v) => fmt.num1(v));
       const vals = row.items.map((x) => x.value);
       const pad = Math.max(row.tol * 0.35, 0.5);
       const lo = Math.min(...vals, row.mean - row.tol) - pad, hi = Math.max(...vals, row.mean + row.tol) + pad;
       const x = (v) => left + (W - left - right) * ((v - lo) / (hi - lo || 1));
-      s += '<text class="mc-row-title" x="4" y="' + (cy - 3) + '">' + esc(row.title) + '</text>';
-      s += '<text class="mc-tick" x="4" y="' + (cy + 11) + '">평균 ' + esc(f(row.mean)) + ' ±' + row.tol + '</text>';
-      s += '<rect class="mc-band" x="' + x(row.mean - row.tol).toFixed(1) + '" y="' + (cy - 10) + '" width="' + (x(row.mean + row.tol) - x(row.mean - row.tol)).toFixed(1) + '" height="20"/>';
+      const bh = bare ? 24 : 20;
+      if (!bare) {
+        s += '<text class="mc-row-title" x="4" y="' + (cy - 3) + '">' + esc(row.title) + '</text>';
+        s += '<text class="mc-tick" x="4" y="' + (cy + 11) + '">평균 ' + esc(f(row.mean)) + ' ±' + row.tol + '</text>';
+      } else {
+        // 눈금: 정수 간격(값 범위가 좁아 1·2·5 단위)
+        const span = hi - lo, want = Math.max(2, Math.floor((W - left - right) / 46));
+        let st = nice(span / want); if (st < 1) st = 1;
+        for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-6; v += st) {
+          s += '<line class="mc-grid" x1="' + x(v).toFixed(1) + '" x2="' + x(v).toFixed(1) + '" y1="' + (top + 16) + '" y2="' + (top + rowH - 16) + '"/>';
+          s += '<text class="mc-tick" x="' + x(v).toFixed(1) + '" y="' + (top + rowH - 4) + '" text-anchor="middle">' + esc(fmt.int(v)) + '</text>';
+        }
+      }
+      s += '<rect class="mc-band" x="' + x(row.mean - row.tol).toFixed(1) + '" y="' + (cy - bh / 2) + '" width="' + (x(row.mean + row.tol) - x(row.mean - row.tol)).toFixed(1) + '" height="' + bh + '"/>';
       s += '<line class="mc-axis" x1="' + left + '" x2="' + (W - right) + '" y1="' + cy + '" y2="' + cy + '"/>';
-      s += '<line class="mc-mean" x1="' + x(row.mean).toFixed(1) + '" x2="' + x(row.mean).toFixed(1) + '" y1="' + (cy - 13) + '" y2="' + (cy + 13) + '"/>';
+      s += '<line class="mc-mean" x1="' + x(row.mean).toFixed(1) + '" x2="' + x(row.mean).toFixed(1) + '" y1="' + (bare ? top + 16 : cy - 13) + '" y2="' + (bare ? top + rowH - 16 : cy + 13) + '"/>';
+      if (bare) {
+        const mx = x(row.mean), anchor = mx > W - 70 ? 'end' : mx < 70 ? 'start' : 'middle';
+        s += '<text class="mc-mean-lbl" x="' + mx.toFixed(1) + '" y="' + (top + 11) + '" text-anchor="' + anchor + '">평균 ' + esc(f(row.mean)) + ' · 띠 ±' + row.tol + '</text>';
+      }
       const used = [];
       row.items.slice().sort((a, b) => a.value - b.value).forEach((it) => {
         const px = x(it.value);
