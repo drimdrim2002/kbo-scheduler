@@ -141,7 +141,7 @@
     s += '<div class="pane-body pad" data-sk="o-rs-main">';
     if (u.rsRunning) s += '<div class="progress" style="margin-bottom:10px"><i style="width:55%"></i></div>';
     if (!rex) {
-      s += '<div class="empty" style="padding:60px 12px"><b>' + icon('bolt') + ' 아직 재편성 결과가 없습니다</b>옵션을 정하고 「재편성 실행」을 누르면 9~10월 배치 결과와 RH 규칙 검사 결과가 여기에 나옵니다.</div>';
+      s += '<div class="empty" style="padding:60px 12px"><b>' + icon('bolt') + ' 아직 재편성 결과가 없습니다</b>옵션을 정하고 「재편성 실행」을 누르면 9~10월 배치 결과와 재편성 규칙 검사 결과가 여기에 나옵니다.</div>';
       return s + '</div>';
     }
     const last = rex.teamMetrics.map((t) => t.lastDate).filter(Boolean).sort().pop();
@@ -149,12 +149,12 @@
     const mon = rex.units.reduce((a, x) => a + x.days.filter((d) => Dates.weekday(d) === 1).length, 0);
     const placed = rex.units.filter((x) => x.days.length).length;
     s += '<div class="kv-row" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:10px">' +
-      '<div class="kv"><div class="k">RH 위반 (Hard)</div><div class="v">' + (rex.violations.length ? '<span style="color:var(--bad)">' + icon('x') + rex.violations.length + '건</span>' : '<span style="color:var(--ok)">' + icon('check') + '0건</span>') + '</div><div class="s">RH-1~RH-5</div></div>' +
+      '<div class="kv"><div class="k">' + (S.dev() ? 'RH 위반 (Hard)' : '필수 규칙 위반') + '</div><div class="v">' + (rex.violations.length ? '<span style="color:var(--bad)">' + icon('x') + rex.violations.length + '건</span>' : '<span style="color:var(--ok)">' + icon('check') + '0건</span>') + '</div><div class="s">' + (S.dev() ? 'RH-1~RH-5' : '하루 1경기 · 구장 · 쉬는 날 · 더블헤더 · 미배정') + '</div></div>' +
       '<div class="kv"><div class="k">배치한 묶음</div><div class="v">' + placed + ' / ' + rex.units.length + '</div><div class="s">' + rex.units.reduce((a, x) => a + x.games, 0) + '경기</div></div>' +
-      '<div class="kv"><div class="k">마지막 경기일 (RS-1)</div><div class="v">' + (last ? esc(fmt.date(last)) : '-') + '</div><div class="s">기간 끝 ' + esc(fmt.date(rs.end)) + '</div></div>' +
+      '<div class="kv"><div class="k">마지막 경기일' + (S.dev() ? ' (RS-1)' : '') + '</div><div class="v">' + (last ? esc(fmt.date(last)) : '-') + '</div><div class="s">기간 끝 ' + esc(fmt.date(rs.end)) + '</div></div>' +
       '<div class="kv"><div class="k">더블헤더</div><div class="v">' + dhs / 2 + '회</div><div class="s">구단당 최대 ' + rs.maxDoubleHeaderPerTeam + '</div></div>' +
       '<div class="kv"><div class="k">월요일 경기</div><div class="v">' + mon + '</div><div class="s">' + (rs.allowMonday ? '허용' : '금지 → 0이어야 함') + '</div></div></div>';
-    if (rex.violations.length) s += '<div class="blk" style="margin-bottom:10px"><div class="blk-head">' + icon('x') + 'RH 위반</div><div class="blk-body small">' + rex.violations.slice(0, 4).map((v) => '<div><code class="mono">' + v.code + '</code> ' + esc(v.message) + '</div>').join('') + '</div></div>';
+    if (rex.violations.length) s += '<div class="blk" style="margin-bottom:10px"><div class="blk-head">' + icon('x') + '재편성 필수 규칙 위반</div><div class="blk-body small">' + rex.violations.slice(0, 4).map((v) => '<div>' + S.ruleLabel(v.code) + ' — ' + esc(S.plain(v.message)) + '</div>').join('') + '</div></div>';
     // 9·10월 달력
     const byDay = new Map();
     for (const x of rex.units) x.days.forEach((d, k) => { if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push({ x, dh: x.dh && k === 0 }); });
@@ -183,7 +183,7 @@
     const u = S.ui, st = app().state;
     const un = (st.reschedule.units || []).find((x) => x.id === u.opsUnit);
     if (!un) {
-      return { title: '재편성 규칙', html: '<div class="insp-sec"><h4>Hard (RH)</h4>' + Reschedule.HARD_RULES.map((r) => '<div class="small" style="margin-bottom:4px"><code class="mono">' + r.code + '</code> ' + esc(r.desc) + '</div>').join('') + '</div><div class="insp-sec"><h4>Soft (RS)</h4>' + Reschedule.SOFT_RULES.map((r) => '<div class="small" style="margin-bottom:4px"><code class="mono">' + r.code + '</code> ' + esc(r.label) + '</div>').join('') + '</div><div class="empty">묶음을 고르면 원래 경기와 배치 날짜가 여기에 나옵니다.</div>' };
+      return { title: '재편성 규칙', html: '<div class="insp-sec"><h4>' + (S.dev() ? 'Hard (RH)' : '꼭 지킬 규칙') + '</h4>' + Reschedule.HARD_RULES.map((r) => '<div class="small" style="margin-bottom:4px">' + (S.dev() ? '<code class="rc">' + r.code + '</code> ' : '<b>' + esc(S.ruleName(r.code)) + '</b> — ') + esc(S.plain(r.desc)) + '</div>').join('') + '</div><div class="insp-sec"><h4>' + (S.dev() ? 'Soft (RS)' : '되도록 맞출 목표') + '</h4>' + Reschedule.SOFT_RULES.map((r) => '<div class="small" style="margin-bottom:4px">' + (S.dev() ? '<code class="rc">' + r.code + '</code> ' + esc(r.label) : esc(S.plain(r.label))) + '</div>').join('') + '</div><div class="empty">묶음을 고르면 원래 경기와 배치 날짜가 여기에 나옵니다.</div>' };
     }
     const p = (st.reschedule.plan || []).find((x) => x.unit === un.id);
     let s = '<div class="insp-sec"><div class="insp-title">' + S.team(un.away) + '<span class="muted">@</span>' + S.team(un.home) + '</div><div class="insp-sub">' + un.games + '경기 묶음 · ' + esc(un.id) + '</div></div>';
@@ -203,7 +203,7 @@
       } catch (e) { console.error(e); S.toast('재편성 탐색 실패: ' + e.message, 'bad'); }
       S.ui.rsRunning = false;
       const rex = app().rescheduleExplain();
-      if (!sync) S.toast('재편성 완료 — RH 위반 ' + (rex ? rex.violations.length : 0) + '건', rex && !rex.violations.length ? 'ok' : 'warn');
+      if (!sync) S.toast('재편성 완료 — ' + (S.dev() ? 'RH 위반 ' : '필수 규칙 위반 ') + (rex ? rex.violations.length : 0) + '건', rex && !rex.violations.length ? 'ok' : 'warn');
       S.render();
     };
     if (sync) { go(); return; }

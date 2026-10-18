@@ -36,10 +36,10 @@
     let s = '<div class="pane-head"><span class="pane-title">품질 보기</span><span class="pane-desc">' + visible().length + '개 · 꺼진 선택 차트는 숨김</span></div><div class="pane-body" data-sk="q-list">';
     let g = null;
     const over = tms().filter((t) => t.overDistance).length;
-    const badge = { metrics: over ? '<span class="st plain bad">' + icon('warn') + over + '</span>' : '', soft: '<span class="cnt mono">' + fmt.neg(D().ex.score.soft[2]) + '</span>', a3: D().ex.byCode['H0-f'].count ? '<span class="st plain bad">' + icon('x') + D().ex.byCode['H0-f'].count + '</span>' : '', export: S.ui.exported ? S.statIcon('ok') : S.statIcon('todo') };
+    const badge = { metrics: over ? '<span class="st plain bad">' + icon('warn') + over + '</span>' : '', soft: S.dev() ? '<span class="cnt mono">' + fmt.neg(D().ex.score.soft[2]) + '</span>' : '', a3: D().ex.byCode['H0-f'].count ? '<span class="st plain bad">' + icon('x') + D().ex.byCode['H0-f'].count + '</span>' : '', export: S.ui.exported ? S.statIcon('ok') : S.statIcon('todo') };
     for (const v of visible()) {
       if (v.group !== g) { g = v.group; s += '<div class="label">' + esc(g) + '</div>'; }
-      s += '<button class="li' + (u.qv === v.id ? ' active' : '') + '" data-act="q-view" data-qv="' + v.id + '"><span class="ico">' + icon(v.icon) + '</span><span class="li-main">' + esc(v.label) + '</span><span class="xs muted mono">' + esc(v.ref.replace(/FR-/g, '')) + '</span>' + (badge[v.id] || '') + '</button>';
+      s += '<button class="li' + (u.qv === v.id ? ' active' : '') + '" data-act="q-view" data-qv="' + v.id + '"><span class="ico">' + icon(v.icon) + '</span><span class="li-main">' + esc(v.id === 'soft' ? S.termPlain('softBreak') : v.label) + '</span><span class="xs muted mono">' + esc(v.ref.replace(/FR-/g, '')) + '</span>' + (badge[v.id] || '') + '</button>';
     }
     s += '<div class="list-sep"></div><div class="label">구단</div><div class="tf">' + app().state.teams.map((t) => '<button class="' + (u.team === t.name ? 'on' : '') + '" data-act="q-team" data-team="' + esc(t.name) + '"><i class="sw" style="background:' + esc(t.color) + '"></i>' + esc(t.name) + '<span class="ck">' + (u.team === t.name ? icon('check') : '') + '</span></button>').join('') + '</div>';
     return s + '</div>';
@@ -63,7 +63,7 @@
     rows.sort((a, b) => (sk === 'name' ? a.name.localeCompare(b.name) : (a[sk] - b[sk])) * dir);
     const th = (c, grp) => '<th class="' + (sk === c.k ? 'sorted ' : '') + (grp === 'score' ? 'grp-score' : 'grp-ref') + '" data-act="q-sort" data-k="' + c.k + '" aria-sort="' + (sk === c.k ? (dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + esc(c.h) + (c.u ? ' <span class="muted xs">' + c.u + '</span>' : '') + (sk === c.k ? '<span class="arrow">' + (dir > 0 ? '▲' : '▼') + '</span>' : '') + '</th>';
     let s = S.paneHead('구단 지표 비교표', '채점 지표는 엔진이 최적화하는 값, 참고 지표는 보기만 합니다. ▲ = 허용오차 초과.', '<span class="tag score">채점</span><span class="tag ref">참고</span>');
-    s += '<div class="pane-body" data-sk="q-metrics"><table class="mt"><thead><tr><th></th><th colspan="3" class="grp-score" style="text-align:center">채점 지표 (S1~S3 분산 대상)</th><th colspan="5" class="grp-ref bl" style="text-align:center">참고 지표 (점수 미반영)</th></tr><tr>' +
+    s += '<div class="pane-body" data-sk="q-metrics"><table class="mt"><thead><tr><th></th><th colspan="3" class="grp-score" style="text-align:center">채점 지표 ' + (S.dev() ? '(S1~S3 분산 대상)' : '(엔진이 고르게 맞추는 값)') + '</th><th colspan="5" class="grp-ref bl" style="text-align:center">참고 지표 (점수 미반영)</th></tr><tr>' +
       '<th data-act="q-sort" data-k="name" class="' + (sk === 'name' ? 'sorted' : '') + '">구단</th>' + COLS.slice(0, 3).map((c) => th(c, 'score')).join('') + COLS.slice(3).map((c, i) => th(c, 'ref').replace('<th class="', '<th class="' + (i === 0 ? 'bl ' : ''))).join('') + '</tr></thead><tbody>';
     for (const t of rows) {
       s += '<tr class="' + (u.team === t.name ? 'sel' : '') + '" data-act="q-team" data-team="' + esc(t.name) + '"><td>' + S.team(t.name) + '</td>';
@@ -77,7 +77,7 @@
       s += '</tr>';
     }
     s += '</tbody><tfoot><tr><td>리그 평균</td>' + COLS.map((c, i) => '<td class="' + (i === 3 ? 'bl' : '') + '">' + (c.mean ? fmt.num1(c.mean()) : '') + '</td>').join('') + '</tr></tfoot></table>';
-    s += '<div class="small muted" style="padding:10px 12px">허용오차: 이동거리 평균 ±300km(S2), 이동 횟수 평균 ±2회(S1), 휴일 가중치 평균 ±1.5(S3). 열 머리글을 누르면 정렬합니다.</div></div>';
+    s += '<div class="small muted" style="padding:10px 12px">' + esc(S.plain('허용오차: 이동거리 평균 ±300km(S2), 이동 횟수 평균 ±2회(S1), 휴일 가중치 평균 ±1.5(S3). 열 머리글을 누르면 정렬합니다.')) + '</div></div>';
     return s;
   }
 
@@ -85,12 +85,13 @@
   function renderSoft() {
     const ex = D().ex, sb = ex.softBreakdown, u = S.ui;
     const lv = u.softLevel || 'S2';
-    const tiles = Score.SOFT_RULES.map((r) => '<button class="tile' + (lv === r.code ? ' on' : '') + '" data-act="q-soft" data-lv="' + r.code + '"><span class="k">' + r.code + ' · ' + esc(r.label) + '</span><span class="v">' + fmt.neg(sb[r.code].total) + '</span></button>').join('');
-    let s = S.paneHead('Soft 분해', '단계별 점수가 어느 구단의 어떤 값에서 나오는지 연결합니다.');
+    const tiles = Score.SOFT_RULES.map((r) => '<button class="tile' + (lv === r.code ? ' on' : '') + '" data-act="q-soft" data-lv="' + r.code + '"><span class="k">' + (S.dev() ? r.code + ' · ' + esc(r.label) : esc(S.ruleName(r.code))) + '</span><span class="v">' + (S.dev() ? fmt.neg(sb[r.code].total) : (sb[r.code].total ? '감점 ' + fmt.int(Math.abs(sb[r.code].total)) : '0')) + '</span></button>').join('');
+    let s = S.paneHead(S.term('softBreak'), '공정성·이동 부담 점수가 어느 구단의 어떤 값에서 나오는지 연결합니다.');
     s += '<div class="pane-body pad" data-sk="q-soft"><div class="tiles">' + tiles + '</div>';
     const items = (sb[lv].items || []).slice();
     const desc = { S0: '미배정 시리즈 수. 슬롯이 없거나 더미 슬롯에 놓인 시리즈.', S1: 'Σ ⌊|이동 횟수 − 평균| / 2⌋² × 100', S2: 'Σ (max(0, |이동거리 − 평균| − 300km))², 0.1km 정수 연산', S3: 'Σ ⌊|휴일 가중치 − 평균| / 1.5⌋²', S4: 'Σ 구단 이동거리 (km, 버림)' }[lv];
-    s += '<div class="small muted" style="margin:10px 0 6px"><b style="color:var(--text)">' + lv + '</b> = ' + esc(desc) + '</div>';
+    const plainDesc = { S0: '슬롯에 놓이지 못한 시리즈 수입니다. 0이어야 합니다.', S1: '구단별 이동 횟수가 리그 평균에서 2회 넘게 벗어날수록 감점합니다.', S2: '구단별 총 이동거리가 리그 평균에서 300km 넘게 벗어날수록 감점합니다.', S3: '구단별 휴일 가중치 합이 평균에서 1.5 넘게 벗어날수록 감점합니다.', S4: '리그 전체 이동거리 합입니다. 작을수록 좋습니다.' }[lv];
+    s += '<div class="small muted" style="margin:10px 0 6px">' + (S.dev() ? '<b style="color:var(--text)">' + lv + '</b> = ' + esc(desc) : '<b style="color:var(--text)">' + esc(S.ruleName(lv)) + '</b> — ' + esc(plainDesc)) + '</div>';
     if (lv === 'S0') {
       s += items.length ? items.map((x) => '<div class="hbar">' + esc(app().matchLabel(x.match)) + '</div>').join('') : '<div class="empty"><b>' + icon('check') + ' 미배정 시리즈 없음</b>모든 시리즈가 슬롯에 놓였습니다.</div>';
     } else {
@@ -123,7 +124,7 @@
     const mk = (title, key, mean, tol, unit) => '<div class="blk"><div class="blk-head">' + esc(title) + '<span class="r small muted">평균 ' + fmt.num1(mean) + (tol ? ' · ±' + tol : '') + '</span></div><div class="blk-body">' +
       C().bar({ items: T.map((t) => ({ label: t.name, value: t[key], color: app().state.teams[t.team].color, flag: tol ? Math.abs(t[key] - mean) >= tol : false, key: t.name })), width: W(), height: S.wide ? 200 : 140, mean, band: tol ? { lo: mean - tol, hi: mean + tol, label: '±' + tol } : null, unit, yZero: false, title }) + '</div></div>';
     return S.paneHead('이동·휴일·주말 비교', '세 지표를 같은 구단 순서로 나란히 봅니다. 주말 홈은 참고 지표입니다.') +
-      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi" style="grid-template-columns:minmax(0,1fr);gap:8px">' + mk('이동 횟수 (채점 S1)', 'moves', L.meanMoves, 2, '회') + mk('휴일 가중치 합 (채점 S3)', 'holidayWeight', L.meanHoliday, 1.5, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
+      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi" style="grid-template-columns:minmax(0,1fr);gap:8px">' + mk('이동 횟수 (채점' + (S.dev() ? ' S1' : '') + ')', 'moves', L.meanMoves, 2, '회') + mk('휴일 가중치 합 (채점' + (S.dev() ? ' S3' : '') + ')', 'holidayWeight', L.meanHoliday, 1.5, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
   }
   function a3() {
     const c = D(), T = tms(), u = S.ui;
@@ -141,7 +142,7 @@
         const over = ra && ra.k >= 3;
         s += '<td><div class="c ' + (v.home ? 'h' : 'a') + (over ? ' over' : '') + '" title="' + esc(t.name + ' ' + Dates.fmtDate(sl.day) + ' ' + (v.home ? '홈' : '원정') + ' vs ' + app().state.teams[v.opp].name + (ra ? ' · ' + (ra.k + 1) + '연속째' : '')) + '">' + (over ? ra.k + 1 : '') + '</div></td>';
       }
-      s += '<td style="width:58px;padding-left:6px" class="small mono">H' + t.maxHomeRun + '/A' + t.maxAwayRun + '</td></tr>';
+      s += '<td style="width:58px;padding-left:6px" class="small mono" title="최장 연속 홈 · 원정 시리즈">홈' + t.maxHomeRun + '·원' + t.maxAwayRun + '</td></tr>';
     }
     return s + '</tbody></table><div class="small muted" style="margin-top:8px">오른쪽 숫자는 최장 연속 홈/원정 시리즈 수입니다.</div></div>';
   }
@@ -163,7 +164,7 @@
   function a8() {
     const items = tms().map((t) => ({ label: t.name, value: t.weekdayMoves, color: app().state.teams[t.team].color, key: t.name }));
     const mean = items.reduce((a, b) => a + b.value, 0) / items.length;
-    return chartWrap('주중 이동 (참고)', '주중 슬롯 → 다음 주말 슬롯 사이 이동 횟수. Constants.WEEKDAY_MOVE(1.5)는 점수에 반영되지 않습니다.', C().bar({ items, width: W(), height: S.wide ? 480 : 380, mean, band: { lo: mean - 1.5, hi: mean + 1.5, label: '±1.5 (참고)' }, unit: '회', yZero: false, title: '주중 이동' }));
+    return chartWrap('주중 이동 (참고)', '주중 슬롯 → 다음 주말 슬롯 사이 이동 횟수. ' + (S.dev() ? 'Constants.WEEKDAY_MOVE(1.5)는' : '이 값은') + ' 점수에 반영되지 않습니다.', C().bar({ items, width: W(), height: S.wide ? 480 : 380, mean, band: { lo: mean - 1.5, hi: mean + 1.5, label: '±1.5 (참고)' }, unit: '회', yZero: false, title: '주중 이동' }));
   }
   function a9() {
     const items = tms().map((t) => ({ label: t.name + (t.name === '키움' ? ' (돔)' : ''), value: t.summerAwayGames, color: app().state.teams[t.team].color, key: t.name, note: fmt.km(t.summerMoveKm) + 'km' }));
@@ -209,7 +210,7 @@
         const st = app().state;
         const rows = [['슬롯', st.calendar.length, '시작일·연전·주말·휴일가중치·메모'], ['시리즈', st.matches.length, '홈·원정·연전·메모'], ['공휴일', st.settings.holidays.length, '날짜·이름'], ['휴식예외일', st.settings.restExceptions.length, '날짜·메모'], ['경기없는기간', st.settings.blackouts.length, '시작일·종료일·이름'], ['이벤트', st.events.length, '이름·유형·날짜·방식·홈·원정·구장'], ['안내', '-', '열 설명 · 시즌 골격 참고값(개막·종료·휴식 요일)']];
         return '<div style="padding:0 12px 12px"><div class="label" style="padding:4px 0 6px">.xlsx 배포본 구성 (가져오기와 같은 시트·열)</div><table class="itable" style="border:1px solid var(--line)"><thead><tr><th>시트</th><th class="num">행</th><th>열</th></tr></thead><tbody>' + rows.map((r) => '<tr><td><b>' + r[0] + '</b></td><td class="num">' + r[1] + '</td><td class="small muted">' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
-      })() + '<div class="small muted" style="padding:0 12px">' + (D().ex.feasible ? '편성 가능한 상태입니다.' : 'Hard 위반이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
+      })() + '<div class="small muted" style="padding:0 12px">' + (D().ex.feasible ? '편성 가능한 상태입니다.' : S.termPlain('hardViol') + '이 있는 상태로도 내보낼 수 있지만, 배포 전에는 ③에서 위반을 없애세요.') + '</div></div>';
     return s;
   }
 

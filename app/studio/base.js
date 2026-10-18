@@ -122,12 +122,13 @@
     { id: 'T4', name: '지도 마커 드래그', ref: 'FR-T4', desc: '지도에서 마커를 끌어 좌표를 미세 조정한다.', def: false },
     { id: 'T7', name: '거리 행렬 대칭 편집·히트맵', ref: 'FR-T7', desc: '구단과 거리 탭의 접힌 히트맵.', def: true },
     { id: 'V6', name: '구단 × 슬롯 매트릭스', ref: 'FR-V6', desc: '결과·수정의 세 번째 보기.', def: false },
-    { id: 'M2', name: '이동 Δ 미리보기', ref: 'FR-M2', desc: '인스펙터 이동 후보의 Hard/Soft 변화량.', def: true },
+    { id: 'M2', name: '이동 Δ 미리보기', ref: 'FR-M2', desc: '인스펙터 이동 후보를 적용하면 위반과 공정성이 어떻게 바뀌는지 미리 보여 준다.', def: true },
     { id: 'M8', name: '미배정 풀', ref: 'FR-M8', desc: '시리즈를 풀로 빼고 다시 넣는다.', def: true },
     { id: 'P2', name: '결과 미입력 강조', ref: 'FR-P2', desc: '기준일 이전 예정 경기를 강조한다.', def: true },
     { id: 'P7', name: '시즌 진행 현황', ref: 'FR-P7', desc: '구단별 소화·취소·잔여와 수용 게이지.', def: true },
     { id: 'A4', name: '누적 이동거리 선 차트', ref: 'FR-A4', desc: '시즌 진행에 따른 구단별 누적 거리.', def: true },
     { id: 'A5', name: '상대 매트릭스', ref: 'FR-A5', desc: '구단쌍별 경기 수와 홈/원정 분배.', def: true },
+    { id: 'A6', name: '지도 이동 경로 재생', ref: 'FR-A6', desc: '시즌 운영의 이동 경로 탭. 구단별 시즌 이동을 지도 위에 차례로 그린다.', def: true },
     { id: 'A8', name: '주중 이동 분석', ref: 'FR-A8', desc: '주중 → 주말 슬롯 이동(참고).', def: true },
     { id: 'A9', name: '혹서기 부담', ref: 'FR-A9', desc: '7~8월 원정 경기·이동거리, 돔 구단 표기.', def: false },
     { id: 'A10', name: '장거리 연속 원정 경고', ref: 'FR-A10', desc: '연속 원정 구간 거리 합 600km 초과.', def: false },
@@ -154,11 +155,58 @@
   };
   S.resetFeatures = function () { S.ls.del(FKEY); S.loadFeatures(); };
 
+  // ───────── 개발자 모드 · 용어 사전 (W16) ─────────
+  // 일반 모드: Hard/Soft, 규칙 코드, 원점수를 화면(DOM)에 만들지 않는다. 개발자 모드: 일반 용어 옆에 함께 보인다.
+  const DKEY = S.KEY + 'dev';
+  S.devOverride = null; // 해시 dev=1/0 (이 탭에서만)
+  S.dev = () => (S.devOverride != null ? S.devOverride : S.ls.get(DKEY) === '1');
+  S.setDev = function (on) { S.devOverride = null; S.ls.set(DKEY, on ? '1' : '0'); };
+  const TERMS = {
+    hard: ['필수 규칙', 'Hard'],
+    hardViol: ['필수 규칙 위반', 'Hard'],
+    soft: ['공정성·이동 부담', 'Soft'],
+    softBreak: ['공정성 점수 구성', 'Soft 분해'],
+    score: ['채점 결과', 'BendableLongScore']
+  };
+  /** 일반 용어. 개발자 모드면 원래 용어를 괄호로 덧붙인다. */
+  S.term = (k) => { const t = TERMS[k]; if (!t) return k; return S.dev() ? t[0] + '(' + t[1] + ')' : t[0]; };
+  S.termPlain = (k) => (TERMS[k] ? TERMS[k][0] : k);
+  // [일반 이름, 짧은 이름]
+  S.RULE_NAMES = {
+    'H0-a': ['출전 구단 수', '출전 수'], 'H0-b': ['한 구장에 두 경기', '구장 중복'], 'H0-c': ['슬롯별 시리즈 수', '시리즈 수'],
+    'H0-d': ['연전 수 불일치', '연전 불일치'], 'H0-e': ['지정 구장 홈 경기', '홈 의무'], 'H0-f': ['홈·원정 4연속 이상', '4연속'],
+    'H1': ['같은 대진 연속', '대진 연속'],
+    'S0': ['미배정 시리즈', '미배정'], 'S1': ['이동 횟수 고르기', '이동 횟수'], 'S2': ['이동거리 고르기', '이동거리'], 'S3': ['휴일 경기 고르기', '휴일 경기'], 'S4': ['리그 총 이동거리', '총 이동거리'],
+    'RH-1': ['구단 하루 1경기', '하루 1경기'], 'RH-2': ['구장 하루 1대진', '구장 1대진'], 'RH-3': ['월요일·경기 없는 날 금지', '쉬는 날'], 'RH-4': ['더블헤더 한도', '더블헤더'], 'RH-5': ['재편성 경기 미배정', '미배정'],
+    'RS-1': ['마지막 경기일', '마지막 경기일'], 'RS-2a': ['이동거리 증가 편차', '증가 편차'], 'RS-2b': ['이동거리 증가 합계', '증가 합계'], 'RS-3': ['더블헤더·월요일 경기 수', 'DH·월요일']
+  };
+  S.ruleName = (code) => { const r = S.RULE_NAMES[code]; return r ? r[0] : (S.dev() ? code : '규칙'); };
+  S.ruleShort = (code) => (S.dev() ? code : (S.RULE_NAMES[code] ? S.RULE_NAMES[code][1] : '위반'));
+  /** HTML: 일반 모드 = 이름만, 개발자 모드 = 코드 배지 + 이름 */
+  S.ruleLabel = (code) => (S.dev() ? '<code class="rc">' + S.esc(code) + '</code>' : '') + S.esc(S.ruleName(code));
+  const CODE_RE = /RS-2[ab]|R[HS]-\d|H0-[a-f]|H1(?![0-9])|S[0-4](?![0-9])/g;
+  /** 코어·공통 모듈이 만든 문장에서 코드·Hard/Soft를 일반 용어로 바꾼다(일반 모드). */
+  S.plain = function (str) {
+    let t = String(str == null ? '' : str);
+    if (S.dev()) return t;
+    t = t.replace(/H0-e 모드/g, '홈 의무 판정 방식');
+    t = t.replace(/\s*\((?:RS-2[ab]|R[HS]-\d|H0-[a-f]|H1|S[0-4])(?:[~·,\s]+(?:RS-2[ab]|R[HS]-\d|H0-[a-f]|H1|S[0-4]))*\)/g, '');
+    t = t.replace(CODE_RE, (c) => (S.RULE_NAMES[c] ? S.RULE_NAMES[c][0] : '규칙'));
+    t = t.replace(/\bHard\b/g, '필수 규칙').replace(/\bSoft\b/g, '공정성·이동 부담').replace(/\bhard\b/g, '필수').replace(/\bsoft\b/g, '공정성');
+    return t;
+  };
+  /** 상태 한 줄: 일반 모드 = 위반 건수, 개발자 모드 = 원점수 함께 */
+  S.scoreLine = function (ex) {
+    const n = ex.violations.length;
+    const base = ex.feasible ? '편성 가능' : S.termPlain('hardViol') + ' ' + n + '건';
+    return S.dev() ? base + ' · ' + S.fmt.score(ex.score) : base;
+  };
+
   // ───────── 시연 상태: 2025 프리셋 + 가상 위반 3건 + 경기 기록 ─────────
   S.SEEDS = [
-    { kind: 'flip', match: 87, note: '홈·원정 뒤집기 → KT 원정 4연속 (H0-f)' },
-    { kind: 'flip', match: 74, note: '홈·원정 뒤집기 → 5/9 잠실 중복 (H0-b)' },
-    { kind: 'swap', slots: [1, 19], note: '3/25 ↔ 5/27 슬롯 맞바꾸기 → 5/30 동일 대진 연속 (H1)' }
+    { kind: 'flip', match: 87, code: 'H0-f', note: '홈·원정 뒤집기 → KT 원정 4연속' },
+    { kind: 'flip', match: 74, code: 'H0-b', note: '홈·원정 뒤집기 → 5/9 잠실 중복' },
+    { kind: 'swap', slots: [1, 19], code: 'H1', note: '3/25 ↔ 5/27 슬롯 맞바꾸기 → 5/30 동일 대진 연속' }
   ];
   S.REF_DATE = '2025-07-10';
   S.CANCELLED = [
@@ -200,7 +248,8 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed'];
+  S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
     const o = {};
@@ -210,14 +259,21 @@
   S.writeHash = function () {
     const u = S.ui;
     const o = {};
-    if (u.ops) { o.ops = u.ops; if (u.ops === 'games' && u.opsDate) o.date = u.opsDate; if (u.ops === 'reschedule' && u.opsUnit) o.unit = u.opsUnit; }
+    if (u.ops) {
+      o.ops = u.ops;
+      if (u.ops === 'games' && u.opsDate) o.date = u.opsDate;
+      if (u.ops === 'reschedule' && u.opsUnit) o.unit = u.opsUnit;
+      if (u.ops === 'route') { if (u.team) o.team = u.team; if (u.routePos) o.leg = Math.round(u.routePos * 10) / 10; if (u.routeSpeed && u.routeSpeed !== 1) o.speed = u.routeSpeed; }
+    }
     else {
       o.step = u.step;
       if (u.step === 1) o.tab = u.tab;
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; }
+      if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
       if (u.sel) o.sel = u.sel;
     }
+    if (S.dev()) o.dev = 1;
     if (u.modal) o.modal = u.modal;
     if (u.drawer) { o.drawer = u.drawer; }
     if (u.inspOff) o.insp = '0';
@@ -226,8 +282,15 @@
   };
   S.applyRoute = function (o) {
     const u = S.ui;
-    if (o.ops) { u.ops = o.ops === 'reschedule' ? 'reschedule' : 'games'; u.opsDate = o.date || u.opsDate; u.opsUnit = o.unit || null; }
-    else u.ops = null;
+    if (o.ops) {
+      u.ops = ['games', 'reschedule', 'route'].includes(o.ops) ? o.ops : 'games';
+      if (u.ops === 'route' && !S.feature('A6')) u.ops = 'games';
+      u.opsDate = o.date || u.opsDate; u.opsUnit = o.unit || null;
+      if (o.leg != null) u.routePos = Math.max(0, parseFloat(o.leg) || 0);
+      if (o.speed) u.routeSpeed = [1, 2, 4].includes(+o.speed) ? +o.speed : 1;
+    } else u.ops = null;
+    if (o.dev === '1') S.devOverride = true; else if (o.dev === '0') S.devOverride = false;
+    u.devOpen = o.devopen === '1';
     if (o.step) u.step = Math.max(1, Math.min(4, parseInt(o.step, 10) || 1));
     if (o.tab) u.tab = o.tab;
     if (o.month) u.month = parseInt(o.month, 10) || u.month;

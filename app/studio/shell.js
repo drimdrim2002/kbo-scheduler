@@ -31,7 +31,7 @@
       const pf = app.preflight();
       const k = pf.counts;
       if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) {
-        return { kind: 'todo', text: S.run.status === 'PAUSED' ? '일시정지' : '실행 중', summary: '엔진 ' + (S.run.status === 'PAUSED' ? '일시정지' : '실행 중') + ' · ' + S.fmt.time(S.run.elapsed) + ' · 개선 ' + S.run.improvements + '회', next: '실행 중' };
+        return { kind: 'todo', text: S.run.status === 'PAUSED' ? '일시정지' : '편성 중', summary: (S.run.status === 'PAUSED' ? '일시정지' : '더 나은 일정을 찾는 중') + ' · ' + S.fmt.time(S.run.elapsed) + (S.dev() ? ' · 개선 ' + S.run.improvements + '회' : ''), next: '편성 중' };
       }
       const sum = '통과 ' + k.pass + ' · 경고 ' + k.warn + ' · 차단 ' + k.block + (S.lastRun ? ' · 실행 ' + S.lastRun.count + '회' : ' · 실행 1회');
       if (k.block) return { kind: 'block', text: '차단 ' + k.block, summary: sum, next: '차단 ' + k.block };
@@ -41,8 +41,8 @@
     if (n === 3) {
       const ex = c.ex;
       const cnt = ex.violations.length;
-      const sum = 'Hard 위반 ' + cnt + '건 · 미배정 ' + c.pool.length + ' · 고정 ' + st.matches.filter((m) => m.pinned).length;
-      if (cnt) return { kind: 'block', text: '위반 ' + cnt, summary: sum, next: 'Hard 위반 ' + cnt };
+      const sum = S.term('hardViol') + ' ' + cnt + '건 · 미배정 ' + c.pool.length + ' · 고정 ' + st.matches.filter((m) => m.pinned).length;
+      if (cnt) return { kind: 'block', text: '위반 ' + cnt, summary: sum, next: S.termPlain('hardViol') + ' ' + cnt };
       if (c.pool.length) return { kind: 'warn', text: '미배정 ' + c.pool.length, summary: sum, next: '미배정 ' + c.pool.length };
       return { kind: 'ok', text: '편성 가능', summary: sum, next: '편성 가능' };
     }
@@ -60,7 +60,7 @@
     const mode = app.state.settings.h0eMode === 'ENGINE' ? '엔진 호환' : '구장 기준';
     const badge = ex.feasible
       ? '<span class="badge ok" role="status">' + icon('check') + '편성 가능</span>'
-      : '<span class="badge bad" role="status">' + icon('x') + 'Hard 위반 ' + n + '건</span>';
+      : '<span class="badge bad" role="status">' + icon('x') + esc(S.term('hardViol')) + ' ' + n + '건</span>';
     const r = S.run;
     let eng;
     if (r && r.status === 'RUNNING') eng = '<span class="eng run"><span class="dot"></span><b>실행 중</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
@@ -70,8 +70,10 @@
       '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">KBO 일정 편성 · 2025</span><span class="brand-sub">편성 스튜디오</span></div>' +
       '<span class="tb-sep"></span>' +
       '<div class="tb-group">' + badge +
-        '<button class="chip-mode" data-act="open-settings" data-set="scoring" title="H0-e 홈 의무 판정 모드 — 설정에서 바꿉니다">H0-e ' + esc(mode) + '</button>' +
-        '<span class="badge-score" title="BendableLongScore">' + esc(S.fmt.score(ex.score)) + '</span>' +
+        (S.dev()
+          ? '<button class="chip-mode" data-act="open-settings" data-set="scoring" title="H0-e 홈 의무 판정 모드 — 설정에서 바꿉니다">H0-e ' + esc(mode) + '</button>' +
+            '<span class="badge-score" title="BendableLongScore 원점수">' + esc(S.fmt.score(ex.score)) + '</span><span class="dev-pill" title="설정에서 끌 수 있습니다">개발자 모드</span>'
+          : '<button class="chip-mode" data-act="open-settings" data-set="scoring" title="이벤트 구장의 홈 경기 의무를 어떻게 판정할지 — 설정에서 바꿉니다">홈 의무 판정: ' + esc(mode) + '</button>') +
       '</div>' +
       '<span class="tb-sep"></span>' +
       '<div class="tb-group">' + eng + '</div>' +
@@ -122,8 +124,9 @@
       '<div class="tabs" role="tablist">' +
         '<button role="tab" class="' + (t === 'games' ? 'on' : '') + '" data-act="ops-tab" data-tab="games">' + icon('cal') + '경기 기록</button>' +
         '<button role="tab" class="' + (t === 'reschedule' ? 'on' : '') + '" data-act="ops-tab" data-tab="reschedule">' + icon('bolt') + '재편성</button>' +
+        (S.feature('A6') ? '<button role="tab" class="' + (t === 'route' ? 'on' : '') + '" data-act="ops-tab" data-tab="route" data-feature="A6">' + icon('map') + '이동 경로</button>' : '') +
       '</div>' +
-      '<span class="pane-desc">취소 경기를 날짜 단위로 기록하고, 잔여·취소 경기를 9~10월에 다시 배치합니다.</span>' +
+      '<span class="pane-desc">' + (t === 'route' ? '구단마다 시즌 이동을 지도 위에 차례로 그립니다. 취소 경기는 따로 표시합니다.' : '취소 경기를 날짜 단위로 기록하고, 잔여·취소 경기를 9~10월에 다시 배치합니다.') + '</span>' +
       '<span style="margin-left:auto" class="small muted">기준일 ' + S.fmt.date(S.app.referenceDate()) + '</span>';
   }
 
@@ -187,7 +190,7 @@
     setTimeout(() => { pending = false; S.render(); }, 0);
   };
   S.go = function (patch) { Object.assign(S.ui, patch); S.ui.menu = null; S.render(); };
-  S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(m, k, ms); };
+  S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(S.plain(m), k, ms); };
 
   /** 선택 항목을 보이게 스크롤 */
   S.revealSelected = function (sel, container) {
@@ -290,7 +293,12 @@
       if (fn) fn(el, e);
     };
     document.addEventListener('change', onInput);
+    document.addEventListener('input', (e) => { const el = e.target.closest('[data-live]'); if (!el) return; const fn = S.inputs[el.dataset.live]; if (fn) fn(el, e); });
     document.addEventListener('keydown', (e) => {
+      // SVG 차트 요소(role=button)는 Enter/Space로 누른다
+      if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button' && e.target.dataset && e.target.dataset.act && e.target.tagName.toLowerCase() !== 'button') {
+        e.preventDefault(); const fn = S.actions[e.target.dataset.act]; if (fn) fn(e.target, e); return;
+      }
       if (S.onKey && S.onKey(e) === true) return;
       const tag = (e.target.tagName || '').toLowerCase();
       const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
@@ -315,12 +323,12 @@
       '<nav class="pane list" aria-label="' + esc(o.listLabel || '목록') + '">' + o.list + '</nav>' +
       '<section class="pane main">' + o.main + '</section>' + insp + '</div>';
   };
-  S.paneHead = (title, desc, right) => '<div class="pane-head"><span class="pane-title">' + esc(title) + '</span>' + (desc ? '<span class="pane-desc" title="' + esc(desc) + '">' + esc(desc) + '</span>' : '') + (right ? '<span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex:none">' + right + '</span>' : '') + '</div>';
+  S.paneHead = (title, desc, right) => '<div class="pane-head"><span class="pane-title">' + esc(S.plain(title)) + '</span>' + (desc ? '<span class="pane-desc" title="' + esc(S.plain(desc)) + '">' + esc(S.plain(desc)) + '</span>' : '') + (right ? '<span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex:none">' + right + '</span>' : '') + '</div>';
   S.undoButtons = function () {
     const st = S.app.store;
     return '<span class="btn-group">' +
-      '<button class="btn sm" data-act="undo" ' + (st.canUndo() ? 'title="실행 취소: ' + esc(st.undoLabel()) + '"' : 'disabled') + '>' + icon('undo') + '실행 취소</button>' +
-      '<button class="btn sm icon" data-act="redo" ' + (st.canRedo() ? 'title="다시 실행: ' + esc(st.redoLabel()) + '"' : 'disabled') + '>' + icon('redo') + '</button></span>';
+      '<button class="btn sm" data-act="undo" ' + (st.canUndo() ? 'title="실행 취소: ' + esc(S.plain(st.undoLabel())) + '"' : 'disabled') + '>' + icon('undo') + '실행 취소</button>' +
+      '<button class="btn sm icon" data-act="redo" ' + (st.canRedo() ? 'title="다시 실행: ' + esc(S.plain(st.redoLabel())) + '"' : 'disabled') + '>' + icon('redo') + '</button></span>';
   };
   S.Score = Score;
 })();

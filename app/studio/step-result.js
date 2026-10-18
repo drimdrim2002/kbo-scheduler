@@ -73,12 +73,18 @@
     const m = st.matches[cd.m];
     return { kind: '홈·원정 뒤집기 · 입력 변경', what: m.away + ' @ ' + m.home + ' → ' + m.home + ' @ ' + m.away };
   }
-  function deltaHtml(cd) {
-    if (!S.feature('M2')) return '';
-    const h = cd.dh, s = cd.ds;
+  /** Δ 표시. 일반 모드: 위반 증감 + 공정성 좋아짐/나빠짐(아이콘·글자). 개발자 모드: Hard/Soft 수치 */
+  S.deltaHtml = function (h, s) {
     const hc = h > 0 ? 'd-good' : h < 0 ? 'd-bad' : 'd-zero';
     const sc = s > 0 ? 'd-good' : s < 0 ? 'd-bad' : 'd-zero';
-    return '<span class="delta"><span class="' + hc + '">Hard ' + fmt.signed(h) + (h > 0 ? ' 해소' : '') + '</span><span class="' + sc + '">Soft ' + fmt.signed(s) + '</span></span>';
+    if (S.dev()) return '<span class="delta"><span class="' + hc + '">Hard ' + fmt.signed(h) + (h > 0 ? ' 해소' : '') + '</span>' + (s != null ? '<span class="' + sc + '">Soft ' + fmt.signed(s) + '</span>' : '') + '</span>';
+    const ht = h > 0 ? icon('check') + '위반 ' + h + ' 줄어듦' : h < 0 ? icon('x') + '위반 ' + (-h) + ' 늘어남' : '위반 그대로';
+    const st = s == null ? '' : s > 0 ? icon('check') + '공정성 좋아짐' : s < 0 ? icon('warn') + '공정성 나빠짐' : '공정성 그대로';
+    return '<span class="delta"><span class="' + hc + '">' + ht + '</span>' + (st ? '<span class="' + sc + '">' + st + '</span>' : '') + '</span>';
+  };
+  function deltaHtml(cd) {
+    if (!S.feature('M2')) return '';
+    return S.deltaHtml(cd.dh, cd.ds);
   }
   function candList(list) {
     if (!list.length) return '<div class="empty">옮길 수 있는 후보가 없습니다(고정된 시리즈).</div>';
@@ -92,14 +98,14 @@
   // ───────── 왼쪽: 위반 · 구단 필터 · 미배정 풀 ─────────
   function renderList() {
     const c = D(), ex = c.ex, u = S.ui;
-    let s = '<div class="pane-head"><span class="pane-title">Hard 위반</span><span class="pane-desc">' + (ex.violations.length ? '클릭하면 위치로 이동' : '없음') + '</span>' +
+    let s = '<div class="pane-head"><span class="pane-title">' + esc(S.term('hardViol')) + '</span><span class="pane-desc">' + (ex.violations.length ? '클릭하면 위치로 이동' : '없음') + '</span>' +
       '<span style="margin-left:auto">' + (ex.violations.length ? S.stat('block', ex.violations.length + '건') : S.stat('ok', '0건')) + '</span></div>';
     s += '<div class="pane-body" data-sk="r-list">';
-    if (!ex.violations.length) s += '<div class="empty"><b>' + icon('check') + ' Hard 위반이 없습니다</b>편성 가능한 일정입니다. ④ 품질·배포로 넘어가세요.</div>';
+    if (!ex.violations.length) s += '<div class="empty"><b>' + icon('check') + ' ' + esc(S.termPlain('hardViol')) + '이 없습니다</b>편성 가능한 일정입니다. ④ 품질·배포로 넘어가세요.</div>';
     for (const r of Score.HARD_RULES) {
       const vs = ex.violations.filter((v) => v.code === r.code);
       if (!vs.length) continue;
-      s += '<div class="vrule"><code>' + r.code + '</code>' + esc(r.label) + '<span class="cnt">' + vs.length + '</span></div>';
+      s += '<div class="vrule">' + S.ruleLabel(r.code) + '<span class="cnt">' + vs.length + '</span></div>';
       for (const v of vs) {
         const sig = S.vsig(v);
         const on = u.sel === 'v:' + sig;
@@ -124,7 +130,7 @@
   }
   function shortMsg(v) {
     // 날짜 접두를 떼고 원인만 남긴다(날짜는 아래 줄에 표시)
-    return String(v.message).replace(/^\d+\/\d+\([^)]+\) \d연전\s*(—\s*)?/, '');
+    return S.plain(String(v.message)).replace(/^\d+\/\d+\([^)]+\) \d연전\s*(—\s*)?/, '');
   }
 
   // ───────── 가운데: 캘린더 ─────────
@@ -144,12 +150,12 @@
     const flash = u.flashMatches && u.flashMatches.includes(m);
     const cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (vsel ? ' vsel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
     const stad = (app().team(mt.home) || {}).stadium || '';
-    return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(mt.away + ' @ ' + mt.home + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
+    return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(mt.away + ' @ ' + mt.home + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
       fm + (mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.away)) + '"></i>' + esc(mt.away) + '</span><span class="at">@</span>' +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.home)) + '"></i>' + esc(mt.home) + '</span>' +
       (S.wide ? '<span class="stad">· ' + esc(stad.replace(/(야구장|경기장|종합운동장|구장|라이언즈파크|챔피언스필드|이글스파크|NC파크|KT위즈파크|돔야구장)$/, '')) + '</span>' : '') +
-      (flags.length ? '<span class="st-ico">' + icon('warn') + esc(flags.join(' ')) + '</span>' : '') + '</button>';
+      (flags.length ? '<span class="st-ico">' + icon('warn') + esc(flags.map(S.ruleShort).join(' ')) + '</span>' : '') + '</button>';
   }
 
   function renderCalendar() {
@@ -207,7 +213,7 @@
   }
   function slotCodes(s) {
     const set = new Set(D().ex.violations.filter((v) => v.slot === s && v.code !== 'H0-f' && v.code !== 'H1').map((v) => v.code));
-    return Array.from(set).join(' ') || '';
+    return Array.from(set).map(S.ruleShort).join(' ') || '';
   }
   function weekNo(d) {
     const st = D().slots.length ? D().slots[0].day : d;
@@ -287,7 +293,7 @@
   function inspViolation(v) {
     const c = D(), st = app().state;
     const rule = Score.RULE_BY_CODE[v.code];
-    let s = '<div class="insp-sec"><div class="insp-title"><span class="vrule" style="padding:0"><code>' + v.code + '</code></span>' + esc(rule.label) + (S.isVirtual(v) ? S.virt() : '') + '</div>' +
+    let s = '<div class="insp-sec"><div class="insp-title"><span class="vrule" style="padding:0;font-size:inherit;color:inherit">' + S.ruleLabel(v.code) + '</span>' + (S.isVirtual(v) ? S.virt() : '') + '</div>' +
       '<div class="insp-sub">' + esc(rule.desc) + '</div></div>';
     if (S.isVirtual(v)) s += '<div class="insp-sec"><h4>가상 위반</h4><div class="small muted">' + icon('info') + ' 시연을 위해 넣은 위반입니다: ' + esc(virtNote(v)) + '. 원인 문장은 왼쪽 위반 목록에 있습니다.</div></div>';
     s += '<div class="insp-sec"><h4>위치<span class="r">' + esc(c.slots[v.slot].label) + '</span></h4>' +
@@ -301,7 +307,7 @@
   }
   function virtNote(v) {
     const sd = { 'H0-f': S.SEEDS[0], 'H0-b': S.SEEDS[1], 'H1': S.SEEDS[2] }[v.code];
-    return sd ? sd.note : '시드로 넣은 위반';
+    return sd ? sd.note + (S.dev() ? ' (' + sd.code + ')' : '') : '시드로 넣은 위반';
   }
 
   function inspMatch(m) {
@@ -322,7 +328,7 @@
       '<dt>구장</dt><dd>' + esc(team.stadium || '-') + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">공유 구장</span>' : '') + '</dd>' +
       '<dt>슬롯</dt><dd>' + (sl ? esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : '') + (sl.holiday ? ' <span class="tag ref">휴일 ' + sl.holiday + '</span>' : '') : '미배정') + '</dd>' +
       (ev ? '<dt>이벤트</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
-      '<dt>상태</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">' + icon('x') + v.code + '</button>').join('') : S.stat('ok', '위반 없음')) + '</dd>' +
+      '<dt>상태</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '위반 없음')) + '</dd>' +
       '</dl></div>';
     s += '<div class="insp-sec"><h4>고정·풀</h4><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
       '<label style="display:inline-flex;gap:8px;align-items:center"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>핀 고정 <span class="muted small">(엔진이 옮기지 않음)</span></label>' +
@@ -332,7 +338,7 @@
       // 풀에서 넣을 슬롯 후보
       const c2 = D();
       const opts = c2.slots.filter((x) => x.consecutive === mt.consecutive).map((x) => { const p = app().previewDrop(m, x.index); return { x, p }; }).sort((a, b) => b.p.hardDelta - a.p.hardDelta).slice(0, 5);
-      s += '<div class="insp-sec"><h4>넣을 슬롯 후보</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">슬롯에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? '<span class="delta"><span class="' + (o.p.hardDelta > 0 ? 'd-good' : o.p.hardDelta < 0 ? 'd-bad' : 'd-zero') + '">Hard ' + fmt.signed(o.p.hardDelta) + '</span></span>' : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
+      s += '<div class="insp-sec"><h4>넣을 슬롯 후보</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">슬롯에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
     } else {
       const cands = S.candidates([m], [], 5).filter((x) => x.kind === 'swap' || x.kind === 'flip');
       s += '<div class="insp-sec"><h4>이동 후보' + (S.feature('M2') ? '<span class="r">Δ 미리보기</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 시리즈는 옮길 수 없습니다. 핀을 풀면 후보가 나옵니다.</div>' : candList(cands)) + '</div>';
@@ -353,7 +359,7 @@
     if (u.sel && u.sel.startsWith('m:')) return { title: '시리즈 상세', html: inspMatch(parseInt(u.sel.slice(2), 10)) };
     const ex = D().ex;
     return { title: '인스펙터', html: '<div class="empty"><b>항목을 고르세요</b>왼쪽 위반이나 달력의 시리즈를 고르면 원인, 핀, 이동 후보와 Δ가 여기에 나옵니다.</div>' +
-      '<div class="insp-sec"><h4>규칙별 건수</h4><dl class="props">' + Score.HARD_RULES.map((r) => '<dt><code class="mono">' + r.code + '</code></dt><dd>' + (ex.byCode[r.code].count ? S.stat('block', ex.byCode[r.code].count + '건') : S.stat('ok', '0')) + '<span class="small muted">' + esc(r.label) + '</span></dd>').join('') + '</dl></div>' };
+      '<div class="insp-sec"><h4>규칙별 건수</h4><dl class="props rules">' + Score.HARD_RULES.map((r) => '<dt>' + S.ruleLabel(r.code) + '</dt><dd>' + (ex.byCode[r.code].count ? S.stat('block', ex.byCode[r.code].count + '건') : S.stat('ok', '0')) + '</dd>').join('') + '</dl></div>' };
   }
 
   // ───────── 단계 ─────────
@@ -416,7 +422,7 @@
     const snaps = app().state.snapshots.slice().reverse();
     return '<div class="menu" role="menu" style="top:' + p.y + 'px;right:' + Math.max(8, window.innerWidth - p.x) + 'px;width:330px">' +
       '<button role="menuitem" data-act="snap-save">' + icon('plus') + '현재 배정을 스냅샷으로 저장</button><div class="msep"></div><div class="mh">저장된 스냅샷 ' + snaps.length + '</div>' +
-      (snaps.length ? snaps.map((sn) => '<button role="menuitem" data-act="snap-restore" data-id="' + esc(sn.id) + '" style="height:auto;padding:6px 12px;flex-direction:column;align-items:flex-start;gap:1px"><span style="display:flex;gap:6px;width:100%"><b>' + esc(sn.name) + '</b><span class="tag ref" style="margin-left:auto">복원</span></span><span class="mono muted" style="font-size:10.5px">' + esc((sn.score || '').replace(/-/g, '−')) + '</span></button>').join('') : '<div class="small muted" style="padding:6px 12px">없음</div>') +
+      (snaps.length ? snaps.map((sn) => '<button role="menuitem" data-act="snap-restore" data-id="' + esc(sn.id) + '" style="height:auto;padding:6px 12px;flex-direction:column;align-items:flex-start;gap:1px"><span style="display:flex;gap:6px;width:100%"><b>' + esc(sn.name) + '</b><span class="tag ref" style="margin-left:auto">복원</span></span>' + (S.dev() ? '<span class="mono muted" style="font-size:10.5px">' + esc((sn.score || '').replace(/-/g, '−')) + '</span>' : '<span class="muted" style="font-size:11px">' + (sn.feasible ? '편성 가능' : '필수 규칙 위반 있음') + '</span>') + '</button>').join('') : '<div class="small muted" style="padding:6px 12px">없음</div>') +
       '</div>';
   };
 
@@ -435,7 +441,7 @@
       const target = e.target.closest('[data-drag-m]');
       const m = S._dragM; S._dragM = null;
       const pv = app().previewDrop(m, +band.dataset.dropSlot, target ? +target.dataset.dragM : null);
-      if (app().drop(m, +band.dataset.dropSlot, target ? +target.dataset.dragM : null)) S.toast('옮겼습니다 · Hard ' + fmt.signed(pv.hardDelta) + ' · 실행 취소 가능', pv.hardDelta >= 0 ? 'ok' : 'warn');
+      if (app().drop(m, +band.dataset.dropSlot, target ? +target.dataset.dragM : null)) S.toast('옮겼습니다 · ' + (S.dev() ? 'Hard ' + fmt.signed(pv.hardDelta) : pv.hardDelta > 0 ? '위반 ' + pv.hardDelta + ' 줄어듦' : pv.hardDelta < 0 ? '위반 ' + (-pv.hardDelta) + ' 늘어남' : '위반 그대로') + ' · 실행 취소 가능', pv.hardDelta >= 0 ? 'ok' : 'warn');
     });
   }
 })();
