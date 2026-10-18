@@ -56,14 +56,13 @@
     { k: 'maxAwayRun', h: '최장 연속 원정', u: '', f: fmt.int, bad: (v) => v > 3 },
     { k: 'holidayHomeGames', h: '공휴일 홈', u: '경기', f: fmt.int }
   ];
-  function renderMetrics() {
+  function metricsTable() {
     const u = S.ui;
     const rows = tms().slice();
     const sk = u.sort.key, dir = u.sort.dir;
     rows.sort((a, b) => (sk === 'name' ? a.name.localeCompare(b.name) : (a[sk] - b[sk])) * dir);
     const th = (c, grp) => '<th class="' + (sk === c.k ? 'sorted ' : '') + (grp === 'score' ? 'grp-score' : 'grp-ref') + '" data-act="q-sort" data-k="' + c.k + '" aria-sort="' + (sk === c.k ? (dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + esc(c.h) + (c.u ? ' <span class="muted xs">' + c.u + '</span>' : '') + (sk === c.k ? '<span class="arrow">' + (dir > 0 ? '▲' : '▼') + '</span>' : '') + '</th>';
-    let s = S.paneHead('구단 지표 비교표', '채점 지표는 엔진이 최적화하는 값, 참고 지표는 보기만 합니다. ▲ = 허용오차 초과.', '<span class="tag score">채점</span><span class="tag ref">참고</span>');
-    s += '<div class="pane-body" data-sk="q-metrics"><table class="mt"><thead><tr><th></th><th colspan="3" class="grp-score" style="text-align:center">채점 지표 ' + (S.dev() ? '(S1~S3 분산 대상)' : '(엔진이 고르게 맞추는 값)') + '</th><th colspan="5" class="grp-ref bl" style="text-align:center">참고 지표 (점수 미반영)</th></tr><tr>' +
+    let s = '<table class="mt"><thead><tr><th></th><th colspan="3" class="grp-score" style="text-align:center">채점 지표 ' + (S.dev() ? '(S1~S3 분산 대상)' : '(엔진이 고르게 맞추는 값)') + '</th><th colspan="5" class="grp-ref bl" style="text-align:center">참고 지표 (점수 미반영)</th></tr><tr>' +
       '<th data-act="q-sort" data-k="name" class="' + (sk === 'name' ? 'sorted' : '') + '">구단</th>' + COLS.slice(0, 3).map((c) => th(c, 'score')).join('') + COLS.slice(3).map((c, i) => th(c, 'ref').replace('<th class="', '<th class="' + (i === 0 ? 'bl ' : ''))).join('') + '</tr></thead><tbody>';
     for (const t of rows) {
       s += '<tr class="' + (u.team === t.name ? 'sel' : '') + '" data-act="q-team" data-team="' + esc(t.name) + '"><td>' + S.team(t.name) + '</td>';
@@ -77,7 +76,33 @@
       s += '</tr>';
     }
     s += '</tbody><tfoot><tr><td>리그 평균</td>' + COLS.map((c, i) => '<td class="' + (i === 3 ? 'bl' : '') + '">' + (c.mean ? fmt.num1(c.mean()) : '') + '</td>').join('') + '</tr></tfoot></table>';
-    s += '<div class="small muted" style="padding:10px 12px">' + esc(S.plain('허용오차: 이동거리 평균 ±300km(S2), 이동 횟수 평균 ±2회(S1), 휴일 가중치 평균 ±1.5(S3). 열 머리글을 누르면 정렬합니다.')) + '</div></div>';
+    return s;
+  }
+  /** ④ 지표 간략 차트 2개 (W18). w = SVG 기준 폭 */
+  S.metricsCharts = function (w) {
+    const L = league(), T = tms(), sel = S.ui.team;
+    const distance = S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: 300, sel, width: w, rowH: S.tall ? 28 : 18, title: '구단별 총 이동거리' });
+    const dots = S.mchart.dotRows({ sel, width: w, rowH: S.tall ? 100 : 66, title: '이동 횟수 · 휴일 가중치 · 주말 홈', rows: [
+      { title: '이동 횟수', items: T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), mean: L.meanMoves, tol: 2, fmt: (v) => fmt.num1(v) + '회' },
+      { title: '휴일 가중치', items: T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), mean: L.meanHoliday, tol: 1.5 },
+      { title: '주말 홈 (참고)', items: T.map((t) => ({ name: t.name, value: t.weekendHome, over: false })), mean: L.meanWeekendHome, tol: 2 }
+    ] });
+    return [
+      { id: 'distance', title: '차트 1 · 구단별 총 이동거리', note: '점선 = 평균 · 띠 = ±300km · 빗금 ▲ = 초과', svg: distance },
+      { id: 'dots', title: '차트 2 · 이동 횟수 · 휴일 가중치 · 주말 홈', note: '띠 = 평균 ± 허용오차 · 빨간 ▲ = 초과', svg: dots }
+    ];
+  };
+  /** 지표 화면 배치. 표준: 1440은 표 아래 차트 2개 나란히, 1800 이상은 표 오른쪽에 차트 세로로. opt-2는 이 함수를 바꾼다. */
+  S.metricsLayout = function (table, charts) {
+    const box = (c) => '<div class="blk mc-box" data-chart="' + c.id + '"><div class="blk-head">' + esc(c.title) + '<span class="r small muted">' + esc(c.note) + '</span></div><div class="blk-body">' + c.svg + '</div></div>';
+    return '<div class="q-met' + (S.wide ? ' wide' : '') + '"><div class="q-met-table">' + table + '</div><div class="q-met-charts">' + charts.map(box).join('') + '</div></div>';
+  };
+  function renderMetrics() {
+    const mainW = window.innerWidth - (S.wide ? 260 : 232) - (S.ui.inspOff ? 30 : S.wide ? 360 : 320);
+    const w = S.wide ? Math.round(mainW * 0.46 - 40) : Math.round((mainW - 24 - 12) / 2 - 20);
+    let s = S.paneHead('구단 지표 비교표', '채점 지표는 엔진이 고르게 맞추는 값, 참고 지표는 보기만 합니다. ▲ = 허용오차 초과. 행·막대·점을 누르면 그 구단을 강조합니다.', '<span class="tag score">채점</span><span class="tag ref">참고</span>');
+    s += '<div class="pane-body" data-sk="q-metrics">' + S.metricsLayout(metricsTable(), S.metricsCharts(w)) +
+      '<div class="small muted q-met-foot">' + esc(S.plain('허용오차: 이동거리 평균 ±300km(S2), 이동 횟수 평균 ±2회(S1), 휴일 가중치 평균 ±1.5(S3). 열 머리글을 누르면 정렬합니다.')) + '</div></div>';
     return s;
   }
 
@@ -243,7 +268,7 @@
 
   S.steps[4] = {
     render() {
-      S.wide = window.innerWidth >= 1800;
+      S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
       const u = S.ui;
       if (!visible().some((v) => v.id === u.qv)) u.qv = 'metrics';
       const fn = { metrics: renderMetrics, soft: renderSoft, a1, a2, a3, a4, a5, a8, a9, a10, a12, sched: renderSched, export: renderExport }[u.qv];

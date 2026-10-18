@@ -165,6 +165,7 @@
   const scrollMem = {};
   S.render = function () {
     const u = S.ui;
+    S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
     document.querySelectorAll('[data-sk]').forEach((el) => { scrollMem[el.getAttribute('data-sk')] = [el.scrollTop, el.scrollLeft]; });
     document.body.classList.toggle('mode-ops', !!u.ops);
     els.top.innerHTML = renderTop();
@@ -261,7 +262,8 @@
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
     window.addEventListener('hashchange', () => { S.applyRoute(S.parseHash()); S.render(); });
-    window.addEventListener('resize', () => S.checkScroll());
+    // 폭·높이 구간(1800px·900px)이 바뀌면 JS로 크기를 정한 차트·달력을 다시 그린다
+    window.addEventListener('resize', () => { const w = window.innerWidth >= 1800, t = window.innerHeight >= 900; if (w !== S.wide || t !== S.tall) S.render(); else S.checkScroll(); });
     bindEvents();
     S.render();
     if (S.ui.demo && S.demos[S.ui.demo]) { S.quiet = true; try { S.demos[S.ui.demo](); } finally { S.quiet = false; } }
