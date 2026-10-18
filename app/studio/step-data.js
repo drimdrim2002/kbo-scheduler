@@ -291,7 +291,7 @@
       s += '<td>' + (worst === 'ok' ? '<span class="st plain ok">' + icon('check') + '정상</span>' : worst === 'bad' ? '<span class="st plain bad" title="' + esc(iss.map((x) => x.msg).join(' / ')) + '">' + icon('x') + '오류</span>' : '<span class="st plain warn" title="' + esc(iss.map((x) => x.msg).join(' / ')) + '">' + icon('warn') + '경고</span>') + '</td></tr>';
     });
     s += '</tbody></table></div>';
-    s += '<div class="pane-foot small muted">' + icon('info') + '셀을 고르고 <span class="kbd">Enter</span> 또는 더블클릭으로 편집 · 화살표로 이동 · <span class="kbd">Esc</span> 취소 · 편집은 실행 취소 대상입니다. 여러 행 편집·붙여넣기는 엑셀에서 하고 다시 가져옵니다.</div>';
+    s += '<div class="pane-foot small muted" style="white-space:nowrap;overflow:hidden">' + icon('info') + '<span style="overflow:hidden;text-overflow:ellipsis" title="여러 행 편집·붙여넣기는 엑셀에서 하고 다시 가져옵니다.">셀 선택 → <span class="kbd">Enter</span>·더블클릭 편집 · 화살표 이동 · <span class="kbd">Esc</span> 취소 · 고친 값은 오른쪽 그림에 바로 반영 · 실행 취소 가능</span></div>';
     return s;
   }
   function sheetColIndex(sh, col) { return sh.cols.filter((c) => !c.ro).indexOf(col); }
@@ -375,8 +375,85 @@
     return s;
   }
 
+  // ───────── 입력 결과 시각화 배치 (W15) — opt-1은 이 함수와 S.steps[1].render의 배치를 바꾼다 ─────────
+  const V = () => S.viz;
+  function vizSnap(sheet) {
+    const st = app().state;
+    if (sheet === 'series') return V().pairCounts(st.matches, st.teams.map((t) => t.name));
+    if (sheet === 'slots') return st.calendar.map((c) => Object.assign({}, c));
+    if (['holidays', 'restex', 'blackouts', 'events'].includes(sheet)) return V().dateSet(st, sheet);
+    return null;
+  }
+  /** 편집·삽입·삭제 전후를 비교해 바뀐 칸을 기억한다(다음 편집이나 실행 취소 전까지 강조) */
+  S.trackViz = function (sheet, fn) {
+    const before = vizSnap(sheet);
+    const r = fn();
+    if (before == null) return r;
+    const after = vizSnap(sheet);
+    const keys = sheet === 'series' ? V().diffCounts(before, after) : sheet === 'slots' ? V().diffSlots(before, after) : V().diffDates(before, after);
+    S.ui.vizChanged = keys.size ? { sheet, keys, before, ver: D().version } : null;
+    return r;
+  };
+  function vizChanged(sheet) {
+    const vc = S.ui.vizChanged;
+    return vc && vc.sheet === sheet && vc.ver === D().version ? vc : null;
+  }
+  S.inputViz = function (key) {
+    const st = app().state, u = S.ui;
+    const row = u.cell && u.cell.sheet === key ? u.cell.row : -1;
+    const sec = (title, right, body, cls) => '<div class="insp-sec viz' + (cls ? ' ' + cls : '') + '"><h4>' + icon('chart') + esc(title) + (right ? '<span class="r">' + right + '</span>' : '') + '</h4>' + body + '</div>';
+    if (key === 'series') {
+      const names = st.teams.map((t) => t.name);
+      const counts = V().pairCounts(st.matches, names);
+      const r = row >= 0 ? st.matches[row] : null;
+      const vc = vizChanged('series');
+      const mx = V().pairMatrix({ names, counts, target: st.settings.initialGamesPerPair, sel: r ? { home: r.home, away: r.away } : null, changed: vc ? vc.keys : null, before: vc ? vc.before : null, title: '구단쌍 경기 수' });
+      let note = mx.off ? '<div class="vz-note warn">' + icon('warn') + '구단쌍 ' + mx.off + '개의 경기 수 합이 ' + st.settings.initialGamesPerPair + '가 아닙니다.</div>' : '<div class="vz-note ok">' + icon('check') + '모든 구단쌍 ' + st.settings.initialGamesPerPair + '경기 (홈 9 · 원정 6)</div>';
+      if (vc) note += '<div class="vz-note chg">' + icon('info') + '방금 바뀐 칸 ' + vc.keys.size + ': ' + Array.from(vc.keys).slice(0, 3).map((k) => { const [h, a] = k.split('|'); return esc(h + ' 홈 × ' + a) + ' ' + (vc.before.get(k) || 0) + '→' + (counts.get(k) || 0); }).join(', ') + '</div>';
+      return sec('입력 결과 · 구단쌍 경기 수', '행 홈 × 열 원정', mx.html + note) +
+        sec('연전 수급', '슬롯 × ' + (st.teams.length >> 1) + ' ↔ 시리즈', V().balance({ slots: st.calendar, matches: st.matches, teams: st.teams.length }));
+    }
+    const ribbonSheets = { season: 1, slots: 1, holidays: 1, restex: 1, blackouts: 1, events: 1 };
+    if (!ribbonSheets[key]) return '';
+    if (key === 'season') {
+      const gen = CalendarGen.generateSlots(st.settings).slots;
+      const diff = V().diffSlots(st.calendar, gen);
+      return sec('규칙으로 만든 경기일', '현재 슬롯과 ' + (diff.size ? '<b style="color:var(--warn)">' + diff.size + '곳 다름</b>' : '같음'), V().ribbon({ settings: st.settings, slots: gen, changed: diff, label: '규칙으로 만든 경기일' }));
+    }
+    const o = { settings: st.settings, slots: st.calendar, label: '시즌 띠' };
+    let right = '';
+    const vc = vizChanged(key);
+    if (key === 'slots') {
+      o.sel = row >= 0 ? row : null;
+      if (vc) o.changed = vc.keys;
+      const errRows = new Set(); st.calendar.forEach((c, i) => { if (SHEETS.slots.rowIssues(st, i).some((x) => x.level === 'error')) errRows.add(i); });
+      o.errRows = errRows;
+      const c = row >= 0 ? st.calendar[row] : null;
+      right = c ? '선택 ' + (row + 2) + '행 · ' + esc(fmt.short(c.datetime.slice(0, 10))) + ' ' + c.consecutive + '연전' : '경기일 ' + st.calendar.reduce((a, x) => a + x.consecutive, 0) + '일';
+    } else {
+      if (vc) o.changedDays = vc.keys;
+      const sd = new Set();
+      if (key === 'holidays' && row >= 0 && st.settings.holidays[row]) sd.add(Dates.dayNum(st.settings.holidays[row].date));
+      if (key === 'restex' && row >= 0 && st.settings.restExceptions[row]) sd.add(Dates.dayNum(st.settings.restExceptions[row]));
+      if (key === 'blackouts' && row >= 0 && st.settings.blackouts[row]) { const b = st.settings.blackouts[row]; for (let d = Dates.dayNum(b.start); d <= Dates.dayNum(b.end); d++) sd.add(d); }
+      if (key === 'events') o.events = st.events.map((e, i) => ({ date: e.date, name: e.name, sel: i === row }));
+      o.selDays = sd;
+      right = { holidays: '공휴일 ' + st.settings.holidays.length + '일', restex: '예외일 ' + st.settings.restExceptions.length + '일', blackouts: '경기 없는 기간 ' + st.settings.blackouts.length + '건', events: '이벤트 ' + st.events.length + '건' }[key];
+    }
+    let body = V().ribbon(o);
+    if (vc) body += '<div class="vz-note chg">' + icon('info') + '방금 바뀐 ' + (key === 'slots' ? '슬롯 ' + vc.keys.size + '개' : '날짜 ' + vc.keys.size + '일') + '을 파란 테두리로 표시했습니다.</div>';
+    return sec('입력 결과 · 시즌 띠', right, body) +
+      (key === 'slots' ? sec('연전 수급', '슬롯 × ' + (st.teams.length >> 1) + ' ↔ 시리즈', V().balance({ slots: st.calendar, matches: st.matches, teams: st.teams.length })) : '');
+  };
+
   // ───────── 인스펙터 ─────────
   function renderInsp() {
+    const b = renderInspBase();
+    const v = S.inputViz(S.ui.tab);
+    if (v) b.html = v + b.html.replace(/<div class="empty"><b>행을 고르세요<\/b>[^<]*<\/div>/, '<div class="small muted" style="padding:10px 12px">' + icon('info') + ' 행을 고르면 위 그림에서 그 행을 강조하고, 아래에 값 편집과 검증 결과가 나옵니다.</div>');
+    return b;
+  }
+  function renderInspBase() {
     const u = S.ui, st = app().state, key = u.tab;
     if (key === 'season') {
       const gen = CalendarGen.generateSlots(st.settings);
@@ -448,7 +525,7 @@
       else if (u.tab === 'teams') main = renderTeams();
       else main = renderSheet(u.tab);
       const insp = renderInsp();
-      return '<div class="stepview">' + renderBand() + S.workspace({ list: renderList(), main, insp: insp.html, inspTitle: insp.title, listLabel: '시트 목록' }) + '</div>';
+      return '<div class="stepview">' + renderBand() + S.workspace({ list: renderList(), main, insp: insp.html, inspTitle: insp.title, listLabel: '시트 목록', cls: 'ws-data' }) + '</div>';
     },
     after() {
       const ed = document.getElementById('cellEditor');
@@ -490,10 +567,10 @@
     const old = String(c.get(r));
     S.ui.edit = null;
     if (old !== String(e.value)) {
-      app().commit(sh.sheet + ' ' + (e.row + 2) + '행 ' + c.head + ': ' + old + ' → ' + e.value, (s) => {
+      S.trackViz(e.sheet, () => app().commit(sh.sheet + ' ' + (e.row + 2) + '행 ' + c.head + ': ' + old + ' → ' + e.value, (s) => {
         if (c.setAt) c.setAt(s, e.row, e.value);
         else { const row = sh.rows(s)[e.row]; c.set(row, e.value); }
-      }, ['input']);
+      }, ['input']));
     }
     if (moveDown) { const n = sh.rows(app().state).length; S.ui.cell = { sheet: e.sheet, row: Math.min(n - 1, e.row + 1), col: e.col }; }
     S.render();
@@ -504,7 +581,7 @@
     const at = pos === 'above' ? u.cell.row : u.cell.row + 1;
     const blank = sh.blank(app().state, u.cell.row);
     if (blank && typeof blank === 'object') blank._uiNew = true;
-    app().commit(sh.sheet + ' ' + (at + 2) + '행 삽입', (s) => { sh.insert(s, at, blank); }, ['input', 'plan']);
+    S.trackViz(key, () => app().commit(sh.sheet + ' ' + (at + 2) + '행 삽입', (s) => { sh.insert(s, at, blank); }, ['input', 'plan']));
     u.edit = null;
     u.cell = { sheet: key, row: at, col: sh.cols.find((c) => !c.ro).key };
     S.toast(sh.sheet + ' ' + (at + 2) + '행을 ' + (pos === 'above' ? '위에' : '아래에') + ' 삽입했습니다. 값을 고치세요.' + (key === 'series' ? ' 새 시리즈는 미배정 풀로 들어갑니다.' : ''), 'info');
@@ -515,7 +592,7 @@
     const u = S.ui, key = u.tab, sh = SHEETS[key];
     if (!sh || !u.cell || u.cell.sheet !== key || locked()) return;
     const at = u.cell.row;
-    app().commit(sh.sheet + ' ' + (at + 2) + '행 삭제', (s) => { sh.remove(s, at); }, ['input', 'plan']);
+    S.trackViz(key, () => app().commit(sh.sheet + ' ' + (at + 2) + '행 삭제', (s) => { sh.remove(s, at); }, ['input', 'plan']));
     u.edit = null;
     const n = sh.rows(app().state).length;
     u.cell = n ? { sheet: key, row: Math.min(at, n - 1), col: u.cell.col } : null;
@@ -524,7 +601,7 @@
   }
 
   Object.assign(S.actions, {
-    'd-tab': (el) => { S.go({ step: 1, tab: el.dataset.tab, edit: null, cell: null, ops: null }); },
+    'd-tab': (el) => { S.go({ step: 1, tab: el.dataset.tab, edit: null, cell: null, ops: null, vizChanged: null }); },
     'cell': (el, e) => {
       const row = +el.dataset.row, col = el.dataset.col;
       const key = S.ui.tab;
