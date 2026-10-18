@@ -34,14 +34,15 @@
   };
   const explain = (k) => (S.dev() ? EXPLAIN[k] : EXPLAIN_PLAIN[k]) || '';
   // 실행 시간 프리셋 (W17) → solver.timeLimitSec
+  // opt-2: 큰 선택 카드용으로 「언제 쓰나요」(when)와 꼼꼼함(depth 1~3)을 더했다
   S.TIME_PRESETS = [
-    { sec: 60, name: '빠르게', time: '1분', sub: '입력을 바꾼 뒤 빨리 확인' },
-    { sec: 300, name: '보통', time: '5분', sub: '대부분 이 정도면 충분' },
-    { sec: 1800, name: '충분히', time: '30분', sub: '배포 직전 최종안' }
+    { sec: 60, name: '빠르게', time: '1분', sub: '입력을 바꾼 뒤 빨리 확인', when: '입력을 조금 고친 뒤 결과를 빨리 볼 때', depth: 1 },
+    { sec: 300, name: '보통', time: '5분', sub: '대부분 이 정도면 충분', when: '평소 편성안을 만들 때 (대부분 충분)', depth: 2 },
+    { sec: 1800, name: '충분히', time: '30분', sub: '배포 직전 최종안', when: '배포 직전 최종안을 만들 때', depth: 3 }
   ];
   S.INIT_MODES = [
-    { v: 'KEEP', name: '지금 일정 다듬기', sub: '현재 배정에서 출발해 위반과 부담을 줄입니다' },
-    { v: 'SCRATCH', name: '처음부터 새로 짜기', sub: '고정한 경기만 두고 나머지를 새로 배치합니다' }
+    { v: 'KEEP', name: '지금 일정 다듬기', sub: '현재 배정에서 출발해 위반과 부담을 줄입니다', when: '지금 일정이 거의 맞고 몇 곳만 고칠 때' },
+    { v: 'SCRATCH', name: '처음부터 새로 짜기', sub: '고정한 경기만 두고 나머지를 새로 배치합니다', when: '입력을 크게 바꿨거나 새 시즌일 때' }
   ];
 
   function items() {
@@ -116,20 +117,64 @@
       '<div class="trend"><div class="chart-title"><b class="small">Soft 합</b><span class="mono small" style="color:var(--blue)">' + fmt.neg(last.soft) + '</span><span class="small muted">천 단위</span></div>' + soft + '</div></div>';
   }
 
-  /** 일반 옵션 (W17): 실행 시간 + 시작 방식. opt-2가 이 함수만 바꾼다. */
+  // ───────── opt-2: 큰 선택 카드 ─────────
+  /** 실행 시간 그림: 60분 눈금판에 실행 시간만큼 부채꼴을 칠한다(1분 = 6°, 5분 = 30°, 30분 = 180°) */
+  function timeGlyph(sec) {
+    const deg = Math.max(6, Math.min(360, sec / 60 * 6)), r = 13, cx = 18, cy = 20;
+    const rad = (d) => (d - 90) * Math.PI / 180;
+    const px = (d) => (cx + r * Math.cos(rad(d))).toFixed(2), py = (d) => (cy + r * Math.sin(rad(d))).toFixed(2);
+    let ticks = '';
+    for (let i = 0; i < 12; i++) { const d = i * 30, r1 = i % 3 === 0 ? r - 3.5 : r - 2; ticks += '<line x1="' + (cx + r1 * Math.cos(rad(d))).toFixed(2) + '" y1="' + (cy + r1 * Math.sin(rad(d))).toFixed(2) + '" x2="' + px(d) + '" y2="' + py(d) + '" stroke="#9AA8C2" stroke-width="1"/>'; }
+    return '<svg class="bc-glyph" viewBox="0 0 36 36" aria-hidden="true"><rect x="15" y="2" width="6" height="3" rx="1" fill="#22406F"/><line x1="18" y1="5" x2="18" y2="7" stroke="#22406F" stroke-width="2"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 1.5) + '" fill="#fff" stroke="#22406F" stroke-width="1.6"/>' + ticks +
+      '<path d="M' + cx + ' ' + cy + 'L' + px(0) + ' ' + py(0) + 'A' + r + ' ' + r + ' 0 ' + (deg > 180 ? 1 : 0) + ' 1 ' + px(deg) + ' ' + py(deg) + 'Z" fill="#1F5FD6" fill-opacity=".85"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + px(deg) + '" y2="' + py(deg) + '" stroke="#0A1E3C" stroke-width="1.6" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="1.8" fill="#0A1E3C"/></svg>';
+  }
+  /** 시작 방식 그림: 다듬기 = 채운 칸 사이 맞바꾸기 화살표, 새로 짜기 = 빈 칸(점선) + 고정 칸 + 다시 짜기 화살표 */
+  function initGlyph(v) {
+    let s = '<svg class="bc-glyph" viewBox="0 0 36 36" aria-hidden="true">';
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const x = 4 + c * 10, y = 6 + r * 9, pin = r === 0 && c === 0;
+      s += v === 'KEEP'
+        ? '<rect x="' + x + '" y="' + y + '" width="8" height="7" rx="1" fill="' + ((r === 1 && c === 0) || (r === 1 && c === 2) ? '#1F5FD6' : '#C9D4E6') + '"/>'
+        : '<rect x="' + x + '" y="' + y + '" width="8" height="7" rx="1" fill="' + (pin ? '#0A1E3C' : '#fff') + '" stroke="' + (pin ? '#0A1E3C' : '#9AA8C2') + '" stroke-dasharray="' + (pin ? '0' : '2 1.5') + '"/>';
+    }
+    s += v === 'KEEP'
+      ? '<path d="M8 13.5 C 12 10, 24 10, 28 13.5" fill="none" stroke="#0A1E3C" stroke-width="1.5"/><path d="M26 11.2 L28.6 13.8 L25.2 14.6" fill="none" stroke="#0A1E3C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<circle cx="27" cy="27" r="7" fill="#fff"/><path d="M31.5 26 A4.6 4.6 0 1 1 29.4 23" fill="none" stroke="#1F5FD6" stroke-width="1.8" stroke-linecap="round"/><path d="M28 21.4 L30.2 23.4 L27.6 24.6" fill="none" stroke="#1F5FD6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    return s + '</svg>';
+  }
+
+  /** 일반 옵션 (W17): 실행 시간 + 시작 방식. opt-2: 큰 선택 카드 */
   S.reviewSimpleOptions = function (sv, running) {
     const dis = running ? ' disabled' : '';
     const pinned = app().state.matches.filter((m) => m.pinned).length;
     const cur = S.TIME_PRESETS.find((p) => p.sec === sv.timeLimitSec);
-    const choice = (act, v, on, name, extra, sub) => '<button class="choice' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="' + act + '" data-v="' + v + '"' + dis + '><span class="c-dot" aria-hidden="true"></span><span class="c-main"><b>' + esc(name) + (extra ? ' <span class="c-time">' + esc(extra) + '</span>' : '') + '</b><span class="c-sub">' + esc(sub) + '</span></span></button>';
-    return '<div class="simple-opts">' +
-      '<div class="field"><span id="lbl-time">실행 시간</span><div class="choices" role="radiogroup" aria-labelledby="lbl-time">' +
-        S.TIME_PRESETS.map((p) => choice('run-time', p.sec, p.sec === sv.timeLimitSec, p.name, p.time, p.sub)).join('') + '</div>' +
+    const initV = sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP';
+    const mode = S.INIT_MODES.find((m) => m.v === initV);
+    const check = '<span class="bc-check" aria-hidden="true">' + icon('check') + '</span>';
+    const timeCard = (p) => {
+      const on = p.sec === sv.timeLimitSec;
+      const stopSec = Math.max(15, Math.round(p.sec / 4));
+      return '<button class="choice bc' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="run-time" data-v="' + p.sec + '"' + dis + ' aria-label="' + esc(p.name + ' ' + p.time + ' — ' + p.when) + '">' + check +
+        '<span class="bc-top">' + timeGlyph(p.sec) + '<span class="bc-name"><b>' + esc(p.name) + '</b><span class="bc-time">' + esc(p.time) + '</span></span></span>' +
+        '<span class="bc-meter" title="오래 찾을수록 대체로 더 좋은 일정이 나옵니다">꼼꼼함 ' + [1, 2, 3].map((i) => '<i class="' + (i <= p.depth ? 'f' : '') + '"></i>').join('') + '</span>' +
+        '<span class="bc-exp">최대 ' + esc(p.time) + ' · 더 나아지지 않으면 ' + esc(stopSec >= 60 ? Math.floor(stopSec / 60) + '분' + (stopSec % 60 ? ' ' + (stopSec % 60) + '초' : '') : stopSec + '초') + ' 뒤 끝</span>' +
+        '<span class="bc-when"><em>언제</em>' + esc(p.when) + '</span></button>';
+    };
+    const initCard = (m) => {
+      const on = initV === m.v;
+      return '<button class="choice bc' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="solver-init" data-v="' + m.v + '"' + dis + ' aria-label="' + esc(m.name + ' — ' + m.sub) + '">' + check +
+        '<span class="bc-top">' + initGlyph(m.v) + '<span class="bc-name wrap"><b>' + esc(m.name) + '</b></span></span>' +
+        '<span class="bc-sub">' + esc(m.sub) + '</span>' +
+        '<span class="bc-when"><em>언제</em>' + esc(m.when) + '</span></button>';
+    };
+    return '<div class="simple-opts big">' +
+      '<div class="field"><span id="lbl-time">실행 시간 <span class="muted">— 오래 둘수록 더 꼼꼼히 찾습니다</span></span><div class="choices big" role="radiogroup" aria-labelledby="lbl-time">' + S.TIME_PRESETS.map(timeCard).join('') + '</div>' +
         (!cur ? '<span class="small muted">' + icon('info') + '개발자 옵션에서 정한 ' + esc(fmt.time(sv.timeLimitSec * 1000)) + '을 씁니다.</span>' : '') + '</div>' +
-      '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices" role="radiogroup" aria-labelledby="lbl-init">' +
-        S.INIT_MODES.map((m) => choice('solver-init', m.v, (sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP') === m.v, m.name, '', m.sub)).join('') + '</div></div>' +
+      '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices big" role="radiogroup" aria-labelledby="lbl-init">' + S.INIT_MODES.map(initCard).join('') + '</div></div>' +
       '</div>' +
-      '<div class="keep-line">' + icon('pin') + '<span>고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
+      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. 고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
   };
 
   /** 개발자 옵션 (W17) — 개발자 모드에서만 DOM에 만든다 */
@@ -199,7 +244,7 @@
       '<span class="run-btns">' +
       (running
         ? (r.status === 'PAUSED' ? '<button class="btn" data-act="run-resume">' + icon('play') + '재개</button>' : '<button class="btn" data-act="run-pause">' + icon('pause') + '일시정지</button>') + '<button class="btn danger" data-act="run-stop">' + icon('stop') + '중지</button>'
-        : '<button class="btn primary lg" data-act="run-start"' + (blocked ? ' disabled title="사전 점검 차단 항목이 있습니다"' : '') + '>' + icon('play') + '편성 시작</button>') +
+        : '<button class="btn primary lg go" data-act="run-start"' + (blocked ? ' disabled title="사전 점검 차단 항목이 있습니다"' : '') + '>' + icon('play') + '편성 시작</button>') +
       '</span></div>';
     s += '</div></div>';
     s += S.reviewDevOptions(sv, running, r);

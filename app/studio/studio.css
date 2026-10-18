@@ -1039,3 +1039,43 @@ svg.mc text { font-family: var(--font); }
 .q-dash.wide .q-band-body .mt tbody td { height: 28px; }
 .q-dash.wide .q-band-body .mt tfoot td { height: 28px; }
 @media (max-width: 1500px) { .q-band-sum { display: none; } .q-band.open .q-band-sum { display: inline; } .q-band.open .q-band-sel { display: none; } }
+
+/* ==========================================================================
+   opt-2 — ② 큰 선택 카드 (실행 시간 3장 + 시작 방식 2장) · 눈에 띄는 「편성 시작」
+   ========================================================================== */
+.simple-opts.big { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+.simple-opts.big > .field > span:first-child { font-size: var(--fs); color: var(--text); margin-bottom: 4px; }
+.simple-opts.big > .field > span:first-child .muted { font-weight: 400; font-size: var(--fs-s); }
+.choices.big { border: 0; border-radius: 0; overflow: visible; gap: 8px; }
+.choices.big .choice.bc { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 10px 11px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); box-shadow: 0 1px 0 rgba(10, 30, 60, .04); cursor: pointer; }
+.choices.big .choice.bc:first-child { border-left: 1px solid var(--line-2); }
+.choices.big .choice.bc:hover:not([disabled]) { border-color: var(--blue-line); background: #FBFCFF; }
+.choices.big .choice.bc:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.choices.big .choice.bc.on { border-color: var(--blue); background: #F4F8FF; box-shadow: inset 0 0 0 1px var(--blue), 0 2px 6px rgba(31, 95, 214, .12); }
+.bc-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-3); background: #fff; display: grid; place-items: center; }
+.bc-check svg.i { width: 11px; height: 11px; color: #fff; stroke-width: 2.4; opacity: 0; }
+.choice.bc.on .bc-check { background: var(--blue); border-color: var(--blue); }
+.choice.bc.on .bc-check svg.i { opacity: 1; }
+.bc-top { display: flex; align-items: center; gap: 9px; min-width: 0; padding-right: 20px; }
+.bc-glyph { width: 36px; height: 36px; flex: none; }
+.bc-name { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.bc-name b { font-size: 14px; font-weight: 800; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-time { font-family: var(--mono); font-size: 18px; font-weight: 800; color: var(--blue); letter-spacing: -.3px; }
+.bc-meter { display: flex; align-items: center; gap: 3px; font-size: 10.5px; color: var(--text-3); font-weight: 600; }
+.bc-meter i { width: 14px; height: 5px; border-radius: 2px; background: #E1E6EF; }
+.bc-meter i.f { background: var(--navy-3); }
+.choice.bc.on .bc-meter i.f { background: var(--blue); }
+.choices.big .choice.bc { word-break: keep-all; }
+.bc-name.wrap b { white-space: normal; }
+.bc-exp { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.bc-sub { font-size: var(--fs-xs); color: var(--text-2); line-height: 1.4; }
+.bc-when { margin-top: auto; display: block; font-size: var(--fs-xs); color: var(--text-2); line-height: 1.4; border-top: 1px dashed var(--line); padding-top: 5px; }
+.bc-when em { font-style: normal; font-weight: 700; color: var(--navy-3); margin-right: 5px; font-size: 10.5px; background: #EEF2F8; border-radius: 3px; padding: 0 4px; }
+.choice.bc.on .bc-when em { background: #DCE7FB; color: var(--blue); }
+.keep-line.bc-pick svg.i { color: var(--blue); }
+.keep-line.bc-pick b { color: var(--navy); }
+.btn.lg.go { height: 44px; padding: 0 26px; font-size: 15px; font-weight: 800; border-radius: 6px; box-shadow: 0 2px 6px rgba(31, 95, 214, .3); }
+.btn.lg.go svg.i { width: 15px; height: 15px; }
+@media (min-width: 1800px) { .choices.big .choice.bc { padding: 12px 14px; gap: 6px; } .bc-glyph { width: 42px; height: 42px; } .bc-time { font-size: 20px; } .bc-name b { font-size: 15px; } }
+.simple-opts.big > .field { display: flex; flex-direction: column; }
+.simple-opts.big .choices.big { flex: 1; }
