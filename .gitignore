@@ -2,3 +2,6 @@
 /target/
 data/baseball/solved/
 data/baseball/unsolved/*.xlsx
+/opus-ui/
+/wizard-ui/
+.DS_Store

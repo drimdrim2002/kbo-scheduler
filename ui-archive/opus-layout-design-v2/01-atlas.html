@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시즌 아틀라스</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* 무한 캔버스: 화면 전체가 지도처럼 움직이는 작업면이다. */
+  #vp { position: fixed; inset: 0; overflow: hidden; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    background-color: #efece6; background-image: radial-gradient(#d9d3c8 1px, transparent 1px); background-size: 22px 22px; }
+  #vp.panning { cursor: grabbing; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .region-title { position: absolute; font-size: 30px; font-weight: 800; letter-spacing: -0.5px; color: #2b2a27; white-space: nowrap; }
+  .region-title small { display: block; font-size: 14px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; }
+  .card { position: absolute; background: var(--paper); border-radius: 14px; box-shadow: var(--shadow); }
+
+  /* 달력 벽 */
+  .month h3 { margin: 0; position: absolute; left: 18px; top: 12px; font-size: 22px; }
+  .month h3 small { font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 6px; }
+  .month .dow { position: absolute; top: 44px; font-size: 10px; color: var(--ink-3); width: 68px; text-align: center; }
+  .month.re { background: repeating-linear-gradient(135deg, #fff, #fff 10px, #faf7f1 10px, #faf7f1 20px); }
+  .dcell { position: absolute; width: 66px; height: 60px; border-radius: 6px; border: 1px solid #efebe4; font-size: 10px; color: var(--ink-3); padding: 2px 4px; }
+  .dcell.rest { background: repeating-linear-gradient(135deg, #f6f3ee, #f6f3ee 4px, #ece7de 4px, #ece7de 8px); }
+  .dcell.black { background: #3a3835; color: #ddd; }
+  .dcell .hol { color: var(--bad); font-weight: 700; }
+  .lens-input .dcell { cursor: pointer; }
+  .lens-input .dcell:hover { outline: 2px solid var(--accent); }
+  .band { position: absolute; height: 46px; border-radius: 7px; background: #f3f6ff; border: 1px solid #cdd8fb; overflow: hidden; z-index: 2; }
+  .band.cont { background: #f7f8fc; border-style: dashed; }
+  .band .lbl { position: absolute; right: 4px; top: 2px; font-size: 8px; color: var(--ink-3); }
+  .band.v { border: 2px solid var(--bad); background: #fff3f2; }
+  .band.v::after { content: "⚠ " attr(data-rules); position: absolute; left: 3px; top: 2px; font: 700 8px/1 var(--mono); color: var(--bad); }
+  .band.changed { box-shadow: inset 0 0 0 2px var(--warn); }
+  .band.drop-ok { outline: 3px solid var(--accent); }
+  .band.drop-bad { outline: 3px solid var(--bad); }
+  .band.dragging { opacity: 0.35; }
+  .band.preview-diff { outline: 2px dashed var(--warn); outline-offset: 1px; }
+  .lens-fix .band { cursor: move; }
+  /* LOD: 배율에 따라 띠 안에 보이는 정보 밀도가 달라진다. */
+  .l0, .l1, .l2 { display: none; }
+  .lod-0 .l0, .lod-1 .l1, .lod-2 .l2 { display: block; }
+  .heat { position: absolute; inset: 0; }
+  .l1 { padding: 11px 4px 0; }
+  .l1 .g { display: inline-flex; align-items: center; gap: 1px; font-size: 8px; margin: 0 3px 1px 0; padding: 0 2px; border-radius: 3px; white-space: nowrap; }
+  .g i { width: 5px; height: 5px; border-radius: 1px; background: var(--c); display: inline-block; }
+  .g.pin { background: #fff4d6; }
+  .g.dim { opacity: 0.25; }
+  .g.hl-H { background: #dfe7ff; font-weight: 700; }
+  .g.hl-A { outline: 1px solid #8aa2f0; font-weight: 700; }
+  .l2 { position: absolute; inset: 0; }
+  .l2 svg { position: absolute; left: 2px; top: 2px; width: 44px; height: 42px; }
+  .lod-2 .band .lbl { font-size: 5.5px; top: 1px; }
+  .l2 .rows { position: absolute; left: 48px; right: 2px; top: 8.5px; font-size: 5.6px; line-height: 7.2px; }
+  .l2 .row { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+  .l2 .row b { font-weight: 600; }
+  .l2 .row .act { margin-left: auto; display: flex; gap: 1px; }
+  .l2 .row button { border: 0; background: #e9edf8; border-radius: 2px; font-size: 5px; padding: 0 2px; line-height: 6.4px; }
+  .l2 .row button:hover { background: var(--accent); color: #fff; }
+  .mm-arc { fill: none; stroke-width: 1.4; opacity: 0.85; }
+  .mm-dot { stroke: #fff; stroke-width: 0.6; }
+
+  /* 구단·구장 지역 */
+  .tpin { cursor: pointer; }
+  .tpin text { font-size: 13px; font-weight: 700; }
+  .tpin.sel circle { stroke: #111; stroke-width: 3; }
+  table.dm { border-collapse: collapse; font-size: 11px; }
+  table.dm th { font-weight: 600; padding: 3px; color: var(--ink-2); }
+  table.dm td { padding: 0; }
+  table.dm input { width: 46px; border: 1px solid transparent; background: transparent; text-align: right; padding: 3px 4px; font-size: 11px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+  table.dm input:hover, table.dm input:focus { border-color: var(--line-2); background: #fff; }
+  table.dm td.diag input { color: #ccc; }
+  table.dm input.far { color: var(--bad); }
+
+  /* 분석 지역 */
+  .bar-lbl { font-size: 12px; }
+  .ha { fill: var(--away); }
+  .ha.H { fill: var(--home); }
+  .ha.over { stroke: var(--bad); stroke-width: 2; }
+
+  /* 떠 있는 조종 장치 */
+  .float { position: fixed; z-index: 10; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(6px); border-radius: 12px; box-shadow: var(--shadow); }
+  #tl { left: 14px; top: 14px; padding: 10px 14px; }
+  #tl h1 { margin: 0; font-size: 15px; }
+  #crumb { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+  #crumb b { color: var(--accent); }
+  #lenses { left: 50%; transform: translateX(-50%); top: 14px; padding: 4px; display: flex; gap: 2px; }
+  #lenses button { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; font-weight: 600; color: var(--ink-2); }
+  #lenses button[aria-pressed="true"] { background: #1d1d1f; color: #fff; }
+  #lenses button span { font-weight: 400; opacity: 0.6; margin-left: 4px; font-size: 11px; }
+  #tr { right: 14px; top: 14px; padding: 8px 10px; display: flex; gap: 8px; align-items: center; }
+  #score { font: 11px var(--mono); color: var(--ink-2); }
+  #panel { left: 14px; top: 84px; width: 286px; max-height: calc(100vh - 170px); overflow: auto; padding: 14px; }
+  #panel h2 { font-size: 13px; margin: 0 0 8px; }
+  #panel h4 { font-size: 11px; margin: 14px 0 6px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  #panel .row { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+  #panel .row label { width: 62px; color: var(--ink-2); font-size: 12px; }
+  #panel input[type="date"], #panel select { border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 6px; font-size: 12px; }
+  .daychips { display: flex; gap: 3px; }
+  .daychips button { width: 26px; height: 24px; border: 1px solid var(--line-2); background: #fff; border-radius: 6px; font-size: 11px; }
+  .daychips button[aria-pressed="true"] { background: #3a3835; color: #fff; border-color: #3a3835; }
+  .kv { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .vitem { display: flex; gap: 6px; align-items: flex-start; padding: 6px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .vitem:hover { background: var(--bad-soft); }
+  .tsel { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tsel button { border: 1px solid var(--line-2); background: #fff; border-radius: 99px; padding: 2px 8px 2px 6px; }
+  .tsel button[aria-pressed="true"] { border-color: #111; background: #f1f1f1; }
+  .hist { font-size: 11.5px; color: var(--ink-2); padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .spark { width: 100%; height: 40px; }
+  .note { font-size: 11px; color: var(--ink-3); margin: 6px 0; }
+  .diffbox { background: var(--warn-soft); border-radius: 8px; padding: 6px 8px; font-size: 11.5px; margin-top: 8px; }
+
+  #nav { right: 14px; bottom: 14px; padding: 8px; width: 250px; }
+  #mini { width: 234px; height: 74px; display: block; background: #f3f0ea; border-radius: 6px; cursor: pointer; }
+  #mini .vrect { fill: rgba(47, 91, 234, 0.12); stroke: var(--accent); stroke-width: 6; }
+  #nav .zrow { display: flex; gap: 4px; margin-top: 6px; align-items: center; }
+  #zoomv { font: 11px var(--mono); margin-left: auto; color: var(--ink-2); }
+  #pop { position: fixed; z-index: 30; display: none; padding: 6px; gap: 4px; flex-direction: column; min-width: 150px; }
+  #pop.show { display: flex; }
+  #pop .t { font-size: 12px; font-weight: 700; padding: 2px 4px 4px; }
+  #pop button { text-align: left; border: 0; background: transparent; padding: 5px 6px; border-radius: 6px; font-size: 12px; }
+  #pop button:hover { background: var(--accent-soft); }
+  #dragtip { position: fixed; z-index: 40; pointer-events: none; display: none; background: #1d1d1f; color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 11px; }
+  .rq { display: inline-flex; gap: 2px; align-items: center; font-size: 9px; padding: 1px 4px; margin: 1px; border-radius: 4px; background: #e7f0ff; white-space: nowrap; }
+  .rq.dh { background: #ffe9c7; }
+</style>
+</head>
+<body>
+<div id="vp" data-canvas><div id="world" class="lod-1 lens-result"></div></div>
+
+<div class="float" id="tl">
+  <h1>2025 시즌 아틀라스</h1>
+  <div id="crumb">시즌 전체</div>
+</div>
+<nav class="float" id="lenses" aria-label="렌즈">
+  <button data-lens="input" aria-pressed="false">① 입력<span>골격·구장</span></button>
+  <button data-lens="result" aria-pressed="true">② 결과<span>위반·점수</span></button>
+  <button data-lens="fix" aria-pressed="false">③ 보정<span>교환·고정·우천</span></button>
+  <button data-lens="viz" aria-pressed="false">④ 분석<span>이동·균형</span></button>
+</nav>
+<div class="float" id="tr">
+  <span id="badge"></span>
+  <span id="score"></span>
+  <button class="btn" id="undo" title="실행 취소 (⌘Z)">↶</button>
+  <button class="btn primary" id="run">▶ 솔버 실행</button>
+</div>
+<aside class="float" id="panel"></aside>
+<div class="float" id="nav">
+  <svg id="mini"></svg>
+  <div class="zrow">
+    <button class="btn sm" data-jump="teams">구단·구장</button>
+    <button class="btn sm" data-jump="wall">달력</button>
+    <button class="btn sm" data-jump="viz">분석</button>
+    <span id="zoomv"></span>
+  </div>
+  <div class="zrow">
+    <button class="btn sm" id="zout">−</button><button class="btn sm" id="zin">+</button>
+    <span class="faint" style="font-size:10.5px">휠 확대 · 끌어 이동 · 더블클릭 줌인</span>
+  </div>
+</div>
+<div class="float" id="pop"></div>
+<div id="dragtip"></div>
+
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, park, chip, store, slotDays, dayToSlot, projector, teamXY, mapBase, arc, fmt, sign } = KB;
+  const world = $("#world"), vp = $("#vp");
+  const CW = 68, CH = 62, MW = 520, MH = 470, GAP = 34;
+  const WALL_X = 820, VIZ_X = WALL_X + 4 * MW + 3 * GAP + 80;
+  const REGIONS = { teams: { x: 0, y: 0, w: 740, h: 1000 }, wall: { x: WALL_X, y: 0, w: 4 * MW + 3 * GAP, h: 2 * MH + GAP + 60 }, viz: { x: VIZ_X, y: 0, w: 900, h: 1000 } };
+  const WORLD_W = VIZ_X + 900, WORLD_H = 1010;
+  world.style.width = WORLD_W + "px"; world.style.height = WORLD_H + "px";
+
+  let lens = "result", team = null, skel = KB.defaultSkeleton(), cancelled = [], rebooked = null, opts = { monday: false, dh: false };
+  const engineSlots = KB.generateSlots(skel);
+
+  // ── 배치: 날짜 → 월 카드 안 좌표 (월요일 시작 주) ──
+  const months = [3, 4, 5, 6, 7, 8, 9, 10];
+  const mOrigin = (m) => { const k = months.indexOf(m); return [WALL_X + (k % 4) * (MW + GAP), 60 + Math.floor(k / 4) * (MH + GAP)]; };
+  function cellXY(isoDate) {
+    const d = KB.day(isoDate), m = d.getMonth() + 1;
+    const first = new Date(d.getFullYear(), m - 1, 1);
+    const off = (first.getDay() + 6) % 7;
+    const n = off + d.getDate() - 1;
+    const [ox, oy] = mOrigin(m);
+    return [ox + 16 + (n % 7) * CW, oy + 62 + Math.floor(n / 7) * CH, m];
+  }
+
+  // ── 정적 배경: 지역 제목, 월 카드, 날짜 칸 ──
+  function buildStatic() {
+    let h = `<div class="region-title" style="left:20px;top:0">① 구단·구장<small>지도에서 구단을 고르고, 거리 행렬을 직접 고칩니다</small></div>
+      <div class="region-title" style="left:${WALL_X}px;top:0">② 시즌 달력 벽<small>슬롯 띠를 확대하면 대진 → 이동 지도 순으로 자세해집니다</small></div>
+      <div class="region-title" style="left:${VIZ_X}px;top:0">④ 분석 보드<small>이동거리 · 홈/원정 흐름 · 상대 매트릭스</small></div>`;
+    h += `<div class="card" style="left:20px;top:70px;width:700px;height:470px"><svg id="bigmap" width="700" height="470"></svg></div>`;
+    h += `<div class="card" style="left:20px;top:560px;width:700px;height:440px;padding:14px" id="dmcard"></div>`;
+    months.forEach((m) => {
+      const [ox, oy] = mOrigin(m);
+      const re = m >= 9;
+      h += `<div class="card month${re ? " re" : ""}" style="left:${ox}px;top:${oy}px;width:${MW}px;height:${MH}px"><h3>${m}월<small>${re ? "재편성 구간 · 취소 경기 재배치" : "1차 편성"}</small></h3>
+        ${["월", "화", "수", "목", "금", "토", "일"].map((w, k) => `<div class="dow" style="left:${16 + k * CW}px">${w}</div>`).join("")}</div>`;
+      const days = new Date(2025, m, 0).getDate();
+      for (let dd = 1; dd <= days; dd++) {
+        const s = `2025-${String(m).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+        const [x, y] = cellXY(s);
+        h += `<div class="dcell" data-day="${s}" style="left:${x}px;top:${y}px"></div>`;
+      }
+    });
+    h += `<div class="card" style="left:${VIZ_X}px;top:70px;width:880px;height:930px;padding:16px" id="vizcard"></div>`;
+    h += `<div id="bands"></div>`;
+    world.innerHTML = h;
+  }
+
+  // 날짜 칸 표시: 휴식 요일·블랙아웃·공휴일·예외일
+  function paintDays() {
+    const inBlack = (s) => skel.blackouts.some((b) => s >= b.from && s <= b.to);
+    $$(".dcell").forEach((c) => {
+      const s = c.dataset.day, d = KB.day(s);
+      const rest = skel.restDays.includes(d.getDay()) && !skel.exceptions.includes(s);
+      c.className = "dcell" + (inBlack(s) ? " black" : rest ? " rest" : "");
+      const hol = skel.holidays.includes(s);
+      c.innerHTML = `${d.getDate()}${hol ? ' <span class="hol">★</span>' : ""}${inBlack(s) ? ' <span style="font-size:8px">' + esc(skel.blackouts.find((b) => s >= b.from && s <= b.to).name) + "</span>" : ""}`;
+    });
+  }
+
+  // ── 슬롯 띠: 배율별 세 가지 밀도 ──
+  const P = projector(44, 42, 3);
+  function miniMap(i) {
+    const ss = store.inSlot(i);
+    const prev = (t) => { const seq = KB.teamSeq(store.plan, t).filter((s) => s.slot < i); return seq.length ? seq[seq.length - 1].home : t; };
+    let arcs = "";
+    ss.forEach((s) => {
+      [s.away, s.home].forEach((t) => {
+        const from = teamXY(P, prev(t)), to = teamXY(P, s.home);
+        if (from[0] !== to[0] || from[1] !== to[1]) arcs += `<path class="mm-arc" d="${arc(from, to)}" stroke="${color(t)}"/>`;
+      });
+    });
+    const dots = ss.map((s) => { const [x, y] = teamXY(P, s.home); return `<circle class="mm-dot" cx="${x}" cy="${y}" r="2" fill="${color(s.home)}"/>`; }).join("");
+    return `<svg viewBox="0 0 44 42">${mapBase(P, { labels: false })}${arcs}${dots}</svg>`;
+  }
+  function gameCls(s) {
+    let c = "g" + (s.pin ? " pin" : "");
+    if (team) c += s.home === team ? " hl-H" : s.away === team ? " hl-A" : " dim";
+    return c;
+  }
+  function heatColor(i) {
+    if (lens === "viz" && team) {
+      const s = store.inSlot(i).find((x) => x.home === team || x.away === team);
+      return !s ? "#f4f4f4" : s.home === team ? "#b9c9fb" : "#ece7de";
+    }
+    if (lens === "viz") {
+      // 그 슬롯으로 들어오며 생긴 리그 이동거리
+      const km = T.reduce((a, t) => { const seq = KB.teamSeq(store.plan, t); const k = seq.findIndex((s) => s.slot === i); return a + (k > 0 ? KB.dist(seq[k - 1].home, seq[k].home) : 0); }, 0);
+      const r = Math.min(1, km / 1600);
+      return `rgba(201,48,44,${0.08 + r * 0.6})`;
+    }
+    if (lens === "input") return K.slots[i].hol >= 3 ? "#ffe1dc" : K.slots[i].wk ? "#e7ecfd" : "#f5f3ef";
+    return "transparent";
+  }
+  let previewSlots = null;
+  function renderBands() {
+    const ev = store.ev;
+    const vSlots = new Map();
+    ev.hard.forEach((v) => { if (!vSlots.has(v.slot)) vSlots.set(v.slot, []); vSlots.get(v.slot).push(v.rule); });
+    const changed = new Set(store.plan.filter((s) => { const b = KB.base.find((x) => x.id === s.id); return b.slot !== s.slot || b.home !== s.home; }).map((s) => s.slot));
+    const prevDiff = new Set();
+    if (previewSlots) K.slots.forEach((sl, i) => { const p = previewSlots[i]; if (!p || p.date !== sl.date || p.len !== sl.len) prevDiff.add(i); });
+    let h = "";
+    K.slots.forEach((sl, i) => {
+      // 월 경계를 넘는 슬롯은 월별 조각으로 나눠 그린다. 내용은 첫 조각에만 둔다.
+      const segs = [];
+      slotDays[i].forEach((d) => { const [x, y, m] = cellXY(d); const last = segs[segs.length - 1]; if (last && last.m === m && last.y === y) last.n++; else segs.push({ x, y, m, n: 1 }); });
+      const ss = store.inSlot(i).sort((a, b) => a.id - b.id);
+      segs.forEach((g, k) => {
+        const cls = ["band"];
+        if (k) cls.push("cont");
+        if (vSlots.has(i) && lens !== "input") cls.push("v");
+        if (changed.has(i) && lens === "fix") cls.push("changed");
+        if (prevDiff.has(i) && lens === "input") cls.push("preview-diff");
+        const style = `left:${g.x + 1}px;top:${g.y + 13}px;width:${g.n * CW - 4}px`;
+        if (k) { h += `<div class="${cls.join(" ")}" style="${style}" data-slot="${i}"><span class="lbl">← ${sl.label} 이어짐</span></div>`; return; }
+        const games = ss.map((s) => `<span class="${gameCls(s)}" data-sid="${s.id}"><i style="--c:${color(s.away)}"></i>${esc(s.away)}@${esc(s.home)}<i style="--c:${color(s.home)}"></i></span>`).join("");
+        const rows = ss.map((s) => `<div class="row ${gameCls(s)}" data-sid="${s.id}"><b>${esc(s.away)}</b>@<b>${esc(s.home)}</b><span class="faint">${park(s.home)}</span>${s.pin ? "📌" : ""}<span class="act"><button data-act="flip" data-sid="${s.id}" title="홈·원정 뒤집기">⇄</button><button data-act="pin" data-sid="${s.id}" title="고정">📌</button><button data-act="rain" data-sid="${s.id}" title="우천 취소">☂</button></span></div>`).join("");
+        h += `<div class="${cls.join(" ")}" style="${style}" data-slot="${i}" data-rules="${(vSlots.get(i) || []).join(" ")}">
+          <div class="l0 heat" style="background:${heatColor(i)}"></div>
+          <span class="lbl">${sl.label} · ${sl.len}연전${sl.hol >= 3 ? " ★" : ""}</span>
+          <div class="l1">${games}</div>
+          <div class="l2">${miniMap(i)}<div class="rows">${rows}</div></div></div>`;
+      });
+    });
+    // 재편성 구간: 취소 경기를 9~10월 칸에 놓는다.
+    if (rebooked) {
+      const byDay = {};
+      rebooked.placed.forEach((g) => { (byDay[g.date] = byDay[g.date] || []).push(g); });
+      Object.entries(byDay).forEach(([d, gs]) => {
+        const [x, y] = cellXY(d);
+        h += `<div style="position:absolute;left:${x + 2}px;top:${y + 13}px;width:64px;z-index:2">${gs.map((g) => `<span class="rq${g.dh ? " dh" : ""}"><i style="width:5px;height:5px;background:${color(g.away)};display:inline-block"></i>${esc(g.away)}@${esc(g.home)}${g.dh ? " DH" : ""}</span>`).join("")}</div>`;
+      });
+    }
+    $("#bands").innerHTML = h;
+  }
+
+  // ── 구단·구장 지역: 큰 지도와 거리 행렬 ──
+  function renderTeams() {
+    const BP = projector(700, 470, 30);
+    let pins = "";
+    // 수도권 다섯 구단은 점이 겹치므로 이름표를 옆으로 빼고 지시선을 단다.
+    const OFF = { SSG: [-120, -40], 키움: [-120, 0], 두산: [60, -52], LG: [60, -30], KT: [60, 30] };
+    T.forEach((t) => {
+      const [x, y] = teamXY(BP, t);
+      const [ox, oy] = OFF[t] || [14, 4];
+      const lx = x + ox, ly = y + oy;
+      const lead = OFF[t] ? `<line x1="${x}" y1="${y}" x2="${lx + (ox < 0 ? 70 : -4)}" y2="${ly - 4}" stroke="#aaa"/>` : "";
+      pins += `<g class="tpin${team === t ? " sel" : ""}" data-team="${t}">${lead}<circle cx="${x}" cy="${y}" r="8" fill="${color(t)}"/><text x="${lx}" y="${ly}">${esc(t)} <tspan font-weight="400" fill="#888" font-size="11">${park(t)}</tspan></text></g>`;
+    });
+    let route = "";
+    if (team) {
+      const seq = KB.teamSeq(store.plan, team);
+      const pts = seq.map((s) => teamXY(BP, s.home));
+      for (let k = 1; k < pts.length; k++) if (pts[k][0] !== pts[k - 1][0] || pts[k][1] !== pts[k - 1][1]) route += `<path d="${arc(pts[k - 1], pts[k], 0.12)}" fill="none" stroke="${color(team)}" stroke-width="1.6" opacity="0.35"/>`;
+    }
+    $("#bigmap").innerHTML = mapBase(BP) + route + pins;
+    const far = (v) => v >= 300;
+    $("#dmcard").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">구장 간 거리 (km)</b><span class="faint" style="font-size:11px">칸을 고치면 대칭 값도 함께 바뀌고 즉시 재채점됩니다 · 300km 이상 빨강</span></div>
+      <table class="dm" style="margin-top:8px"><tr><th></th>${T.map((t) => `<th>${chip(t)}</th>`).join("")}</tr>
+      ${T.map((a, i) => `<tr><th style="text-align:left">${chip(a)}</th>${T.map((b, j) => `<td class="${i === j ? "diag" : ""}"><input class="${far(K.dist[i][j]) ? "far" : ""}" data-i="${i}" data-j="${j}" value="${K.dist[i][j].toFixed(0)}" ${i === j ? "disabled" : ""} aria-label="${a}→${b} 거리"></td>`).join("")}</tr>`).join("")}</table>`;
+  }
+
+  // ── 분석 지역 ──
+  function renderViz() {
+    const ev = store.ev, per = ev.per, avg = ev.avg.km;
+    const W = 840, bh = 26, maxKm = 9000, x0 = 70, sx = (W - x0 - 80) / maxKm;
+    let bars = `<text x="0" y="14" font-size="15" font-weight="700">구단별 총 이동거리</text><text x="${W}" y="14" text-anchor="end" font-size="11" fill="#888">리그 평균 ${fmt(avg)}km · 허용오차 ±300km 띠</text>`;
+    bars += `<rect x="${x0 + (avg - 300) * sx}" y="26" width="${600 * sx}" height="${T.length * bh}" fill="#e6ecfd"/><line x1="${x0 + avg * sx}" x2="${x0 + avg * sx}" y1="22" y2="${30 + T.length * bh}" stroke="#2f5bea" stroke-dasharray="3 3"/>`;
+    T.slice().sort((a, b) => per[b].km - per[a].km).forEach((t, k) => {
+      const y = 30 + k * bh, over = Math.abs(per[t].km - avg) > 300;
+      bars += `<text class="bar-lbl" x="0" y="${y + 15}">${esc(t)}</text><rect x="${x0}" y="${y + 3}" width="${per[t].km * sx}" height="${bh - 8}" rx="3" fill="${color(t)}" opacity="${team && team !== t ? 0.25 : 0.9}"/><text x="${x0 + per[t].km * sx + 6}" y="${y + 15}" font-size="11" class="num" fill="${over ? "#c9302c" : "#555"}">${fmt(per[t].km)}${over ? " ▲" : ""}</text>`;
+    });
+    const sy = 330;
+    let strips = `<text x="0" y="${sy}" font-size="15" font-weight="700">홈/원정 흐름</text><text x="${W}" y="${sy}" text-anchor="end" font-size="11" fill="#888">■ 홈 □ 원정 · 4연속 이상 빨간 테두리</text>`;
+    T.forEach((t, k) => {
+      const y = sy + 14 + k * 22;
+      strips += `<text class="bar-lbl" x="0" y="${y + 13}">${esc(t)}</text>`;
+      let run = 0, prev = null;
+      KB.teamSeq(store.plan, t).forEach((s) => {
+        const kind = s.home === t ? "H" : "A";
+        run = kind === prev ? run + 1 : 1; prev = kind;
+        strips += `<rect class="ha ${kind}${run > 3 ? " over" : ""}" x="${x0 + s.slot * 16.5}" y="${y}" width="14" height="16" rx="2"/>`;
+      });
+    });
+    const my = 600;
+    const cnt = {};
+    store.plan.forEach((s) => { const k = s.home + ">" + s.away; cnt[k] = (cnt[k] || 0) + 1; });
+    let mx = `<text x="0" y="${my}" font-size="15" font-weight="700">상대 매트릭스 (행=홈, 열=원정, 시리즈 수)</text>`;
+    T.forEach((a, i) => {
+      mx += `<text x="${x0 - 6}" y="${my + 34 + i * 27}" font-size="11" text-anchor="end">${esc(a)}</text><text x="${x0 + 14 + i * 40}" y="${my + 18}" font-size="10" text-anchor="middle">${esc(a)}</text>`;
+      T.forEach((b, j) => {
+        const n = cnt[a + ">" + b] || 0;
+        mx += `<rect x="${x0 + j * 40}" y="${my + 22 + i * 27}" width="36" height="23" rx="3" fill="${i === j ? "#f4f4f4" : `rgba(47,91,234,${0.08 + n * 0.25})`}"/>${i === j ? "" : `<text x="${x0 + 18 + j * 40}" y="${my + 38 + i * 27}" text-anchor="middle" font-size="11">${n}</text>`}`;
+      });
+    });
+    $("#vizcard").innerHTML = `<svg width="${W + 10}" height="900" style="overflow:visible">${bars}${strips}${mx}</svg>`;
+  }
+
+  // ── 렌즈별 패널 ──
+  const W7 = ["일", "월", "화", "수", "목", "금", "토"];
+  let spark = [];
+  function renderPanel() {
+    const ev = store.ev;
+    const p = $("#panel");
+    if (lens === "input") {
+      const gen = KB.generateSlots(skel);
+      const lens3 = gen.filter((s) => s.len === 3).length;
+      p.innerHTML = `<h2>① 입력 — 시즌 골격</h2>
+        <div class="row"><label>개막</label><input type="date" id="fOpen" value="${skel.opening}"></div>
+        <div class="row"><label>1차 종료</label><input type="date" id="fEnd" value="${skel.end}"></div>
+        <div class="row"><label>휴식 요일</label><div class="daychips">${W7.map((w, k) => `<button data-rd="${k}" aria-pressed="${skel.restDays.includes(k)}">${w}</button>`).join("")}</div></div>
+        <div class="diffbox"><b>슬롯 ${gen.length}개</b> (엔진 입력 ${engineSlots.length}) · 3연전 ${lens3} · 그 외 ${gen.length - lens3}${previewSlots && previewSlots.length !== K.slots.length ? "<br>⚠ 골격이 바뀌었습니다. 점선 띠가 영향받는 슬롯이며, 재실행해야 반영됩니다." : ""}</div>
+        <p class="note">달력 벽의 날짜 칸을 누르면 그날을 ‘경기 없는 날’로 넣거나 뺍니다.</p>
+        <h4>블랙아웃</h4>${skel.blackouts.map((b, k) => `<div class="kv"><span>${esc(b.name)}</span><span class="num">${b.from.slice(5)}~${b.to.slice(5)} <button class="btn sm ghost" data-rmb="${k}">✕</button></span></div>`).join("")}
+        <h4>공휴일</h4><div class="kv"><span>${skel.holidays.map((h) => h.slice(5)).join(" · ")}</span><span class="faint">★ 가중치 3</span></div>
+        <h4>이벤트 · 고정 경기</h4>
+        ${K.events.map((e) => `<div class="kv"><span>${esc(e.name || e.type)} <span class="tag">${e.mode}</span></span><span class="num">${e.date.slice(5)}</span></div>`).join("")}
+        <h4>솔버</h4><div class="row"><label>시간 제한</label><select><option>30초</option><option>2분</option><option>10분</option></select></div>
+        <div class="row"><label>H0-e 모드</label><select><option>구장 기준</option><option>엔진 호환</option></select></div>
+        <p class="note">구단·구장과 거리는 왼쪽 ‘구단·구장’ 지역에서 고칩니다.</p>`;
+      $("#fOpen").onchange = (e) => { skel.opening = e.target.value; skelChanged(); };
+      $("#fEnd").onchange = (e) => { skel.end = e.target.value; skelChanged(); };
+      $$("[data-rd]", p).forEach((b) => b.onclick = () => { const k = +b.dataset.rd; skel.restDays = skel.restDays.includes(k) ? skel.restDays.filter((x) => x !== k) : [...skel.restDays, k]; skelChanged(); });
+      $$("[data-rmb]", p).forEach((b) => b.onclick = () => { skel.blackouts.splice(+b.dataset.rmb, 1); skelChanged(); });
+    } else if (lens === "result") {
+      const per = ev.per;
+      p.innerHTML = `<h2>② 결과 — 점수와 위반</h2>
+        <svg class="spark" viewBox="0 0 260 40" preserveAspectRatio="none">${sparkPath()}</svg>
+        <div class="kv"><span>Hard 합</span><b class="num">${ev.hardSum}</b></div>
+        ${["S0 미배정", "S1 이동 횟수 분산", "S2 이동 거리 분산", "S3 휴일 가중치 분산", "S4 리그 총 이동거리"].map((n, k) => `<div class="kv"><span>${n}</span><span class="num">${fmt(-ev.soft["S" + k])}</span></div>`).join("")}
+        <h4>Hard 위반 ${ev.hard.length}건 — 누르면 그 자리로 날아갑니다</h4>
+        ${ev.hard.length ? ev.hard.map((v, k) => `<div class="vitem" data-v="${k}"><span class="rule">${v.rule}</span><span>${esc(v.detail)}<br><span class="faint">${v.name}</span></span></div>`).join("") : '<p class="note">위반이 없습니다.</p>'}
+        <p class="note">첫 화면의 위반 3건은 결과 확인 단계를 보이려고 엔진 해에 얹은 가상 변형입니다.</p>
+        <h4>구단 요약</h4>${T.map((t) => `<div class="kv"><span>${chip(t)}</span><span class="num">${fmt(per[t].km)}km · 이동 ${per[t].moves} · 휴일 ${per[t].hol}</span></div>`).join("")}`;
+      $$("[data-v]", p).forEach((el) => el.onclick = () => flyToSlot(ev.hard[+el.dataset.v].slot));
+    } else if (lens === "fix") {
+      const pins = store.plan.filter((s) => s.pin);
+      p.innerHTML = `<h2>③ 보정 — 띠를 끌어 슬롯 교환</h2>
+        <p class="note">띠를 다른 띠 위로 끌면 놓기 전에 Hard·이동거리 Δ가 보입니다. 확대하면 경기마다 ⇄ 뒤집기 · 📌 고정 · ☂ 우천 취소 버튼이 나타납니다. 주황 테두리는 엔진 해와 달라진 슬롯입니다.</p>
+        <div class="row"><button class="btn" id="bUndo">↶ 취소</button><button class="btn" id="bRedo">↷ 다시</button><button class="btn" id="bReset">가상 변형으로 되돌리기</button></div>
+        <h4>고정 ${pins.length}개</h4><div class="note">${pins.slice(0, 8).map((s) => `${s.away}@${s.home} ${K.slots[s.slot].label}`).join(" · ")}${pins.length > 8 ? " …" : ""}</div>
+        <h4>우천 취소 ${cancelled.length}건</h4>
+        ${cancelled.map((g, k) => `<div class="kv"><span>${chip(g.away)}@${chip(g.home)}</span><span class="num">${g.from} <button class="btn sm ghost" data-unrain="${k}">✕</button></span></div>`).join("") || '<p class="note">달력 띠의 ☂ 버튼이나 경기 칩 메뉴로 기록합니다.</p>'}
+        <div class="row" style="margin-top:8px"><label><input type="checkbox" id="oMon" ${opts.monday ? "checked" : ""}> 월요일</label><label><input type="checkbox" id="oDH" ${opts.dh ? "checked" : ""}> DH</label></div>
+        <button class="btn primary" id="bRebook" ${cancelled.length ? "" : "disabled"}>9~10월 재편성 (목업)</button>
+        ${rebooked ? `<div class="diffbox">배치 ${rebooked.placed.length} · 미배치 ${rebooked.unplaced.length} · 마지막 경기 ${rebooked.last.slice(5) || "-"}<br><button class="btn sm" data-jump-month="9">9월 카드로 이동</button></div>` : ""}`;
+      $("#bUndo").onclick = () => store.undo();
+      $("#bRedo").onclick = () => store.redo();
+      $("#bReset").onclick = () => store.reset();
+      $$("[data-unrain]", p).forEach((b) => b.onclick = () => { cancelled.splice(+b.dataset.unrain, 1); rebooked = null; renderAll(); });
+      $("#oMon").onchange = (e) => { opts.monday = e.target.checked; };
+      $("#oDH").onchange = (e) => { opts.dh = e.target.checked; };
+      $("#bRebook").onclick = () => { rebooked = KB.rebook(cancelled, opts); renderAll(); flyTo({ x: mOrigin(9)[0], y: mOrigin(9)[1], w: MW * 2 + GAP, h: MH }); };
+      const jm = $("[data-jump-month]", p);
+      if (jm) jm.onclick = () => flyTo({ x: mOrigin(9)[0], y: mOrigin(9)[1], w: MW * 2 + GAP, h: MH });
+    } else {
+      p.innerHTML = `<h2>④ 분석 — 구단 렌즈</h2>
+        <p class="note">구단을 고르면 달력 벽 전체가 그 구단의 홈(파랑)/원정(베이지) 패턴으로 바뀌고, 지도에 시즌 동선이 그려집니다. 구단을 고르지 않으면 띠 색은 그 슬롯에 생긴 리그 이동거리입니다.</p>
+        <div class="tsel">${T.map((t) => `<button data-t="${t}" aria-pressed="${team === t}">${chip(t)}</button>`).join("")}</div>
+        ${team ? `<h4>${esc(team)}</h4><div class="kv"><span>총 이동거리</span><b class="num">${fmt(ev.per[team].km)}km (${sign(ev.per[team].km - ev.avg.km)})</b></div><div class="kv"><span>이동 횟수</span><span class="num">${ev.per[team].moves}</span></div><div class="kv"><span>주말 홈 <span class="tag">참고</span></span><span class="num">${ev.per[team].wkHome}</span></div><div class="kv"><span>최장 연속 원정 <span class="tag">참고</span></span><span class="num">${ev.per[team].maxA}</span></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm" data-jump="teams">지도 동선 보기</button><button class="btn sm" data-jump="viz">분석 보드</button></div>` : ""}`;
+      $$("[data-t]", p).forEach((b) => b.onclick = () => { team = team === b.dataset.t ? null : b.dataset.t; renderAll(); });
+      $$("[data-jump]", p).forEach((b) => b.onclick = () => flyTo(REGIONS[b.dataset.jump]));
+    }
+  }
+  function sparkPath() {
+    if (spark.length < 2) return `<text x="4" y="24" font-size="11" fill="#999">솔버를 실행하면 점수 추이가 그려집니다</text>`;
+    const mx = Math.max(...spark.map((s) => s.h)), mk = Math.max(...spark.map((s) => s.k)), mn = Math.min(...spark.map((s) => s.k));
+    const pts = spark.map((s, k) => `${(k / (spark.length - 1)) * 260},${4 + (1 - (s.k - mn) / Math.max(1, mk - mn)) * 32}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="#2f5bea" stroke-width="2"/><text x="258" y="12" font-size="10" text-anchor="end" fill="#555">Hard ${spark[spark.length - 1].h} (시작 ${mx})</text>`;
+  }
+  function skelChanged() {
+    const gen = KB.generateSlots(skel);
+    previewSlots = gen;
+    paintDays(); renderBands(); renderPanel();
+  }
+
+  function renderTop() {
+    const ev = store.ev;
+    $("#badge").innerHTML = KB.badge(ev);
+    $("#score").textContent = `리그 ${fmt(ev.soft.S4)}km`;
+  }
+  function renderAll() {
+    world.className = world.className.replace(/lens-\w+/, "lens-" + lens);
+    renderTop(); renderBands(); renderTeams(); renderViz(); renderPanel();
+  }
+  store.on(() => { renderTop(); renderBands(); renderViz(); renderPanel(); if (team) renderTeams(); });
+
+  // ── 카메라: 휠 확대, 끌어 이동, 날아가기, 미니맵 ──
+  const cam = { x: 0, y: 0, s: 1 };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function applyCam() {
+    world.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${cam.s})`;
+    const lod = cam.s < 0.9 ? 0 : cam.s < 1.9 ? 1 : 2;
+    world.className = world.className.replace(/lod-\d/, "lod-" + lod);
+    $("#zoomv").textContent = `${cam.s.toFixed(2)}× · ${["개요", "대진", "이동 지도"][lod]}`;
+    const cx = (innerWidth / 2 - cam.x) / cam.s, cy = (innerHeight / 2 - cam.y) / cam.s;
+    const reg = cx < WALL_X - 40 ? "① 구단·구장" : cx > VIZ_X - 40 ? "④ 분석 보드" : "② 시즌 달력";
+    let where = reg;
+    if (reg === "② 시즌 달력") {
+      const k = clamp(Math.floor((cx - WALL_X) / (MW + GAP)), 0, 3) + (cy > 60 + MH ? 4 : 0);
+      where += ` › <b>${months[k]}월</b>`;
+    }
+    $("#crumb").innerHTML = `${where} · 배율 ${cam.s.toFixed(2)}× (${["개요", "대진", "이동 지도"][lod]} 밀도)`;
+    drawMini();
+  }
+  function zoomAt(px, py, k) {
+    const ns = clamp(cam.s * k, 0.22, 4.5);
+    const wx = (px - cam.x) / cam.s, wy = (py - cam.y) / cam.s;
+    cam.x = px - wx * ns; cam.y = py - wy * ns; cam.s = ns;
+    applyCam();
+  }
+  let anim = 0;
+  function flyTo(r, pad = 40) {
+    const s = clamp(Math.min((innerWidth - pad * 2) / r.w, (innerHeight - 140 - pad) / r.h), 0.22, 4.5);
+    const tx = innerWidth / 2 - (r.x + r.w / 2) * s, ty = 70 + (innerHeight - 70) / 2 - (r.y + r.h / 2) * s;
+    const from = { ...cam }, t0 = performance.now(), D = 520;
+    cancelAnimationFrame(anim);
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / D), e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      // 배율은 로그 공간에서 보간해야 날아가는 느낌이 자연스럽다.
+      cam.s = Math.exp(Math.log(from.s) + (Math.log(s) - Math.log(from.s)) * e);
+      cam.x = from.x + (tx - from.x) * e; cam.y = from.y + (ty - from.y) * e;
+      applyCam();
+      if (t < 1) anim = requestAnimationFrame(step);
+    };
+    anim = requestAnimationFrame(step);
+  }
+  function flyToSlot(i) {
+    const [x, y] = cellXY(slotDays[i][0]);
+    const left = x - ((KB.day(slotDays[i][0]).getDay() + 6) % 7) * CW;
+    flyTo({ x: left - 10, y: y - CH, w: 7 * CW + 20, h: CH * 3 }, 120);
+  }
+  vp.addEventListener("wheel", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016)); }, { passive: false });
+
+  // 끌기: 보정 렌즈에서 띠를 잡으면 슬롯 교환, 그 외에는 화면 이동
+  let drag = null;
+  vp.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.closest("button,input,select")) return;
+    $("#pop").classList.remove("show");
+    const band = e.target.closest(".band[data-slot]");
+    drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false, band: lens === "fix" && band && !band.classList.contains("cont") ? band : null, target: e.target };
+    try { vp.setPointerCapture(e.pointerId); } catch { /* 합성 이벤트에는 포인터 id가 없다 */ }
+  });
+  // 키보드(Enter/Space)로 누른 캔버스 안 버튼도 같은 동작을 하게 한다.
+  world.addEventListener("click", (e) => {
+    const act = e.detail === 0 && e.target.closest("[data-act]");
+    if (act) doAct(act.dataset.act, +act.dataset.sid);
+  });
+  vp.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    if (drag.band) {
+      drag.band.classList.add("dragging");
+      $$(".band.drop-ok,.band.drop-bad").forEach((b) => b.classList.remove("drop-ok", "drop-bad"));
+      const over = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList && el.classList.contains("band") && el !== drag.band);
+      const tip = $("#dragtip");
+      if (over) {
+        const a = +drag.band.dataset.slot, b = +over.dataset.slot;
+        const pv = KB.preview({ op: "swap", a, b });
+        over.classList.add(pv.dHard > 0 ? "drop-bad" : "drop-ok");
+        drag.drop = b;
+        tip.innerHTML = `${K.slots[a].label} ↔ ${K.slots[b].label}<br>Hard ${sign(pv.dHard)} · 리그 ${sign(pv.dKm, "km")}`;
+      } else { drag.drop = null; tip.textContent = "다른 슬롯 띠 위에 놓으세요"; }
+      tip.style.display = "block"; tip.style.left = e.clientX + 14 + "px"; tip.style.top = e.clientY + 14 + "px";
+    } else {
+      vp.classList.add("panning");
+      cam.x = drag.cx + dx; cam.y = drag.cy + dy; applyCam();
+    }
+  });
+  vp.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    vp.classList.remove("panning");
+    $("#dragtip").style.display = "none";
+    $$(".band.dragging,.band.drop-ok,.band.drop-bad").forEach((b) => b.classList.remove("dragging", "drop-ok", "drop-bad"));
+    if (d.band && d.moved && d.drop != null && d.drop !== +d.band.dataset.slot) {
+      const a = +d.band.dataset.slot, b = d.drop;
+      if (store.apply({ op: "swap", a, b })) KB.toast(`${K.slots[a].label} ↔ ${K.slots[b].label} 교환 · Hard ${store.ev.hardSum}`);
+      return;
+    }
+    if (!d.moved) click(d.target, e);
+  });
+  vp.addEventListener("dblclick", (e) => {
+    const band = e.target.closest(".band[data-slot]");
+    if (band) flyToSlot(+band.dataset.slot); else zoomAt(e.clientX, e.clientY, 1.8);
+  });
+  function click(t, e) {
+    const act = t.closest("[data-act]");
+    if (act) return doAct(act.dataset.act, +act.dataset.sid);
+    const cell = t.closest(".dcell");
+    if (cell && lens === "input") {
+      const s = cell.dataset.day;
+      const k = skel.blackouts.findIndex((b) => b.from === s && b.to === s);
+      if (k >= 0) skel.blackouts.splice(k, 1); else skel.blackouts.push({ name: "경기 없는 날", from: s, to: s });
+      skelChanged();
+      return;
+    }
+    const pin = t.closest(".tpin");
+    if (pin) { team = team === pin.dataset.team ? null : pin.dataset.team; renderAll(); return; }
+    const g = t.closest("[data-sid]");
+    if (g) return openPop(+g.dataset.sid, e.clientX, e.clientY);
+  }
+  function openPop(id, x, y) {
+    const s = store.get(id), pop = $("#pop");
+    pop.innerHTML = `<div class="t">${esc(s.away)}@${esc(s.home)} · ${K.slots[s.slot].label}</div>
+      <button data-act="flip" data-sid="${id}">⇄ 홈·원정 뒤집기 <span class="faint">Hard ${sign(KB.preview({ op: "flip", id }).dHard)}</span></button>
+      <button data-act="pin" data-sid="${id}">📌 ${s.pin ? "고정 해제" : "고정"}</button>
+      <button data-act="rain" data-sid="${id}">☂ 우천 취소 기록 (1경기)</button>
+      <button data-act="team" data-sid="${id}">◎ ${esc(s.home)} 렌즈로 보기</button>`;
+    pop.style.left = Math.min(x, innerWidth - 190) + "px"; pop.style.top = Math.min(y + 8, innerHeight - 170) + "px";
+    pop.classList.add("show");
+    $$("[data-act]", pop).forEach((b) => b.onclick = () => { doAct(b.dataset.act, +b.dataset.sid); pop.classList.remove("show"); });
+  }
+  function doAct(a, id) {
+    const s = store.get(id);
+    if (a === "flip") { if (store.apply({ op: "flip", id })) KB.toast(`${s.home} 홈으로 뒤집음 · Hard ${store.ev.hardSum}`); }
+    else if (a === "pin") { store.apply({ op: "pin", id }); KB.toast(s.pin ? "고정했습니다" : "고정을 풀었습니다"); }
+    else if (a === "rain") {
+      cancelled.push({ sid: id, home: s.home, away: s.away, from: slotDays[s.slot][slotDays[s.slot].length - 1].slice(5) });
+      rebooked = null;
+      setLens("fix");
+      KB.toast(`${s.away}@${s.home} 1경기 우천 취소 → 재편성 대기열`);
+    } else if (a === "team") { team = s.home; setLens("viz"); }
+  }
+  $$("[data-jump]").forEach((b) => b.onclick = () => flyTo(REGIONS[b.dataset.jump]));
+  $("#zin").onclick = () => zoomAt(innerWidth / 2, innerHeight / 2, 1.4);
+  $("#zout").onclick = () => zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.4);
+  function drawMini() {
+    const m = $("#mini"), s = 234 / WORLD_W;
+    const vx = -cam.x / cam.s, vy = -cam.y / cam.s, vw = innerWidth / cam.s, vh = innerHeight / cam.s;
+    m.setAttribute("viewBox", `0 0 ${WORLD_W} ${WORLD_H}`);
+    m.innerHTML = Object.entries(REGIONS).map(([k, r]) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="20" fill="${k === "wall" ? "#dfe5f6" : "#e7e2d8"}"/>`).join("")
+      + store.ev.hard.map((v) => { const [x, y] = cellXY(slotDays[v.slot][0]); return `<circle cx="${x}" cy="${y + 30}" r="30" fill="#c9302c"/>`; }).join("")
+      + `<rect class="vrect" x="${vx}" y="${vy}" width="${vw}" height="${vh}"/>`;
+    void s;
+  }
+  $("#mini").addEventListener("click", (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const wx = ((e.clientX - r.left) / r.width) * WORLD_W, wy = ((e.clientY - r.top) / r.height) * WORLD_H;
+    cam.x = innerWidth / 2 - wx * cam.s; cam.y = innerHeight / 2 - wy * cam.s; applyCam();
+  });
+  // 거리 행렬 편집은 대칭으로 반영하고 바로 재채점한다.
+  world.addEventListener("change", (e) => {
+    const inp = e.target.closest("input[data-i]");
+    if (!inp) return;
+    const i = +inp.dataset.i, j = +inp.dataset.j, v = Math.max(0, +inp.value || 0);
+    K.dist[i][j] = K.dist[j][i] = v;
+    store.emit({ op: "dist" });
+    renderTeams();
+    KB.toast(`${T[i]}–${T[j]} ${v}km로 수정 · 리그 ${fmt(store.ev.soft.S4)}km`);
+  });
+
+  function setLens(l) {
+    lens = l;
+    $$("#lenses button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lens === l)));
+    if (l !== "input") previewSlots = null;
+    renderAll();
+  }
+  $$("#lenses button").forEach((b) => b.onclick = () => setLens(b.dataset.lens));
+
+  let job = null;
+  $("#run").onclick = () => {
+    if (job) return;
+    spark = [{ h: store.ev.hardSum, k: store.ev.soft.S4 }];
+    $("#run").textContent = "⏳ 탐색 중…";
+    if (lens !== "result") setLens("result");
+    job = KB.solve({
+      onTick: (e) => { spark.push({ h: e.hardSum, k: e.soft.S4 }); },
+      onDone: (e, n) => { job = null; $("#run").textContent = "▶ 솔버 실행"; renderPanel(); KB.toast(`탐색 종료 · 개선 ${n}회 · Hard ${e.hardSum}`); },
+    });
+  };
+  $("#undo").onclick = () => store.undo();
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); }
+    if (e.key === "Escape") $("#pop").classList.remove("show");
+  });
+
+  buildStatic(); paintDays(); renderAll();
+  // 첫 화면: 달력 벽 전체가 보이도록 맞춘다.
+  const r = REGIONS.wall, s0 = Math.min((innerWidth - 330) / r.w, (innerHeight - 110) / r.h);
+  cam.s = s0; cam.x = 310 + (innerWidth - 330 - r.w * s0) / 2 - r.x * s0; cam.y = 76 - r.y * s0;
+  applyCam();
+  KB.hud("01 시즌 아틀라스");
+  window.ATLAS = { flyToSlot, setLens, cam };
+})();
+</script>
+</body>
+</html>

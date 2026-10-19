@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C · 가로 진행 컬럼</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .app { display: grid; grid-template-rows: 42px minmax(0, 1fr); }
+  .top { display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .top h1 { font-size: 14px; }
+  .lane { display: flex; gap: 6px; padding: 10px; min-height: 0; min-width: 0; }
+
+  .col { min-height: 0; min-width: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    transition: flex-basis .25s ease, flex-grow .25s ease; position: relative; }
+  .col.strip { flex: 0 0 52px; cursor: pointer; background: #fbfbf9; }
+  .col.strip:hover { background: var(--accent-soft); border-color: #b6c6f1; }
+  .col.peek { flex: 0 0 300px; background: #fbfbf9; }
+  .col.focus { flex: 1 1 0; border: 2px solid var(--ink); }
+  .col.focus.bad-col { border-color: var(--bad); }
+
+  .c-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); flex: none; }
+  .c-head .num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--sunk); flex: none; }
+  .c-head .num.ok { background: var(--ok); color: #fff; }
+  .c-head .num.bad { background: var(--bad); color: #fff; }
+  .c-head h2 { font-size: 14px; white-space: nowrap; }
+  .c-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+  .c-foot { flex: none; padding: 8px 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+
+  /* 접힌 컬럼 */
+  .strip-in { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0; height: 100%; }
+  .strip-in .num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--sunk); }
+  .strip-in .num.ok { background: var(--ok); color: #fff; }
+  .strip-in .num.bad { background: var(--bad); color: #fff; }
+  .strip-in .vt { writing-mode: vertical-rl; font-weight: 700; font-size: 13px; letter-spacing: 1px; }
+  .strip-in .vs { writing-mode: vertical-rl; font-size: 11px; color: var(--ink-2); }
+  .strip-in .vs.bad { color: var(--bad); font-weight: 700; }
+  .strip-in .grow { flex: 1; }
+  .col.peek .c-head { background: var(--sunk); }
+  .peek-tag { font-size: 10px; color: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 4px; }
+  .arrow { position: absolute; right: -10px; top: 50%; z-index: 2; color: var(--ink-3); font-size: 12px; }
+
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 12px; }
+  .kv b { font-variant-numeric: tabular-nums; text-align: right; }
+  .slotrow { display: grid; grid-template-columns: 74px 46px minmax(0, 1fr); gap: 6px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .slotrow.viol { background: var(--bad-soft); outline: 0; }
+  .slotrow .mus { display: flex; flex-wrap: wrap; gap: 3px; }
+  .mu { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 11px; background: #fff; white-space: nowrap; }
+  .mu.dim { opacity: .3; }
+  .mu.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .bars { display: grid; gap: 6px; position: relative; }
+  .brow { display: grid; grid-template-columns: 48px minmax(0, 1fr) 54px; gap: 8px; align-items: center; font-size: 12px; }
+  .btrack { position: relative; height: 16px; }
+  .btrack i { position: absolute; left: 0; top: 2px; bottom: 2px; background: var(--ink-2); border-radius: 2px; }
+  .btrack i.bad { background: var(--bad); }
+  .band { position: absolute; top: -4px; bottom: -4px; background: rgba(29,122,69,.12); border-left: 1px dashed var(--ok); border-right: 1px dashed var(--ok); }
+  .avgline { position: absolute; top: -6px; bottom: -6px; border-left: 2px solid var(--ok); }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 44px; }
+  .spark i { flex: 1; background: var(--accent); opacity: .6; border-radius: 1px; }
+  .mapbox { position: relative; height: 220px; border: 1px solid var(--line); border-radius: 6px; background: #f3f6f9; }
+  .pin { position: absolute; transform: translate(-50%, -50%); font-size: 11px; white-space: nowrap; }
+  .pin::before { content: "●"; color: var(--accent); margin-right: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>KBO 일정 편성 · 2025</h1>
+    <span class="faint small">단계 컬럼을 클릭하거나 <span class="kbd">←</span> <span class="kbd">→</span> 로 이동</span>
+    <span class="grow"></span>
+    <span id="badge"></span>
+  </header>
+  <main class="lane" id="lane" data-note="1"></main>
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { K, $, $$, esc, state, team, hardBadge, haStrip, avg, seriesInSlot, metricsTable, toast } = W;
+const overKm = () => K.metrics.filter((m) => Math.abs(m.km - avg("km")) > 300).length;
+let focusIdx = 4, filterTeam = null, running = false, trend = [40, 34, 30, 22, 19, 14, 12, 9, 8, 6, 5, 3];
+
+const stages = [
+  { k: "teams", name: "구단·구장", status: () => ["ok", "10개 구단"], peekNote: "구단·구장 요약" },
+  { k: "skel", name: "일정 골격", status: () => ["ok", "45 슬롯"] },
+  { k: "events", name: "이벤트", status: () => ["ok", "3개"] },
+  { k: "review", name: "검토·실행", status: () => ["ok", "점검 통과"] },
+  { k: "result", name: "결과 확인", status: () => state.violations.length ? ["bad", `Hard ${state.violations.length}`] : ["ok", "Feasible"] },
+  { k: "analysis", name: "지표·분석", status: () => ["", `S2 ▲${overKm()}`] },
+  { k: "ops", name: "시즌 운영", status: () => ["", "취소 38"] },
+];
+
+/* 컬럼마다 '집중(full)' 내용과 '곁보기(peek)' 내용을 따로 둔다. peek은 다음 단계를 하면서 참고할 정보만 남긴 요약이다. */
+const views = {
+  teams: {
+    full: () => `<div class="mapbox">${K.teams.filter((t, i, a) => a.findIndex((x) => x.stadium === t.stadium) === i).map((t) => `<span class="pin" style="left:${((t.lng - 126.4) / 2.9) * 100}%;top:${((38 - t.lat) / 3.1) * 100}%">${t.stadium.includes("잠실") ? "두산·LG" : t.name}</span>`).join("")}</div>
+      <table class="grid" style="margin-top:10px"><thead><tr><th>구단</th><th>구장</th><th>위도</th><th>경도</th><th></th></tr></thead><tbody>${K.teams.map((t) => `<tr><td>${team(t.name)}</td><td><input class="input" value="${esc(t.stadium)}" style="width:150px"></td><td class="mono small">${t.lat}</td><td class="mono small">${t.lng}</td><td>${t.stadium.includes("잠실") ? '<span class="tag accent">공유</span>' : ""}</td></tr>`).join("")}</tbody></table>`,
+    peek: () => `<div class="kv"><span>구단</span><b>10</b><span>공유 구장</span><b>잠실(두산·LG)</b><span>거리 행렬</span><b>100/100</b><span>추정 거리</span><b>0</b></div>
+      <h4 style="margin:12px 0 4px">구단 목록</h4>${K.teams.map((t) => `<div class="small">${team(t.name)} <span class="faint">${t.stadium}</span></div>`).join("")}`,
+  },
+  skel: {
+    full: () => `<div class="two" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="field"><span>개막일</span><input class="input" type="date" value="2025-03-22"></label><label class="field"><span>1차 종료일</span><input class="input" type="date" value="2025-08-31"></label></div>
+      <div class="field" style="margin-top:8px"><span>휴식 요일</span><div class="row">${"월화수목금토일".split("").map((d) => `<label class="check"><input type="checkbox" ${d === "월" ? "checked" : ""}>${d}</label>`).join("")}</div></div>
+      <div class="field" style="margin-top:8px"><span>경기 없는 기간</span>${K.blackouts.map((b) => `<div class="row" style="margin-bottom:4px"><input class="input" value="${b.name}"><input class="input" type="date" value="${b.from}" style="width:140px"><input class="input" type="date" value="${b.to}" style="width:140px"></div>`).join("")}</div>
+      <h4 style="margin:12px 0 6px">생성된 슬롯 45</h4><div class="row wrap">${K.slots.map((s) => `<span class="mu">${s.label} ${s.len}</span>`).join("")}</div>`,
+    peek: () => `<div class="kv"><span>기간</span><b>3/22 ~ 8/31</b><span>휴식</span><b>월</b><span>슬롯</span><b>45</b><span>2·3·4연전</span><b>1 · 43 · 1</b></div>
+      <h4 style="margin:12px 0 4px">이벤트를 걸 슬롯 고르기</h4>${K.slots.slice(0, 22).map((s) => `<div class="small row"><span class="mono" style="width:70px">${s.label}</span><span class="faint">${s.len}연전 · 휴일 ${s.hol}</span></div>`).join("")}<div class="faint small">… 23개 더</div>`,
+  },
+  events: {
+    full: () => K.events.map((e) => `<div class="mu" style="display:block;padding:8px 10px;margin-bottom:8px"><div class="row"><b>★ ${e.name || e.type}</b><span class="tag">${e.date.slice(5)}</span><span class="tag ${e.mode === "대진 지정" ? "accent" : "warn"}">${e.mode}</span><span class="grow"></span><span class="tag ok">✓ 충돌 없음</span></div><div class="row wrap" style="margin-top:6px">${e.items.map((x) => `<span class="mu">${x}</span>`).join("")}<button class="btn sm">+</button></div></div>`).join("") + `<button class="btn">+ 이벤트 추가</button>`,
+    peek: () => K.events.map((e) => `<div class="small" style="margin-bottom:6px"><b>★ ${e.name || e.type}</b> <span class="faint">${e.date.slice(5)} · ${e.mode}</span><br><span class="muted">${e.items.join(", ")}</span></div>`).join(""),
+  },
+  review: {
+    full: () => `<div class="kv" style="max-width:420px"><span>구단 / 공유 구장</span><b>10 / 1</b><span>시즌 기간</span><b>3/22 ~ 8/31</b><span>슬롯 (2·3·4연전)</span><b>45 (1·43·1)</b><span>시리즈 / 경기</span><b>225 / 675</b><span>이벤트</span><b>3</b></div>
+      <h4 style="margin:14px 0 4px">사전 점검</h4>${["연전별 시리즈 수급", "이벤트 모순", "거리 행렬 누락", "구단 수 짝수"].map((x) => `<div class="pf"><span class="s ok">✓</span>${x}</div>`).join("")}
+      <h4 style="margin:14px 0 4px">엔진 옵션</h4><div class="row"><label class="field"><span>최대 실행(초)</span><input class="input" value="60" style="width:80px"></label><label class="field"><span>초기해</span><select class="input"><option>현재 배정 유지</option><option>처음부터</option></select></label></div>`,
+    peek: () => `<div class="kv"><span>엔진</span><b>Mock · 60초</b><span>경과</span><b>${running ? "실행 중" : "41.2초"}</b><span>개선 횟수</span><b>128</b><span>최종 점수</span><b class="${state.violations.length ? "over" : ""}">${state.violations.length}hard/−4,218soft</b></div>
+      <h4 style="margin:12px 0 4px">Hard 점수 추이</h4><div class="spark">${trend.map((v) => `<i style="height:${(v / 40) * 100}%"></i>`).join("")}</div>
+      <button class="btn sm" style="margin-top:10px" data-goto="3">옵션 바꿔 다시 실행</button>`,
+    foot: () => `<button class="btn primary" id="run">▶ 엔진 실행</button><button class="btn">일시정지</button><span class="faint small">실행하면 결과 컬럼이 자동으로 펼쳐집니다</span>`,
+  },
+  result: {
+    full: () => `<div class="row wrap" style="margin-bottom:8px"><span class="small muted">구단 강조</span>${K.teams.map((t) => `<button class="btn sm" data-ft="${t.name}" style="${filterTeam === t.name ? "background:var(--accent-soft);border-color:var(--accent)" : ""}">${t.name}</button>`).join("")}</div>
+      ${filterTeam ? `<div class="small" style="margin-bottom:6px">${team(filterTeam)} 흐름 ${haStrip(filterTeam)}</div>` : ""}
+      ${K.slots.map((s) => { const vs = W.violationsAtSlot(s.i); return `<div class="slotrow${vs.length ? " viol" : ""}"><span class="mono">${vs.length ? '<span class="viol-ico">⚠</span> ' : ""}${s.label}</span><span class="faint small">${s.len}연전</span><div class="mus">${seriesInSlot(s.i).map((x) => `<span class="mu${filterTeam ? (x.home === filterTeam || x.away === filterTeam ? " hl" : " dim") : ""}">${x.away}@${x.home}</span>`).join("")}${vs.map((v) => `<span class="tag bad">${v.rule} ${v.team}</span>`).join("")}</div></div>`; }).join("")}`,
+    peek: () => `${state.violations.length ? state.violations.map((v) => `<div class="small" style="margin-bottom:6px"><span class="viol-ico">⚠ ${v.rule}</span> ${v.name}<br><span class="faint">${K.slots[v.slot].label} · ${v.detail}</span></div>`).join("") : '<span class="tag ok">✓ Hard 위반 없음</span>'}
+      <h4 style="margin:12px 0 4px">고정 5 · 스냅샷 2</h4><div class="small muted">개막전 5대진 📌</div>`,
+    foot: () => `${state.violations.length ? `<button class="btn" id="fix">위반 1건 자동 수정 제안 적용</button>` : ""}<button class="btn">스냅샷 저장</button><button class="btn primary">핀 유지 재최적화</button>`,
+  },
+  analysis: {
+    full: () => {
+      const a = avg("km"), max = Math.max(...K.metrics.map((m) => m.km)) * 1.05, pct = (v) => (v / max) * 100;
+      return `<h3 style="margin-bottom:10px">구단별 이동거리 <span class="faint small" style="font-weight:400">녹색 띠 = 리그 평균 ± 300km</span></h3>
+        <div class="bars"><div style="position:absolute;left:56px;right:62px;top:0;bottom:0;pointer-events:none"><div class="band" style="left:${pct(a - 300)}%;width:${pct(600)}%"></div><div class="avgline" style="left:${pct(a)}%"></div></div>
+        ${K.metrics.slice().sort((x, y) => y.km - x.km).map((m) => `<div class="brow">${team(m.team)}<div class="btrack"><i class="${Math.abs(m.km - a) > 300 ? "bad" : ""}" style="width:${pct(m.km)}%"></i></div><span class="mono small ${Math.abs(m.km - a) > 300 ? "over" : ""}">${m.km.toLocaleString()}</span></div>`).join("")}</div>
+        <h3 style="margin:16px 0 6px">구단별 지표</h3><div id="mt"></div>`;
+    },
+    peek: () => `<div class="kv"><span>S1 이동 횟수 분산</span><b>200</b><span>S2 허용오차 초과 구단</span><b class="over">${overKm()}</b><span>S3 휴일 분산</span><b>1</b><span>S4 총 이동거리</span><b>72,951km</b></div>`,
+  },
+  ops: {
+    full: () => `<div class="row" style="align-items:flex-start;gap:16px"><div style="flex:1"><h4 style="margin-bottom:6px">취소 기록 — 5/20(화)~5/22(목)</h4>
+      ${seriesInSlot(17).map((x, i) => `<div class="row" style="margin-bottom:4px"><span style="width:96px" class="small">${x.away}@${x.home}</span><select class="input" style="width:80px"><option>완료</option><option ${i === 1 ? "selected" : ""}>취소</option></select><select class="input" style="width:80px"><option>우천</option><option>폭염</option></select></div>`).join("")}</div>
+      <div style="flex:1"><h4 style="margin-bottom:6px">재편성 옵션</h4><label class="check"><input type="checkbox"> 월요일 허용</label><br><label class="check"><input type="checkbox" checked> DH 허용 (최대 3)</label>
+      <h4 style="margin:12px 0 4px">수용 가능 83 / 83</h4><div class="bar"><i style="width:100%;background:var(--ok)"></i></div></div></div>`,
+    peek: () => `<div class="kv"><span>완료</span><b>582</b><span>취소</span><b>38</b><span>잔여</span><b>45</b></div>`,
+    foot: () => `<button class="btn primary">재편성 실행 → 결과 확인 컬럼에 9~10월 추가</button>`,
+  },
+};
+
+function render() {
+  $("#badge").innerHTML = hardBadge();
+  const lane = $("#lane");
+  lane.innerHTML = stages.map((st, i) => {
+    const [s, label] = st.status();
+    const mode = i === focusIdx ? "focus" : i === focusIdx - 1 ? "peek" : "strip";
+    const done = i < focusIdx && s !== "bad";
+    if (mode === "strip") {
+      return `<section class="col strip" data-i="${i}" title="${st.name} — ${label}" tabindex="0" ${i === 0 ? 'data-note="2"' : ""}><div class="strip-in"><span class="num ${s === "bad" ? "bad" : done || s === "ok" ? "ok" : ""}">${s === "bad" ? "!" : i + 1}</span><span class="vt">${st.name}</span><span class="grow"></span><span class="vs ${s}">${label}</span></div></section>`;
+    }
+    const v = views[st.k];
+    return `<section class="col ${mode}${mode === "focus" && s === "bad" ? " bad-col" : ""}" data-i="${i}" ${mode === "peek" ? 'data-note="3"' : 'data-note="4"'}>
+      <div class="c-head"><span class="num ${s === "bad" ? "bad" : s === "ok" ? "ok" : ""}">${s === "bad" ? "!" : i + 1}</span><h2>${st.name}</h2>${mode === "peek" ? '<span class="peek-tag">곁보기</span>' : ""}<span class="grow"></span><span class="tag ${s === "bad" ? "bad" : s === "ok" ? "ok" : ""}">${s === "bad" ? "⚠ " : s === "ok" ? "✓ " : ""}${label}</span></div>
+      <div class="c-body">${mode === "focus" ? v.full() : v.peek()}</div>
+      ${mode === "focus" && v.foot ? `<div class="c-foot">${v.foot()}</div>` : ""}
+      ${mode === "focus" && i < stages.length - 1 ? `<div class="c-foot" style="justify-content:flex-end;border-top:1px dashed var(--line)">${i > 0 ? `<button class="btn ghost" data-goto="${i - 1}">← ${stages[i - 1].name}</button>` : ""}<span class="grow"></span><button class="btn" data-goto="${i + 1}">다음: ${stages[i + 1].name} →</button></div>` : ""}
+    </section>`;
+  }).join("");
+  $$(".col.strip, .col.peek").forEach((c) => c.addEventListener("click", (e) => { if (e.target.closest("[data-goto],button,input,select")) return; focusIdx = +c.dataset.i; render(); }));
+  $$("[data-goto]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); focusIdx = +b.dataset.goto; render(); });
+  $$("[data-ft]").forEach((b) => b.onclick = () => { filterTeam = filterTeam === b.dataset.ft ? null : b.dataset.ft; render(); });
+  const run = $("#run");
+  run && (run.onclick = () => { running = true; toast("Mock 엔진 실행 중…"); setTimeout(() => { running = false; focusIdx = 4; render(); toast("새 해 도착 — 결과 확인 컬럼을 펼쳤습니다"); }, 700); });
+  const fix = $("#fix");
+  fix && (fix.onclick = () => { state.violations.shift(); toast("적용 · 재채점 완료"); render(); });
+  const mt = $("#mt");
+  mt && metricsTable(mt, { cols: ["km", "moves", "hol", "wkHome"] });
+}
+document.addEventListener("keydown", (e) => {
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if (e.key === "ArrowRight" && focusIdx < stages.length - 1) { focusIdx++; render(); }
+  if (e.key === "ArrowLeft" && focusIdx > 0) { focusIdx--; render(); }
+  if (e.key === "Enter" && document.activeElement.classList.contains("strip")) { focusIdx = +document.activeElement.dataset.i; render(); }
+});
+render();
+W.wire("C · 가로 진행 컬럼 — 모든 단계가 한 줄로 늘 보이고, 집중한 단계만 펼쳐짐", [
+  "단계 7개가 왼쪽에서 오른쪽으로 한 줄에 놓입니다. 가로 스크롤 없이 1280px 안에 들어가도록 '집중 1 + 곁보기 1 + 접힘 5'로 너비를 나눕니다.",
+  "접힌 컬럼(52px)도 단계 이름과 상태(✓ / ! 건수 / 핵심 숫자)를 세로 글씨로 계속 보여 줍니다. 위저드와 달리 다른 단계의 상태가 사라지지 않고, 아무 단계로나 바로 갈 수 있습니다.",
+  "곁보기 컬럼 = 바로 앞 단계의 요약. 이벤트를 넣을 때는 슬롯 목록을, 분석할 때는 위반 목록을 옆에 둡니다. '이전 단계의 산출물을 보면서 지금 단계를 입력'하는 구조입니다.",
+  "집중 컬럼만 내부 세로 스크롤합니다. 결과 확인은 슬롯 목록 형태이고, 구단 버튼으로 강조할 수 있습니다. 위반이 있으면 컬럼 테두리와 번호가 빨간색이 됩니다.",
+]);
+</script>
+</body>
+</html>

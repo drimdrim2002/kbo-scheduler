@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시나리오 분기</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body { background: #f6f5f2; }
+  .app { position: fixed; inset: 0; display: grid; grid-template-rows: 48px 236px 1fr; }
+  header { display: flex; align-items: center; gap: 14px; padding: 0 18px; border-bottom: 1px solid var(--line); background: #fff; }
+  header h1 { font-size: 15px; margin: 0; }
+  header .sp { flex: 1; }
+  /* 분기 나무 */
+  .treebar { display: grid; grid-template-columns: 1fr 300px; border-bottom: 1px solid var(--line); background: #fff; min-height: 0; }
+  #tree { position: relative; overflow: hidden; }
+  #tree svg { position: absolute; inset: 0; }
+  .node { position: absolute; transform: translate(-14px, -14px); display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .node .dot { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--c); background: #fff; display: flex; align-items: center; justify-content: center; font: 700 11px var(--mono); color: var(--c); flex: none; }
+  .node.isA .dot { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+  .node.isB .dot { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .node .info { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 11.5px; width: 168px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+  .node .info b { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node .info .m { font: 10.5px var(--mono); color: var(--ink-2); }
+  .node .info .m .bad { color: var(--bad); }
+  .node .info .m .ok { color: var(--ok); }
+  .node:hover .info { border-color: var(--ink-3); }
+  .node.isA .info { border-color: #1d1d1f; }
+  .node.isB .info { border-color: var(--accent); }
+  .lane-lbl { position: absolute; left: 10px; font-size: 10px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.3px; }
+  /* 새 분기 만들기 */
+  .compose { border-left: 1px solid var(--line); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; font-size: 12px; min-height: 0; }
+  .compose h3 { margin: 0; font-size: 12.5px; }
+  .compose select, .compose input { border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 100%; background: #fff; }
+  .compose .row { display: flex; gap: 6px; align-items: center; }
+  .compose .row label { width: 54px; color: var(--ink-2); flex: none; }
+  .compose .pv { font: 11px var(--mono); color: var(--ink-2); background: var(--bg); padding: 5px 7px; border-radius: 6px; }
+  /* 비교 무대 */
+  .stage { display: grid; grid-template-columns: 1fr 336px; min-height: 0; }
+  .diffwrap { padding: 12px 16px 14px; display: flex; flex-direction: column; min-height: 0; }
+  .dhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .dhead .ab { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .dhead .ab i { font-style: normal; font: 700 11px var(--mono); color: #fff; border-radius: 4px; padding: 2px 6px; }
+  .seg { display: inline-flex; background: #ebe8e2; border-radius: 8px; padding: 2px; margin-left: auto; }
+  .seg button { border: 0; background: transparent; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+  .seg button[aria-pressed="true"] { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+  #mx { position: relative; flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; user-select: none; }
+  .layer { position: absolute; inset: 0; }
+  .layer.B { clip-path: inset(0 0 0 var(--cut)); }
+  .layer .tag-ab { position: absolute; top: 8px; font: 700 11px var(--mono); padding: 2px 7px; border-radius: 4px; color: #fff; z-index: 3; }
+  .cell { position: absolute; width: 15px; height: 26px; border-radius: 3px; }
+  .cell.H { background: var(--home); }
+  .cell.A { background: #e1dcd2; }
+  .cell.ch { box-shadow: 0 0 0 2px var(--warn); }
+  .cell.v { box-shadow: 0 0 0 2px var(--bad); }
+  .cell.v::after { content: "!"; color: #fff; font: 700 10px/26px var(--mono); position: absolute; inset: 0; text-align: center; }
+  .cell.A.v::after { color: var(--bad); }
+  .rowlbl { position: absolute; left: 10px; font-size: 12px; }
+  .collbl { position: absolute; font-size: 9px; color: var(--ink-3); transform: rotate(-50deg); transform-origin: left bottom; white-space: nowrap; }
+  .colhit { position: absolute; width: 17px; cursor: pointer; border-radius: 4px; }
+  .colhit:hover { background: rgba(47, 91, 234, 0.08); }
+  .colhit.picked { background: rgba(183, 121, 31, 0.16); }
+  #divider { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #1d1d1f; z-index: 5; cursor: ew-resize; }
+  #divider::after { content: "◀ ▶"; position: absolute; top: 50%; left: -24px; width: 46px; height: 26px; margin-top: -13px; background: #1d1d1f; color: #fff; border-radius: 13px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+  .mode-side #divider, .mode-diff #divider { display: none; }
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--ink-2); margin-top: 8px; align-items: center; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+  /* 지표 Δ 패널 */
+  .delta { border-left: 1px solid var(--line); background: #fff; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
+  .delta h3 { font-size: 12.5px; margin: 0; }
+  .verdict { background: var(--bg); border-radius: 10px; padding: 9px 11px; font-size: 12.5px; }
+  .verdict b.ok { color: var(--ok); }
+  .verdict b.bad { color: var(--bad); }
+  .kgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .kgrid div { background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+  .kgrid .v { font: 700 15px var(--mono); }
+  .kgrid .l { font-size: 10.5px; color: var(--ink-3); }
+  .db .lbl { font-size: 11px; }
+  .picks { font-size: 11.5px; background: var(--warn-soft); border-radius: 8px; padding: 7px 9px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <h1>시나리오 분기</h1>
+    <span class="faint" style="font-size:12px">편성안을 가지처럼 늘리고, 두 가지를 골라 겹쳐 봅니다 · 노드 클릭 = B, Shift+클릭 = A</span>
+    <span class="sp"></span>
+    <span id="badgeB"></span>
+    <button class="btn" id="adopt">B를 최종안으로 채택</button>
+  </header>
+  <section class="treebar">
+    <div id="tree"></div>
+    <div class="compose">
+      <h3>＋ 새 분기 — <span id="cBase"></span>에서</h3>
+      <div class="row"><label>변경</label><select id="cKind">
+        <option value="opt">① 입력: 이동거리 가중치 ↑ 후 재실행</option>
+        <option value="unpin">① 입력: 광복절 고정 해제 후 재실행</option>
+        <option value="solve">② 솔버 재실행 (30초)</option>
+        <option value="swap" selected>③ 보정: 슬롯 교환</option>
+        <option value="flip">③ 보정: 홈·원정 뒤집기</option>
+        <option value="rebook">③ 재편성: 우천 4경기 · 월요일 허용</option>
+        <option value="rebookdh">③ 재편성: 우천 4경기 · DH 허용</option>
+      </select></div>
+      <div class="row" id="cArgs"></div>
+      <div class="pv" id="cPv"></div>
+      <button class="btn primary" id="cGo">분기 만들기</button>
+    </div>
+  </section>
+  <section class="stage">
+    <div class="diffwrap">
+      <div class="dhead">
+        <span class="ab"><i style="background:#1d1d1f">A</i><span id="nameA"></span></span>
+        <span class="faint">vs</span>
+        <span class="ab"><i style="background:var(--accent)">B</i><span id="nameB"></span></span>
+        <div class="seg" id="mode"><button data-m="swipe" aria-pressed="true">스와이프</button><button data-m="diff" aria-pressed="false">차이만</button><button data-m="side" aria-pressed="false">위아래</button></div>
+      </div>
+      <div id="mx" class="mode-swipe"></div>
+      <div class="legend"><span><i style="background:var(--home)"></i>홈</span><span><i style="background:#e1dcd2"></i>원정</span><span><i style="box-shadow:0 0 0 2px var(--warn) inset"></i>A와 다른 칸</span><span><i style="box-shadow:0 0 0 2px var(--bad) inset"></i>Hard 위반</span><span class="faint">· 슬롯 열을 누르면 그 슬롯만 B에서 A로 가져오는 ‘체리픽’ 후보에 담깁니다</span></div>
+    </div>
+    <aside class="delta" id="delta"></aside>
+  </section>
+</div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, chip, fmt, sign, evaluate, clone, applyOp } = KB;
+  // ── 분기 데이터: 각 노드는 편성안 한 벌과 ‘무엇을 바꿨는지’를 기억한다 ──
+  const nodes = [];
+  let seqN = 0;
+  function mk(parent, lane, title, change, plan, extra = {}) {
+    const n = { id: ++seqN, parent: parent && parent.id, lane, title, change, plan, ev: evaluate(plan), t: nodes.length, ...extra };
+    nodes.push(n);
+    return n;
+  }
+  const solved = (plan) => {
+    // 목업 솔버: 고정되지 않은 시리즈를 엔진 해로 되돌린다.
+    const p = clone(plan);
+    p.forEach((s) => { if (!s.pin) { const b = KB.base.find((x) => x.id === s.id); s.slot = b.slot; s.home = b.home; s.away = b.away; } });
+    return p;
+  };
+  // 이동거리 가중치 ↑: Hard를 깨지 않으면서 리그 km를 줄이는 슬롯 교환을 탐욕적으로 몇 번 적용한다.
+  function kmGreedy(plan, rounds = 3) {
+    let p = clone(plan), e = evaluate(p);
+    for (let r = 0; r < rounds; r++) {
+      let best = null;
+      for (let a = 1; a < 45; a++) for (let b = a + 2; b < Math.min(45, a + 9); b++) {
+        if (K.slots[a].len !== K.slots[b].len) continue;
+        if (p.some((s) => s.pin && (s.slot === a || s.slot === b))) continue;
+        const q = applyOp(clone(p), { op: "swap", a, b }), f = evaluate(q);
+        if (f.hardSum <= e.hardSum && f.soft.S4 < (best ? best.e.soft.S4 : e.soft.S4)) best = { q, e: f, a, b };
+      }
+      if (!best) break;
+      p = best.q; e = best.e;
+    }
+    return p;
+  }
+  const rainGames = [{ home: "KIA", away: "삼성", date: "2025-06-10" }, { home: "LG", away: "KT", date: "2025-07-02" }, { home: "롯데", away: "NC", date: "2025-07-25" }, { home: "KIA", away: "삼성", date: "2025-06-11" }];
+
+  const n0 = mk(null, 0, "엔진 1차안", "솔버 30초 · 가상 위반 3건 포함", KB.seeded());
+  const n1 = mk(n0, 0, "재실행 2분", "② 솔버 시간 30초 → 2분", solved(n0.plan));
+  const n2 = mk(n1, 1, "이동거리 우선", "① S4 가중치 ×2 → 재실행", kmGreedy(n1.plan));
+  const n3p = clone(n0.plan); applyOp(n3p, { op: "swap", a: 20, b: 21 });
+  const n3 = mk(n0, 2, "수동 보정 (5/30↔6/3)", "③ 슬롯 교환 1건", n3p);
+  const n4 = mk(n1, 3, "재편성 · 월요일 허용", "③ 우천 4경기 9~10월 재배치", n1.plan, { rebook: KB.rebook(rainGames, { monday: true }) });
+  const n5 = mk(n4, 3, "재편성 · DH 허용", "③ 월요일 금지 · DH 허용", n1.plan, { rebook: KB.rebook(rainGames, { dh: true }) });
+  let A = n0, B = n1, mode = "swipe", cut = 0.5, picks = new Set();
+
+  // ── 나무 그리기 ──
+  const LANES = ["주 흐름", "입력 실험", "수동 보정", "재편성"];
+  function layout() {
+    const box = $("#tree").getBoundingClientRect();
+    const colW = 214, x0 = 96, laneH = 52, y0 = 34;
+    const col = {}, used = new Set();
+    // 같은 레인·열에 이미 노드가 있으면 오른쪽으로 민다.
+    nodes.forEach((n) => {
+      let c = n.parent ? col[n.parent] + 1 : 0;
+      while (used.has(n.lane + ":" + c)) c++;
+      col[n.id] = c; used.add(n.lane + ":" + c);
+    });
+    nodes.forEach((n) => { n.x = x0 + col[n.id] * colW; n.y = y0 + n.lane * laneH; });
+    return { box, laneH, y0 };
+  }
+  function renderTree() {
+    const { box, laneH, y0 } = layout();
+    let svg = `<svg width="${box.width}" height="${box.height}">`;
+    LANES.forEach((l, k) => { svg += `<line x1="86" x2="${box.width}" y1="${y0 + k * laneH}" y2="${y0 + k * laneH}" stroke="#f0ede7" stroke-width="22" stroke-linecap="round"/>`; });
+    nodes.forEach((n) => {
+      if (!n.parent) return;
+      const p = nodes.find((x) => x.id === n.parent);
+      svg += `<path d="M${p.x},${p.y} C${p.x + 90},${p.y} ${n.x - 90},${n.y} ${n.x},${n.y}" fill="none" stroke="${laneColor(n.lane)}" stroke-width="3"/>`;
+    });
+    svg += "</svg>";
+    let h = svg + LANES.map((l, k) => `<span class="lane-lbl" style="top:${y0 + k * laneH - 7}px">${l}</span>`).join("");
+    nodes.forEach((n) => {
+      const e = n.ev;
+      const m = n.rebook ? `배치 ${n.rebook.placed.length} · 종료 ${n.rebook.last.slice(5)}` : `<span class="${e.hardSum ? "bad" : "ok"}">H ${e.hardSum}</span> · ${fmt(e.soft.S4)}km`;
+      h += `<div class="node${n === A ? " isA" : ""}${n === B ? " isB" : ""}" style="left:${n.x}px;top:${n.y}px;--c:${laneColor(n.lane)}" data-n="${n.id}" title="${esc(n.change)}"><span class="dot">${n === A ? "A" : n === B ? "B" : n.id}</span><span class="info"><b>${esc(n.title)}</b><span class="m">${m}</span></span></div>`;
+    });
+    $("#tree").innerHTML = h;
+  }
+  const laneColor = (k) => ["#55534f", "#2f5bea", "#b7791f", "#1f8a4c"][k];
+
+  // ── 비교 무대: 구단 × 슬롯 행렬 두 장을 겹친다 ──
+  const CX = 64, CY = 30, PW = 17, PH = 31;
+  function layerHTML(n, other, cls, label, top = 0) {
+    const vs = new Set(n.ev.hard.flatMap((v) => (v.ids || []).map((id) => id)));
+    const vslot = new Set(n.ev.hard.filter((v) => !v.ids).map((v) => v.slot));
+    const idxOf = (plan) => { const m = {}; plan.forEach((s) => { m[s.home + "|" + s.slot] = "H"; m[s.away + "|" + s.slot] = "A"; }); return m; };
+    const me = idxOf(n.plan), ot = idxOf(other.plan);
+    let h = `<div class="layer ${cls}" style="top:${top}px"><span class="tag-ab" style="${cls === "A" ? "left:8px;background:#1d1d1f" : "right:8px;background:var(--accent)"}">${label}</span>`;
+    T.forEach((t, r) => {
+      h += `<span class="rowlbl" style="top:${CY + r * PH + 5}px">${chip(t)}</span>`;
+      for (let i = 0; i < 45; i++) {
+        const k = me[t + "|" + i];
+        if (!k) continue;
+        const s = n.plan.find((x) => x.slot === i && (x.home === t || x.away === t));
+        const ch = ot[t + "|" + i] !== k;
+        const v = vs.has(s.id) || vslot.has(i);
+        if (mode === "diff" && !ch && !v) { h += `<span class="cell ${k}" style="left:${CX + i * PW}px;top:${CY + r * PH}px;opacity:.12"></span>`; continue; }
+        h += `<span class="cell ${k}${ch ? " ch" : ""}${v ? " v" : ""}" style="left:${CX + i * PW}px;top:${CY + r * PH}px" title="${t} ${K.slots[i].label} ${k === "H" ? "홈" : "원정"} vs ${s.home === t ? s.away : s.home}"></span>`;
+      }
+    });
+    return h + "</div>";
+  }
+  function renderMx() {
+    const mx = $("#mx");
+    mx.className = "mode-" + mode;
+    const W = mx.clientWidth;
+    let h = "";
+    if (mode === "side") {
+      // 위아래: 행렬을 반 크기로 줄여 두 장을 겹치지 않게 놓는다.
+      h += `<div style="transform:scale(.5);transform-origin:0 0;position:absolute;inset:0 0 auto 0;width:200%;height:${CY + T.length * PH + 20}px">${layerHTML(A, B, "A", "A " + A.title)}</div>`;
+      h += `<div style="transform:scale(.5);transform-origin:0 0;position:absolute;top:${(CY + T.length * PH) / 2 + 20}px;left:0;width:200%;height:${CY + T.length * PH + 20}px">${layerHTML(B, A, "A", "B " + B.title).replace('class="layer A"', 'class="layer"').replace("left:8px;background:#1d1d1f", "left:8px;background:var(--accent)")}</div>`;
+    } else {
+      h += layerHTML(A, B, "A", "A") + layerHTML(B, A, "B", "B");
+      h += `<div id="divider" style="left:${cut * W}px"></div>`;
+    }
+    // 슬롯 열 이름과 체리픽 열
+    for (let i = 0; i < 45; i++) {
+      const diff = A.plan.some((s) => { const o = B.plan.find((x) => x.id === s.id); return o.slot !== s.slot || o.home !== s.home; }) && slotDiffers(i);
+      if (i % 3 === 0 || diff) h += `<span class="collbl" style="left:${CX + i * PW + 3}px;top:${CY + T.length * PH + 22}px;${diff ? "color:var(--warn);font-weight:700" : ""}">${K.slots[i].label.split("(")[0]}</span>`;
+      if (mode !== "side" && diff) h += `<span class="colhit${picks.has(i) ? " picked" : ""}" data-col="${i}" style="left:${CX + i * PW - 1}px;top:${CY - 4}px;height:${T.length * PH + 4}px" title="${K.slots[i].label} 체리픽"></span>`;
+    }
+    mx.innerHTML = h;
+    mx.style.setProperty("--cut", cut * W + "px");
+  }
+  function slotDiffers(i) {
+    const key = (plan) => plan.filter((s) => s.slot === i).map((s) => s.home + ">" + s.away).sort().join(",");
+    return key(A.plan) !== key(B.plan);
+  }
+  // 스와이프 손잡이 끌기
+  let dragging = false;
+  $("#mx").addEventListener("pointerdown", (e) => {
+    if (e.target.id === "divider" || (mode === "swipe" && !e.target.closest("[data-col]"))) {
+      dragging = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+      move(e);
+    }
+  });
+  const move = (e) => {
+    const r = $("#mx").getBoundingClientRect();
+    cut = Math.max(0.02, Math.min(0.98, (e.clientX - r.left) / r.width));
+    $("#mx").style.setProperty("--cut", cut * r.width + "px");
+    const d = $("#divider"); if (d) d.style.left = cut * r.width + "px";
+  };
+  $("#mx").addEventListener("pointermove", (e) => { if (dragging) move(e); });
+  $("#mx").addEventListener("pointerup", () => { dragging = false; });
+  $("#mx").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-col]");
+    if (!c) return;
+    const i = +c.dataset.col;
+    picks.has(i) ? picks.delete(i) : picks.add(i);
+    renderMx(); renderDelta();
+  });
+
+  // ── Δ 패널 ──
+  function renderDelta() {
+    const a = A.ev, b = B.ev;
+    let h = "";
+    if (A.rebook || B.rebook) {
+      const r = (n) => n.rebook || { placed: [], unplaced: [], last: "" };
+      const ra = r(A), rb = r(B);
+      h += `<h3>재편성 비교</h3><div class="kgrid"><div><div class="v">${ra.last.slice(5) || "-"}→${rb.last.slice(5) || "-"}</div><div class="l">마지막 경기</div></div><div><div class="v">${rb.placed.filter((g) => g.dh).length}</div><div class="l">B의 DH</div></div><div><div class="v">${rb.placed.filter((g) => KB.day(g.date).getDay() === 1).length}</div><div class="l">B의 월요일</div></div></div>
+        ${rb.placed.map((g) => `<div class="kv" style="display:flex;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--line);padding:3px 0"><span>${chip(g.away)}@${chip(g.home)}${g.dh ? ' <span class="tag">DH</span>' : ""}</span><span class="num">${g.date.slice(5)}${KB.day(g.date).getDay() === 1 ? " (월)" : ""}</span></div>`).join("")}
+        <p class="faint" style="font-size:11px;margin:4px 0 0">재편성 노드는 1차 편성은 같고 9~10월 배치만 다릅니다(RH-1·RH-2만 지키는 목업).</p>`;
+      $("#delta").innerHTML = h;
+      return;
+    }
+    const dH = b.hardSum - a.hardSum, dK = b.soft.S4 - a.soft.S4;
+    const changed = B.plan.filter((s) => { const o = A.plan.find((x) => x.id === s.id); return o.slot !== s.slot || o.home !== s.home; }).length;
+    const better = dH < 0 || (dH === 0 && dK < 0);
+    h += `<div class="verdict">B는 A보다 <b class="${dH > 0 ? "bad" : dH < 0 ? "ok" : ""}">Hard ${sign(dH)}</b>, <b class="${dK > 0 ? "bad" : dK < 0 ? "ok" : ""}">리그 ${sign(dK, "km")}</b> · 바뀐 시리즈 ${changed}개<br><span class="faint">${better ? "B가 낫습니다." : dH === 0 && dK === 0 ? "점수 차이가 없습니다." : "A가 낫습니다."} 바뀐 내용: ${esc(B.change)}</span></div>
+      <div class="kgrid">${[["S1", "이동 횟수"], ["S2", "거리 분산"], ["S3", "휴일 분산"]].map(([k, l]) => { const d = b.soft[k] - a.soft[k]; return `<div><div class="v ${d > 0 ? "up" : d < 0 ? "down" : ""}">${sign(-d)}</div><div class="l">${k} ${l}</div></div>`; }).join("")}</div><div class="faint" style="font-size:10.5px;margin-top:-4px">Soft 점수 변화 · +는 B에서 개선</div>
+      <h3>구단별 이동거리 A ● → B ●</h3>`;
+    const mn = 5600, mxk = 8800, W = 300, sx = (v) => 40 + ((v - mn) / (mxk - mn)) * (W - 70);
+    let svg = `<svg class="db" width="${W}" height="${T.length * 19 + 8}"><rect x="${sx(a.avg.km - 300)}" y="0" width="${sx(a.avg.km + 300) - sx(a.avg.km - 300)}" height="${T.length * 19}" fill="#eef1fb"/>`;
+    T.slice().sort((x, y) => (b.per[y].km - a.per[y].km) - (b.per[x].km - a.per[x].km)).forEach((t, k) => {
+      const y = k * 19 + 10, x1 = sx(a.per[t].km), x2 = sx(b.per[t].km), d = b.per[t].km - a.per[t].km;
+      svg += `<text class="lbl" x="0" y="${y + 4}">${t}</text><line x1="${x1}" x2="${x2}" y1="${y}" y2="${y}" stroke="${d > 0 ? "#c9302c" : "#1f8a4c"}" stroke-width="3"/><circle cx="${x1}" cy="${y}" r="4" fill="#1d1d1f"/><circle cx="${x2}" cy="${y}" r="4" fill="#2f5bea"/><text x="${W}" y="${y + 4}" text-anchor="end" font-size="10.5" class="num" fill="${d > 0 ? "#c9302c" : d < 0 ? "#1f8a4c" : "#999"}">${sign(d)}</text>`;
+    });
+    h += svg + "</svg>";
+    if (picks.size) {
+      const p = clone(A.plan);
+      picks.forEach((i) => { B.plan.filter((s) => s.slot === i).forEach((s) => { const o = p.find((x) => x.id === s.id); o.slot = s.slot; o.home = s.home; o.away = s.away; }); });
+      const e = evaluate(p);
+      h += `<div class="picks"><b>체리픽 ${picks.size}개 슬롯</b>: ${[...picks].map((i) => K.slots[i].label).join(", ")}<br>A에 적용하면 Hard ${a.hardSum}→${e.hardSum}, 리그 ${sign(e.soft.S4 - a.soft.S4, "km")}<br><button class="btn sm" id="pickGo" style="margin-top:5px">A에서 새 분기로 만들기</button></div>`;
+    }
+    $("#delta").innerHTML = h;
+    const pg = $("#pickGo");
+    if (pg) pg.onclick = () => {
+      const p = clone(A.plan);
+      picks.forEach((i) => { B.plan.filter((s) => s.slot === i).forEach((s) => { const o = p.find((x) => x.id === s.id); o.slot = s.slot; o.home = s.home; o.away = s.away; }); });
+      const n = mk(A, 2, `체리픽 ${picks.size}슬롯`, `③ ${B.title}에서 ${[...picks].map((i) => K.slots[i].label).join(", ")} 가져옴`, p);
+      picks.clear(); B = n; renderAll(); KB.toast("새 분기를 만들었습니다");
+    };
+  }
+
+  // ── 새 분기 작성기 ──
+  function renderCompose() {
+    $("#cBase").textContent = `B · ${B.title}`;
+    const k = $("#cKind").value;
+    const opt = K.slots.map((s, i) => `<option value="${i}">${s.label}</option>`).join("");
+    $("#cArgs").innerHTML = k === "swap" ? `<label>슬롯</label><select id="a1">${opt}</select><select id="a2">${opt}</select>`
+      : k === "flip" ? `<label>시리즈</label><select id="a1">${B.plan.filter((s) => s.slot >= 14 && s.slot <= 24).sort((x, y) => x.slot - y.slot).map((s) => `<option value="${s.id}">${K.slots[s.slot].label} ${s.away}@${s.home}</option>`).join("")}</select>`
+      : `<span class="faint">추가 입력 없음</span>`;
+    if ($("#a1") && k === "swap") { $("#a1").value = 20; $("#a2").value = 21; }
+    $$("#cArgs select").forEach((s) => s.onchange = previewCompose);
+    previewCompose();
+  }
+  function build() {
+    const k = $("#cKind").value;
+    if (k === "swap") return { title: `교환 ${K.slots[+$("#a1").value].label.split("(")[0]}↔${K.slots[+$("#a2").value].label.split("(")[0]}`, change: "③ 슬롯 교환", lane: 2, plan: applyOp(clone(B.plan), { op: "swap", a: +$("#a1").value, b: +$("#a2").value }) };
+    if (k === "flip") { const s = B.plan.find((x) => x.id === +$("#a1").value); return { title: `뒤집기 ${s.home}@${s.away}`, change: "③ 홈·원정 뒤집기", lane: 2, plan: applyOp(clone(B.plan), { op: "flip", id: s.id }) }; }
+    if (k === "opt") return { title: "이동거리 우선", change: "① S4 가중치 ×2 → 재실행", lane: 1, plan: kmGreedy(B.plan) };
+    if (k === "unpin") { const p = clone(B.plan); p.forEach((s) => { if (s.slot === 40) s.pin = false; }); return { title: "광복절 고정 해제", change: "① 8/15 LG@두산 고정 해제 → 재실행", lane: 1, plan: kmGreedy(solved(p), 2) }; }
+    if (k === "solve") return { title: "재실행", change: "② 솔버 재실행", lane: B.lane, plan: solved(B.plan) };
+    if (k === "rebook") return { title: "재편성 · 월요일", change: "③ 월요일 허용", lane: 3, plan: B.plan, extra: { rebook: KB.rebook(rainGames, { monday: true }) } };
+    return { title: "재편성 · DH", change: "③ DH 허용", lane: 3, plan: B.plan, extra: { rebook: KB.rebook(rainGames, { dh: true }) } };
+  }
+  function previewCompose() {
+    const b = build();
+    if (b.extra) { $("#cPv").textContent = `배치 ${b.extra.rebook.placed.length} · 마지막 ${b.extra.rebook.last.slice(5)}`; return; }
+    const e = evaluate(b.plan);
+    $("#cPv").innerHTML = `미리보기 · Hard ${B.ev.hardSum}→${e.hardSum} · 리그 ${sign(e.soft.S4 - B.ev.soft.S4, "km")}`;
+  }
+  $("#cKind").onchange = renderCompose;
+  $("#cGo").onclick = () => {
+    const b = build();
+    const n = mk(B, b.lane, b.title, b.change, b.plan, b.extra || {});
+    A = B; B = n; picks.clear();
+    renderAll();
+    KB.toast(`분기 ‘${n.title}’ 생성 · A=부모, B=새 분기`);
+  };
+  $("#adopt").onclick = () => KB.toast(`‘${B.title}’을 최종안으로 채택했습니다 (목업)`);
+
+  $("#tree").addEventListener("click", (e) => {
+    const el = e.target.closest("[data-n]");
+    if (!el) return;
+    const n = nodes.find((x) => x.id === +el.dataset.n);
+    if (e.shiftKey) { if (n !== B) A = n; } else if (n !== A) B = n;
+    picks.clear();
+    renderAll();
+  });
+  $$("#mode button").forEach((b) => b.onclick = () => { mode = b.dataset.m; $$("#mode button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); renderMx(); });
+
+  function renderAll() {
+    $("#nameA").textContent = A.title;
+    $("#nameB").textContent = B.title;
+    $("#badgeB").innerHTML = KB.badge(B.ev).replace("편성 가능", "B 편성 가능").replace("Hard 위반", "B Hard 위반");
+    renderTree(); renderMx(); renderDelta(); renderCompose();
+  }
+  window.addEventListener("resize", renderAll);
+  renderAll();
+  KB.hud("03 시나리오 분기", "br");
+  window.BR = { nodes, pick: (a, b) => { A = nodes[a]; B = nodes[b]; renderAll(); } };
+})();
+</script>
+</body>
+</html>

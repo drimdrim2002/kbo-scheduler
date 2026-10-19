@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>조건 블록 파이프라인</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body { background: #eef1f6; }
+  .app { position: fixed; inset: 0; display: grid; grid-template-columns: 188px 1fr 284px; grid-template-rows: 46px 1fr; }
+  header { grid-column: 1 / 4; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #fff; border-bottom: 1px solid #dde2ea; }
+  header h1 { font-size: 15px; margin: 0; }
+  header .sp { flex: 1; }
+  /* 블록 팔레트 */
+  .palette { background: #fff; border-right: 1px solid #dde2ea; padding: 10px; overflow: hidden; }
+  .palette h4 { font-size: 10.5px; color: var(--ink-3); margin: 10px 2px 5px; letter-spacing: 0.4px; }
+  .pb { display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin-bottom: 4px; border-radius: 7px; font-size: 12px; background: #f6f7fa; border: 1px solid #e3e7ee; cursor: grab; user-select: none; }
+  .pb:hover { border-color: #9fb0d0; }
+  .pb i { width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none; }
+  .pb .hint { margin-left: auto; color: var(--ink-3); font-size: 10px; }
+  /* 노드 캔버스 */
+  #canvas { position: relative; overflow: hidden; background-color: #f3f5f9; background-image: linear-gradient(#e4e8ef 1px, transparent 1px), linear-gradient(90deg, #e4e8ef 1px, transparent 1px); background-size: 24px 24px; }
+  #wires { position: absolute; inset: 0; pointer-events: none; }
+  .wire { fill: none; stroke: #8a97b0; stroke-width: 2; }
+  .wire.off { stroke-dasharray: 5 5; stroke: #c3cad8; }
+  .wire.hot { stroke: var(--bad); }
+  .wlbl { font: 600 10px var(--mono); fill: #4b5875; }
+  .wlbl-bg { fill: #fff; stroke: #d5dbe6; }
+  .node { position: absolute; width: 142px; background: #fff; border-radius: 10px; border: 1px solid #d5dbe6; box-shadow: 0 1px 3px rgba(20, 30, 60, 0.08); font-size: 11.5px; }
+  .node.sel { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47, 91, 234, 0.18); }
+  .node.off { opacity: 0.5; }
+  .node .nh { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid #edf0f5; cursor: move; user-select: none; border-radius: 10px 10px 0 0; background: color-mix(in srgb, var(--k) 9%, white); }
+  .node .nh b { font-size: 11.5px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node .nh i { width: 8px; height: 8px; border-radius: 2px; background: var(--k); flex: none; }
+  .node .nb { padding: 6px 8px; }
+  .node .port { position: absolute; top: 14px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid #8a97b0; }
+  .node .port.in { left: -6px; }
+  .node .port.out { right: -6px; }
+  .rule-row { display: flex; align-items: center; gap: 5px; padding: 2px 0; }
+  .rule-row code { font: 600 10px var(--mono); width: 34px; }
+  .rule-row span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); font-size: 10.5px; }
+  .rule-row .cnt { flex: none; font: 600 10px var(--mono); color: var(--bad); }
+  .rule-row.off span, .rule-row.off code { text-decoration: line-through; color: var(--ink-3); }
+  .tg { position: relative; width: 24px; height: 14px; border-radius: 7px; background: #c8cfdb; border: 0; flex: none; padding: 0; }
+  .tg::after { content: ""; position: absolute; left: 2px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: 0.15s; }
+  .tg[aria-pressed="true"] { background: var(--ok); }
+  .tg[aria-pressed="true"]::after { left: 12px; }
+  .wrow { display: flex; align-items: center; gap: 4px; padding: 1px 0; font-size: 10.5px; }
+  .wrow code { font: 600 10px var(--mono); width: 20px; }
+  .wrow input { width: 54px; height: 12px; }
+  .wrow .x { font: 10px var(--mono); width: 22px; text-align: right; }
+  .stat { font: 700 18px var(--mono); }
+  .mini { font-size: 10.5px; color: var(--ink-3); }
+  .edit .nb { font-size: 11px; }
+  .edit .d { font: 10.5px var(--mono); }
+  .drop-ghost { position: absolute; pointer-events: none; z-index: 50; padding: 6px 9px; background: #fff; border: 1px dashed var(--accent); border-radius: 8px; font-size: 12px; }
+  /* 인스펙터 */
+  .insp { background: #fff; border-left: 1px solid #dde2ea; padding: 14px; overflow: auto; font-size: 12px; }
+  .insp h2 { font-size: 14px; margin: 0 0 4px; }
+  .insp h4 { font-size: 10.5px; color: var(--ink-3); margin: 14px 0 6px; letter-spacing: 0.4px; }
+  .insp .kv { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .insp .row { display: flex; gap: 6px; align-items: center; margin: 5px 0; }
+  .insp .row label { width: 58px; color: var(--ink-2); }
+  .insp input, .insp select { border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 6px; font-size: 12px; }
+  .insp .vi { padding: 5px 0; border-bottom: 1px solid var(--line); display: flex; gap: 6px; }
+  .daychips { display: flex; gap: 2px; }
+  .daychips button { width: 24px; height: 22px; border: 1px solid var(--line-2); background: #fff; border-radius: 5px; font-size: 11px; padding: 0; }
+  .daychips button[aria-pressed="true"] { background: #3a3835; color: #fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>조건 블록 파이프라인</h1>
+    <span class="faint" style="font-size:12px">입력 → 규칙 → 솔버 → 보정 → 보기를 블록으로 잇습니다. 블록을 끄면 그 조건을 뺀 결과가 바로 흐릅니다.</span>
+    <span class="sp"></span>
+    <span id="badge"></span>
+    <button class="btn" id="undo">↶</button>
+    <button class="btn primary" id="runTop">▶ 파이프라인 실행</button>
+  </header>
+  <aside class="palette" id="palette">
+    <div class="faint" style="font-size:11px">블록을 캔버스로 끌어 놓으세요</div>
+    <h4>보정 블록 (솔버 뒤에 이어짐)</h4>
+    <div class="pb" data-new="swap" style="--k:#b7791f"><i></i>슬롯 교환<span class="hint">⇆</span></div>
+    <div class="pb" data-new="flip" style="--k:#b7791f"><i></i>홈·원정 뒤집기<span class="hint">⇄</span></div>
+    <div class="pb" data-new="pin" style="--k:#b7791f"><i></i>시리즈 고정<span class="hint">📌</span></div>
+    <div class="pb" data-new="rain" style="--k:#1f8a4c"><i></i>우천 취소 → 재편성<span class="hint">☂</span></div>
+    <h4>보기 블록</h4>
+    <div class="pb" data-new="km" style="--k:#2f5bea"><i></i>이동거리 막대</div>
+    <div class="pb" data-new="map" style="--k:#2f5bea"><i></i>지도 동선</div>
+    <div class="pb" data-new="ha" style="--k:#2f5bea"><i></i>홈/원정 흐름</div>
+    <h4>입력 블록 (이미 배치됨)</h4>
+    <div class="pb" style="--k:#55534f;cursor:default;opacity:.6"><i></i>구단 · 구장 · 거리</div>
+    <div class="pb" style="--k:#55534f;cursor:default;opacity:.6"><i></i>시즌 골격 · 이벤트</div>
+    <div class="faint" style="font-size:10.5px;margin-top:10px;line-height:1.5">노드 머리를 끌어 옮기고, 노드를 누르면 오른쪽에서 설정합니다. 보정 블록의 스위치를 끄면 그 수정만 건너뛴(bypass) 결과가 흐릅니다.</div>
+  </aside>
+  <main id="canvas"><svg id="wires"></svg></main>
+  <aside class="insp" id="insp"></aside>
+</div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, park, chip, fmt, sign, evaluate, clone, applyOp } = KB;
+  const RULES = [
+    ["H0-a", "슬롯마다 구단 10"], ["H0-b", "슬롯마다 구장 5 (잠실 1)"], ["H0-c", "슬롯마다 시리즈 5"], ["H0-d", "연전 수 = 슬롯 연전"], ["H0-e", "어린이날 구장 홈 의무"], ["H0-f", "홈/원정 연속 ≤ 3"], ["H1", "인접 슬롯 같은 대진 금지"],
+  ];
+  const ruleOn = Object.fromEntries(RULES.map(([k]) => [k, true]));
+  const weights = { S1: 1, S2: 1, S3: 1, S4: 1 };
+  let skel = KB.defaultSkeleton(), solverDone = true, solverPct = 100, sel = "result", rain = [];
+  // 보정 체인: 첫 화면의 가상 위반 3건도 ‘보정 블록’으로 드러나 있다. 끄면 그 변형만 빠진다.
+  let edits = KB.SEEDS.map((o, k) => ({ key: "e" + k, on: true, op: { ...o }, label: o.why }));
+  let eSeq = 10;
+
+  // ── 파이프라인 계산: 솔버 출력(엔진 해) → 켜진 보정 블록 차례로 적용 → 켜진 규칙만 집계 ──
+  function pinsFromEvents(p) { p.forEach((s) => { if (s.slot === 0 || (s.slot === 40 && s.home === "두산" && s.away === "LG")) s.pin = true; }); return p; }
+  function pipeline(skip) {
+    const p = pinsFromEvents(clone(KB.base));
+    edits.forEach((e) => { if (e.on && e.key !== skip) applyOp(p, e.op); });
+    const ev = evaluate(p);
+    const hard = ev.hard.filter((v) => ruleOn[v.rule]);
+    const soft = Object.fromEntries(["S1", "S2", "S3", "S4"].map((k) => [k, ev.soft[k] * weights[k]]));
+    return { plan: p, ev, hard, hardSum: hard.reduce((a, v) => a + v.n, 0), soft };
+  }
+  let out = pipeline();
+
+  // ── 노드 정의와 배치 ──
+  const N = {};
+  const node = (id, x, y, kind, title, k) => { N[id] = N[id] || { id, x, y, kind, title, k }; return N[id]; };
+  function layoutNodes() {
+    node("teams", 14, 16, "teams", "구단 10 · 구장 9", "#55534f");
+    node("dist", 14, 112, "dist", "거리 행렬 10×10", "#55534f");
+    node("skel", 14, 208, "skel", "시즌 골격", "#55534f");
+    node("events", 14, 330, "events", "이벤트 · 고정", "#55534f");
+    node("hard", 166, 16, "hard", "Hard 규칙", "#c9302c");
+    node("soft", 166, 244, "soft", "Soft 목표 가중치", "#7a5af8");
+    node("solver", 318, 150, "solver", "솔버 · 30초", "#1d1d1f");
+    edits.forEach((e, k) => node(e.key, 476, 16 + k * 96, "edit", "", "#b7791f"));
+    node("result", 650, 16, "result", "결과 · 점수", "#c9302c");
+    node("km", 650, 236, "km", "이동거리 막대", "#2f5bea");
+  }
+  const editOf = (id) => edits.find((e) => e.key === id);
+  function editLabel(e) {
+    const o = e.op;
+    if (o.op === "swap") return `교환 ${K.slots[o.a].label} ↔ ${K.slots[o.b].label}`;
+    const s = KB.base.find((x) => x.id === o.id);
+    if (o.op === "flip") return `뒤집기 ${s.home}·${s.away} 홈 교대 ${K.slots[s.slot].label}`;
+    return `고정 ${s.away}@${s.home} ${K.slots[s.slot].label}`;
+  }
+  // 체인 순서: 솔버 → 보정1 → 보정2 … → 결과/보기
+  function links() {
+    const L = [["teams", "solver", "10 구단"], ["dist", "solver", "100 거리"], ["skel", "solver", `${KB.generateSlots(skel).length} 슬롯`], ["events", "solver", "3 이벤트"], ["hard", "solver", `${RULES.filter(([k]) => ruleOn[k]).length}/7 규칙`], ["soft", "solver", "4 목표"]];
+    let prev = "solver";
+    edits.forEach((e) => { L.push([prev, e.key, prev === "solver" ? "225 시리즈" : "", !e.on]); prev = e.key; });
+    Object.values(N).filter((n) => ["result", "km", "map", "ha", "rebook"].includes(n.kind)).forEach((n) => L.push([prev, n.id, n.kind === "result" ? `Hard ${out.hardSum}` : "", false, n.kind === "result" && out.hardSum > 0]));
+    return L;
+  }
+
+  // ── 노드 본문 ──
+  function bodyOf(n) {
+    const ev = out.ev;
+    switch (n.kind) {
+      case "teams": return `<div style="display:flex;flex-wrap:wrap;gap:3px">${T.map((t) => `<span style="width:9px;height:9px;border-radius:2px;background:${color(t)}" title="${t}"></span>`).join("")}</div><div class="mini" style="margin-top:4px">잠실 공유: 두산·LG</div>`;
+      case "dist": return `<div class="mini">평균 ${fmt(K.dist.flat().reduce((a, b) => a + b, 0) / 90)}km · 최장 ${fmt(Math.max(...K.dist.flat()))}km</div>`;
+      case "skel": { const g = KB.generateSlots(skel); return `<div class="stat">${g.length}<span class="mini"> 슬롯</span></div><div class="mini">${skel.opening.slice(5)}~${skel.end.slice(5)} · 휴식 ${skel.restDays.map((k) => "일월화수목금토"[k]).join("")} · 블랙아웃 ${skel.blackouts.length}</div>`; }
+      case "events": return K.events.map((e) => `<div class="mini">${e.date.slice(5)} ${esc(e.name || e.type)} · ${e.mode}</div>`).join("");
+      case "hard": return RULES.map(([k, d]) => { const c = out.ev.hard.filter((v) => v.rule === k).length; return `<div class="rule-row${ruleOn[k] ? "" : " off"}"><button class="tg" data-rule="${k}" aria-pressed="${ruleOn[k]}" aria-label="${k} 켜기/끄기"></button><code>${k}</code><span>${d}</span>${c ? `<b class="cnt">${c}</b>` : ""}</div>`; }).join("");
+      case "soft": return [["S1", "이동 횟수"], ["S2", "이동 거리 분산"], ["S3", "휴일 가중치"], ["S4", "리그 총 이동"]].map(([k, d]) => `<div class="wrow" title="${d}"><code>${k}</code><input type="range" min="0" max="3" step="0.5" value="${weights[k]}" data-w="${k}" aria-label="${k} 가중치"><span class="x">×${weights[k]}</span><span class="mini">${d}</span></div>`).join("");
+      case "solver": return `<div style="height:6px;border-radius:3px;background:#e6e9f0;overflow:hidden"><div style="height:100%;width:${solverPct}%;background:#1d1d1f"></div></div><div class="mini" style="margin:4px 0">${solverDone ? "완료 · 엔진 해(input_2025)" : `탐색 중 ${solverPct}%`}</div><button class="btn sm" data-run>▶ 실행</button>`;
+      case "edit": { const e = editOf(n.id); const pv = editDelta(e); return `<div style="display:flex;gap:6px;align-items:center"><button class="tg" data-edit="${e.key}" aria-pressed="${e.on}" aria-label="보정 켜기/끄기"></button><span style="flex:1">${esc(editLabel(e))}</span></div><div class="d" style="margin-top:4px">Hard ${sign(pv.h)} · ${sign(pv.k, "km")}</div>`; }
+      case "result": return `<div style="display:flex;gap:14px"><div><div class="stat" style="color:${out.hardSum ? "var(--bad)" : "var(--ok)"}">${out.hardSum}</div><div class="mini">Hard</div></div><div><div class="stat">${fmt(ev.soft.S4)}</div><div class="mini">리그 km</div></div></div>${out.hard.slice(0, 3).map((v) => `<div class="mini" style="color:var(--bad)">${v.rule} ${esc(v.detail)}</div>`).join("")}${RULES.some(([k]) => !ruleOn[k]) ? `<div class="mini">꺼진 규칙 위반 ${ev.hard.length - out.hard.length}건은 집계 제외</div>` : ""}`;
+      case "km": { const mx = 9000; return `<svg width="130" height="${T.length * 11}">${T.slice().sort((a, b) => ev.per[b].km - ev.per[a].km).map((t, k) => `<text x="0" y="${k * 11 + 8}" font-size="8">${t}</text><rect x="26" y="${k * 11 + 1}" width="${(ev.per[t].km / mx) * 100}" height="8" fill="${color(t)}" rx="1"/>`).join("")}<line x1="${26 + (ev.avg.km / mx) * 100}" x2="${26 + (ev.avg.km / mx) * 100}" y1="0" y2="${T.length * 11}" stroke="#2f5bea" stroke-dasharray="2 2"/></svg>`; }
+      case "map": { const P = KB.projector(130, 150, 6), t = n.team || "롯데"; const seq = KB.teamSeq(out.plan, t); let p = ""; for (let k = 1; k < seq.length; k++) { const a = KB.teamXY(P, seq[k - 1].home), b = KB.teamXY(P, seq[k].home); if (a[0] !== b[0] || a[1] !== b[1]) p += `<path d="${KB.arc(a, b)}" fill="none" stroke="${color(t)}" stroke-width="1" opacity=".45"/>`; } return `<svg width="130" height="150">${KB.mapBase(P, { labels: false })}${p}</svg><div class="mini">${t} · ${fmt(ev.per[t].km)}km</div>`; }
+      case "ha": return T.map((t) => `<div style="display:flex;gap:1px;margin:1px 0">${KB.teamSeq(out.plan, t).map((s) => `<span style="width:2.5px;height:6px;background:${s.home === t ? "var(--home)" : "#d9d4ca"}"></span>`).join("")}</div>`).join("");
+      case "rebook": { const r = KB.rebook(rain, { monday: n.monday }); return `<div class="stat">${r.placed.length}<span class="mini"> 경기 재배치</span></div><div class="mini">마지막 ${r.last.slice(5) || "-"} · 월요일 ${n.monday ? "허용" : "금지"}</div>`; }
+    }
+    return "";
+  }
+  // 보정 블록 하나가 결과에 주는 효과 = (전부 적용) − (그 블록만 건너뜀)
+  function editDelta(e) {
+    if (!e.on) return { h: 0, k: 0 };
+    const w = pipeline(e.key);
+    return { h: out.ev.hardSum - w.ev.hardSum, k: out.ev.soft.S4 - w.ev.soft.S4 };
+  }
+
+  // ── 그리기 ──
+  const cv = $("#canvas");
+  function renderNodes() {
+    $$(".node", cv).forEach((el) => el.remove());
+    Object.values(N).forEach((n) => {
+      const el = document.createElement("div");
+      const e = n.kind === "edit" && editOf(n.id);
+      el.className = `node ${n.kind}${sel === n.id ? " sel" : ""}${e && !e.on ? " off" : ""}`;
+      el.style.cssText = `left:${n.x}px;top:${n.y}px;--k:${n.k}`;
+      el.dataset.id = n.id;
+      const hasIn = !["teams", "dist", "skel", "events", "hard", "soft"].includes(n.kind);
+      const hasOut = !["result", "km", "map", "ha", "rebook"].includes(n.kind);
+      el.innerHTML = `<div class="nh"><i></i><b>${esc(n.kind === "edit" ? (e.op.op === "swap" ? "보정 · 슬롯 교환" : e.op.op === "flip" ? "보정 · 뒤집기" : "보정 · 고정") : n.title)}</b>${n.removable ? `<button class="btn ghost sm" data-rm="${n.id}" style="padding:0 2px">✕</button>` : ""}</div><div class="nb">${bodyOf(n)}</div>${hasIn ? '<span class="port in"></span>' : ""}${hasOut ? '<span class="port out"></span>' : ""}`;
+      cv.appendChild(el);
+    });
+    renderWires();
+  }
+  function renderWires() {
+    const r = cv.getBoundingClientRect();
+    let h = "";
+    links().forEach(([a, b, lbl, off, hot]) => {
+      const A = cv.querySelector(`.node[data-id="${a}"]`), B = cv.querySelector(`.node[data-id="${b}"]`);
+      if (!A || !B) return;
+      const x1 = N[a].x + A.offsetWidth, y1 = N[a].y + 19, x2 = N[b].x, y2 = N[b].y + 19;
+      const dx = Math.max(30, (x2 - x1) / 2);
+      h += `<path class="wire${off ? " off" : ""}${hot ? " hot" : ""}" d="M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}"/>`;
+      if (lbl) { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, w = lbl.length * 6.4 + 10; h += `<rect class="wlbl-bg" x="${mx - w / 2}" y="${my - 8}" width="${w}" height="15" rx="7"/><text class="wlbl" x="${mx}" y="${my + 3}" text-anchor="middle">${esc(lbl)}</text>`; }
+    });
+    $("#wires").setAttribute("width", r.width); $("#wires").setAttribute("height", r.height);
+    $("#wires").innerHTML = h;
+  }
+
+  function renderInsp() {
+    const n = N[sel], ev = out.ev;
+    let h = `<h2>${esc(n.kind === "edit" ? "보정 블록" : n.title)}</h2>`;
+    if (n.kind === "skel") {
+      const g = KB.generateSlots(skel);
+      h += `<div class="faint">① 입력 · 바꾸면 슬롯 수가 즉시 다시 계산되어 솔버로 흐릅니다.</div>
+        <div class="row"><label>개막</label><input type="date" id="iOpen" value="${skel.opening}"></div><div class="row"><label>1차 종료</label><input type="date" id="iEnd" value="${skel.end}"></div>
+        <div class="row"><label>휴식 요일</label><div class="daychips">${"일월화수목금토".split("").map((w, k) => `<button data-rd="${k}" aria-pressed="${skel.restDays.includes(k)}">${w}</button>`).join("")}</div></div>
+        <h4>블랙아웃</h4>${skel.blackouts.map((b) => `<div class="kv"><span>${esc(b.name)}</span><span>${b.from.slice(5)}~${b.to.slice(5)}</span></div>`).join("")}
+        <h4>생성된 슬롯 ${g.length}개</h4><div class="faint">${g.slice(0, 18).map((s) => s.label + (s.len !== 3 ? `·${s.len}` : "")).join(" ")} …</div>
+        ${g.length !== 45 ? '<p style="color:var(--warn)">⚠ 슬롯 수가 엔진 입력(45)과 다릅니다. 솔버를 다시 실행해야 합니다.</p>' : ""}`;
+    } else if (n.kind === "teams") {
+      h += `<div class="faint">① 입력 · 구단과 연고 구장</div>${K.teams.map((t) => `<div class="kv"><span>${chip(t.name)}</span><span>${t.stadium}</span></div>`).join("")}`;
+    } else if (n.kind === "dist") {
+      h += `<div class="faint">① 입력 · 값을 바꾸면 대칭으로 반영되고 결과가 다시 흐릅니다</div><div class="row"><select id="dA">${T.map((t) => `<option>${t}</option>`).join("")}</select>↔<select id="dB">${T.map((t, k) => `<option ${k === 9 ? "selected" : ""}>${t}</option>`).join("")}</select></div><div class="row"><label>거리 km</label><input id="dV" type="number" style="width:80px"><button class="btn sm" id="dSet">적용</button></div>`;
+    } else if (n.kind === "events") {
+      h += K.events.map((e) => `<h4>${esc(e.name || e.type)} · ${e.date.slice(5)}</h4><div class="kv"><span>${e.mode}</span><span class="tag">${e.mode === "대진 지정" ? "핀 고정" : "H0-e 홈 의무"}</span></div><div class="faint">${e.items.join(" · ")}</div>`).join("");
+    } else if (n.kind === "hard") {
+      h += `<div class="faint">규칙을 끄면 그 위반은 결과 집계에서 빠집니다. 실제 엔진에 전달할 규칙 집합을 실험할 때 씁니다.</div>${RULES.map(([k, d]) => `<h4>${k} · ${d} ${ruleOn[k] ? "" : "(꺼짐)"}</h4>${ev.hard.filter((v) => v.rule === k).map((v) => `<div class="vi"><span class="rule">${k}</span><span>${esc(v.detail)}</span></div>`).join("") || '<div class="faint">위반 없음</div>'}`).join("")}`;
+    } else if (n.kind === "soft") {
+      h += `<div class="faint">가중치는 표시 점수에 곱해집니다(목업). 실제 엔진은 단계별 BendableScore입니다.</div>${["S1", "S2", "S3", "S4"].map((k) => `<div class="kv"><span>${k} × ${weights[k]}</span><span class="num">${fmt(-out.soft[k])}</span></div>`).join("")}`;
+    } else if (n.kind === "solver") {
+      h += `<div class="row"><label>시간 제한</label><select><option>30초</option><option>2분</option><option>10분</option></select></div><div class="row"><label>H0-e</label><select><option>구장 기준</option><option>엔진 호환</option></select></div><div class="row"><label>재편성</label><select><option>1차 편성</option><option>RESCHEDULE</option></select></div><p class="faint">목업 솔버는 고정되지 않은 시리즈를 엔진 해로 되돌린 출력을 냅니다. 그 뒤 보정 블록이 차례로 적용됩니다.</p>`;
+    } else if (n.kind === "edit") {
+      const e = editOf(n.id), d = editDelta(e);
+      h += `<div>${esc(editLabel(e))}</div><div class="faint" style="margin:4px 0">${e.on ? "적용 중" : "건너뜀(bypass)"} · 이 블록의 기여 Hard ${sign(d.h)}, 리그 ${sign(d.k, "km")}</div>`;
+      if (e.op.op === "swap") { const opt = (v) => K.slots.map((s, i) => `<option value="${i}" ${i === v ? "selected" : ""}>${s.label}</option>`).join(""); h += `<div class="row"><label>슬롯 A</label><select data-ea="a">${opt(e.op.a)}</select></div><div class="row"><label>슬롯 B</label><select data-ea="b">${opt(e.op.b)}</select></div>`; }
+      if (e.op.op !== "swap") h += `<div class="row"><label>시리즈</label><select data-ea="id">${KB.base.filter((s) => s.slot >= 12 && s.slot <= 26).sort((a, b) => a.slot - b.slot).map((s) => `<option value="${s.id}" ${s.id === e.op.id ? "selected" : ""}>${K.slots[s.slot].label} ${s.away}@${s.home}</option>`).join("")}</select></div>`;
+      if (e.label && e.label.includes("가상")) h += '<p class="faint">첫 화면의 가상 위반을 만드는 변형입니다. 꺼 보면 위반이 사라지는 것을 확인할 수 있습니다.</p>';
+      h += `<div class="row" style="margin-top:8px"><button class="btn sm" data-up="${e.key}">▲ 앞으로</button><button class="btn sm" data-del="${e.key}">삭제</button></div>`;
+    } else if (n.kind === "result") {
+      h += `<div class="kv"><span>Hard (켜진 규칙)</span><b>${out.hardSum}</b></div>${["S1", "S2", "S3", "S4"].map((k) => `<div class="kv"><span>${k}</span><span class="num">${fmt(-out.soft[k])}</span></div>`).join("")}<h4>위반 ${out.hard.length}건</h4>${out.hard.map((v) => `<div class="vi"><span class="rule">${v.rule}</span><span>${esc(v.detail)}</span></div>`).join("") || '<div class="faint">없음</div>'}<h4>구단</h4>${T.map((t) => `<div class="kv"><span>${chip(t)}</span><span class="num">${fmt(ev.per[t].km)}km · 원정연속 ${ev.per[t].maxA}</span></div>`).join("")}`;
+    } else if (n.kind === "map") {
+      h += `<div class="row"><label>구단</label><select id="mT">${T.map((t) => `<option ${t === (n.team || "롯데") ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
+    } else if (n.kind === "rebook") {
+      const r = KB.rebook(rain, { monday: n.monday });
+      h += `<label><input type="checkbox" id="rbM" ${n.monday ? "checked" : ""}> 월요일 허용</label><h4>우천 취소 ${rain.length}경기</h4>${rain.map((g) => `<div class="kv"><span>${chip(g.away)}@${chip(g.home)}</span><span>${g.date.slice(5)}</span></div>`).join("")}<h4>재배치</h4>${r.placed.map((g) => `<div class="kv"><span>${chip(g.away)}@${chip(g.home)}</span><span>${g.date.slice(5)}</span></div>`).join("")}`;
+    } else {
+      h += `<div class="faint">④ 보기 블록 · 파이프라인 끝의 편성안을 그립니다.</div>`;
+    }
+    $("#insp").innerHTML = h;
+    bindInsp();
+  }
+  function bindInsp() {
+    const I = $("#insp");
+    const o = $("#iOpen", I); if (o) o.onchange = (e) => { skel.opening = e.target.value; flow(); };
+    const en = $("#iEnd", I); if (en) en.onchange = (e) => { skel.end = e.target.value; flow(); };
+    $$("[data-rd]", I).forEach((b) => b.onclick = () => { const k = +b.dataset.rd; skel.restDays = skel.restDays.includes(k) ? skel.restDays.filter((x) => x !== k) : [...skel.restDays, k]; flow(); });
+    const ds = $("#dSet", I);
+    if (ds) { const upd = () => { $("#dV").value = KB.dist($("#dA").value, $("#dB").value).toFixed(0); }; $("#dA").onchange = upd; $("#dB").onchange = upd; upd(); ds.onclick = () => { const i = KB.idx[$("#dA").value], j = KB.idx[$("#dB").value]; K.dist[i][j] = K.dist[j][i] = +$("#dV").value; flow(); KB.toast("거리를 바꿨습니다 · 결과가 다시 흐릅니다"); }; }
+    $$("[data-ea]", I).forEach((s) => s.onchange = () => { const e = editOf(sel); e.op[s.dataset.ea] = +s.value; flow(); });
+    $$("[data-up]", I).forEach((b) => b.onclick = () => { const k = edits.findIndex((e) => e.key === b.dataset.up); if (k > 0) { [edits[k - 1], edits[k]] = [edits[k], edits[k - 1]]; restack(); flow(); } });
+    $$("[data-del]", I).forEach((b) => b.onclick = () => { edits = edits.filter((e) => e.key !== b.dataset.del); delete N[b.dataset.del]; sel = "result"; restack(); flow(); });
+    const mt = $("#mT", I); if (mt) mt.onchange = () => { N[sel].team = mt.value; flow(); };
+    const rb = $("#rbM", I); if (rb) rb.onchange = () => { N[sel].monday = rb.checked; flow(); };
+  }
+  function restack() { edits.forEach((e, k) => { N[e.key].x = 476; N[e.key].y = 16 + k * 96; }); }
+
+  function flow() {
+    out = pipeline();
+    $("#badge").innerHTML = out.hardSum ? `<span class="hbadge bad">⚠ Hard 위반 ${out.hard.length}건</span>` : `<span class="hbadge ok">✓ 편성 가능 · Hard 0</span>`;
+    renderNodes(); renderInsp();
+  }
+
+  // ── 상호작용: 노드 끌기, 팔레트에서 끌어 놓기, 스위치 ──
+  let drag = null, undo = [];
+  const snapshot = () => { undo.push(JSON.stringify({ edits, ruleOn, weights })); if (undo.length > 50) undo.shift(); };
+  cv.addEventListener("pointerdown", (e) => {
+    const nh = e.target.closest(".nh");
+    if (!nh || e.target.closest("button")) return;
+    const el = nh.parentElement, n = N[el.dataset.id];
+    drag = { n, ox: e.clientX - n.x, oy: e.clientY - n.y, moved: false };
+    try { cv.setPointerCapture(e.pointerId); } catch {}
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.moved = true;
+    const r = cv.getBoundingClientRect();
+    drag.n.x = Math.max(0, Math.min(r.width - 144, e.clientX - drag.ox));
+    drag.n.y = Math.max(0, Math.min(r.height - 40, e.clientY - drag.oy));
+    const el = cv.querySelector(`.node[data-id="${drag.n.id}"]`);
+    el.style.left = drag.n.x + "px"; el.style.top = drag.n.y + "px";
+    renderWires();
+  });
+  cv.addEventListener("pointerup", () => { drag = null; });
+  cv.addEventListener("click", (e) => {
+    const rule = e.target.closest("[data-rule]");
+    if (rule) { snapshot(); ruleOn[rule.dataset.rule] = !ruleOn[rule.dataset.rule]; flow(); KB.toast(`${rule.dataset.rule} ${ruleOn[rule.dataset.rule] ? "켬" : "끔"} · 결과 Hard ${out.hardSum}`); return; }
+    const ed = e.target.closest("[data-edit]");
+    if (ed) { snapshot(); const x = editOf(ed.dataset.edit); x.on = !x.on; flow(); KB.toast(`보정 블록 ${x.on ? "적용" : "건너뜀"} · Hard ${out.hardSum}`); return; }
+    if (e.target.closest("[data-run]")) return run();
+    const rm = e.target.closest("[data-rm]");
+    if (rm) { delete N[rm.dataset.rm]; if (sel === rm.dataset.rm) sel = "result"; flow(); return; }
+    const nd = e.target.closest(".node");
+    if (nd) { sel = nd.dataset.id; renderNodes(); renderInsp(); }
+  });
+  cv.addEventListener("input", (e) => { const w = e.target.closest("[data-w]"); if (w) { weights[w.dataset.w] = +w.value; w.nextElementSibling.textContent = "×" + w.value; } });
+  cv.addEventListener("change", (e) => { if (e.target.closest("[data-w]")) flow(); });
+
+  // 팔레트 → 캔버스
+  let pdrag = null;
+  $("#palette").addEventListener("pointerdown", (e) => {
+    const pb = e.target.closest("[data-new]");
+    if (!pb) return;
+    const g = document.createElement("div");
+    g.className = "drop-ghost"; g.textContent = pb.textContent;
+    document.body.appendChild(g);
+    pdrag = { kind: pb.dataset.new, g };
+    try { e.target.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
+  document.addEventListener("pointermove", (e) => { if (pdrag) { pdrag.g.style.left = e.clientX + 8 + "px"; pdrag.g.style.top = e.clientY + 8 + "px"; } });
+  document.addEventListener("pointerup", (e) => {
+    if (!pdrag) return;
+    const { kind, g } = pdrag; pdrag = null; g.remove();
+    const r = cv.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    addBlock(kind, e.clientX - r.left, e.clientY - r.top);
+  });
+  function addBlock(kind, x, y) {
+    snapshot();
+    if (["swap", "flip", "pin"].includes(kind)) {
+      const id = "e" + ++eSeq;
+      const o = kind === "swap" ? { op: "swap", a: 20, b: 21 } : kind === "flip" ? { op: "flip", id: 93 } : { op: "pin", id: 88 };
+      edits.push({ key: id, on: true, op: o });
+      node(id, 0, 0, "edit", "", "#b7791f");
+      restack();
+      sel = id;
+    } else if (kind === "rain") {
+      rain = [{ home: "KIA", away: "삼성", date: "2025-06-10" }, { home: "LG", away: "KT", date: "2025-07-02" }, { home: "롯데", away: "NC", date: "2025-07-25" }];
+      const n = node("rebook", Math.min(x, 650), Math.min(y, 600), "rebook", "재편성 9~10월", "#1f8a4c"); n.removable = true; sel = "rebook";
+    } else {
+      const id = kind + "_" + ++eSeq;
+      const n = node(id, Math.min(x, 650), Math.min(y, 600), kind, kind === "km" ? "이동거리 막대" : kind === "map" ? "지도 동선" : "홈/원정 흐름", "#2f5bea"); n.removable = true; sel = id;
+    }
+    flow();
+    KB.toast("블록을 파이프라인에 이었습니다");
+  }
+
+  function run() {
+    solverDone = false; solverPct = 0; flow();
+    const t = setInterval(() => {
+      solverPct = Math.min(100, solverPct + 20);
+      if (solverPct >= 100) { solverDone = true; clearInterval(t); flow(); KB.toast(`실행 완료 · Hard ${out.hardSum}`); }
+      else renderNodes();
+    }, 160);
+  }
+  $("#runTop").onclick = run;
+  $("#undo").onclick = () => { const s = undo.pop(); if (!s) return; const o = JSON.parse(s); edits = o.edits; Object.assign(ruleOn, o.ruleOn); Object.assign(weights, o.weights); Object.keys(N).forEach((k) => { if (N[k].kind === "edit" && !editOf(k)) delete N[k]; }); edits.forEach((e) => node(e.key, 0, 0, "edit", "", "#b7791f")); restack(); flow(); };
+  window.addEventListener("resize", renderWires);
+
+  layoutNodes();
+  // 지도 보기 블록 하나는 처음부터 둔다.
+  const m = node("map_0", 650, 420, "map", "지도 동선", "#2f5bea"); m.removable = true;
+  flow();
+  KB.hud("04 조건 블록");
+  window.BL = { addBlock, N, edits: () => edits };
+})();
+</script>
+</body>
+</html>

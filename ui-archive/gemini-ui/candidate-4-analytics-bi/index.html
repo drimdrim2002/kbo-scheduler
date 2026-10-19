@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KBO 2025 Analytics &amp; Fairness BI Suite — 구단 유불리 비교 &amp; 일정 최적화 시뮬레이터</title>
+  <!-- Leaflet Map CSS (Graceful fallback to built-in Canvas/SVG GIS map if offline) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ========================================================================
+       EXECUTIVE HEADER & LIVE KPI RIBBON
+       ======================================================================== -->
+  <header class="exec-header">
+    <div class="exec-header-top">
+      <div class="brand-cluster">
+        <div class="brand-emblem" title="KBO Executive BI Suite">KBO</div>
+        <div class="brand-titles">
+          <div class="brand-eyebrow">
+            <span>CANDIDATE 04 · EXECUTIVE BI &amp; FAIRNESS SUITE</span>
+            <span class="brand-eyebrow-pill">OptaPlanner 2025 Engine</span>
+          </div>
+          <h1 class="brand-main-title">KBO 정규시즌 일정 공정성(유불리 평준화) 분석 &amp; 전후 시뮬레이션 BI</h1>
+        </div>
+      </div>
+
+      <!-- Live Executive KPI Ribbon -->
+      <div class="exec-kpi-ribbon">
+        <div class="header-kpi-pill">
+          <span class="header-kpi-label">HARD 제약 무결성</span>
+          <span class="header-kpi-value pass" id="hdr-hard-status">● PASS (0 위반)</span>
+        </div>
+        <div class="header-kpi-pill">
+          <span class="header-kpi-label">OPTAPLANNER SCORE</span>
+          <span class="header-kpi-value" id="hdr-score-text">[0/0]hard / [0/0/0/-34/-72073]soft</span>
+        </div>
+        <div class="header-kpi-pill">
+          <span class="header-kpi-label">최대 이동거리 격차 (SPREAD)</span>
+          <span class="header-kpi-value pass" id="hdr-spread-text">573.1 km (▼799.4km 개선)</span>
+        </div>
+        <div class="header-kpi-pill">
+          <span class="header-kpi-label">±300KM 평준화 달성</span>
+          <span class="header-kpi-value pass" id="hdr-tol-text">페널티 0점 (완전 평준화)</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-sm btn-dark" id="btn-toggle-all-stages" title="4개 스테이지를 한 화면에서 연속 브리핑 모드로 표시합니다">
+          📑 전체 스테이지 연속 보기: OFF
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-quick-run-solver">
+          🚀 엔진 즉시 시뮬레이션
+        </button>
+        <button type="button" class="btn btn-sm btn-dark" id="btn-export-json">
+          💾 JSON 내보내기
+        </button>
+      </div>
+    </div>
+
+    <!-- 4-Stage Navigation Bar -->
+    <nav class="stage-nav-bar" aria-label="핵심 워크플로우 스테이지">
+      <div class="stage-nav-inner">
+        <div class="stage-tabs" role="tablist">
+          <button type="button" class="stage-tab-btn active" data-stage="1" role="tab" aria-selected="true">
+            <span class="stage-num-badge">1</span>
+            <span>구단·구장 &amp; GIS 거리 분석</span>
+            <span class="stage-tab-sub">위경도 자동입력 · 10×10 행렬</span>
+          </button>
+          <button type="button" class="stage-tab-btn" data-stage="2" role="tab" aria-selected="false">
+            <span class="stage-num-badge">2</span>
+            <span>시즌 일정·휴일·이벤트 설계</span>
+            <span class="stage-tab-sub">월요일 휴무 · 개막/어린이날 · 올스타</span>
+          </button>
+          <button type="button" class="stage-tab-btn" data-stage="3" role="tab" aria-selected="false">
+            <span class="stage-num-badge">3</span>
+            <span>시뮬레이션 최종 확인 &amp; 엔진 구동</span>
+            <span class="stage-tab-sub">무결성 검증 · 실시간 수렴</span>
+          </button>
+          <button type="button" class="stage-tab-btn" data-stage="4" role="tab" aria-selected="false">
+            <span class="stage-num-badge">4</span>
+            <span>Hard/Soft 공정성 리포트 &amp; 전후 비교 BI</span>
+            <span class="stage-tab-sub">Before vs After · 6종 BI 차트</span>
+          </button>
+        </div>
+
+        <div class="view-mode-switch">
+          <span style="font-size:0.75rem;color:#94A3B8;font-weight:600;">현재 분석 플랜:</span>
+          <span class="badge badge-pass" id="nav-active-plan-badge">최적화 완료안 (Solved Plan)</span>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ========================================================================
+       MAIN WORKSPACE (STAGES 1 ~ 4)
+       ======================================================================== -->
+  <main class="workspace-main">
+
+    <!-- ======================================================================
+         STAGE 1: 구단 정보 & 위경도 자동 입력 & 지도/거리 계산
+         ====================================================================== -->
+    <section id="stage-1" class="stage-section active" aria-labelledby="stage1-title">
+      <div class="stage-banner">
+        <div class="stage-banner-info">
+          <div class="stage-banner-kicker">STAGE 01 · CLUBS, GEOCODING &amp; GIS DISTANCE MATRIX</div>
+          <h2 class="stage-banner-title" id="stage1-title">① 10개 구단 구장 위치 에디터 · 위경도 자동 입력 &amp; GIS 이동거리 매트릭스</h2>
+          <p class="stage-banner-desc">
+            구장명·주소 입력 또는 제2구장(포항·울산·청주·군산) 선택 시 위경도가 즉시 자동 입력되며, 대한민국 지도 네트워크와 10×10 구장 간 도로 이동거리 행렬이 실시간 재산출됩니다.
+          </p>
+        </div>
+        <div class="stage-banner-actions">
+          <button type="button" class="btn btn-sm" id="btn-preset-default-stadiums">🔄 2025 기본 10대 구장 복원</button>
+          <button type="button" class="btn btn-sm btn-amber" id="btn-preset-pohang">⚾ 시뮬레이션: 삼성→포항 / 롯데→울산 제2구장</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-recalc-all-distances">🗺️ 전 구장 이동거리 자동 산출 (Map Route API)</button>
+          <button type="button" class="btn btn-sm btn-indigo" data-goto-stage="2">다음: 시즌 일정·이벤트 설계 →</button>
+        </div>
+      </div>
+
+      <!-- Top Row: 10 Club Brand Cards & GIS Map Network -->
+      <div class="grid-12">
+        <!-- Left 7 Cols: 10 Club Brand Cards Editor -->
+        <div class="col-span-7 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>🏟️ 10개 구단 브랜드 카드 &amp; 구장 위치 에디터 (위경도 자동 매핑)</span>
+                <span class="badge badge-info">잠실 공동구장: 두산·LG</span>
+              </div>
+              <div class="bi-card-subtitle">
+                구장명/주소 입력 후 <strong>[📍 위경도 자동입력]</strong> 클릭 또는 제2구장 프리셋 선택 시 <code>KBOEngine.geocodeLocation()</code>으로 위도·경도가 자동 입력됩니다.
+              </div>
+            </div>
+            <div style="display:flex;gap:0.4rem;align-items:center;">
+              <span class="badge badge-pass" id="geocode-status-badge">✓ 10개 구단 좌표 정상</span>
+            </div>
+          </div>
+          <div class="bi-card-body">
+            <div class="teams-card-grid" id="teams-card-grid">
+              <!-- Populated dynamically by app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Interactive Korea GIS Map (Built-in Canvas/SVG + Leaflet + Kakao/Naver SDK Switch) -->
+        <div class="col-span-5 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>🗺️ 대한민국 야구장 GIS 네트워크 &amp; 이동거리 시각화</span>
+              </div>
+              <div class="bi-card-subtitle">
+                구단 마커를 클릭하면 해당 구단에서 타 구장까지의 직선/도로 이동 네트워크와 거리를 하이라이트합니다.
+              </div>
+            </div>
+            <div class="segmented-control" id="map-provider-switch">
+              <button type="button" class="seg-btn active" data-map-mode="canvas">고해상도 GIS 캔버스</button>
+              <button type="button" class="seg-btn" data-map-mode="leaflet">Leaflet 지도</button>
+              <button type="button" class="seg-btn" data-map-mode="kakao">Kakao Map</button>
+              <button type="button" class="seg-btn" data-map-mode="naver">Naver Map</button>
+            </div>
+          </div>
+          <div class="bi-card-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+            <!-- Optional SDK Key Bar for Kakao / Naver Map -->
+            <div class="gis-sdk-config-bar" id="gis-sdk-config-bar" style="display:none;">
+              <span style="font-size:0.76rem;font-weight:700;color:var(--text-secondary);" id="sdk-key-label">Kakao JavaScript 앱키:</span>
+              <input type="text" class="input-field input-mono" id="sdk-api-key-input" placeholder="API Key 입력 시 실서버 타일 로드 (미입력 시 하이브리드 GIS 뷰)" style="flex:1;min-width:180px;" />
+              <button type="button" class="btn btn-xs btn-primary" id="btn-load-external-map-sdk">SDK 연결</button>
+            </div>
+
+            <!-- Map Container -->
+            <div class="gis-map-container" id="gis-map-container">
+              <!-- Layer 1: Built-in High-DPI Korea GIS Network Canvas -->
+              <canvas id="korea-gis-canvas" class="gis-map-layer"></canvas>
+              <!-- Layer 2: Leaflet / Kakao / Naver DOM container -->
+              <div id="external-map-dom" class="gis-map-layer" style="display:none;"></div>
+
+              <!-- HUD Overlay -->
+              <div class="gis-map-overlay-hud" id="gis-map-hud">
+                <div style="font-weight:800;color:#38BDF8;margin-bottom:0.2rem;" id="hud-selected-team-title">선택 구단: 롯데 자이언츠 (사직야구장)</div>
+                <div id="hud-selected-team-detail" style="color:#CBD5E1;font-size:0.74rem;">
+                  타 구장 평균 거리: <strong>305.4 km</strong> (리그 최장거리 원정 부담 1위 · 수도권 평균 대비 +129km)
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Team Selector for Map Arc Inspection -->
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;">
+              <span style="font-size:0.76rem;font-weight:700;color:var(--text-muted);">🎯 기준 구장 포커스:</span>
+              <div class="team-chip-bar" id="map-focus-team-chips"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: 10x10 Distance Matrix Heatmap & Geographical Accessibility Index -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>📐 구장 별 10×10 도로 이동거리 매트릭스 (km) &amp; 구단별 지리적 유불리 지수</span>
+              <span class="badge badge-neutral" id="matrix-calc-mode-badge">출처: KBO 공인 도로거리 + 위경도 보정식</span>
+            </div>
+            <div class="bi-card-subtitle">
+              셀을 클릭하면 지도에서 두 구단 간 이동 경로를 하이라이트하며, 더블클릭 시 특정 구간 거리를 수동 미세조정할 수 있습니다.
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <label style="font-size:0.78rem;color:var(--text-secondary);display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;">
+              <input type="checkbox" id="chk-live-osrm-api" />
+              <span>OSRM 실시간 도로망 API 우선 호출</span>
+            </label>
+            <button type="button" class="btn btn-xs btn-primary" id="btn-matrix-recompute">🔄 현재 위경도로 10×10 행렬 재산출</button>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="matrix-scroll-wrap">
+            <table class="distance-matrix-table" id="distance-matrix-table">
+              <!-- Populated dynamically by app.js -->
+            </table>
+          </div>
+
+          <!-- Geographical Accessibility Ranking Cards -->
+          <div style="margin-top:1rem;">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);margin-bottom:0.4rem;">
+              📊 구단별 기본 지리적 접근성 진단 (타 9개 구단 구장까지의 1회 평균 이동거리 — 일정 최적화로 평준화해야 할 선천적 격차)
+            </div>
+            <div class="geo-index-grid" id="geo-index-grid">
+              <!-- Populated dynamically by app.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         STAGE 2: 일정 정보 (시즌 기간, 월요일 휴일, 특정 이벤트, 올스타 브레이크, 캘린더)
+         ====================================================================== -->
+    <section id="stage-2" class="stage-section" aria-labelledby="stage2-title">
+      <div class="stage-banner">
+        <div class="stage-banner-info">
+          <div class="stage-banner-kicker">STAGE 02 · SEASON CALENDAR, HOLIDAYS &amp; SPECIAL EVENT PINS</div>
+          <h2 class="stage-banner-title" id="stage2-title">② 시즌 기간 · 정기 휴무일 · 특정 이벤트(개막전/어린이날) &amp; 올스타 브레이크 설계</h2>
+          <p class="stage-banner-desc">
+            특정 이벤트는 <strong>[구단 및 구장 지정(대진+구장 고정)]</strong> 방식과 <strong>[구장만 지정(홈구장만 고정 후 매치업은 엔진 위임)]</strong> 방식을 슬롯별로 선택할 수 있습니다.
+          </p>
+        </div>
+        <div class="stage-banner-actions">
+          <button type="button" class="btn btn-sm" data-goto-stage="1">← 이전: 구단·GIS 분석</button>
+          <button type="button" class="btn btn-sm" id="btn-reset-season-rules">🔄 2025 KBO 공식 마스터 룰 복원</button>
+          <button type="button" class="btn btn-sm btn-indigo" data-goto-stage="3">다음: 최종 확인 &amp; 엔진 실행 →</button>
+        </div>
+      </div>
+
+      <div class="grid-12">
+        <!-- Left 5 Cols: Season Period, Weekly Rest Days, All-Star Break & Soft Tolerances -->
+        <div class="col-span-5 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">🗓️ 시즌 마스터 룰 · 정기 휴무일 · 올스타 브레이크</div>
+              <div class="bi-card-subtitle">KBO 정규시즌 기간, 매주 정기 휴무일(월요일), 올스타 휴식기 및 평준화 허용 오차를 설정합니다.</div>
+            </div>
+          </div>
+          <div class="bi-card-body" style="display:flex;flex-direction:column;gap:1.1rem;">
+            <!-- 1. Season Start / End Date -->
+            <div style="background:var(--bg-surface-alt);padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+              <div style="font-size:0.82rem;font-weight:700;margin-bottom:0.55rem;color:var(--text-primary);">1. 정규시즌 운영 기간 (45개 시리즈 슬롯 · 팀당 144경기)</div>
+              <div class="grid-2col" style="gap:0.75rem;">
+                <div>
+                  <label class="field-label" for="cfg-season-start">정규시즌 개막일</label>
+                  <input type="date" id="cfg-season-start" class="input-field input-mono" value="2025-03-22" style="width:100%;margin-top:0.25rem;" />
+                </div>
+                <div>
+                  <label class="field-label" for="cfg-season-end">정규시즌 종료일 (우천 잔여 이전)</label>
+                  <input type="date" id="cfg-season-end" class="input-field input-mono" value="2025-08-31" style="width:100%;margin-top:0.25rem;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Weekly Rest Day Toggles -->
+            <div style="background:var(--bg-surface-alt);padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                <span style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">2. 매주 정기 휴무일 지정 (경기 미개최 요일)</span>
+                <span class="badge badge-fail" id="rest-day-summary-badge">매주 월요일 휴무</span>
+              </div>
+              <div class="dow-chip-group" id="dow-rest-chips">
+                <button type="button" class="dow-chip" data-dow="0">일요일</button>
+                <button type="button" class="dow-chip rest-active" data-dow="1">월요일 (정기휴일)</button>
+                <button type="button" class="dow-chip" data-dow="2">화요일</button>
+                <button type="button" class="dow-chip" data-dow="3">수요일</button>
+                <button type="button" class="dow-chip" data-dow="4">목요일</button>
+                <button type="button" class="dow-chip" data-dow="5">금요일</button>
+                <button type="button" class="dow-chip" data-dow="6">토요일</button>
+              </div>
+              <div style="font-size:0.73rem;color:var(--text-muted);margin-top:0.45rem;">
+                * 단, 어린이날(5/5 월요일) 등 특별 공휴일 슬롯이 화~목/월~수 변형 편성될 경우 예외 규칙이 자동 적용됩니다.
+              </div>
+            </div>
+
+            <!-- 3. All-Star Break & Non-Game Blackout Windows -->
+            <div style="background:var(--bg-surface-alt);padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.55rem;">
+                <span style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">3. 올스타 브레이크 및 경기 미개최(Blackout) 일자</span>
+                <span class="badge badge-warn">6일간 정규경기 중단</span>
+              </div>
+              <div class="grid-2col" style="gap:0.75rem;">
+                <div>
+                  <label class="field-label" for="cfg-allstar-start">올스타 브레이크 시작일</label>
+                  <input type="date" id="cfg-allstar-start" class="input-field input-mono" value="2025-07-11" style="width:100%;margin-top:0.25rem;" />
+                </div>
+                <div>
+                  <label class="field-label" for="cfg-allstar-end">올스타 브레이크 종료일</label>
+                  <input type="date" id="cfg-allstar-end" class="input-field input-mono" value="2025-07-16" style="width:100%;margin-top:0.25rem;" />
+                </div>
+              </div>
+              <div style="margin-top:0.65rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+                <span style="font-size:0.75rem;color:var(--text-secondary);">추가 경기 제외일(우천 예비/국가대표 브레이크):</span>
+                <div style="display:flex;gap:0.35rem;">
+                  <input type="date" id="input-extra-blackout" class="input-field input-mono" value="2025-07-17" style="padding:0.25rem 0.5rem;font-size:0.75rem;" />
+                  <button type="button" class="btn btn-xs" id="btn-add-blackout">+ 미개최일 추가</button>
+                </div>
+              </div>
+              <div id="blackout-tags-list" style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.5rem;"></div>
+            </div>
+
+            <!-- 4. Fairness Tolerance Parameters -->
+            <div style="background:var(--bg-surface-alt);padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+              <div style="font-size:0.82rem;font-weight:700;margin-bottom:0.55rem;color:var(--text-primary);">4. OptaPlanner 구단 평준화 허용 편차 (Soft Constraint Tolerance)</div>
+              <div class="grid-2col" style="gap:0.65rem;">
+                <div>
+                  <label class="field-label" for="cfg-tol-dist">총 이동거리 허용편차 (km)</label>
+                  <input type="number" id="cfg-tol-dist" class="input-field input-mono" value="300" min="50" max="1000" step="50" style="width:100%;margin-top:0.2rem;" />
+                </div>
+                <div>
+                  <label class="field-label" for="cfg-tol-move">총 이동일수 허용편차 (회)</label>
+                  <input type="number" id="cfg-tol-move" class="input-field input-mono" value="2.0" min="0.5" max="5" step="0.5" style="width:100%;margin-top:0.2rem;" />
+                </div>
+                <div>
+                  <label class="field-label" for="cfg-tol-hol">휴일 홈점수 허용편차 (점)</label>
+                  <input type="number" id="cfg-tol-hol" class="input-field input-mono" value="1.5" min="0.5" max="5" step="0.5" style="width:100%;margin-top:0.2rem;" />
+                </div>
+                <div>
+                  <label class="field-label" for="cfg-max-streak">최대 연속 홈/원정 시리즈 (Hard)</label>
+                  <input type="number" id="cfg-max-streak" class="input-field input-mono" value="3" min="2" max="5" step="1" style="width:100%;margin-top:0.2rem;" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 7 Cols: Special Event Builder (Opening Day, Children's Day, Custom Events) -->
+        <div class="col-span-7 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>📌 특정 이벤트 빌더 — [구단 및 구장 지정] vs [구장만 지정]</span>
+                <span class="badge badge-info">OptaPlanner @PlanningPin 연동</span>
+              </div>
+              <div class="bi-card-subtitle">
+                각 특별 시리즈마다 <strong>구단 대진과 구장을 모두 지정</strong>하거나, <strong>개최 구장(홈구단) 5곳만 지정하고 상대 매치업은 엔진에 위임</strong>할 수 있습니다.
+              </div>
+            </div>
+            <button type="button" class="btn btn-xs btn-primary" id="btn-add-custom-event">+ 신규 특별 이벤트 슬롯 추가</button>
+          </div>
+          <div class="bi-card-body" style="display:flex;flex-direction:column;gap:1rem;" id="special-events-container">
+            <!-- Populated dynamically by app.js (Opening Day 2025-03-22, Children's Day 2025-05-05, plus custom events) -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual 6-Month Season Calendar Preview Board -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>📅 2025 KBO 정규시즌 6개월 시각적 캘린더 프리뷰 보드 (3월 ~ 8월 · 45개 시리즈 슬롯)</span>
+            </div>
+            <div class="bi-card-subtitle">
+              날짜 셀을 클릭하면 해당 시리즈 슬롯에 편성된 5개 구장 대진(최적화 전/후 비교)과 연전 수, 공휴일 가중치를 즉시 확인합니다.
+            </div>
+          </div>
+          <div class="chart-legend-row" style="padding-top:0;">
+            <span class="legend-item"><span class="legend-swatch" style="background:#FEF3C7;border:1px solid #D97706;"></span>개막 2연전 (3/22)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#ECFDF5;border:1px solid #059669;"></span>어린이날 3연전 (5/5)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#EFF6FF;border:1px solid #60A5FA;"></span>주중 3연전 (화~목)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#EEF2FF;border:1px solid #6366F1;"></span>주말 3연전 (금~일)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#F5F3FF;border:1px solid #8B5CF6;"></span>후반기 개막 4연전 (7/17~)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#FDE68A;border:1px solid #D97706;"></span>올스타 브레이크 (7/11~7/16)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:#F1F5F9;border:1px solid #CBD5E1;"></span>월요일 정기휴일</span>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="season-months-grid" id="season-months-grid">
+            <!-- 6 Month Calendar Cards populated by app.js -->
+          </div>
+
+          <!-- Selected Slot Inspector Bar -->
+          <div id="calendar-slot-inspector" style="margin-top:1rem;padding:0.9rem 1.1rem;background:var(--bg-surface-alt);border:1px solid var(--border-strong);border-radius:var(--radius-md);">
+            <!-- Populated when clicking any calendar slot -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         STAGE 3: 입력 결과 최종 확인 및 엔진 실행 화면
+         ====================================================================== -->
+    <section id="stage-3" class="stage-section" aria-labelledby="stage3-title">
+      <div class="stage-banner">
+        <div class="stage-banner-info">
+          <div class="stage-banner-kicker">STAGE 03 · PRE-FLIGHT VERIFICATION &amp; OPTAPLANNER SOLVER EXECUTION</div>
+          <h2 class="stage-banner-title" id="stage3-title">③ 시뮬레이션 입력 파라미터 최종 무결성 검증 &amp; OptaPlanner 엔진 실행</h2>
+          <p class="stage-banner-desc">
+            10개 구단 위경도/거리 행렬, 45개 시리즈 슬롯, 잠실 공동구장 제약, 개막전/어린이날 고정(Pin) 상태를 최종 점검하고 최적화 솔버를 구동합니다.
+          </p>
+        </div>
+        <div class="stage-banner-actions">
+          <button type="button" class="btn btn-sm" data-goto-stage="2">← 이전: 시즌 일정·이벤트 설계</button>
+          <button type="button" class="btn btn-sm btn-emerald" id="btn-stage3-run-solver">🚀 OptaPlanner 최적화 엔진 실행</button>
+          <button type="button" class="btn btn-sm btn-indigo" data-goto-stage="4">다음: 공정성 리포트 &amp; BI 대시보드 →</button>
+        </div>
+      </div>
+
+      <!-- Pre-Flight Verification Infographic Cards -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>🛡️ 최종 입력 요약 인포그래픽 &amp; 수리적 무결성 체크리스트 (Pre-Flight Auditor)</span>
+              <span class="badge badge-pass" id="preflight-overall-badge">ALL 6 CHECKS READY</span>
+            </div>
+            <div class="bi-card-subtitle">솔버 구동 전 입력 데이터의 정합성과 Hard/Soft 제약 파라미터를 검증합니다.</div>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="preflight-check-grid" id="preflight-check-grid">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Solver Execution & Real-Time Convergence Monitor -->
+      <div class="grid-12">
+        <div class="col-span-6 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">⚙️ OptaPlanner 최적화 엔진 컨트롤 &amp; 실시간 탐색 텔레메트리</div>
+              <div class="bi-card-subtitle">Construction Heuristic 이후 Local Search(Tabu / Late Acceptance)로 거리 편차를 ±300km 이내로 수렴시킵니다.</div>
+            </div>
+            <select id="solver-speed-select" class="select-field" style="font-size:0.78rem;">
+              <option value="2200">고속 브리핑 시뮬레이션 (2.2초)</option>
+              <option value="4000" selected>표준 단계별 수렴 시뮬레이션 (4.0초)</option>
+              <option value="6500">정밀 탐색 텔레메트리 (6.5초)</option>
+            </select>
+          </div>
+          <div class="bi-card-body">
+            <div class="solver-console-box">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                <div>
+                  <div style="font-size:0.72rem;color:#94A3B8;font-weight:700;text-transform:uppercase;">CURRENT SOLVER PHASE</div>
+                  <div style="font-size:1.05rem;font-weight:800;color:#38BDF8;" id="solver-phase-title">Ready — 최적화 완료 해(Solved Plan) 로드됨</div>
+                </div>
+                <div style="display:flex;gap:0.5rem;">
+                  <button type="button" class="btn btn-lg btn-emerald" id="btn-launch-solver-main">
+                    🚀 OptaPlanner 최적화 엔진 실행
+                  </button>
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:0.76rem;color:#CBD5E1;margin-bottom:0.3rem;font-family:var(--font-mono);">
+                  <span id="solver-step-counter">Step 18,420 / 18,420 (45 Slots · 225 Series)</span>
+                  <span id="solver-pct-label">100% 완료</span>
+                </div>
+                <div class="solver-progress-track">
+                  <div class="solver-progress-bar" id="solver-progress-bar" style="width:100%;"></div>
+                </div>
+              </div>
+
+              <!-- Live Telemetry Metrics -->
+              <div class="grid-2col" style="gap:0.65rem;">
+                <div style="background:#0F172A;padding:0.6rem 0.8rem;border-radius:6px;border:1px solid #1E293B;">
+                  <div style="font-size:0.68rem;color:#94A3B8;">BEST HARD / SOFT SCORE</div>
+                  <div style="font-family:var(--font-mono);font-size:0.86rem;font-weight:700;color:#34D399;" id="solver-live-score">[0/0]hard/[0/0/0/-34/-72073]soft</div>
+                </div>
+                <div style="background:#0F172A;padding:0.6rem 0.8rem;border-radius:6px;border:1px solid #1E293B;">
+                  <div style="font-size:0.68rem;color:#94A3B8;">거리 평준화 페널티 (Stabilize Distance)</div>
+                  <div style="font-family:var(--font-mono);font-size:0.86rem;font-weight:700;color:#38BDF8;" id="solver-live-dist-penalty">-573,810 → 0 (100% 해소)</div>
+                </div>
+              </div>
+
+              <!-- Terminal Log -->
+              <div class="solver-log-terminal" id="solver-log-terminal">
+                <!-- Populated by app.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 6 Cols: Live Convergence Curve Canvas -->
+        <div class="col-span-6 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">📈 실시간 최적화 수렴 그래프 (거리 편차 페널티 &amp; 구단 간 최대 격차 감소 추이)</div>
+              <div class="bi-card-subtitle">초기안(최대편차 +788km, 격차 1,372.5km)에서 최적화 해(격차 573.1km, 페널티 0)로 수렴하는 과정을 시각화합니다.</div>
+            </div>
+            <button type="button" class="btn btn-xs btn-indigo" data-goto-stage="4">📊 4단계 상세 BI 리포트 열기 →</button>
+          </div>
+          <div class="bi-card-body">
+            <div class="chart-canvas-wrap">
+              <canvas id="canvas-convergence-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         STAGE 4: 엔진 실행 결과 확인 화면 (Hard 검증 + Soft 전후 비교 + 6종 BI 차트)
+         ====================================================================== -->
+    <section id="stage-4" class="stage-section" aria-labelledby="stage4-title">
+      <!-- Top Executive Simulation Control Bar -->
+      <div class="sim-control-ribbon">
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;color:#38BDF8;letter-spacing:0.06em;text-transform:uppercase;">
+            STAGE 04 · EXECUTIVE FAIRNESS AUDIT &amp; BEFORE/AFTER SIMULATION SUITE
+          </div>
+          <h2 style="font-size:1.28rem;font-weight:800;color:#FFFFFF;margin-top:0.15rem;" id="stage4-title">
+            ④ Hard 제약 무결성 검증 &amp; 10개 구단 Soft 공정성 전/후(Before vs After) 비교 BI 리포트
+          </h2>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:#CBD5E1;font-weight:600;">시뮬레이션 플랜 비교 모드:</span>
+          <div class="segmented-control" id="plan-comparison-mode-switch" style="background:#090E1A;border:1px solid #334155;">
+            <button type="button" class="seg-btn active" data-plan-mode="solved" style="color:#E2E8F0;">✨ 최적화 완료안 (Solved · ±300km 평준화)</button>
+            <button type="button" class="seg-btn" data-plan-mode="initial" style="color:#E2E8F0;">📉 최적화 전 초기안 (Initial · 편차 ±788km)</button>
+            <button type="button" class="seg-btn" data-plan-mode="violation" style="color:#FCA5A5;">🚨 Hard 위반 샘플 테스트 (Violation Demo)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Executive KPI Delta Cards (Before vs After Impact) -->
+      <div class="kpi-delta-grid" id="exec-kpi-delta-grid">
+        <!-- Populated dynamically by app.js -->
+      </div>
+
+      <!-- 1. Hard Constraints Traffic-Light Auditor (6 Hard Rules) -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>🚦 6대 Hard Constraints 무결성 검증 패널 (BaseballEasyScoreCalculator 기준)</span>
+              <span class="badge badge-pass" id="hard-panel-summary-badge">6 / 6 ALL PASSED (Hard Score: 0 / 0)</span>
+            </div>
+            <div class="bi-card-subtitle">
+              단 1건의 위반도 허용되지 않는 필수 물리·규정 제약입니다. 우측 <strong>[🚨 위반 샘플 시뮬레이션 토글]</strong>로 잠실 중복·어린이날 위반·연속 맞대결 검출을 즉시 테스트할 수 있습니다.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button type="button" class="btn btn-xs btn-danger-soft" id="btn-toggle-violation-demo">
+              🚨 위반 샘플 시뮬레이션: OFF
+            </button>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="hard-checks-grid" id="hard-checks-grid">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Soft Constraints Master Comparison Table (Before vs After across 10 Teams) -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>⚖️ 10개 구단 Soft Constraints 공정성 지표 &amp; 최적화 전/후(Before vs After) 비교 마스터 테이블</span>
+              <span class="badge badge-info">컬럼 헤더 클릭 시 정렬 · 행 클릭 시 구단 상세 궤적 연동</span>
+            </div>
+            <div class="bi-card-subtitle">
+              초기안(롯데 8,083.6km vs KIA 6,711.1km, 격차 1,372.5km)이 최적화 후 전 구단 6,934.8km ~ 7,507.9km(평균 7,207.4km 기준 ±300km 밴드)로 평준화된 결과를 비교합니다.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.45rem;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:0.76rem;color:var(--text-muted);">포커스 구단:</span>
+            <select id="select-focus-team-master" class="select-field" style="font-size:0.8rem;font-weight:700;"></select>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="soft-table-wrap">
+            <table class="soft-bi-table" id="soft-comparison-table">
+              <thead>
+                <tr>
+                  <th data-sort="team">구단 (연고·구장) ↕</th>
+                  <th data-sort="beforeDistance">최적화 전 거리 (Before) ↕</th>
+                  <th data-sort="totalDistance">최적화 후 거리 (After) ↕</th>
+                  <th data-sort="deltaDistance">최적화 개선폭 (Δ) ↕</th>
+                  <th data-sort="distanceDiffFromMean">평균 대비 편차 (±300km) ↕</th>
+                  <th data-sort="totalMoveCount">총 이동 일수 (Before→After) ↕</th>
+                  <th data-sort="weekdayMoveCount">주중 이동 / 주말 이동 ↕</th>
+                  <th data-sort="weekendHomeGames">주말 홈경기 수 ↕</th>
+                  <th data-sort="holidayHomeGames">공휴일 홈경기 수 ↕</th>
+                  <th data-sort="holidayScore">휴일 점수 (평균 25.0) ↕</th>
+                  <th data-sort="maxHomeStreak">최대 연속 홈/원정 ↕</th>
+                  <th>공정성 판정</th>
+                </tr>
+              </thead>
+              <tbody id="soft-comparison-tbody">
+                <!-- Populated dynamically by app.js -->
+              </tbody>
+              <tfoot id="soft-comparison-tfoot">
+                <!-- League summary row -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           3. 6 PREMIUM BI CHARTS & INFOGRAPHICS (100% Pure Canvas/SVG)
+           ==================================================================== -->
+
+      <!-- BI Chart Row 1: Chart 1 (Before/After Distance + ±300km Band) & Chart 2 (Move Days & Efficiency Scatter) -->
+      <div class="grid-12">
+        <!-- Chart 1 -->
+        <div class="col-span-7 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>📊 BI Chart 1. 최적화 전/후 구단별 총 이동거리 비교 &amp; ±300km 평준화 Tolerance 밴드</span>
+              </div>
+              <div class="bi-card-subtitle">
+                초기안(회색/주황 점선 바)의 극심한 유불리(롯데 +788km, KIA -585km)가 최적화 후(구단 고유 컬러 바) 녹색 ±300km 공정성 밴드 안으로 수렴한 모습을 입증합니다.
+              </div>
+            </div>
+            <div class="segmented-control" id="chart1-sort-switch">
+              <button type="button" class="seg-btn active" data-c1-sort="default">구단 순</button>
+              <button type="button" class="seg-btn" data-c1-sort="afterDesc">최적화 후 거리순</button>
+              <button type="button" class="seg-btn" data-c1-sort="beforeDesc">최적화 전 거리순</button>
+            </div>
+          </div>
+          <div class="bi-card-body">
+            <div class="chart-canvas-wrap">
+              <canvas id="canvas-chart-distance-band"></canvas>
+            </div>
+            <div class="chart-legend-row">
+              <span class="legend-item"><span class="legend-swatch" style="background:rgba(16,185,129,0.18);border:1px dashed #059669;"></span>리그 평균 ±300km 공정성 허용 밴드 (6,907 ~ 7,507km)</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:#94A3B8;"></span>최적화 전 (Initial Plan · 편차 과다)</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:#2563EB;"></span>최적화 후 (Solved Plan · 구단 브랜드 컬러)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 2 -->
+        <div class="col-span-5 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>🫧 BI Chart 2. 구단별 이동 일수(주중/주말) &amp; 이동 효율 산점도</span>
+              </div>
+              <div class="bi-card-subtitle">
+                총 이동 횟수(34~37회, ±2회 이내)와 주중(목→금)/주말(일→화) 이동 구성을 비교합니다.
+              </div>
+            </div>
+            <div class="segmented-control" id="chart2-mode-switch">
+              <button type="button" class="seg-btn active" data-c2-mode="scatter">이동효율 산점도</button>
+              <button type="button" class="seg-btn" data-c2-mode="stacked">주중 vs 주말 누적바</button>
+            </div>
+          </div>
+          <div class="bi-card-body">
+            <div class="chart-canvas-wrap">
+              <canvas id="canvas-chart-moves"></canvas>
+            </div>
+            <div class="chart-legend-row">
+              <span class="legend-item"><span class="legend-swatch" style="background:#3B82F6;"></span>주중 이동 (목요일 경기 후 이동)</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:#6366F1;"></span>주말 이동 (일요일 경기 후 월요일 휴무 이동)</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:rgba(59,130,246,0.15);border:1px dashed #2563EB;"></span>±2회 이동일수 허용 박스</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BI Chart Row 2: Chart 3 (Weekend/Holiday Home Games) & Chart 4 (5-Axis Fairness Radar) -->
+      <div class="grid-12">
+        <!-- Chart 3 -->
+        <div class="col-span-6 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>🎟️ BI Chart 3. 구단별 주말·공휴일 홈경기 수 및 휴일 점수(Holiday Score) 평준화</span>
+              </div>
+              <div class="bi-card-subtitle">
+                구단 흥행 수익과 직결되는 주말(금·토·일) 홈경기 및 공휴일 홈경기 배분과 휴일 점수(평균 25.0점)를 비교합니다.
+              </div>
+            </div>
+            <span class="badge badge-info">개막홈 ★ / 어린이날홈 🎈 표시</span>
+          </div>
+          <div class="bi-card-body">
+            <div class="chart-canvas-wrap">
+              <canvas id="canvas-chart-holiday"></canvas>
+            </div>
+            <div class="chart-legend-row">
+              <span class="legend-item"><span class="legend-swatch" style="background:#2563EB;"></span>주말 홈경기 수 (토·일 기준)</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span>공휴일 추가 홈경기 수</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:#10B981;"></span>휴일 점수 (Holiday Score 꺾은선 · 평균 25.0)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 4 -->
+        <div class="col-span-6 bi-card">
+          <div class="bi-card-header">
+            <div class="bi-card-title-group">
+              <div class="bi-card-title">
+                <span>🕸️ BI Chart 4. 10개 구단 5대 공정성 지수 레이더 차트 (다중 구단 오버레이)</span>
+              </div>
+              <div class="bi-card-subtitle">
+                ①거리 평준화 ②이동빈도 안정성 ③주중 이동 완화 ④주말·휴일 흥행 균형 ⑤홈/원정 연속 균형 5대 지표를 100점 만점으로 정규화하여 비교합니다.
+              </div>
+            </div>
+            <label style="font-size:0.76rem;color:var(--text-secondary);display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;">
+              <input type="checkbox" id="chk-radar-show-before" checked />
+              <span>포커스 구단 최적화 전(점선) 함께 표시</span>
+            </label>
+          </div>
+          <div class="bi-card-body">
+            <div class="team-chip-bar" id="radar-team-chips" style="margin-bottom:0.65rem;">
+              <!-- Multi-select team chips populated by app.js -->
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="canvas-chart-radar"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BI Chart Row 3: Chart 5 (Cumulative Distance Spaghetti Line Chart across 45 Slots) -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>📈 BI Chart 5. 시즌 진행(3월~8월, 45개 시리즈 슬롯)에 따른 10개 구단 누적 이동거리 피로도 추이 (Spaghetti Chart)</span>
+            </div>
+            <div class="bi-card-subtitle">
+              시즌 개막(Slot 1)부터 종료(Slot 45)까지 10개 구단의 누적 이동거리 곡선과 구단 간 벌어짐(Spread)을 추적합니다.
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+            <label style="font-size:0.78rem;color:var(--text-secondary);display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;">
+              <input type="checkbox" id="chk-spaghetti-show-before" checked />
+              <span>최적화 전(Initial) 상·하한 범위 음영 비교</span>
+            </label>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <div class="chart-canvas-wrap tall">
+            <canvas id="canvas-chart-spaghetti"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- BI Chart Row 4: Chart 6 (Selected Team Season Route Trajectory Map & 45-Slot Step-by-Step Timeline) -->
+      <div class="bi-card">
+        <div class="bi-card-header">
+          <div class="bi-card-title-group">
+            <div class="bi-card-title">
+              <span>🧭 BI Chart 6. 선택 구단 상세 시즌 이동 경로 타임라인 &amp; 대한민국 지도 궤적 뷰 (45 시리즈 전수 추적)</span>
+            </div>
+            <div class="bi-card-subtitle">
+              구단과 월(3~8월)을 선택하면 해당 구단의 원정/홈 이동 궤적 화살표와 슬롯별 이동 거리·연속 시리즈 현황을 정밀 브리핑합니다.
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <div class="segmented-control" id="trajectory-month-filter">
+              <button type="button" class="seg-btn active" data-month="ALL">시즌 전체(45슬롯)</button>
+              <button type="button" class="seg-btn" data-month="03">3월</button>
+              <button type="button" class="seg-btn" data-month="04">4월</button>
+              <button type="button" class="seg-btn" data-month="05">5월</button>
+              <button type="button" class="seg-btn" data-month="06">6월</button>
+              <button type="button" class="seg-btn" data-month="07">7월</button>
+              <button type="button" class="seg-btn" data-month="08">8월</button>
+            </div>
+          </div>
+        </div>
+        <div class="bi-card-body">
+          <!-- Team selector bar for Chart 6 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.9rem;">
+            <div class="team-chip-bar" id="trajectory-team-chips"></div>
+            <div id="trajectory-team-kpi-summary" style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);"></div>
+          </div>
+
+          <div class="grid-12">
+            <!-- Left 6 Cols: Korea Trajectory Map Canvas -->
+            <div class="col-span-6">
+              <div class="chart-canvas-wrap tall" style="border:1px solid var(--border-strong);border-radius:var(--radius-md);overflow:hidden;">
+                <canvas id="canvas-chart-trajectory"></canvas>
+              </div>
+              <div class="chart-legend-row">
+                <span class="legend-item"><span class="legend-swatch" style="background:#EF4444;"></span>주중 이동 (목→금 시리즈 전환)</span>
+                <span class="legend-item"><span class="legend-swatch" style="background:#3B82F6;"></span>주말 이동 (일→화 월요일 휴무 포함 전환)</span>
+                <span class="legend-item"><span class="legend-swatch" style="background:#10B981;"></span>체류 (0km 연속 시리즈)</span>
+              </div>
+            </div>
+
+            <!-- Right 6 Cols: Step-by-Step 45-Series Route Timeline -->
+            <div class="col-span-6">
+              <div class="route-timeline-list" id="route-timeline-list">
+                <!-- Populated dynamically by app.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Floating Tooltip for Interactive Canvas Charts -->
+  <div id="bi-chart-tooltip" class="bi-chart-tooltip"></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts: Leaflet JS -> Authentic KBO 2025 Data & Engine -> Candidate 4 BI App -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

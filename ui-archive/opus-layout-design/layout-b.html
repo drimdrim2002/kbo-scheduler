@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B · 레코드 탐색기</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .app { display: grid; grid-template-rows: 46px minmax(0, 1fr); }
+  .top { display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .top h1 { font-size: 14px; white-space: nowrap; }
+  .search { width: 320px; position: relative; }
+  .search .input { padding-left: 26px; }
+  .search::before { content: "⌕"; position: absolute; left: 9px; top: 4px; color: var(--ink-3); }
+  .body { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 10px; padding: 10px; min-height: 0; }
+
+  /* 마스터 목록 */
+  .types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); flex: none; }
+  .types button { border: 1px solid var(--line); background: #fff; border-radius: 5px; padding: 4px 2px; font-size: 12px; display: flex; justify-content: center; gap: 4px; }
+  .types button[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .types .n { font-size: 10px; opacity: .7; font-variant-numeric: tabular-nums; }
+  .types .n.bad { color: var(--bad); opacity: 1; font-weight: 700; }
+  .types button[aria-selected="true"] .n.bad { color: #ffb3ad; }
+  .filter { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); flex: none; }
+  .list { flex: 1; min-height: 0; overflow: auto; position: relative; }
+  .li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .li:hover { background: #f6f6f3; }
+  .li.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .li .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .li .sub { font-size: 11px; color: var(--ink-3); }
+  .li.pinned-row { background: #fbfbf9; }
+  .list-foot { flex: none; padding: 6px 10px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-3); display: flex; gap: 10px; }
+
+  /* 상세 */
+  .detail { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; }
+  .crumbs { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+  .crumbs a { color: var(--accent); cursor: pointer; }
+  .d-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
+  .d-head h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .d-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+  .d-main { min-height: 0; overflow: auto; padding: 12px 14px; }
+  .d-side { min-height: 0; overflow: auto; padding: 12px 14px; border-left: 1px solid var(--line); background: #fbfbf9; }
+  .props { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  .card b { font-size: 17px; display: block; font-variant-numeric: tabular-nums; }
+  .card .dev { font-size: 11px; }
+  .card.bad { border-color: #eaa29d; }
+  .rel { margin-top: 14px; }
+  .rel h3 { margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+  a.link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: #b6c6f1; text-underline-offset: 2px; }
+  .cand { display: grid; grid-template-columns: 1fr 70px 70px 60px; gap: 6px; align-items: center; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; margin-bottom: 4px; font-size: 12px; background: #fff; }
+  .cand:hover { border-color: var(--accent); }
+  .d-ok { color: var(--ok); } .d-bad { color: var(--bad); }
+  .ha-big { display: flex; gap: 1px; }
+  .ha-big .ha { flex: 1; min-width: 0; height: 18px; margin: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top" data-note="1">
+    <h1>KBO 일정 편성 · 2025</h1>
+    <label class="search"><input class="input" placeholder="구단·슬롯·시리즈·위반 검색  (예: 한화, 5/20, KIA@삼성)" id="q"></label>
+    <span class="grow"></span>
+    <span id="badge"></span>
+    <button class="btn">스냅샷</button>
+    <button class="btn primary" id="runBtn">▶ 엔진 실행</button>
+  </header>
+  <div class="body">
+    <section class="panel" aria-label="목록" data-note="2">
+      <div class="types" role="tablist" id="types"></div>
+      <div class="filter"><input class="input" placeholder="목록 안에서 거르기" id="f"><select class="input" style="width:110px" id="sort"><option>기본 순서</option><option>문제 먼저</option></select></div>
+      <div class="list" id="list" tabindex="0" aria-label="레코드 목록"></div>
+      <div class="list-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> 이동</span><span><span class="kbd">Enter</span> 편집</span><span><span class="kbd">⌫</span> 뒤로</span><span class="grow"></span><span id="cnt"></span></span></div>
+    </section>
+    <section class="panel detail" aria-label="상세" data-note="3">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="d-head" id="dHead"></div>
+      <div class="d-grid">
+        <div class="d-main" id="dMain"></div>
+        <aside class="d-side" id="dSide" data-note="4" data-note-pos="right"></aside>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { K, $, $$, esc, state, team, hardBadge, haStrip, avg, seriesInSlot, seriesOfTeam, toast } = W;
+const TYPES = [
+  ["overview", "개요"], ["team", "구단"], ["slot", "슬롯"], ["series", "시리즈"],
+  ["event", "이벤트"], ["viol", "위반"], ["game", "경기 기록"], ["resched", "재편성"],
+];
+let type = "viol", sel = null, trail = [];
+const pins = new Set([0, 1, 2, 3, 4]);
+
+function records(t) {
+  if (t === "overview") return [{ id: "ov", t: "2025 정규시즌 입력 요약", sub: "사전 점검 · 엔진 옵션", ico: "≡" }];
+  if (t === "team") return K.teams.map((x) => { const m = K.metrics.find((y) => y.team === x.name); const over = Math.abs(m.km - avg("km")) > 300; return { id: x.name, t: team(x.name), sub: `${x.stadium} · ${m.km.toLocaleString()}km`, ico: over ? '<span class="viol-ico">▲</span>' : "", flag: K.violations.some((v) => v.team === x.name) }; });
+  if (t === "slot") return K.slots.map((s) => ({ id: s.i, t: `#${s.i + 1} ${s.label} ${s.len}연전`, sub: `주말 ${s.wk} · 휴일 ${s.hol}`, ico: W.violationsAtSlot(s.i).length ? '<span class="viol-ico">⚠</span>' : "", flag: W.violationsAtSlot(s.i).length }));
+  if (t === "series") return K.series.map((s) => ({ id: s.id, t: `${s.away} @ ${s.home}`, sub: `${K.slots[s.slot].label} · ${s.len}연전`, ico: pins.has(s.id) ? "📌" : "" }));
+  if (t === "event") return K.events.map((e) => ({ id: e.id, t: e.name || e.type, sub: `${e.date.slice(5)} · ${e.mode}`, ico: "★" }));
+  if (t === "viol") return state.violations.map((v) => ({ id: v.id, t: `<b>${v.rule}</b> ${v.name}`, sub: `${K.slots[v.slot].label} · ${v.team}`, ico: '<span class="viol-ico">⚠</span>', flag: 1 }));
+  if (t === "game") return K.slots.slice(14, 26).map((s, i) => ({ id: s.i, t: `${s.label}~${s.end}`, sub: i < 4 ? "완료 5 · 취소 " + (i % 2) : i < 6 ? "결과 미입력" : "예정", ico: i < 4 ? "✓" : i < 6 ? '<span style="color:var(--warn)">!</span>' : "·" }));
+  if (t === "resched") return [{ id: "rs", t: "9~10월 재편성", sub: "대상 83경기 · 옵션", ico: "↻" }];
+}
+
+function renderTypes() {
+  $("#types").innerHTML = TYPES.map(([k, l]) => {
+    const n = records(k).length, bad = k === "viol" && n;
+    return `<button role="tab" data-k="${k}" aria-selected="${k === type}">${l}${["overview", "resched"].includes(k) ? "" : `<span class="n${bad ? " bad" : ""}">${bad ? "⚠" : ""}${n}</span>`}</button>`;
+  }).join("");
+  $$("#types button").forEach((b) => b.onclick = () => { type = b.dataset.k; const r = records(type); sel = r.length ? r[0].id : null; renderAll(); });
+}
+
+function renderList() {
+  const q = $("#f").value.trim();
+  let rs = records(type).filter((r) => !q || (r.t + r.sub).replace(/<[^>]+>/g, "").includes(q));
+  if ($("#sort").value === "문제 먼저") rs = rs.slice().sort((a, b) => (b.flag ? 1 : 0) - (a.flag ? 1 : 0));
+  $("#list").innerHTML = rs.length ? rs.map((r) => `<div class="li${String(r.id) === String(sel) ? " sel" : ""}" data-id="${r.id}"><span>${r.ico || ""}</span><div style="min-width:0"><div class="t">${r.t}</div><div class="sub">${r.sub}</div></div><span class="faint small">›</span></div>`).join("")
+    : `<div class="empty">${type === "viol" ? "✓ Hard 위반이 없습니다" : "결과 없음"}</div>`;
+  $("#cnt").textContent = `${rs.length}건`;
+  $$(".li").forEach((el) => el.onclick = () => go(type, el.dataset.id));
+  // scrollIntoView는 index.html의 iframe 미리보기에서 바깥 페이지까지 움직이므로 목록만 직접 스크롤한다.
+  const s = $(".li.sel"), L = $("#list");
+  if (s && s.offsetTop < L.scrollTop) L.scrollTop = s.offsetTop;
+  else if (s && s.offsetTop + s.offsetHeight > L.scrollTop + L.clientHeight) L.scrollTop = s.offsetTop + s.offsetHeight - L.clientHeight;
+}
+
+function go(t, id, push = true) {
+  if (push && sel !== null) trail.push([type, sel]);
+  type = t; sel = id;
+  renderAll();
+}
+function link(t, id, label) { return `<a class="link" data-go="${t}|${id}">${label}</a>`; }
+
+function renderDetail() {
+  const crumb = trail.slice(-3).map(([t, id]) => `<a data-back="1">${TYPES.find((x) => x[0] === t)[1]} ${typeof id === "string" && id.startsWith("v") ? id.toUpperCase() : id}</a> ›`).join(" ");
+  $("#crumbs").innerHTML = `${trail.length ? `<button class="btn sm" id="back">← 뒤로</button>` : ""}<span>${crumb}</span><b>${TYPES.find((x) => x[0] === type)[1]}</b>`;
+  const H = $("#dHead"), M = $("#dMain"), S = $("#dSide");
+  if (sel === null || sel === undefined) { H.innerHTML = ""; M.innerHTML = `<div class="empty">목록에서 항목을 고르세요</div>`; S.innerHTML = ""; return; }
+  if (type === "team") {
+    const t = W.teamOf(sel), m = K.metrics.find((x) => x.team === sel);
+    H.innerHTML = `<h2><span class="team" style="--c:${W.color(sel)}"></span>${esc(sel)} ${t.stadium.includes("잠실") ? '<span class="tag accent">공유 구장</span>' : ""}</h2><p class="muted small">${t.stadium} · ${t.lat}, ${t.lng}</p>`;
+    const card = (k, label, tol, ref) => { const d = m[k] - avg(k); const bad = tol && Math.abs(d) > tol; return `<div class="card${bad ? " bad" : ""}"><span class="small muted">${label}${ref ? ' <span class="tag ref">참고</span>' : ""}</span><b class="${bad ? "over" : ""}">${m[k].toLocaleString()}</b><span class="dev ${bad ? "d-bad" : "faint"}">평균 대비 ${d > 0 ? "+" : ""}${d.toFixed(k === "km" ? 0 : 1)}${tol ? ` (허용 ±${tol})` : ""}</span></div>`; };
+    const mine = seriesOfTeam(sel);
+    M.innerHTML = `<h3 style="margin-bottom:8px">지표 — 리그 평균과 비교</h3>
+      <div class="cards">${card("km", "이동거리 km", 300)}${card("moves", "이동 횟수", 2)}${card("hol", "휴일 가중치", 1.5)}${card("wkHome", "주말 홈", 0, true)}</div>
+      <div class="rel"><h3>시즌 홈(■)·원정(□) 흐름</h3><div class="ha-big">${haStrip(sel)}</div></div>
+      <div class="rel"><h3>관련: 이 구단의 시리즈 ${mine.length}개</h3>
+      <table class="grid"><thead><tr><th>슬롯</th><th>상대</th><th>구분</th><th class="num">연전</th><th></th></tr></thead><tbody>
+      ${mine.map((s) => { const home = s.home === sel; const v = state.violations.find((x) => x.slot === s.slot && x.team === sel); return `<tr><td>${link("slot", s.slot, K.slots[s.slot].label)}</td><td>${team(home ? s.away : s.home)}</td><td>${home ? "홈" : "원정"}</td><td class="num">${s.len}</td><td>${link("series", s.id, "시리즈 ›")} ${v ? link("viol", v.id, '<span class="viol-ico">⚠ ' + v.rule + "</span>") : ""}</td></tr>`; }).join("")}
+      </tbody></table></div>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">속성 편집</h3><div class="stack">
+      <label class="field"><span>구단명</span><input class="input" value="${esc(sel)}"></label>
+      <label class="field"><span>구장명 (검색)</span><input class="input" value="${esc(t.stadium)}"></label>
+      <div class="props"><label class="field"><span>위도</span><input class="input" value="${t.lat}"></label><label class="field"><span>경도</span><input class="input" value="${t.lng}"></label></div>
+      <label class="field"><span>대표 색상</span><input class="input" type="color" value="${W.color(sel)}" style="height:28px;padding:2px"></label>
+      <button class="btn">거리 행렬에서 이 구단 행 보기</button></div>`;
+  } else if (type === "slot") {
+    const s = K.slots[sel], vs = W.violationsAtSlot(+sel);
+    H.innerHTML = `<h2>#${+sel + 1} ${s.label} ~ ${s.end} <span class="tag">${s.len}연전</span>${vs.length ? `<span class="tag bad">⚠ 위반 ${vs.length}</span>` : '<span class="tag ok">✓ 슬롯 규칙 충족</span>'}</h2>`;
+    M.innerHTML = `<h3 style="margin-bottom:8px">이 슬롯의 시리즈 ${seriesInSlot(+sel).length}개 <span class="faint small" style="font-weight:400">(구단 10 · 구장 5 · 시리즈 5 필요)</span></h3>
+      <table class="grid"><thead><tr><th>대진</th><th>구장</th><th class="num">연전</th><th></th></tr></thead><tbody>
+      ${seriesInSlot(+sel).map((x) => `<tr><td>${link("series", x.id, `${x.away} @ ${x.home}`)} ${pins.has(x.id) ? "📌" : ""}</td><td>${W.teamOf(x.home).stadium}</td><td class="num">${x.len}</td><td>${link("team", x.home, "홈 구단 ›")}</td></tr>`).join("")}</tbody></table>
+      ${vs.map((v) => `<div class="card bad" style="margin-top:10px"><span class="viol-ico">⚠ ${v.rule}</span> ${v.name} — ${v.detail} ${link("viol", v.id, "자세히 ›")}</div>`).join("")}
+      <div class="row" style="margin-top:12px">${+sel > 0 ? link("slot", +sel - 1, "← 이전 슬롯") : ""}<span class="grow"></span>${+sel < 44 ? link("slot", +sel + 1, "다음 슬롯 →") : ""}</div>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">속성 편집</h3><div class="stack">
+      <label class="field"><span>연전 수</span><select class="input"><option ${s.len === 2 ? "selected" : ""}>2</option><option ${s.len === 3 ? "selected" : ""}>3</option><option ${s.len === 4 ? "selected" : ""}>4</option></select></label>
+      <div class="props"><label class="field"><span>주말 가중치</span><input class="input" value="${s.wk}"></label><label class="field"><span>휴일 가중치</span><input class="input" value="${s.hol}"></label></div>
+      <button class="btn">슬롯 전체 핀 고정</button><p class="faint small">자동 생성값과 다르면 "수정됨" 표시가 붙습니다.</p></div>`;
+  } else if (type === "series") {
+    const s = K.series.find((x) => String(x.id) === String(sel)), pinned = pins.has(s.id);
+    H.innerHTML = `<h2>${team(s.away)} @ ${team(s.home)} <span class="tag">${s.len}연전</span> ${pinned ? '<span class="tag accent">📌 고정</span>' : ""}</h2><p class="muted small">${link("slot", s.slot, K.slots[s.slot].label + " 슬롯")} · ${W.teamOf(s.home).stadium}</p>`;
+    const same = K.slots.filter((x) => x.len === s.len && x.i !== s.slot).slice(0, 7);
+    M.innerHTML = `<h3 style="margin-bottom:4px">다른 슬롯으로 옮기기 <span class="faint small" style="font-weight:400">드래그 대신 목록에서 고르는 키보드 대안 — 놓기 전에 Δ를 보여 줍니다</span></h3>
+      <div class="cand faint small" style="border:0;background:none"><span>대상 슬롯 (같은 연전 수)</span><span>Hard Δ</span><span>Soft Δ</span><span></span></div>
+      ${same.map((x, i) => { const h = i % 3 === 1 ? 1 : 0, sd = [-120, 340, -40, 15, 0, 210, -8][i]; return `<div class="cand"><span>${x.label} · ${seriesInSlot(x.i).map((y) => y.home).includes(s.home) ? "교환" : "이동"}</span><span class="${h ? "d-bad" : "d-ok"}">${h ? "+1 ⚠" : "0"}</span><span class="${sd > 0 ? "d-bad" : "d-ok"}">${sd > 0 ? "+" : ""}${sd}</span><button class="btn sm" data-mv="${x.i}" ${pinned ? "disabled" : ""}>적용</button></div>`; }).join("")}`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">속성</h3><div class="stack">
+      <label class="check"><input type="checkbox" id="pin" ${pinned ? "checked" : ""}> 이 시리즈 고정(핀)</label>
+      <button class="btn">미배정 풀로 빼기</button>
+      <div class="rel"><h3>관련</h3>${link("team", s.home, s.home + " (홈)")}<br>${link("team", s.away, s.away + " (원정)")}</div></div>`;
+    $("#pin").onchange = (e) => { e.target.checked ? pins.add(s.id) : pins.delete(s.id); renderAll(); };
+    $$("[data-mv]").forEach((b) => b.onclick = () => toast(`${K.slots[b.dataset.mv].label}로 이동 · 재채점 완료`));
+  } else if (type === "viol") {
+    const v = state.violations.find((x) => x.id === sel);
+    if (!v) { H.innerHTML = ""; M.innerHTML = `<div class="empty">✓ 위반이 모두 해결되었습니다</div>`; S.innerHTML = ""; return; }
+    H.innerHTML = `<h2><span class="viol-ico">⚠</span> ${v.rule} · ${v.name}</h2><p class="muted small">${v.detail}</p>`;
+    M.innerHTML = `<h3 style="margin-bottom:6px">왜 위반인가</h3><p class="muted">${{ "H0-f": "같은 구단의 홈 또는 원정 연속은 최대 3시리즈입니다. 빈 슬롯이 사이에 있어도 시리즈 순서대로 이어서 셉니다.", "H1": "인접한 두 슬롯에 같은 대진을 둘 수 없습니다. 직전 슬롯이 비어 있으면 비교하지 않습니다.", "H0-b": "슬롯마다 서로 다른 구장 5개가 필요합니다. 잠실은 1개로 셉니다." }[v.rule]}</p>
+      <div class="rel"><h3>관련 위치</h3>${link("slot", v.slot, K.slots[v.slot].label + " 슬롯 ›")} · ${link("team", v.team, v.team + " 구단 ›")}</div>
+      <div class="rel"><h3>${v.team} 흐름 (빨간 테두리 = 위반)</h3><div class="ha-big">${haStrip(v.team)}</div></div>
+      <div class="rel"><h3>해결 제안</h3>
+        <div class="cand"><span>${K.slots[v.slot].label} ↔ ${K.slots[v.slot + 1].label} 시리즈 교환</span><span class="d-ok">−1</span><span class="d-bad">+85</span><button class="btn sm" data-fix>적용</button></div>
+        <div class="cand"><span>${v.team} 원정 1개를 ${K.slots[v.slot + 3].label}로 이동</span><span class="d-ok">−1</span><span class="d-ok">−12</span><button class="btn sm" data-fix>적용</button></div></div>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">규칙 정보</h3><div class="stack small"><div><span class="tag bad">Hard</span> 엔진 규칙 ${v.rule}</div><div class="muted">위반 단위: 초과 시리즈 수</div><div class="muted">같은 규칙 다른 위반: ${state.violations.filter((x) => x.rule === v.rule).length - 1}건</div><button class="btn">이 위반 무시(메모)</button></div>`;
+    $$("[data-fix]").forEach((b) => b.onclick = () => { state.violations = state.violations.filter((x) => x.id !== v.id); toast("적용 · Hard −1"); sel = state.violations[0] ? state.violations[0].id : null; renderAll(); });
+  } else if (type === "event") {
+    const e = K.events.find((x) => x.id === sel);
+    H.innerHTML = `<h2>★ ${e.name || e.type} <span class="tag ${e.mode === "대진 지정" ? "accent" : "warn"}">${e.mode}</span></h2><p class="muted small">${e.date}</p>`;
+    M.innerHTML = `<h3 style="margin-bottom:6px">${e.mode === "대진 지정" ? "고정할 대진" : "홈 의무 구장"}</h3>
+      <table class="grid"><tbody>${e.items.map((x) => `<tr><td>${x}</td><td><span class="tag ok">✓ 충돌 없음</span></td><td><button class="btn sm ghost">×</button></td></tr>`).join("")}</tbody></table>
+      <button class="btn sm" style="margin-top:8px">+ 항목 추가</button>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">속성</h3><div class="stack"><label class="field"><span>유형</span><select class="input"><option>${e.type}</option></select></label><label class="field"><span>날짜</span><input class="input" type="date" value="${e.date}"></label><label class="field"><span>모드</span><select class="input"><option>대진 지정</option><option ${e.mode === "구장 지정" ? "selected" : ""}>구장 지정</option></select></label></div>`;
+  } else if (type === "game") {
+    const s = K.slots[sel];
+    H.innerHTML = `<h2>${s.label} ~ ${s.end} 경기 기록</h2>`;
+    M.innerHTML = `<table class="grid"><thead><tr><th>대진</th><th>상태</th><th>사유</th></tr></thead><tbody>${seriesInSlot(+sel).map((x, i) => `<tr><td>${x.away} @ ${x.home}</td><td><select class="input" style="width:90px"><option>예정</option><option selected>완료</option><option ${i === 1 ? "selected" : ""}>취소</option></select></td><td><select class="input" style="width:100px"><option>우천</option><option>폭염</option></select></td></tr>`).join("")}</tbody></table><button class="btn sm" style="margin-top:8px">이 날 전체 완료</button>`;
+    S.innerHTML = `<h3>일자</h3><div class="stack small muted" style="margin-top:6px">${Array.from({ length: s.len }, (_, i) => `<label class="check"><input type="radio" name="d" ${i === 0 ? "checked" : ""}> ${i + 1}일차</label>`).join("<br>")}</div>`;
+  } else if (type === "overview") {
+    H.innerHTML = `<h2>2025 정규시즌 입력 요약</h2><p class="muted small">개막 3/22 · 1차 종료 8/31 · 시즌 종료 10/31</p>`;
+    M.innerHTML = `<div class="cards"><div class="card"><span class="small muted">구단</span><b>10</b>${link("team", "SSG", "목록 ›")}</div><div class="card"><span class="small muted">슬롯</span><b>45</b>${link("slot", 0, "목록 ›")}</div><div class="card"><span class="small muted">시리즈</span><b>225</b>${link("series", 0, "목록 ›")}</div><div class="card"><span class="small muted">이벤트</span><b>3</b>${link("event", "e1", "목록 ›")}</div></div>
+      <div class="rel"><h3>사전 점검</h3>${["2연전 수급 5 = 5", "3연전 수급 215 = 215", "4연전 수급 5 = 5", "이벤트 모순 없음", "거리 행렬 100/100"].map((x) => `<div class="pf"><span class="s ok">✓</span>${x}</div>`).join("")}</div>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">엔진 옵션</h3><div class="stack"><label class="field"><span>최대 실행 시간(초)</span><input class="input" value="60"></label><label class="field"><span>초기해</span><select class="input"><option>현재 배정 유지</option><option>처음부터</option></select></label><button class="btn primary">▶ 엔진 실행</button></div>`;
+  } else {
+    H.innerHTML = `<h2>↻ 9~10월 재편성</h2><p class="muted small">잔여 45 + 취소 38 = 83경기</p>`;
+    M.innerHTML = `<table class="grid"><thead><tr><th>구단</th><th class="num">홈 잔여</th><th class="num">원정 잔여</th></tr></thead><tbody>${K.teams.map((t, i) => `<tr><td>${team(t.name)}</td><td class="num">${7 + (i % 3)}</td><td class="num">${9 - (i % 3)}</td></tr>`).join("")}</tbody></table>`;
+    S.innerHTML = `<h3 style="margin-bottom:8px">옵션</h3><div class="stack"><label class="check"><input type="checkbox"> 월요일 경기 허용</label><label class="check"><input type="checkbox" checked> 더블헤더 허용 (최대 3)</label><button class="btn primary">재편성 실행</button></div>`;
+  }
+  $$("[data-go]").forEach((a) => a.onclick = () => { const [t, id] = a.dataset.go.split("|"); go(t, id); });
+  const back = $("#back");
+  back && (back.onclick = goBack);
+}
+function goBack() { const h = trail.pop(); if (h) { type = h[0]; sel = h[1]; renderAll(); } }
+
+function renderAll() { $("#badge").innerHTML = hardBadge(); renderTypes(); renderList(); renderDetail(); }
+
+$("#f").oninput = renderList;
+$("#sort").onchange = renderList;
+$("#q").onkeydown = (e) => {
+  if (e.key !== "Enter") return;
+  const q = e.target.value.trim();
+  const hitTeam = K.teams.find((t) => q.includes(t.name));
+  const hitSlot = K.slots.find((s) => s.label.startsWith(q));
+  if (hitSlot) go("slot", hitSlot.i); else if (hitTeam) go("team", hitTeam.name); else toast("검색 결과 없음");
+};
+$("#list").onkeydown = (e) => {
+  if (!["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  const ids = $$(".li").map((x) => x.dataset.id), i = ids.indexOf(String(sel));
+  const n = ids[Math.max(0, Math.min(ids.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))];
+  if (n !== undefined) { sel = n; renderAll(); $("#list").focus(); }
+};
+document.addEventListener("keydown", (e) => { if (e.key === "Backspace" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) goBack(); });
+$("#runBtn").onclick = () => toast("Mock 엔진 실행 중… 결과가 들어오면 위반 목록이 갱신됩니다");
+
+sel = state.violations[0].id;
+renderAll();
+W.wire("B · 레코드 탐색기 — 목록(왼쪽) ↔ 선택 항목 상세(오른쪽)", [
+  "상단 검색은 모든 레코드를 대상으로 합니다. '한화'나 '5/20'을 입력하고 Enter를 누르면 해당 레코드로 바로 이동합니다.",
+  "왼쪽 목록에서 고른 레코드 유형(개요·구단·슬롯·시리즈·이벤트·위반·경기 기록·재편성)이 곧 탐색 단위입니다. 단계 내비게이션이 따로 없습니다. ↑↓ 키로 넘겨 보면 오른쪽 상세가 즉시 따라 바뀝니다.",
+  "상세 = 확인 + 관련 레코드 링크. 위반 → 슬롯 → 시리즈 → 구단으로 링크를 따라 이동하고, 이동 경로는 위쪽 경로 표시와 '뒤로'로 되돌아갑니다.",
+  "오른쪽 열 = 인스펙터(속성 편집). 보는 영역과 고치는 영역이 나뉘어 있어 확인하면서 바로 입력할 수 있습니다. 시리즈 상세에서는 드래그의 키보드 대안으로 '대상 슬롯 + Δ' 목록을 씁니다.",
+]);
+</script>
+</body>
+</html>

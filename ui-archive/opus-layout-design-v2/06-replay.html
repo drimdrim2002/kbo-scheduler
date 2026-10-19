@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시즌 리플레이</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  :root { --bgd: #0e1116; --panel: #161a21; --line-d: #262c36; --txt: #e7e9ee; --dim: #8a92a0; }
+  body { background: var(--bgd); color: var(--txt); }
+  .app { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 380px; grid-template-rows: 92px 1fr 196px; }
+  /* 중계 자막: 지금 슬롯의 다섯 경기 */
+  .ticker { grid-column: 1 / 3; display: flex; align-items: stretch; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line-d); }
+  .when { width: 150px; flex: none; display: flex; flex-direction: column; justify-content: center; }
+  .when b { font-size: 22px; letter-spacing: -0.5px; }
+  .when span { font-size: 11px; color: var(--dim); }
+  .game { flex: 1; background: var(--panel); border-radius: 10px; padding: 7px 10px; display: flex; flex-direction: column; justify-content: center; position: relative; border: 1px solid transparent; min-width: 0; }
+  .game.v { border-color: #ff6b63; }
+  .game .m { font-weight: 700; font-size: 14px; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .game .m i { width: 9px; height: 9px; border-radius: 2px; background: var(--c); display: inline-block; }
+  .game .p { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .game .acts { position: absolute; right: 6px; bottom: 5px; display: flex; gap: 3px; }
+  .game .p, .game .vtxt { padding-right: 74px; }
+  .game .acts button { border: 0; background: #252b35; color: #cfd3db; border-radius: 5px; font-size: 11px; padding: 2px 5px; }
+  .game .acts button:hover { background: #3c4a66; color: #fff; }
+  .game.rain { opacity: 0.45; }
+  .game .vtxt { font-size: 10.5px; color: #ff8b85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score { width: 170px; flex: none; text-align: right; display: flex; flex-direction: column; justify-content: center; gap: 4px; align-items: flex-end; }
+  .score .hbadge.ok { background: #143323; color: #7ee2a2; }
+  .score .hbadge.bad { background: #3b1715; color: #ff9d97; }
+  .score span.k { font: 11px var(--mono); color: var(--dim); }
+  /* 지도 */
+  .stage { position: relative; min-height: 0; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #map .map-land { fill: #1b212b; stroke: #2e3746; }
+  #map .map-lbl { fill: #5d6676; font-size: 11px; }
+  .tok text { font-size: 10px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: #0e1116; stroke-width: 3px; }
+  .stage .legend { position: absolute; left: 16px; bottom: 12px; font-size: 11px; color: var(--dim); }
+  .stage .mode { position: absolute; left: 16px; top: 12px; display: flex; gap: 4px; }
+  .stage .mode button { border: 1px solid var(--line-d); background: var(--panel); color: var(--dim); border-radius: 8px; padding: 5px 10px; font-size: 12px; }
+  .stage .mode button[aria-pressed="true"] { color: #fff; border-color: #5a6a8a; }
+  .focus { position: absolute; right: 16px; top: 12px; width: 230px; background: rgba(22, 26, 33, 0.92); border: 1px solid var(--line-d); border-radius: 12px; padding: 10px 12px; font-size: 12px; }
+  .focus h4 { margin: 0 0 6px; font-size: 11px; color: var(--dim); font-weight: 600; }
+  .focus .kv { display: flex; justify-content: space-between; padding: 2px 0; }
+  /* 오른쪽: 누적 이동거리 레이스 */
+  .race { border-left: 1px solid var(--line-d); padding: 12px 16px; display: flex; flex-direction: column; min-height: 0; }
+  .race h3 { margin: 0 0 2px; font-size: 13px; }
+  .race .sub { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+  #bars { position: relative; flex: 1; }
+  .rb { position: absolute; left: 0; right: 0; height: 30px; transition: transform 0.35s ease; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .rb .n { width: 40px; font-size: 12px; font-weight: 700; }
+  .rb .b { height: 18px; border-radius: 4px; background: var(--c); transition: width 0.35s ease; min-width: 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+  .rb .v { font: 11px var(--mono); color: var(--dim); white-space: nowrap; }
+  .rb.sel .n { color: #ffd34d; }
+  .avgline { position: absolute; top: 0; bottom: 0; border-left: 1px dashed #5a6a8a; }
+  /* 타임 스크러버 */
+  .scrub { grid-column: 1 / 3; border-top: 1px solid var(--line-d); padding: 10px 16px 12px; display: grid; grid-template-columns: 116px 1fr; gap: 12px; }
+  .ctl { display: flex; flex-direction: column; gap: 6px; }
+  .ctl button { border: 1px solid var(--line-d); background: var(--panel); color: var(--txt); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+  .ctl button.play { background: #2f5bea; border-color: #2f5bea; font-weight: 700; }
+  .ctl select { background: var(--panel); color: var(--txt); border: 1px solid var(--line-d); border-radius: 6px; font-size: 11px; padding: 3px; }
+  #tl { position: relative; user-select: none; touch-action: none; cursor: pointer; }
+  #tl svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .lane-l { font-size: 9.5px; fill: #5d6676; }
+  #head { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #ffd34d; pointer-events: none; }
+  #head::before { content: attr(data-l); position: absolute; top: -2px; left: 4px; font: 700 10px var(--mono); color: #ffd34d; white-space: nowrap; }
+  .rq { font-size: 11px; }
+  .rqbtn { position: absolute; right: 0; top: 0; display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--dim); }
+  .rqbtn label { display: flex; gap: 3px; align-items: center; }
+  .rqbtn button { border: 0; background: #1f8a4c; color: #fff; border-radius: 6px; padding: 3px 8px; font-size: 11px; }
+  .rqbtn button[disabled] { background: #2a3140; color: #6f7888; }
+  .toast { background: #f1f2f5; color: #111; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="ticker" id="ticker"></header>
+  <section class="stage">
+    <svg id="map"></svg>
+    <div class="mode" id="mode"><button data-m="all" aria-pressed="true">리그 전체</button><button data-m="team" aria-pressed="false">한 구단 따라가기</button></div>
+    <div class="focus" id="focus"></div>
+    <div class="legend">선: 이번 슬롯으로 오는 이동 · 점: 각 구단의 현재 위치 · ⚠ 위반 슬롯은 자막 테두리가 빨갛게</div>
+  </section>
+  <aside class="race">
+    <h3>누적 이동거리 레이스</h3>
+    <div class="sub" id="raceSub"></div>
+    <div id="bars"></div>
+  </aside>
+  <footer class="scrub">
+    <div class="ctl">
+      <button class="play" id="play">▶ 재생</button>
+      <div style="display:flex;gap:4px"><button id="back" style="flex:1">◀</button><button id="fwd" style="flex:1">▶</button></div>
+      <select id="speed" aria-label="재생 속도"><option value="1">1× 속도</option><option value="2" selected>2×</option><option value="4">4×</option></select>
+      <button id="solve" title="목업 솔버">⟳ 재최적화</button>
+    </div>
+    <div id="tl"><svg id="tlsvg"></svg><div id="head"></div>
+      <div class="rqbtn"><span id="rqInfo"></span><label><input type="checkbox" id="oMon"> 월요일</label><label><input type="checkbox" id="oDH"> DH</label><button id="rebook" disabled>9~10월 재편성</button></div>
+    </div>
+  </footer>
+</div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, park, store, fmt, sign, slotDays } = KB;
+  let t = 0, playing = null, follow = null, mode = "all", rain = [], rebooked = null;
+  const NS = K.slots.length;
+
+  // ── 시즌 데이터 전개: 구단별 슬롯 위치와 누적 이동거리 ──
+  let track = {};
+  function build() {
+    track = {};
+    T.forEach((tm) => {
+      const seq = KB.teamSeq(store.plan, tm);
+      const at = Array(NS).fill(null), cum = Array(NS).fill(0), leg = Array(NS).fill(0);
+      let last = tm, sum = 0, first = true;
+      for (let i = 0; i < NS; i++) {
+        const s = seq.find((x) => x.slot === i);
+        if (s) { const d = first ? 0 : KB.dist(last, s.home); sum += d; leg[i] = d; last = s.home; first = false; }
+        at[i] = last; cum[i] = sum;
+      }
+      track[tm] = { at, cum, leg };
+    });
+  }
+
+  // ── 자막 ──
+  function renderTicker() {
+    const i = Math.min(NS - 1, Math.floor(t)), sl = K.slots[i], ev = store.ev;
+    const vs = ev.hard.filter((v) => v.slot === i);
+    const games = store.inSlot(i).sort((a, b) => a.id - b.id);
+    $("#ticker").innerHTML = `<div class="when"><b>${sl.label}</b><span>${i + 1} / ${NS} 슬롯 · ${sl.len}연전${sl.hol >= 3 ? " · 공휴일 ★" : sl.wk ? " · 주말" : ""}</span><span>${K.events.filter((e) => slotDays[i].includes(e.date)).map((e) => "🚩 " + (e.name || e.type)).join(" ")}</span></div>
+      ${games.map((g) => { const v = vs.find((x) => (x.ids || []).includes(g.id) || x.rule === "H0-b" && x.ids && x.ids.includes(g.id)); const r = rain.some((x) => x.sid === g.id); return `<div class="game${v ? " v" : ""}${r ? " rain" : ""}"><div class="m"><i style="--c:${color(g.away)}"></i>${esc(g.away)} <span style="color:var(--dim)">@</span> <i style="--c:${color(g.home)}"></i>${esc(g.home)}${g.pin ? " 📌" : ""}</div><div class="p">${park(g.home)} · ${r ? "☂ 1경기 취소" : `${fmt(track[g.away].leg[i])}km 이동`}</div>${v ? `<div class="vtxt">⚠ ${v.rule} ${esc(v.detail)}</div>` : ""}<div class="acts"><button data-flip="${g.id}" title="홈·원정 뒤집기">⇄</button><button data-pin="${g.id}" title="고정">📌</button><button data-rain="${g.id}" title="우천 취소 1경기">☂</button></div></div>`; }).join("")}
+      <div class="score">${KB.badge(ev)}<span class="k">리그 ${fmt(ev.soft.S4)}km</span><span class="k">S1 ${fmt(-ev.soft.S1)} · S3 ${fmt(-ev.soft.S3)}</span></div>`;
+  }
+
+  // ── 지도: 슬롯 사이를 보간하며 구단 토큰이 움직인다 ──
+  function renderMap() {
+    const box = $("#map").getBoundingClientRect();
+    const P = KB.projector(box.width, box.height, 34);
+    const i = Math.min(NS - 1, Math.floor(t)), f = t - i;
+    let h = KB.mapBase(P);
+    const nextI = Math.min(NS - 1, i + 1);
+    const show = (tm) => mode === "all" || tm === follow;
+    // 이번 슬롯으로 들어온 이동(실선)과 다음 슬롯으로 가는 이동(점선)
+    T.forEach((tm) => {
+      if (!show(tm)) return;
+      const tr = track[tm];
+      if (i > 0 && tr.at[i - 1] !== tr.at[i]) { const a = KB.teamXY(P, tr.at[i - 1]), b = KB.teamXY(P, tr.at[i]); h += `<path d="${KB.arc(a, b)}" fill="none" stroke="${color(tm)}" stroke-width="${mode === "team" ? 3 : 2}" opacity="0.75"/>`; }
+      if (tr.at[i] !== tr.at[nextI]) { const a = KB.teamXY(P, tr.at[i]), b = KB.teamXY(P, tr.at[nextI]); h += `<path d="${KB.arc(a, b)}" fill="none" stroke="${color(tm)}" stroke-width="1.2" stroke-dasharray="3 4" opacity="0.5"/>`; }
+      if (mode === "team") {
+        // 따라가기: 지난 여정을 옅게 깐다
+        for (let k = 1; k < i; k++) if (tr.at[k - 1] !== tr.at[k]) { const a = KB.teamXY(P, tr.at[k - 1]), b = KB.teamXY(P, tr.at[k]); h += `<path d="${KB.arc(a, b)}" fill="none" stroke="${color(tm)}" stroke-width="1" opacity="0.18"/>`; }
+      }
+    });
+    // 토큰: 같은 구장에 둘이 있으면 살짝 벌린다
+    const pile = {};
+    T.forEach((tm) => {
+      const tr = track[tm];
+      const a = KB.teamXY(P, tr.at[i]), b = KB.teamXY(P, tr.at[nextI]);
+      let x = a[0], y = a[1];
+      if (f > 0 && tr.at[i] !== tr.at[nextI]) {
+        const mx = (a[0] + b[0]) / 2 - (b[1] - a[1]) * 0.18, my = (a[1] + b[1]) / 2 + (b[0] - a[0]) * 0.18;
+        x = (1 - f) ** 2 * a[0] + 2 * (1 - f) * f * mx + f * f * b[0];
+        y = (1 - f) ** 2 * a[1] + 2 * (1 - f) * f * my + f * f * b[1];
+      }
+      const key = Math.round(x / 6) + ":" + Math.round(y / 6);
+      const n = (pile[key] = (pile[key] || 0) + 1) - 1;
+      const dim = !show(tm);
+      h += `<g class="tok" opacity="${dim ? 0.25 : 1}"><circle cx="${x + n * 9}" cy="${y - n * 4}" r="${tm === follow ? 9 : 7}" fill="${color(tm)}" stroke="${tm === follow ? "#ffd34d" : "rgba(255,255,255,.75)"}" stroke-width="${tm === follow ? 2.5 : 1.5}"/>${dim ? "" : `<text x="${x + n * 9 + 11}" y="${y - n * 4 + 4}">${tm}</text>`}</g>`;
+    });
+    $("#map").innerHTML = h;
+    // 오른쪽 위 포커스 카드
+    const ft = follow || "KIA", tr = track[ft], ev = store.ev;
+    const seq = KB.teamSeq(store.plan, ft), s = seq.find((x) => x.slot === i);
+    let run = 0, prev = null;
+    seq.filter((x) => x.slot <= i).forEach((x) => { const k = x.home === ft ? "H" : "A"; run = k === prev ? run + 1 : 1; prev = k; });
+    $("#focus").innerHTML = `<h4>${mode === "team" ? "따라가는 구단" : "레이스에서 고른 구단"}</h4><div style="font-size:15px;font-weight:800;margin-bottom:4px">${esc(ft)}</div><div class="kv"><span>지금</span><span>${s ? (s.home === ft ? "홈 vs " + s.away : "@" + park(s.home)) : "휴식"}</span></div><div class="kv"><span>누적</span><span class="num">${fmt(tr.cum[i])}km</span></div><div class="kv"><span>연속 ${prev === "H" ? "홈" : "원정"}</span><span style="color:${run > 3 ? "#ff8b85" : "inherit"}">${run}${run > 3 ? " ⚠" : ""}</span></div><div class="kv"><span>시즌 끝</span><span class="num">${fmt(ev.per[ft].km)}km</span></div>`;
+  }
+
+  // ── 누적 레이스 ──
+  function renderRace() {
+    const i = Math.min(NS - 1, Math.floor(t)), f = t - i, nextI = Math.min(NS - 1, i + 1);
+    const val = (tm) => track[tm].cum[i] + (track[tm].cum[nextI] - track[tm].cum[i]) * f;
+    const order = T.slice().sort((a, b) => val(b) - val(a));
+    const mx = Math.max(1000, ...T.map(val)), avg = T.reduce((a, tm) => a + val(tm), 0) / T.length;
+    const W = $("#bars").clientWidth - 140;
+    if (!$("#bars").children.length) $("#bars").innerHTML = T.map((tm) => `<div class="rb" data-t="${tm}" style="--c:${color(tm)}"><span class="n">${tm}</span><span class="b"></span><span class="v"></span></div>`).join("") + '<div class="avgline"></div>';
+    order.forEach((tm, r) => {
+      const el = $(`.rb[data-t="${tm}"]`);
+      el.style.transform = `translateY(${r * 36}px)`;
+      el.classList.toggle("sel", tm === follow);
+      $(".b", el).style.width = (val(tm) / mx) * W + "px";
+      $(".v", el).textContent = `${fmt(val(tm))}km`;
+    });
+    $(".avgline").style.left = 48 + (avg / mx) * W + "px";
+    $("#raceSub").textContent = `${K.slots[i].label}까지 · 평균 ${fmt(avg)}km (점선) · 막대를 누르면 그 구단을 따라갑니다`;
+  }
+
+  // ── 스크러버 ──
+  const tl = $("#tl");
+  const zone = 0.8;
+  const xOfSlot = (v) => (v / NS) * zone;
+  function renderTimeline() {
+    const W = tl.clientWidth, H = tl.clientHeight, ev = store.ev;
+    const sx = (v) => xOfSlot(v) * W;
+    const legs = Array.from({ length: NS }, (_, i) => T.reduce((a, tm) => a + track[tm].leg[i], 0));
+    const mx = Math.max(...legs);
+    let h = `<rect x="0" y="18" width="${sx(NS)}" height="${H - 18}" fill="#12161c" rx="6"/><rect x="${sx(NS) + 6}" y="18" width="${W - sx(NS) - 6}" height="${H - 18}" fill="#13201a" rx="6"/>`;
+    h += `<text class="lane-l" x="${sx(NS) + 12}" y="32">9~10월 재편성 구간 · 취소 ${rain.length}경기</text>`;
+    // 리그 이동량 막대(슬롯별)
+    legs.forEach((v, i) => { const bh = (v / mx) * 46; h += `<rect x="${sx(i) + 2}" y="${82 - bh}" width="${sx(1) - 4}" height="${bh}" fill="#2f3b52" rx="2"/>`; });
+    h += `<text class="lane-l" x="4" y="32">리그 이동량</text>`;
+    // 골격 레인: 연전 길이, 공휴일, 이벤트, 블랙아웃
+    K.slots.forEach((sl, i) => { h += `<rect x="${sx(i) + 1}" y="92" width="${sx(1) - 2}" height="14" rx="3" fill="${sl.wk ? "#2a3550" : "#20262f"}"/>${sl.len !== 3 ? `<text x="${sx(i) + sx(1) / 2}" y="103" font-size="9" fill="#9fb0d0" text-anchor="middle">${sl.len}</text>` : ""}${sl.hol >= 3 ? `<text x="${sx(i) + sx(1) / 2}" y="103" font-size="10" fill="#ffd34d" text-anchor="middle">★</text>` : ""}`; });
+    h += `<text class="lane-l" x="4" y="120">① 골격 · 주말 진한 칸 · ★ 공휴일 · 숫자 = 3연전 아님</text>`;
+    K.events.forEach((e) => { const i = KB.dayToSlot[e.date]; if (i == null) return; h += `<text x="${sx(i) + 2}" y="90" font-size="11">🚩</text>`; });
+    // 올스타 브레이크 같은 빈 구간은 이웃 슬롯 사이 간격으로 보인다
+    K.blackouts.forEach((b) => { const i = K.slots.findIndex((s) => s.date > b.to); if (i > 0) h += `<line x1="${sx(i)}" x2="${sx(i)}" y1="90" y2="108" stroke="#ff8b85" stroke-width="2"/><text x="${sx(i) - 2}" y="${b.name.includes("올스타") ? 140 : 152}" font-size="9" fill="#ff8b85" text-anchor="end">${esc(b.name)}</text>`; });
+    // 결과 레인: 위반·고정·우천
+    ev.hard.forEach((v) => { h += `<text x="${sx(v.slot) + sx(1) / 2}" y="146" font-size="12" fill="#ff6b63" text-anchor="middle">⚠</text>`; });
+    rain.forEach((r) => { h += `<text x="${sx(r.slot) + sx(1) / 2}" y="160" font-size="11" text-anchor="middle">☂</text>`; });
+    h += `<text class="lane-l" x="4" y="164">② 결과 · ⚠ Hard 위반 · ☂ 우천 취소</text>`;
+    // 재편성 구간 배치 결과
+    if (rebooked) {
+      const d0 = KB.day("2025-09-01"), span = 61;
+      rebooked.placed.forEach((g, k) => { const dd = (KB.day(g.date) - d0) / 864e5; const x = sx(NS) + 10 + (dd / span) * (W - sx(NS) - 20); h += `<circle cx="${x}" cy="${70 + (k % 4) * 12}" r="5" fill="${color(g.home)}" stroke="#fff" stroke-width="1"/>`; });
+      h += `<text class="lane-l" x="${sx(NS) + 12}" y="140">배치 ${rebooked.placed.length} · 마지막 ${rebooked.last.slice(5)}</text>`;
+    } else rain.forEach((r, k) => { h += `<circle cx="${sx(NS) + 20 + k * 14}" cy="56" r="5" fill="none" stroke="${color(r.home)}" stroke-width="2"/>`; });
+    $("#tlsvg").innerHTML = h;
+    $("#head").style.left = sx(t) + "px";
+    $("#head").dataset.l = K.slots[Math.min(NS - 1, Math.floor(t))].label;
+    $("#rqInfo").textContent = rain.length ? `대기 ${rain.length}경기` : "자막의 ☂로 취소 기록";
+    $("#rebook").disabled = !rain.length;
+  }
+
+  function renderAll() { renderTicker(); renderMap(); renderRace(); renderTimeline(); }
+  function setT(v, light) {
+    t = Math.max(0, Math.min(NS - 1, v));
+    if (light) { renderMap(); renderRace(); $("#head").style.left = xOfSlot(t) * tl.clientWidth + "px"; const i = Math.floor(t); if (i !== setT.last) { setT.last = i; renderTicker(); $("#head").dataset.l = K.slots[i].label; } }
+    else renderAll();
+  }
+  store.on(() => { build(); renderAll(); });
+
+  // 스크러버 끌기
+  let scrubbing = false;
+  const tAt = (e) => { const r = tl.getBoundingClientRect(); return ((e.clientX - r.left) / r.width / zone) * NS; };
+  tl.addEventListener("pointerdown", (e) => { if (e.target.closest(".rqbtn")) return; scrubbing = true; stop(); try { tl.setPointerCapture(e.pointerId); } catch {} setT(tAt(e), true); });
+  tl.addEventListener("pointermove", (e) => { if (scrubbing) setT(tAt(e), true); });
+  tl.addEventListener("pointerup", () => { if (!scrubbing) return; scrubbing = false; setT(Math.round(t)); });
+
+  function stop() { if (playing) { cancelAnimationFrame(playing); playing = null; $("#play").textContent = "▶ 재생"; } }
+  $("#play").onclick = () => {
+    if (playing) return stop();
+    if (t >= NS - 1) t = 0;
+    $("#play").textContent = "⏸ 일시정지";
+    let last = performance.now();
+    const step = (now) => {
+      const sp = +$("#speed").value;
+      setT(t + ((now - last) / 1000) * 0.9 * sp, true);
+      last = now;
+      if (t >= NS - 1) { stop(); setT(NS - 1); return; }
+      playing = requestAnimationFrame(step);
+    };
+    playing = requestAnimationFrame(step);
+  };
+  $("#back").onclick = () => { stop(); setT(Math.ceil(t) - 1); };
+  $("#fwd").onclick = () => { stop(); setT(Math.floor(t) + 1); };
+  $("#solve").onclick = () => { stop(); KB.solve({ interval: 160, onDone: (e) => KB.toast(`재최적화 완료 · Hard ${e.hardSum}`) }); };
+  document.addEventListener("keydown", (e) => {
+    if (e.key === " ") { e.preventDefault(); $("#play").click(); }
+    if (e.key === "ArrowRight") { stop(); setT(Math.floor(t) + 1); }
+    if (e.key === "ArrowLeft") { stop(); setT(Math.ceil(t) - 1); }
+    if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); store.undo(); }
+  });
+  $("#ticker").addEventListener("click", (e) => {
+    const f = e.target.closest("[data-flip]"), p = e.target.closest("[data-pin]"), r = e.target.closest("[data-rain]");
+    if (f) { if (store.apply({ op: "flip", id: +f.dataset.flip })) KB.toast(`뒤집음 · Hard ${store.ev.hardSum}`); }
+    if (p) { store.apply({ op: "pin", id: +p.dataset.pin }); }
+    if (r) {
+      const g = store.get(+r.dataset.rain);
+      if (!rain.some((x) => x.sid === g.id)) { rain.push({ sid: g.id, slot: g.slot, home: g.home, away: g.away, date: slotDays[g.slot][g.len - 1] }); rebooked = null; KB.toast(`${g.away}@${g.home} 1경기 우천 취소 → 9~10월 대기열`); renderTicker(); renderTimeline(); }
+    }
+  });
+  $("#rebook").onclick = () => { rebooked = KB.rebook(rain, { monday: $("#oMon").checked, dh: $("#oDH").checked }); renderTimeline(); KB.toast(`재편성(목업) · ${rebooked.placed.length}경기 배치 · 마지막 ${rebooked.last.slice(5)}`); };
+  $("#bars").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) { follow = b.dataset.t === follow ? null : b.dataset.t; if (follow) { mode = "team"; syncMode(); } renderAll(); } });
+  function syncMode() { $$("#mode button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === mode))); }
+  $$("#mode button").forEach((b) => b.onclick = () => { mode = b.dataset.m; if (mode === "team" && !follow) follow = "KIA"; if (mode === "all") follow = null; syncMode(); renderAll(); });
+  window.addEventListener("resize", renderAll);
+
+  build();
+  // 첫 화면: 한화 연속 원정 위반이 있는 5/30 슬롯에서 멈춰 있다.
+  t = store.ev.hard.length ? store.ev.hard[store.ev.hard.length - 1].slot : 0;
+  renderAll();
+  KB.hud("06 시즌 리플레이", "br");
+  window.RP = { setT, rain: () => rain };
+})();
+</script>
+</body>
+</html>

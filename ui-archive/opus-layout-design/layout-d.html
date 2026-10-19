@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D · 레이어 타임라인</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .app { display: grid; grid-template-rows: 42px 34px minmax(0, 1fr) 236px; }
+  .top { display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .top h1 { font-size: 14px; }
+
+  /* 전체 시즌 미니맵 */
+  .mini { position: relative; margin: 6px 14px; height: 22px; background: var(--sunk); border-radius: 4px; cursor: pointer; overflow: hidden; }
+  .mini i { position: absolute; top: 6px; height: 10px; background: #b9c8ef; }
+  .mini i.v { background: var(--bad); top: 2px; height: 18px; width: 3px !important; }
+  .mini i.p2 { background: repeating-linear-gradient(90deg, #e6e3db 0 3px, transparent 3px 5px); top: 0; height: 22px; }
+  .mini .brush { position: absolute; top: 0; bottom: 0; border: 2px solid var(--ink); border-radius: 3px; background: rgba(37,87,214,.08); pointer-events: none; }
+
+  /* 타임라인: 한 스크롤 컨테이너 안에서 왼쪽 트랙 머리와 위쪽 눈금을 sticky로 고정 */
+  .tl { overflow: auto; min-height: 0; min-width: 0; background: var(--panel); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; }
+  .tl-inner { position: relative; }
+  .trow { display: flex; height: 26px; border-bottom: 1px solid var(--line); }
+  .trow.lane { height: 20px; }
+  .trow.ruler { height: 34px; position: sticky; top: 0; z-index: 4; background: #fbfbf9; }
+  .trow.group { height: 22px; background: var(--sunk); }
+  .th { position: sticky; left: 0; z-index: 3; flex: none; width: 150px; background: #fbfbf9; border-right: 1px solid var(--line-strong); display: flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+  .th .lk { margin-left: auto; font-size: 10px; color: var(--ink-3); }
+  .th.input-l { box-shadow: inset 3px 0 0 var(--accent); }
+  .th.output-l { box-shadow: inset 3px 0 0 var(--ok); }
+  .trow.ruler .th { z-index: 5; font-weight: 700; color: var(--ink-2); }
+  .tr { position: relative; flex: none; }
+  .tr.wkbg { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.04) 0 var(--w2), transparent var(--w2) var(--w7)); }
+  .tr.clickable { cursor: crosshair; }
+  .tr > * { position: absolute; top: 3px; bottom: 3px; }
+  .m-lab { top: 2px !important; bottom: auto !important; font-size: 11px; font-weight: 700; padding-left: 3px; border-left: 1px solid var(--line-strong); height: 14px; }
+  .d-lab { top: 18px !important; bottom: auto !important; font-size: 9px; color: var(--ink-3); text-align: center; }
+  .rest { background: repeating-linear-gradient(45deg, #ddd 0 2px, #fff 2px 4px); border-radius: 2px; }
+  .exc { background: #fff; border: 2px solid var(--ok); border-radius: 2px; }
+  .hol { display: grid; place-items: center; color: var(--bad); font-size: 11px; }
+  .bo { background: #fff; border: 1px solid var(--ink-2); border-radius: 4px; font-size: 11px; padding: 0 6px; white-space: nowrap; overflow: hidden; display: flex; align-items: center; background-image: repeating-linear-gradient(45deg, #eee 0 3px, #fff 3px 6px); }
+  .ev { display: flex; align-items: center; gap: 3px; font-size: 11px; white-space: nowrap; color: var(--warn); font-weight: 700; }
+  .sl { background: #c9d6f5; border: 1px solid #8ea7e6; border-radius: 3px; font-size: 10px; display: grid; place-items: center; cursor: pointer; }
+  .sl.l2 { background: #dfe7fa; } .sl.l4 { background: #a9bff0; }
+  .sl.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .sl.new { outline: 2px dashed var(--warn); }
+  .vm { display: grid; place-items: center; color: #fff; background: var(--bad); border-radius: 3px; font-size: 10px; font-weight: 700; cursor: pointer; }
+  .gm { border-radius: 1px; }
+  .gm.done { background: var(--ok); opacity: .55; }
+  .gm.cancel { background: none; color: var(--bad); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .gm.todo { background: var(--warn); opacity: .5; }
+  .tb { border-radius: 2px; top: 3px !important; bottom: 3px !important; }
+  .tb.H { background: var(--home); }
+  .tb.A { border: 1px solid var(--away); background: #fff; }
+  .tb.vio { outline: 2px solid var(--bad); }
+  .p2 { background: repeating-linear-gradient(90deg, #f1efe9 0 4px, #e6e3db 4px 5px); top: 0 !important; bottom: 0 !important; }
+  .selcol { position: absolute; top: 0; bottom: 0; background: rgba(37,87,214,.10); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); pointer-events: none; z-index: 2; }
+  .today { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--note); z-index: 2; pointer-events: none; }
+
+  /* 하단 도크 */
+  .dock { display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--panel); min-height: 0; }
+  .dock-body { min-height: 0; overflow: auto; padding: 10px 14px; }
+  .dock-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr) 300px; gap: 16px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12px; }
+  .kv span { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>KBO 일정 편성 · 2025</h1>
+    <div class="seg" role="tablist" id="range"><button aria-selected="false" data-r="all">전체 시즌</button><button aria-selected="true" data-r="p1">1차 3~8월</button><button aria-selected="false" data-r="p2">재편성 9~10월</button></div>
+    <div class="row small"><span class="muted">확대</span><button class="btn sm" id="zo">−</button><button class="btn sm" id="zi">+</button></div>
+    <span class="grow"></span>
+    <span class="tag warn" id="staleTag" hidden>! 입력 변경됨 — 결과는 이전 실행 기준</span>
+    <span id="badge"></span>
+    <button class="btn primary" id="run">▶ 엔진 실행</button>
+  </header>
+  <div class="mini" id="mini" data-note="1" title="클릭해 해당 시점으로 이동"></div>
+  <div class="tl" id="tl" data-note="2"><div class="tl-inner" id="tlin"></div></div>
+  <section class="dock" data-note="4">
+    <nav class="tabs" role="tablist" id="dockTabs">
+      <button role="tab" data-d="sel" aria-selected="true">선택 항목</button>
+      <button role="tab" data-d="viol" aria-selected="false">위반 목록</button>
+      <button role="tab" data-d="metrics" aria-selected="false">구단 지표</button>
+      <button role="tab" data-d="ops" aria-selected="false">취소·재편성</button>
+    </nav>
+    <div class="dock-body" id="dock"></div>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { K, $, $$, esc, state, team, hardBadge, generateSlots, seriesInSlot, metricsTable, toast } = W;
+const START = new Date("2025-03-22T00:00:00"), END = new Date("2025-10-31T00:00:00");
+const NDAYS = Math.round((END - START) / 864e5) + 1;
+const TODAY = "2025-07-22";
+let DW = 14, selSlot = 17, dockTab = "sel", teamsOpen = true;
+const skel = {
+  opening: "2025-03-22", end: "2025-08-31", restDays: [1], exceptions: ["2025-05-05"],
+  blackouts: K.blackouts.map((b) => ({ ...b })), holidays: K.holidays.slice(),
+};
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const idx = (s) => Math.round((new Date(s + "T00:00:00") - START) / 864e5);
+const dayAt = (i) => { const d = new Date(START); d.setDate(d.getDate() + i); return d; };
+const X = (i) => i * DW;
+
+function render() {
+  const gen = generateSlots(skel);
+  const stale = gen.length !== K.slots.length || gen.some((g, i) => g.date !== K.slots[i].date || g.len !== K.slots[i].len);
+  $("#staleTag").hidden = !stale;
+  $("#badge").innerHTML = hardBadge();
+  const width = NDAYS * DW;
+  const p2 = idx("2025-09-01");
+  const row = (label, cls, inner, opts = {}) => `<div class="trow ${opts.row || ""}"><div class="th ${cls}">${label}</div><div class="tr ${opts.tr || "wkbg"}" style="width:${width}px" ${opts.attr || ""}>${inner}</div></div>`;
+
+  // 눈금
+  let ruler = "";
+  for (let i = 0; i < NDAYS; i++) {
+    const d = dayAt(i);
+    if (d.getDate() === 1 || i === 0) ruler += `<span class="m-lab" style="left:${X(i)}px">${d.getMonth() + 1}월</span>`;
+    if (DW >= 12 || d.getDay() === 6) ruler += `<span class="d-lab" style="left:${X(i)}px;width:${DW}px">${d.getDate()}</span>`;
+  }
+  ruler += `<span class="p2" style="left:${X(p2)}px;width:${X(NDAYS - p2)}px;opacity:.6"></span>`;
+
+  let rest = "", hol = "", bo = "", ev = "", sl = "", vm = "", gm = "";
+  for (let i = 0; i < NDAYS; i++) {
+    const d = dayAt(i), s = iso(d);
+    if (s > skel.end) break;
+    if (skel.restDays.includes(d.getDay())) rest += skel.exceptions.includes(s) ? `<span class="exc" style="left:${X(i)}px;width:${DW}px" title="휴식 예외 ${s}"></span>` : `<span class="rest" style="left:${X(i)}px;width:${DW}px" title="휴식 ${s} — 클릭하면 예외로 전환"></span>`;
+  }
+  skel.holidays.forEach((h) => hol += `<span class="hol" style="left:${X(idx(h))}px;width:${DW}px" title="공휴일 ${h}">◆</span>`);
+  skel.blackouts.forEach((b, k) => { const a = idx(b.from), z = idx(b.to); bo += `<span class="bo" data-bo="${k}" style="left:${X(a)}px;width:${Math.max(X(z - a + 1), 72)}px" title="${esc(b.name)} — 클릭해 삭제">${esc(b.name)}</span>`; });
+  K.events.forEach((e) => ev += `<span class="ev" style="left:${X(idx(e.date))}px">★ ${e.name || e.type}</span>`);
+  gen.forEach((g, k) => {
+    const a = idx(g.date), orig = K.slots.findIndex((o) => o.date === g.date && o.len === g.len);
+    sl += `<span class="sl l${g.len}${orig === selSlot ? " sel" : ""}${orig < 0 ? " new" : ""}" data-slot="${orig}" style="left:${X(a) + 1}px;width:${X(g.len) - 2}px" title="${g.label} ${g.len}연전 · 주말 ${g.wk} · 휴일 ${g.hol}">${g.len}</span>`;
+  });
+  state.violations.forEach((v) => { const s = K.slots[v.slot]; vm += `<span class="vm" data-v="${v.slot}" style="left:${X(idx(s.date))}px;width:${X(s.len)}px" title="${v.rule} ${v.detail}">⚠ ${v.rule}</span>`; });
+  K.slots.forEach((s) => {
+    for (let j = 0; j < s.len; j++) {
+      const i = idx(s.date) + j, ds = iso(dayAt(i));
+      if (ds > TODAY) continue;
+      const cancel = (i * 7) % 23 === 0;
+      gm += cancel ? `<span class="gm cancel" style="left:${X(i)}px;width:${DW}px" title="${ds} 취소 1">✕</span>` : `<span class="gm ${ds > "2025-07-19" ? "todo" : "done"}" style="left:${X(i) + 2}px;width:${DW - 4}px" title="${ds} ${ds > "2025-07-19" ? "결과 미입력" : "완료 5"}"></span>`;
+    }
+  });
+
+  let teams = "";
+  if (teamsOpen) K.teams.forEach((t) => {
+    let inner = "";
+    K.series.filter((s) => s.home === t.name || s.away === t.name).forEach((s) => {
+      const sl0 = K.slots[s.slot], k = s.home === t.name ? "H" : "A";
+      const v = state.violations.some((x) => x.slot === s.slot && x.team === t.name);
+      inner += `<span class="tb ${k}${v ? " vio" : ""}" style="left:${X(idx(sl0.date)) + 1}px;width:${X(s.len) - 2}px" title="${sl0.label} ${k === "H" ? "홈" : "원정"} vs ${k === "H" ? s.away : s.home}"></span>`;
+    });
+    teams += row(team(t.name), "output-l", inner, { row: "lane" });
+  });
+
+  const selS = K.slots[selSlot];
+  $("#tlin").style.width = 150 + width + "px";
+  $("#tlin").style.setProperty("--w2", 2 * DW + "px");
+  $("#tlin").style.setProperty("--w7", 7 * DW + "px");
+  $("#tlin").innerHTML =
+    row("트랙", "", ruler, { row: "ruler", tr: "" }) +
+    row("휴식 요일·예외 <span class='lk'>입력</span>", "input-l", rest, { tr: "wkbg clickable", attr: 'data-track="rest"' }) +
+    row("공휴일 <span class='lk'>입력</span>", "input-l", hol, { tr: "wkbg clickable", attr: 'data-track="hol"' }) +
+    row("경기 없는 기간 <span class='lk'>입력</span>", "input-l", bo, { tr: "wkbg clickable", attr: 'data-track="bo"' }) +
+    row("이벤트 <span class='lk'>입력</span>", "input-l", ev) +
+    row(`슬롯 ${gen.length} <span class='lk'>자동</span>`, "output-l", sl) +
+    row(`Hard 위반 ${state.violations.length} <span class='lk'>결과</span>`, "output-l", vm) +
+    row("경기 기록 <span class='lk'>운영</span>", "", gm) +
+    `<div class="trow group"><div class="th" style="background:var(--sunk);cursor:pointer" id="tg">${teamsOpen ? "▾" : "▸"} 구단 흐름 (10)</div><div class="tr" style="width:${width}px"></div></div>` +
+    teams +
+    (selS ? `<div class="selcol" style="left:${150 + X(idx(selS.date))}px;width:${X(selS.len)}px"></div>` : "") +
+    `<div class="today" style="left:${150 + X(idx(TODAY))}px" title="오늘 7/22"></div>`;
+
+  // 상호작용: 입력 트랙은 시간축을 직접 클릭해 값을 넣는다.
+  $$("[data-slot]").forEach((el) => el.onclick = (e) => { e.stopPropagation(); if (+el.dataset.slot >= 0) { selSlot = +el.dataset.slot; dockTab = "sel"; render(); } else toast("새로 생긴 슬롯 — 엔진을 다시 실행하면 배정됩니다"); });
+  $$("[data-v]").forEach((el) => el.onclick = (e) => { e.stopPropagation(); selSlot = +el.dataset.v; dockTab = "sel"; render(); });
+  $$("[data-bo]").forEach((el) => el.onclick = (e) => { e.stopPropagation(); skel.blackouts.splice(+el.dataset.bo, 1); toast("경기 없는 기간 삭제 → 슬롯 트랙 재계산"); render(); });
+  $$("[data-track]").forEach((tr) => tr.onclick = (e) => {
+    const i = Math.floor(e.offsetX / DW), s = iso(dayAt(i));
+    if (e.target !== tr) { if (tr.dataset.track === "rest" && e.target.classList.contains("rest")) { skel.exceptions.push(s); toast(`${s} 휴식 예외 추가 → 슬롯 재계산`); render(); } else if (tr.dataset.track === "rest" && e.target.classList.contains("exc")) { skel.exceptions = skel.exceptions.filter((x) => x !== s); render(); } return; }
+    if (tr.dataset.track === "bo") { const to = iso(dayAt(i + 2)); skel.blackouts.push({ name: "새 기간", from: s, to }); toast(`경기 없는 기간 ${s.slice(5)}~${to.slice(5)} 추가 → 슬롯 재계산`); render(); }
+    if (tr.dataset.track === "hol") { skel.holidays.push(s); toast(`공휴일 ${s.slice(5)} 추가 → 휴일 가중치 재계산`); render(); }
+  });
+  $("#tg").onclick = () => { teamsOpen = !teamsOpen; render(); };
+  renderMini(gen);
+  renderDock();
+}
+
+function renderMini(gen) {
+  const pct = (i) => (i / NDAYS) * 100;
+  const p2 = idx("2025-09-01");
+  $("#mini").innerHTML = gen.map((g) => `<i style="left:${pct(idx(g.date))}%;width:${pct(g.len) - .1}%"></i>`).join("") +
+    `<i class="p2" style="left:${pct(p2)}%;width:${pct(NDAYS - p2)}%"></i>` +
+    state.violations.map((v) => `<i class="v" style="left:${pct(idx(K.slots[v.slot].date))}%"></i>`).join("") + `<div class="brush" id="brush"></div>`;
+  syncBrush();
+}
+function syncBrush() {
+  const tl = $("#tl"), b = $("#brush");
+  if (!b) return;
+  const total = NDAYS * DW, view = tl.clientWidth - 150;
+  b.style.left = (tl.scrollLeft / total) * 100 + "%";
+  b.style.width = Math.min(100, (view / total) * 100) + "%";
+}
+$("#tl").addEventListener("scroll", syncBrush);
+$("#mini").onclick = (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), f = (e.clientX - r.left) / r.width;
+  $("#tl").scrollTo({ left: f * NDAYS * DW - ($("#tl").clientWidth - 150) / 2, behavior: "smooth" });
+};
+
+function renderDock() {
+  $$("#dockTabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.d === dockTab)));
+  const D = $("#dock"), s = K.slots[selSlot];
+  if (dockTab === "sel") {
+    const vs = W.violationsAtSlot(selSlot), evs = K.events.filter((e) => idx(e.date) >= idx(s.date) && idx(e.date) < idx(s.date) + s.len);
+    D.innerHTML = `<div class="dock-grid">
+      <div><h3 style="margin-bottom:6px">슬롯 #${selSlot + 1} · ${s.label} ~ ${s.end}</h3><div class="kv"><span>연전</span><b>${s.len}</b><span>주말 가중치</span><b>${s.wk}</b><span>휴일 가중치</span><b>${s.hol}</b><span>이벤트</span><b>${evs.length ? evs.map((e) => "★ " + (e.name || e.type)).join(", ") : "없음"}</b></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm">슬롯 핀 고정</button><button class="btn sm" id="prevS">◀</button><button class="btn sm" id="nextS">▶</button></div></div>
+      <div><h3 style="margin-bottom:6px">이 슬롯의 시리즈</h3><table class="grid"><thead><tr><th>대진</th><th>구장</th><th></th></tr></thead><tbody>${seriesInSlot(selSlot).map((x) => `<tr><td>${team(x.away)} @ ${team(x.home)}</td><td class="muted">${W.teamOf(x.home).stadium}</td><td>${vs.some((v) => v.team === x.home || v.team === x.away) ? '<span class="viol-ico">⚠</span>' : ""}</td></tr>`).join("")}</tbody></table></div>
+      <div>${vs.length ? vs.map((v) => `<div class="tag bad" style="display:block;padding:6px 8px;line-height:1.4;margin-bottom:6px">⚠ <b>${v.rule}</b> ${v.name}<br>${v.detail}<br><button class="btn sm" data-fix="${v.id}" style="margin-top:4px">인접 슬롯과 교환</button></div>`).join("") : '<span class="tag ok">✓ 이 슬롯은 Hard 규칙 충족</span>'}</div></div>`;
+    $("#prevS").onclick = () => { selSlot = Math.max(0, selSlot - 1); render(); scrollToSel(); };
+    $("#nextS").onclick = () => { selSlot = Math.min(44, selSlot + 1); render(); scrollToSel(); };
+    $$("[data-fix]").forEach((b) => b.onclick = () => { state.violations = state.violations.filter((v) => v.id !== b.dataset.fix); toast("교환 적용 · 재채점 완료"); render(); });
+  } else if (dockTab === "viol") {
+    D.innerHTML = state.violations.length ? `<table class="grid"><thead><tr><th>규칙</th><th>내용</th><th>슬롯</th><th>구단</th></tr></thead><tbody>${state.violations.map((v) => `<tr data-pick data-goto="${v.slot}"><td><span class="viol-ico">⚠ ${v.rule}</span></td><td>${v.name} — ${v.detail}</td><td>${K.slots[v.slot].label}</td><td>${team(v.team)}</td></tr>`).join("")}</tbody></table>` : '<span class="tag ok">✓ 위반 없음</span>';
+    $$("[data-goto]").forEach((r) => r.onclick = () => { selSlot = +r.dataset.goto; dockTab = "sel"; render(); scrollToSel(); });
+  } else if (dockTab === "metrics") {
+    metricsTable(D);
+  } else {
+    D.innerHTML = `<div class="dock-grid"><div><h3>시즌 진행 (오늘 7/22)</h3><div class="kv" style="margin-top:6px"><span>완료</span><b>482경기</b><span>취소</span><b class="over">38경기</b><span>결과 미입력</span><b>10경기</b></div></div>
+      <div><h3>재편성 옵션</h3><div class="row" style="margin-top:6px"><label class="check"><input type="checkbox"> 월요일 허용</label><label class="check"><input type="checkbox" checked> DH 허용 (최대 3)</label></div><p class="muted small" style="margin-top:6px">실행하면 9~10월 구간(빗금)에 '재편성 슬롯' 트랙이 생기고, 같은 방식으로 위반·흐름을 확인합니다.</p></div>
+      <div><button class="btn primary">재편성 실행 (83경기)</button></div></div>`;
+  }
+}
+function scrollToSel() { const s = K.slots[selSlot]; const tl = $("#tl"); tl.scrollTo({ left: X(idx(s.date)) - (tl.clientWidth - 150) / 2, behavior: "smooth" }); }
+
+$$("#dockTabs button").forEach((b) => b.onclick = () => { dockTab = b.dataset.d; renderDock(); });
+$$("#range button").forEach((b) => b.onclick = () => {
+  $$("#range button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  const tl = $("#tl"), left = b.dataset.r === "p2" ? X(idx("2025-09-01")) - 20 : 0;
+  if (b.dataset.r === "all") DW = Math.max(4, Math.floor((tl.clientWidth - 160) / NDAYS));
+  else DW = 14;
+  render(); tl.scrollTo({ left, behavior: "smooth" });
+});
+$("#zi").onclick = () => { DW = Math.min(28, DW + 3); render(); };
+$("#zo").onclick = () => { DW = Math.max(4, DW - 3); render(); };
+$("#run").onclick = () => toast("Mock 엔진 실행 → 위반·구단 흐름 트랙이 갱신됩니다");
+
+render();
+$("#tl").scrollLeft = X(idx(K.slots[selSlot].date)) - 400;
+syncBrush();
+W.wire("D · 레이어 타임라인 — 입력과 결과를 시간축 하나에 겹쳐 쌓기", [
+  "시즌 전체 미니맵. 검은 틀이 지금 보이는 구간입니다. 빨간 눈금 = 위반 위치. 클릭하면 그 시점으로 이동합니다.",
+  "시간은 가로, 레이어는 세로. 파란 띠 트랙은 사람이 넣는 입력(휴식·공휴일·경기 없는 기간·이벤트)이고, 초록 띠 트랙은 계산 결과(슬롯·위반·구단 흐름)입니다. 가로 스크롤은 이 영역 안에서만 일어나며, 트랙 이름 열과 날짜 눈금은 고정됩니다.",
+  "입력은 시간축에 직접 합니다. '경기 없는 기간' 트랙의 빈 곳을 클릭하면 3일 기간이 생기고, 휴식(빗금) 칸을 클릭하면 휴식 예외가 됩니다. 바로 아래 슬롯 트랙이 즉시 다시 계산되고, 새로 생긴 슬롯은 점선으로 표시됩니다.",
+  "하단 도크(고정 높이)는 선택 항목 속성·위반 목록·구단 지표·취소/재편성을 탭으로 전환합니다. 슬롯이나 ⚠ 표시를 클릭하면 선택 항목으로 바뀝니다.",
+]);
+</script>
+</body>
+</html>

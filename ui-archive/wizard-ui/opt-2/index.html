@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>편성 스튜디오 표준 — KBO 일정 편성 · 2025 (wizard-ui std)</title>
+<script>
+  /* 콘솔 오류 수집 (AC-P5 점검용). 화면 동작에는 영향이 없다. */
+  (function () {
+    var errs = [];
+    window.__studioErrors = errs;
+    function mark() { try { document.documentElement.setAttribute('data-errors', String(errs.length)); if (errs.length) document.documentElement.setAttribute('data-error-list', errs.slice(0, 5).join(' | ')); } catch (e) { /* 무시 */ } }
+    window.addEventListener('error', function (e) { errs.push('error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || '')); mark(); }, true);
+    window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + (e.reason && e.reason.message || e.reason)); mark(); });
+    var ce = console.error;
+    console.error = function () { errs.push('console: ' + Array.prototype.join.call(arguments, ' ')); mark(); return ce.apply(console, arguments); };
+    mark();
+  })();
+</script>
+<link rel="stylesheet" href="app/studio/studio.css">
+</head>
+<body>
+<header id="topbar" class="topbar"></header>
+<nav id="stepper" class="stepper" aria-label="편성 단계"></nav>
+<main id="body" class="body"></main>
+<footer id="footer" class="footer"></footer>
+<div id="overlay"></div>
+<noscript>JavaScript가 필요합니다.</noscript>
+
+<script src="core/calendar-gen.js"></script>
+<script src="core/preset-2025.js"></script>
+<script src="core/score.js"></script>
+<script src="core/reschedule.js"></script>
+<script src="core/mock-solver.js"></script>
+<script src="core/store.js"></script>
+<script src="core/engine-adapter.js"></script>
+<script src="core/svg-chart.js"></script>
+<script src="core/svg-map.js"></script>
+<script src="app/common/dom.js"></script>
+<script src="app/common/app.js"></script>
+
+<script src="app/studio/base.js"></script>
+<script src="app/studio/shell.js"></script>
+<script src="app/studio/viz-input.js"></script>
+<script src="app/studio/step-data.js"></script>
+<script src="app/studio/import.js"></script>
+<script src="app/studio/step-review.js"></script>
+<script src="app/studio/step-result.js"></script>
+<script src="app/studio/viz-metrics.js"></script>
+<script src="app/studio/step-quality.js"></script>
+<script src="app/studio/route-player.js"></script>
+<script src="app/studio/ops.js"></script>
+<script src="app/studio/settings.js"></script>
+<script>Studio.start();</script>
+</body>
+</html>
