@@ -367,7 +367,7 @@
     s += '</div>';
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
-      const values = names.map((a) => names.map((b) => (a === b ? null : app().distanceOf(a, b))));
+      const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
       s += '<details class="fold" style="margin-top:12px" data-feature="T7"><summary>' + icon('grid') + '거리 행렬 히트맵 <span class="muted">10 × 10 · km · 대칭 편집 켜짐</span></summary><div style="padding:8px 10px" class="chart-box">' +
         KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 58, cellH: 24, labelW: 50, format: (v) => (v == null ? '' : Number(v).toFixed(1)), title: '구단 간 이동거리' }) + '</div></details>';
     }
@@ -467,7 +467,7 @@
       const i = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
       if (i < 0) return { title: '구단', html: '<div class="empty"><b>구단을 고르세요</b>표에서 구단을 고르면 구장·좌표·거리를 보여 줍니다.</div>' };
       const t = st.teams[i];
-      const others = st.teams.filter((x) => x.name !== t.name).map((x) => ({ n: x.name, d: app().distanceOf(t.name, x.name) })).sort((a, b) => a.d - b.d);
+      const others = st.teams.filter((x) => x.name !== t.name).map((x) => ({ n: x.name, d: (app().distanceOf(t.name, x.name) || {}).distance })).sort((a, b) => a.d - b.d);
       return { title: '구단 상세', html: '<div class="insp-sec"><div class="insp-title">' + S.team(t.name) + '</div><div class="insp-sub">' + esc(t.stadium) + '</div></div>' +
         '<div class="insp-sec"><h4>속성</h4><dl class="props"><dt>구단명</dt><dd><input class="input sm" value="' + esc(t.name) + '" data-in="team-field" data-row="' + i + '" data-k="name"></dd><dt>구장</dt><dd><input class="input sm" value="' + esc(t.stadium) + '" data-in="team-field" data-row="' + i + '" data-k="stadium"></dd><dt>위도·경도</dt><dd class="mono">' + t.latitude.toFixed(4) + ', ' + t.longitude.toFixed(4) + '</dd><dt>색</dt><dd><span class="tm"><i style="background:' + esc(t.color) + ';width:14px;height:14px"></i>' + esc(t.color) + '</span></dd></dl></div>' +
         '<div class="insp-sec"><h4>다른 구장까지 거리<span class="r">km</span></h4>' + others.map((o) => '<div style="display:flex;justify-content:space-between;height:22px;align-items:center" class="small">' + S.team(o.n) + '<span class="mono">' + fmt.km(o.d) + '</span></div>').join('') + '</div>' };
