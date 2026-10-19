@@ -483,6 +483,15 @@
       else add('cap-' + k, 'pass', k + '연전 용량', '시리즈 ' + series + '개 = 슬롯 ' + (sh[k] || 0) + '개 × ' + half, 'series');
     }
     if (!st.matches.length) add('matches', 'block', '시리즈 목록', '시리즈가 없습니다. 시리즈를 자동 생성하세요.', 'series');
+    // 공유 구장(잠실 두산·LG): 같은 날 두 구단이 모두 홈일 수 없으므로 홈 k연전 수가 k연전 슬롯 수를 넘으면 편성할 수 없다
+    for (const [stadium, names] of this.sharedStadiums()) {
+      const byLen = {};
+      for (const m of st.matches) if (names.includes(m.home)) byLen[m.consecutive] = (byLen[m.consecutive] || 0) + 1;
+      const over = Object.keys(byLen).map(Number).filter((k) => byLen[k] > (sh[k] || 0));
+      const detail = Object.keys(byLen).map(Number).sort().map((k) => k + '연전 홈 ' + byLen[k] + '개 / 슬롯 ' + (sh[k] || 0) + '개').join(', ');
+      if (over.length) add('shared-' + stadium, 'block', '공유 구장 용량', stadium + ' — ' + detail + '. ' + names.join('·') + '가 같은 날 홈이 되는 시리즈가 생겨 편성할 수 없습니다.', 'series');
+      else add('shared-' + stadium, 'pass', '공유 구장 용량', stadium + ' — ' + detail, 'series');
+    }
     // 구단쌍 경기 수
     const pair = new Map();
     for (const m of st.matches) { const k = [m.home, m.away].sort().join('|'); pair.set(k, (pair.get(k) || 0) + m.consecutive); }

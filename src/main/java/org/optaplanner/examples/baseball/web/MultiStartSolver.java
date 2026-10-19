@@ -65,15 +65,20 @@ final class MultiStartSolver {
                         globalBest, start)));
             }
             List<SeedRun> runs = new ArrayList<>();
+            Throwable firstFailure = null;
             for (Future<SeedRun> f : futures) {
                 try {
                     runs.add(f.get());
                 } catch (java.util.concurrent.ExecutionException e) {
-                    LOG.warn("seed run failed", e.getCause());
+                    if (firstFailure == null) {
+                        firstFailure = e.getCause();
+                        LOG.warn("seed run failed", firstFailure);
+                    }
                 }
             }
             if (runs.isEmpty()) {
-                throw new IllegalStateException("모든 시드 실행이 실패했습니다.");
+                String why = firstFailure == null ? "" : firstFailure.getMessage();
+                throw new IllegalStateException("편성을 시작할 수 없습니다" + (why == null || why.isBlank() ? "" : ": " + why), firstFailure);
             }
             SeedRun best = runs.get(0);
             for (SeedRun r : runs) {

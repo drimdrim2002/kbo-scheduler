@@ -35,11 +35,25 @@
   const explain = (k) => (S.dev() ? EXPLAIN[k] : EXPLAIN_PLAIN[k]) || '';
   // 실행 시간 프리셋 (W17) → solver.timeLimitSec
   // opt-2: 큰 선택 카드용으로 「언제 쓰나요」(when)와 꼼꼼함(depth 1~3)을 더했다
+  // 서버 엔진(멀티스타트) 기준이다. 벤치마크(docs/ENGINE_SEED_BENCHMARK.md)에서 10초면 충분했고 서버 상한은 30초다.
   S.TIME_PRESETS = [
-    { sec: 60, name: '빠르게', time: '1분', sub: '입력을 바꾼 뒤 빨리 확인', when: '입력을 조금 고친 뒤 결과를 빨리 볼 때', depth: 1 },
-    { sec: 300, name: '보통', time: '5분', sub: '대부분 이 정도면 충분', when: '평소 편성안을 만들 때 (대부분 충분)', depth: 2 },
-    { sec: 1800, name: '충분히', time: '30분', sub: '배포 직전 최종안', when: '배포 직전 최종안을 만들 때', depth: 3 }
+    { sec: 10, name: '빠르게', time: '10초', sub: '입력을 바꾼 뒤 빨리 확인', when: '입력을 조금 고친 뒤 결과를 빨리 볼 때 (대부분 충분)', depth: 1 },
+    { sec: 20, name: '보통', time: '20초', sub: '조금 더 꼼꼼히', when: '평소 편성안을 만들 때', depth: 2 },
+    { sec: 30, name: '충분히', time: '30초', sub: '배포 직전 최종안', when: '배포 직전 최종안을 만들 때', depth: 3 }
   ];
+  /** 예전 프리셋(1·5·30분)으로 저장된 프로젝트를 새 값으로 옮긴다 */
+  S.LEGACY_TIME = { 60: 10, 300: 20, 1800: 30 };
+  /** 개선 없음 종료 시간: 실행 시간의 절반, 최소 5초 */
+  S.unimprovedFor = (sec) => Math.max(5, Math.round(sec / 2));
+  /**
+   * 실제로 쓸 시작 방식. 지금 일정에 필수 규칙 위반이 있으면 「다듬기」로는 고치기 어려워(서버 30초 안에 위반이 남는다)
+   * 「처음부터 새로 짜기」로 바꾼다. forced=true면 사용자 설정(KEEP)과 다르다는 뜻이다.
+   */
+  S.effectiveInit = function (sv) {
+    const chosen = sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP';
+    if (chosen === 'KEEP' && !D().ex.feasible) return { v: 'SCRATCH', forced: true, chosen };
+    return { v: chosen, forced: false, chosen };
+  };
   S.INIT_MODES = [
     { v: 'KEEP', name: '지금 일정 다듬기', sub: '현재 배정에서 출발해 위반과 부담을 줄입니다', when: '지금 일정이 거의 맞고 몇 곳만 고칠 때' },
     { v: 'SCRATCH', name: '처음부터 새로 짜기', sub: '고정한 경기만 두고 나머지를 새로 배치합니다', when: '입력을 크게 바꿨거나 새 시즌일 때' }
@@ -120,7 +134,7 @@
   // ───────── opt-2: 큰 선택 카드 ─────────
   /** 실행 시간 그림: 60분 눈금판에 실행 시간만큼 부채꼴을 칠한다(1분 = 6°, 5분 = 30°, 30분 = 180°) */
   function timeGlyph(sec) {
-    const deg = Math.max(6, Math.min(360, sec / 60 * 6)), r = 13, cx = 18, cy = 20;
+    const deg = Math.max(6, Math.min(360, sec * 6)), r = 13, cx = 18, cy = 20; // 60초 눈금판
     const rad = (d) => (d - 90) * Math.PI / 180;
     const px = (d) => (cx + r * Math.cos(rad(d))).toFixed(2), py = (d) => (cy + r * Math.sin(rad(d))).toFixed(2);
     let ticks = '';
@@ -150,12 +164,14 @@
     const dis = running ? ' disabled' : '';
     const pinned = app().state.matches.filter((m) => m.pinned).length;
     const cur = S.TIME_PRESETS.find((p) => p.sec === sv.timeLimitSec);
-    const initV = sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP';
+    const eff = S.effectiveInit(sv);
+    const initV = eff.v;
     const mode = S.INIT_MODES.find((m) => m.v === initV);
+    const nViol = D().ex.violations.length;
     const check = '<span class="bc-check" aria-hidden="true">' + icon('check') + '</span>';
     const timeCard = (p) => {
       const on = p.sec === sv.timeLimitSec;
-      const stopSec = Math.max(15, Math.round(p.sec / 4));
+      const stopSec = S.unimprovedFor(p.sec);
       return '<button class="choice bc' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-act="run-time" data-v="' + p.sec + '"' + dis + ' aria-label="' + esc(p.name + ' ' + p.time + ' — ' + p.when) + '">' + check +
         '<span class="bc-top">' + timeGlyph(p.sec) + '<span class="bc-name"><b>' + esc(p.name) + '</b><span class="bc-time">' + esc(p.time) + '</span></span></span>' +
         '<span class="bc-meter" title="오래 찾을수록 대체로 더 좋은 일정이 나옵니다">꼼꼼함 ' + [1, 2, 3].map((i) => '<i class="' + (i <= p.depth ? 'f' : '') + '"></i>').join('') + '</span>' +
@@ -172,9 +188,10 @@
     return '<div class="simple-opts big">' +
       '<div class="field"><span id="lbl-time">실행 시간 <span class="muted">— 오래 둘수록 더 꼼꼼히 찾습니다</span></span><div class="choices big" role="radiogroup" aria-labelledby="lbl-time">' + S.TIME_PRESETS.map(timeCard).join('') + '</div>' +
         (!cur ? '<span class="small muted">' + icon('info') + '개발자 옵션에서 정한 ' + esc(fmt.time(sv.timeLimitSec * 1000)) + '을 씁니다.</span>' : '') + '</div>' +
-      '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices big" role="radiogroup" aria-labelledby="lbl-init">' + S.INIT_MODES.map(initCard).join('') + '</div></div>' +
+      '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices big" role="radiogroup" aria-labelledby="lbl-init">' + S.INIT_MODES.map(initCard).join('') + '</div>' +
+        (eff.forced ? '<span class="small muted init-forced">' + icon('info') + '지금 일정에 ' + esc(S.termPlain('hardViol')) + ' ' + nViol + '건이 있어 이번 실행은 「처음부터 새로 짜기」로 합니다. 다듬기는 위반이 없을 때 쓸 수 있습니다.</span>' : '') + '</div>' +
       '</div>' +
-      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. 고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
+      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. ' + (initV === 'SCRATCH' ? '고정은 개막전·어린이날 시리즈만 유지됩니다.' : '고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.') + '</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
   };
 
   /** 개발자 옵션 (W17) — 개발자 모드에서만 DOM에 만든다 */
@@ -283,6 +300,8 @@
   S.steps[2] = {
     render() {
       if (S.lastRun === undefined) S.lastRun = null; // 실제 실행 전에는 지난 실행이 없다
+      const sv0 = app().state.settings.solver;
+      if (S.LEGACY_TIME[sv0.timeLimitSec] && !app().isRunning()) app().updateSolverSettings({ timeLimitSec: S.LEGACY_TIME[sv0.timeLimitSec], unimprovedSec: S.unimprovedFor(S.LEGACY_TIME[sv0.timeLimitSec]) });
       S.wide = window.innerWidth >= 1800;
       const insp = renderInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '사전 점검' }) + '</div>';
@@ -310,8 +329,11 @@
   S.startRun = function () {
     if (S.run && S.run.status !== 'DONE') return;
     if (!app().preflight().ok) { S.toast('사전 점검 차단 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
-    const limit = S.runLimitMs(app().state.settings.solver);
-    if (!app().solve({ quiet: true })) return; // 끝·오류 안내는 finish()가 일반 용어로 띄운다
+    const sv = app().state.settings.solver;
+    const limit = S.runLimitMs(sv);
+    const eff = S.effectiveInit(sv);
+    if (eff.forced) S.toast('지금 일정에 ' + S.termPlain('hardViol') + '이 있어 처음부터 새로 짭니다.', 'info', 4000);
+    if (!app().solve({ quiet: true, init: eff.v })) return; // 끝·오류 안내는 finish()가 일반 용어로 띄운다
     const ar = app().run;
     const run = S.run = { status: 'RUNNING', elapsed: 0, improvements: 0, history: [], limit, queue: null, seeds: {}, engine: ar.engineLabel, startedAt: Date.now() };
     const alive = () => S.run === run && app().run === ar;
@@ -350,7 +372,7 @@
     'p-sel': (el) => S.go({ sel: 'p:' + el.dataset.id }),
     'p-goto': (el) => S.navTarget(el.dataset.target),
     'solver-init': (el) => app().updateSolverSettings({ init: el.dataset.v }),
-    'run-time': (el) => { const sec = +el.dataset.v; app().updateSolverSettings({ timeLimitSec: sec, unimprovedSec: Math.max(15, Math.round(sec / 4)) }); },
+    'run-time': (el) => { const sec = +el.dataset.v; app().updateSolverSettings({ timeLimitSec: sec, unimprovedSec: S.unimprovedFor(sec) }); },
     'dev-open': () => S.go({ devOpen: !S.ui.devOpen })
   });
   S.inputs.solver = (el) => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) app().updateSolverSettings({ [el.dataset.k]: v }); };

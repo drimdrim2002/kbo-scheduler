@@ -60,7 +60,8 @@
     await wait(300);
     S.app.stop(); await wait(300); flush();
     ok('중지 → 실행 종료 후 ③ 이동', S.ui.step === 3 && !S.app.isRunning() && !!S.lastRun, 'step ' + S.ui.step);
-    S.app.updateSolverSettings({ timeLimitSec: 60, unimprovedSec: 15 });
+    S.app.undo(); flush(); // 엔진 실행 체크포인트로 되돌려 뒤 검사가 알려진 일정에서 돌게 한다
+    S.app.updateSolverSettings({ timeLimitSec: 10, unimprovedSec: 5 });
     // 6. 위반 클릭 → 위치
     S.ui.month = 3; flush();
     const v = document.querySelector('.vitem'); v.click(); flush();
@@ -87,7 +88,7 @@
     ok('스냅샷 저장', S.app.state.snapshots.length === snaps1 + 1);
     click('[data-act="snap-menu"]'); flush();
     const first = document.querySelector('[data-act="snap-restore"][data-id="s-engine-1"]'); first.click(); flush();
-    ok('스냅샷 복원 (슬롯 교환 전 → H1 해소)', hard() === 2, 'hard ' + hard());
+    ok('스냅샷 복원 (슬롯 교환 전 → H1 해소)', hard() === 1, 'hard ' + hard());
     S.app.undo(); flush();
     // 11. 시즌 운영: 날짜 일괄 취소, 재편성
     click('[data-act="open-ops"]'); flush();
@@ -114,12 +115,12 @@
     // 13. ② 실행 시간 프리셋 → timeLimitSec, 일반 모드에는 개발자 옵션 없음
     S.go({ step: 2, ops: null, drawer: null, modal: null });
     ok('일반 모드: 개발자 옵션 없음', !document.querySelector('.devopt') && !document.querySelector('.badge-score'));
-    click('[data-act="run-time"][data-v="300"]'); flush();
+    click('[data-act="run-time"][data-v="20"]'); flush();
     const t5 = S.app.state.settings.solver.timeLimitSec;
-    click('[data-act="run-time"][data-v="1800"]'); flush();
+    click('[data-act="run-time"][data-v="30"]'); flush();
     const t30 = S.app.state.settings.solver.timeLimitSec;
-    ok('실행 시간 프리셋 → timeLimitSec', t5 === 300 && t30 === 1800 && document.querySelector('[data-act="run-time"][data-v="1800"]').classList.contains('on'), t5 + ' / ' + t30);
-    click('[data-act="run-time"][data-v="60"]'); flush();
+    ok('실행 시간 프리셋 → timeLimitSec', t5 === 20 && t30 === 30 && document.querySelector('[data-act="run-time"][data-v="30"]').classList.contains('on'), t5 + ' / ' + t30);
+    click('[data-act="run-time"][data-v="10"]'); flush();
     click('[data-act="solver-init"][data-v="SCRATCH"]'); flush();
     ok('시작 방식 → init', S.app.state.settings.solver.init === 'SCRATCH');
     click('[data-act="solver-init"][data-v="KEEP"]'); flush();
@@ -224,15 +225,15 @@
       S.go({ step: 2, ops: null });
       const cards = document.querySelectorAll('.choices.big .choice.bc[data-act="run-time"]');
       const got = [];
-      for (const sec of [1800, 300, 60]) {
+      for (const sec of [30, 20, 10]) {
         click('.choice.bc[data-act="run-time"][data-v="' + sec + '"]'); flush();
         const on = document.querySelectorAll('.choice.bc[data-act="run-time"][aria-checked="true"]');
         got.push(S.app.state.settings.solver.timeLimitSec === sec && on.length === 1 && on[0].getAttribute('data-v') === String(sec) && on[0].classList.contains('on') ? sec : 'x' + S.app.state.settings.solver.timeLimitSec);
       }
-      click('.choice.bc[data-act="run-time"][data-v="1800"]'); flush();
-      const pick = /충분히 30분/.test(document.querySelector('.bc-pick').textContent);
-      click('.choice.bc[data-act="run-time"][data-v="60"]'); flush();
-      ok('큰 실행 시간 카드 3장 → timeLimitSec (1800·300·60), 요약 줄 반영', cards.length === 3 && got.join(',') === '1800,300,60' && pick, got.join(','));
+      click('.choice.bc[data-act="run-time"][data-v="30"]'); flush();
+      const pick = /충분히 30초/.test(document.querySelector('.bc-pick').textContent);
+      click('.choice.bc[data-act="run-time"][data-v="10"]'); flush();
+      ok('큰 실행 시간 카드 3장 → timeLimitSec (30·20·10), 요약 줄 반영', cards.length === 3 && got.join(',') === '30,20,10' && pick, got.join(','));
       click('.choice.bc[data-act="solver-init"][data-v="SCRATCH"]'); flush();
       const sc = S.app.state.settings.solver.init === 'SCRATCH' && /처음부터 새로 짜기/.test(document.querySelector('.bc-pick').textContent);
       click('.choice.bc[data-act="solver-init"][data-v="KEEP"]'); flush();

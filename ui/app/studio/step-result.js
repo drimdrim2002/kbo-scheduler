@@ -306,7 +306,8 @@
     return s;
   }
   function virtNote(v) {
-    const sd = { 'H0-f': S.SEEDS[0], 'H0-b': S.SEEDS[1], 'H1': S.SEEDS[2] }[v.code];
+    // 같은 코드의 시드가 여럿이면(H1 슬롯 맞바꾸기 2건) 위반 슬롯이 맞바꾼 슬롯(또는 그 직후)인 것을 고른다
+    const sd = S.SEEDS.filter((x) => x.code === v.code).find((x) => !x.slots || x.slots.some((k) => k === v.slot || k + 1 === v.slot)) || S.SEEDS.find((x) => x.code === v.code);
     return sd ? sd.note + (S.dev() ? ' (' + sd.code + ')' : '') : '시드로 넣은 위반';
   }
 

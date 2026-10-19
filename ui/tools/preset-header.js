@@ -74,7 +74,7 @@
     obligationTeams: ['두산', '키움', '한화', 'NC', '롯데'],
     referenceDate: '',
     longTripKm: 600,
-    solver: { timeLimitSec: 60, unimprovedSec: 15, seed: 42, init: 'KEEP' }
+    solver: { timeLimitSec: 10, unimprovedSec: 5, seed: 42, init: 'KEEP' }
   };
 
   const DEFAULT_RESCHEDULE = {
