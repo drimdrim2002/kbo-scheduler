@@ -1,8 +1,9 @@
-# opt-2 지표 대시보드형 — 표준과 다른 점
+# final 확정 템플릿 — 표준 + opt-2
 
-> 브랜치 `wizard-ui/opt-2` (`wizard-ui/std` 421e3de에서 분기) · 요구사항 `KBO_WIZARD_UI_REQUIREMENTS.md` §12.2 · 진입점 `index.html`
-> 표준(std)과 **두 곳만** 다르다. ④ 품질·배포의 "구단 지표" 보기, ② 검토·실행의 일반 옵션이다. 나머지 화면·메뉴·용어·개발자 모드는 std와 같다. 아래 §1부터는 std README 그대로다.
-
+> 브랜치 `wizard-ui/final` (`wizard-ui/std` 87006ee에서 분기, opt-2 커밋을 cherry-pick) · 요구사항 `KBO_WIZARD_UI_REQUIREMENTS.md` §12.2 · 진입점 `index.html`
+> 사용자 선택(2026-10-19): ① 데이터 준비 = **표준**(인스펙터 상단 시각화) · ④ 지표와 ② 실행 옵션 = **opt-2**(대시보드 + 큰 선택 카드) · 시즌 운영 이동 경로 = **표준**(3단 화면).
+> 저장 키 `kbo-wizard:final:`. 스크린샷 이름은 std와 같다(`s5-review`, `s5-dev`, `s7-metrics`, `s7-metrics-table`, `s7-metrics-dev`). 점검: 자가 점검 59/59(1440·1920), 34경로 × 2크기 페이지 스크롤 0·콘솔 오류 0.
+> 아래 "바꾼 곳"~"알려진 빈틈"은 opt-2가 표준과 다른 점이고, 그 뒤는 std README 그대로다.
 ## 바꾼 곳
 
 | # | 화면 | std | opt-2 |

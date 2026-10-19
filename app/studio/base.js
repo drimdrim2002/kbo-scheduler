@@ -107,7 +107,7 @@
     set(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } },
     del(k) { try { window.localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
   };
-  S.KEY = 'kbo-wizard:opt-2:';
+  S.KEY = 'kbo-wizard:final:';
 
   // ───────── 기능 켜기·끄기 레지스트리 (§6) ─────────
   S.FEATURES = [
@@ -291,7 +291,7 @@
     } else u.ops = null;
     if (o.dev === '1') S.devOverride = true; else if (o.dev === '0') S.devOverride = false;
     u.devOpen = o.devopen === '1';
-    u.mtOpen = o.mt === '1'; // opt-2: ④ 지표 비교표 띠 펼침
+    u.mtOpen = o.mt === '1'; // ④ 지표 비교표 띠 펼침 (opt-2 채택)
     if (o.step) u.step = Math.max(1, Math.min(4, parseInt(o.step, 10) || 1));
     if (o.tab) u.tab = o.tab;
     if (o.month) u.month = parseInt(o.month, 10) || u.month;
