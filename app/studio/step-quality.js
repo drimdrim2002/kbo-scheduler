@@ -149,7 +149,7 @@
     const T = tms(), sel = S.ui.team;
     const st = sel ? T.find((t) => t.name === sel) : null;
     const cells = T.reduce((a, t) => a + (t.overDistance ? 1 : 0) + (t.overMoves ? 1 : 0) + (t.overHoliday ? 1 : 0) + (t.maxHomeRun > 3 ? 1 : 0) + (t.maxAwayRun > 3 ? 1 : 0), 0);
-    let s = '<span class="q-band-sum">' + T.length + '구단 · 채점 지표 3개 + 참고 지표 5개 · 허용 범위 넘은 칸 <b class="' + (cells ? 'bad' : '') + '">' + cells + '개</b></span>';
+    let s = '<span class="q-band-sum' + (st ? '' : ' solo') + '">' + T.length + '구단 · 채점 지표 3개 + 참고 지표 5개 · 허용 범위 넘은 칸 <b class="' + (cells ? 'bad' : '') + '">' + cells + '개</b></span>';
     if (st) {
       const v = (val, over) => (over ? '<b class="bad">▲' + val + '</b>' : '<b>' + val + '</b>');
       s += '<span class="q-band-sel" data-team="' + esc(st.name) + '">' + S.team(st.name) + ' 이동거리 ' + v(fmt.km(st.distanceKm) + 'km', st.overDistance) + ' · 이동 ' + v(st.moves + '회', st.overMoves) + ' · 휴일 ' + v(st.holidayWeight, st.overHoliday) + ' · 주말 홈 ' + v(st.weekendHome) + ' · 최장 연속 ' + v('홈 ' + st.maxHomeRun + '·원정 ' + st.maxAwayRun, st.maxHomeRun > 3 || st.maxAwayRun > 3) + '</span>';

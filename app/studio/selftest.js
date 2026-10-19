@@ -183,6 +183,11 @@
       const v3 = c3 && c3.getAttribute('data-team') === big.name && c3.getAttribute('data-v') === (big.distanceKm - L.meanDistanceKm).toFixed(1);
       const v4 = c4 && +c4.getAttribute('data-v') === Math.max(...wk) - Math.min(...wk);
       ok('요약 카드 값 (평균·초과·최대 편차·주말 홈 편차)', v1 && v2 && v3 && v4, '평균 ' + (c1 && c1.getAttribute('data-v')) + ' · 초과 ' + (c2 && c2.getAttribute('data-v')) + ' · 편차 ' + (c3 && c3.getAttribute('data-team')) + ' ' + (c3 && c3.getAttribute('data-v')) + ' · 주말 ' + (c4 && c4.getAttribute('data-v')));
+      const sum = document.querySelector('.q-band-sum');
+      ok('구단 선택 없음 → 접힌 띠에 한 줄 요약', !!sum && getComputedStyle(sum).display !== 'none' && /허용 범위 넘은 칸/.test(sum.textContent) && !document.querySelector('.q-band-sel'));
+      c3.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush();
+      ok('가장 큰 편차 카드 키보드(Enter) 선택', S.ui.team === big.name);
+      S.go({ team: null });
       ok('차트 2×2 = 이동거리 막대 + 점 차트 3개', document.querySelectorAll('.q-charts .mc-box').length === 4 && document.querySelectorAll('.q-charts [data-chart="distance"] .mc-item').length === T.length && ['moves', 'holiday', 'weekend'].every((id) => document.querySelectorAll('.q-charts [data-chart="' + id + '"] .mc-item').length === T.length));
     }
     // 18b. 비교표 띠 접기·펼치기
@@ -296,5 +301,5 @@
     document.documentElement.setAttribute('data-selftest', (fails ? 'FAIL ' + fails : 'ALL PASS') + ' / ' + out.length + ' :: ' + out.join(' | '));
   }
   setTimeout(run, 50);
-  // opt-2: 점검 항목은 std 49개 + opt-2 8개
+  // opt-2: 점검 항목은 std 49개 + opt-2 10개
 })();

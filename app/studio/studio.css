@@ -1038,7 +1038,7 @@ svg.mc text { font-family: var(--font); }
 .q-band-body .mt tfoot td { height: 24px; }
 .q-dash.wide .q-band-body .mt tbody td { height: 28px; }
 .q-dash.wide .q-band-body .mt tfoot td { height: 28px; }
-@media (max-width: 1500px) { .q-band-sum { display: none; } .q-band.open .q-band-sum { display: inline; } .q-band.open .q-band-sel { display: none; } }
+@media (max-width: 1500px) { .q-band-sum:not(.solo) { display: none; } .q-band.open .q-band-sum { display: inline; } .q-band.open .q-band-sel { display: none; } }
 
 /* ==========================================================================
    opt-2 — ② 큰 선택 카드 (실행 시간 3장 + 시작 방식 2장) · 눈에 띄는 「편성 시작」
@@ -1080,3 +1080,4 @@ svg.mc text { font-family: var(--font); }
 .simple-opts.big > .field { display: flex; flex-direction: column; }
 .simple-opts.big .choices.big { flex: 1; }
 .q-charts .mc-box .blk-head > b { white-space: nowrap; flex: none; }
+.btn.lg.go[disabled] { box-shadow: none; }
