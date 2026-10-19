@@ -54,7 +54,8 @@
         const g = l[0];
         const loc = c.teamIndex.get(g.home);
         const from = prev ? st.teams[prev.loc].name : g.home;
-        const leg = prev && prev.loc !== loc ? (app().distanceOf(from, g.home) || 0) : 0;
+        const dm = prev && prev.loc !== loc ? app().distanceOf(from, g.home) : null;
+        const leg = dm ? Number(dm.distance) || 0 : 0;
         cum += leg;
         const x = { kind: 'resched', day: Dates.dayNum(g.date), end: Dates.dayNum(l[l.length - 1].date), len: l.length, home: g.home === name, opp: g.home === name ? g.away : g.home, loc, leg, cum, cancelled: [] };
         out.push(x); prev = x;
