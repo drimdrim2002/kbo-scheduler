@@ -273,7 +273,8 @@
       if (finished || state !== 'RUNNING') return;
       const t0 = T.now();
       let n = 0;
-      while (T.now() - t0 < chunkMs) {
+      let guard = options.chunkSteps || 400; // 시계가 멈춘 환경(헤드리스 가상 시간)에서도 청크가 끝나도록
+      while (T.now() - t0 < chunkMs && guard-- > 0) {
         if (search.step(batch)) { dirty = true; lastImproveAt = elapsed + (T.now() - t0); }
         n += batch;
       }

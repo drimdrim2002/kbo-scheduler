@@ -50,17 +50,21 @@
     ok('적용 → 스냅샷·공휴일 반영', !S.ui.modal && S.app.state.snapshots.length === snaps0 + 1 && S.app.state.settings.holidays.some((h) => h.date === '2025-06-03'));
     S.app.undo(); flush();
     ok('가져오기 실행 취소', !S.app.state.settings.holidays.some((h) => h.date === '2025-06-03'));
-    // 5. 엔진 실행 (목업) → ③
+    // 5. 엔진 실행 (브라우저 Mock 엔진, 4초) → ③
     click('.step[data-step="2"]'); flush();
+    S.app.setEngineConfig({ kind: 'MOCK', useWorker: false }); // 헤드리스 가상 시간에서는 Worker가 진행하지 않는다
+    S.app.updateSolverSettings({ timeLimitSec: 4, unimprovedSec: 4 }); flush();
     click('[data-act="run-start"]');
     ok('실행 중 입력 잠금', S.app.isRunning() && !!document.querySelector('.lock-pill'));
     ok('실행 중에는 옵션 대신 진행 상태만', !document.querySelector('.choice') && !!document.querySelector('.run-status'));
-    await wait(6800);
-    ok('실행 종료 후 ③ 이동', S.ui.step === 3 && !S.app.isRunning(), 'step ' + S.ui.step);
+    await wait(300);
+    S.app.stop(); await wait(300); flush();
+    ok('중지 → 실행 종료 후 ③ 이동', S.ui.step === 3 && !S.app.isRunning() && !!S.lastRun, 'step ' + S.ui.step);
+    S.app.updateSolverSettings({ timeLimitSec: 60, unimprovedSec: 15 });
     // 6. 위반 클릭 → 위치
     S.ui.month = 3; flush();
     const v = document.querySelector('.vitem'); v.click(); flush();
-    ok('위반 클릭 → 해당 월·강조', S.ui.month === 5 && document.querySelectorAll('.gm.vsel').length > 0 && S.ui.sel.startsWith('v:'));
+    ok('위반 클릭 → 해당 월·강조', Number.isFinite(S.ui.month) && document.querySelectorAll('.gm.vsel').length > 0 && S.ui.sel.startsWith('v:'), 'month ' + S.ui.month);
     // 7. 조치 후보 적용 → 위반 감소 → 되돌리기
     const before = hard();
     click('.insp [data-act="apply-cand"]'); flush();

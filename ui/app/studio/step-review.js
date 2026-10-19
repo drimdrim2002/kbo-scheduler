@@ -193,7 +193,7 @@
       '<div class="run-stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><div class="k">개선 횟수</div><div class="v">' + (running ? r.improvements : S.lastRun ? S.lastRun.improvements : 0) + '</div></div>' +
       '<div><div class="k">현재 최고 (Hard / Soft 합)</div><div class="v">' + (best ? fmt.neg(best.hard) + ' / ' + fmt.neg(best.soft) : '-') + '</div></div>' +
       '<div><div class="k">원점수 (BendableLongScore)</div><div class="v" style="font-size:12px">' + esc(fmt.score(D().ex.score)) + '</div></div></div>' +
-      '<div class="label" style="padding:2px 0 6px">점수 추이 ' + (!running && S.lastRun && S.lastRun.when ? '<span class="tag ref">지난 실행 · ' + esc(S.lastRun.when) + '</span>' : '') + S.mock() + '</div>' + trend() + '</div>';
+      '<div class="label" style="padding:2px 0 6px">점수 추이 ' + (!running && S.lastRun && S.lastRun.when ? '<span class="tag ref">지난 실행 · ' + esc(S.lastRun.when) + '</span>' : '') + '</div>' + trend() + '</div>';
     return s + '</div>';
   };
 
@@ -201,9 +201,10 @@
   function statusLine(r, running) {
     const n = D().ex.violations.length;
     if (running) {
+      if (r.queue != null) return '서버 대기 중 — 앞에 ' + Math.max(0, r.queue - 1) + '건';
       const last = r.history[r.history.length - 1];
-      const cnt = Math.max(n, Math.round(-last.hard));
-      return r.status === 'PAUSED' ? '일시정지 — 다시 시작하면 이어서 찾습니다' : '더 나은 일정을 찾는 중 · ' + S.termPlain('hardViol') + ' ' + cnt + '건';
+      const cnt = last ? Math.max(n, Math.round(-last.hard)) : n;
+      return r.status === 'PAUSED' ? '일시정지 — 화면 갱신만 멈춥니다' : (last ? '더 나은 일정을 찾는 중 · ' + S.termPlain('hardViol') + ' ' + cnt + '건' : '엔진 시작 중 · 첫 개선 해를 기다립니다');
     }
     if (S.lastRun) return '끝났습니다(' + S.lastRun.reason + ') · ' + (n ? S.termPlain('hardViol') + ' ' + n + '건 남음' : '편성 가능');
     return '대기 중 — 「편성 시작」을 누르세요';
@@ -227,13 +228,18 @@
     const st = app().state, sv = st.settings.solver, pf = app().preflight();
     const r = S.run;
     const running = r && (r.status === 'RUNNING' || r.status === 'PAUSED');
-    const limit = (sv.timeLimitSec || 60) * 1000;
+    const limit = S.runLimitMs(sv);
     const pct = running ? Math.min(100, Math.round(r.elapsed / r.limit * 100)) : (S.lastRun ? 100 : 0);
     const blocked = !pf.ok;
-    let s = S.paneHead('검토·실행', '입력을 한눈에 확인하고, 사전 점검을 통과하면 편성을 시작합니다.', S.mock('엔진 실행'));
+    const rest = app().engineConfig.kind === 'REST';
+    const info = (app().engineConfig && app().engineConfig.info) || {};
+    const engineTag = rest
+      ? '<span class="tag ok" title="' + esc(app().engine.label) + '">서버 엔진 · OptaPlanner 멀티스타트' + (info.defaultSeeds ? ' ' + info.defaultSeeds + '시드' : '') + '</span>'
+      : '<span class="tag ref" title="서버가 없어 브라우저 안 로컬서치를 씁니다">브라우저 시뮬레이션 엔진 — 품질 보장 없음</span>';
+    let s = S.paneHead('검토·실행', '입력을 한눈에 확인하고, 사전 점검을 통과하면 편성을 시작합니다.', '');
     s += '<div class="pane-body pad" data-sk="p-main" style="display:flex;flex-direction:column;gap:12px">';
     s += '<div><div class="label" style="padding:0 0 6px">입력 요약</div>' + summary() + '</div>';
-    s += '<div class="blk"><div class="blk-head">' + icon('bolt') + '편성 실행<span class="tag ref">시안용 시뮬레이션 — 결과 품질 보장 없음</span><span class="r">' +
+    s += '<div class="blk"><div class="blk-head">' + icon('bolt') + '편성 실행' + engineTag + '<span class="r">' +
       (running ? '<span class="lock-pill">' + icon('lock') + '입력 잠김 — ① 데이터 준비 편집 불가</span>' : '') + '</span></div><div class="blk-body engine">';
     // 실행 중에는 진행 막대·경과 시간·상태 문장만 보여 준다(W17)
     if (!running) s += S.reviewSimpleOptions(sv, running);
@@ -276,7 +282,7 @@
 
   S.steps[2] = {
     render() {
-      if (S.lastRun === undefined) S.lastRun = { history: buildHistory(1), elapsed: 60000, improvements: 68, reason: '최대 실행 시간', count: 1, when: '1/14(화) 09:12' };
+      if (S.lastRun === undefined) S.lastRun = null; // 실제 실행 전에는 지난 실행이 없다
       S.wide = window.innerWidth >= 1800;
       const insp = renderInsp();
       return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '사전 점검' }) + '</div>';
@@ -285,42 +291,62 @@
 
   // ───────── 엔진 실행 (목업) ─────────
   let timer = null;
+  /** 시연 상태 전용: 실제 실행 없이 잠금만 흉내 낸다 */
   function setLock(on) { app().run = on ? { status: 'RUNNING', handle: { pause() {}, resume() {}, stop() {} } } : null; }
+  /** 서버 엔진이면 서버 한도(maxSeconds) 안으로 자른 실행 시간(ms). 진행 막대 기준이다. */
+  S.runLimitMs = function (sv) {
+    const sec = sv.timeLimitSec || 60;
+    const info = app().engineConfig && app().engineConfig.info;
+    return (app().engineConfig.kind === 'REST' && info && info.maxSeconds ? Math.min(sec, info.maxSeconds) : sec) * 1000;
+  };
+  /** app.run.history([{t, score:[h0,h1,s0..]}]) → 추이 차트 형식([{t, hard, soft}]) */
+  function historyOf(ar) {
+    return (ar.history || []).map((x) => ({ t: x.t, hard: x.score[0] + x.score[1], soft: x.score.slice(2).reduce((a, b) => a + b, 0) }));
+  }
+  /**
+   * 편성 시작: 실제 엔진을 부른다(서버가 있으면 REST 멀티스타트, 없으면 브라우저 Mock).
+   * S.run은 화면용 상태이고, 진짜 실행 상태는 app().run이다.
+   */
   S.startRun = function () {
     if (S.run && S.run.status !== 'DONE') return;
     if (!app().preflight().ok) { S.toast('사전 점검 차단 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
-    const limit = (app().state.settings.solver.timeLimitSec || 60) * 1000;
-    S.run = { status: 'RUNNING', elapsed: 0, improvements: 0, history: buildHistory(0, limit), limit };
-    setLock(true);
+    const limit = S.runLimitMs(app().state.settings.solver);
+    if (!app().solve({ quiet: true })) return; // 끝·오류 안내는 finish()가 일반 용어로 띄운다
+    const ar = app().run;
+    const run = S.run = { status: 'RUNNING', elapsed: 0, improvements: 0, history: [], limit, queue: null, seeds: {}, engine: ar.engineLabel, startedAt: Date.now() };
+    const alive = () => S.run === run && app().run === ar;
+    const sync = () => { if (!alive()) return; run.improvements = ar.improvements || 0; run.history = historyOf(ar); if (ar.elapsedMs) run.elapsed = Math.max(run.elapsed, ar.elapsedMs); };
+    const h = ar.handle;
+    h.on('queued', (q) => { if (alive()) { run.queue = q.position; run.startedAt = Date.now(); S.render(); } });
+    h.on('server-status', () => { if (alive()) { run.queue = null; run.startedAt = Date.now(); S.render(); } });
+    h.on('seed-best', (p) => { if (alive()) run.seeds[p.seed] = p; });
+    h.on('best', () => { sync(); if (alive()) S.render(); });
+    h.on('done', (p) => { sync(); if (alive()) finish(p.reason); });
+    h.on('error', (e) => { if (alive()) finish('ERROR', e && e.message); });
     clearInterval(timer);
     timer = setInterval(() => {
-      const r = S.run;
-      if (!r || r.status === 'PAUSED') return;
-      r.elapsed += r.limit / 30; // 실행 시간과 상관없이 약 6초에 재생한다(목업)
-      const t = Math.min(1, r.elapsed / r.limit);
-      r.history = buildHistory(t, r.limit);
-      r.improvements = Math.round(68 * Math.sqrt(t));
-      if (t >= 1) finish('TIME_LIMIT');
-      else S.render();
-    }, 200);
+      if (!alive()) { clearInterval(timer); return; }
+      if (run.status === 'RUNNING' && run.queue == null) { run.elapsed = Math.max(run.elapsed, Date.now() - run.startedAt); S.render(); }
+    }, 500);
     S.render();
   };
-  function finish(reason) {
+  function finish(reason, message) {
     clearInterval(timer);
     const r = S.run;
-    const why = { TIME_LIMIT: '최대 실행 시간', STOPPED: '사용자 중지' }[reason];
-    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()) };
+    if (!r) return;
+    const why = { TIME_LIMIT: '최대 실행 시간', UNIMPROVED: '개선 없음', STOPPED: '사용자 중지', ERROR: '오류' }[reason] || reason;
+    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()), engine: r.engine, seeds: r.seeds };
     S.run = null;
-    setLock(false);
+    if (reason === 'ERROR') { S.toast('편성 실패 — ' + (message || '엔진 오류'), 'bad', 7000); S.render(); return; }
     const ex = D().ex;
     S.toast('편성 끝 (' + why + ') — ' + S.scoreLine(ex) + ' · ③ 결과·수정으로 이동합니다.', ex.feasible ? 'ok' : 'warn', 4500);
     S.go({ step: 3, sel: ex.violations.length ? 'v:' + S.vsig(ex.violations[0]) : null });
   }
   Object.assign(S.actions, {
     'run-start': () => S.startRun(),
-    'run-pause': () => { if (S.run) { S.run.status = 'PAUSED'; S.render(); } },
-    'run-resume': () => { if (S.run) { S.run.status = 'RUNNING'; S.render(); } },
-    'run-stop': () => { if (S.run) finish('STOPPED'); },
+    'run-pause': () => { if (S.run) { S.run.status = 'PAUSED'; app().pause(); S.render(); } },
+    'run-resume': () => { if (S.run) { S.run.status = 'RUNNING'; app().resume(); S.render(); } },
+    'run-stop': () => { if (S.run) { if (app().isRunning()) app().stop(); else finish('STOPPED'); } },
     'p-sel': (el) => S.go({ sel: 'p:' + el.dataset.id }),
     'p-goto': (el) => S.navTarget(el.dataset.target),
     'solver-init': (el) => app().updateSolverSettings({ init: el.dataset.v }),

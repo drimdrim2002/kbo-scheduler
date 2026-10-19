@@ -163,7 +163,7 @@
   }
 
   RestEngineAdapter.prototype._fetch = function (path, body) {
-    const f = this.opts.fetchImpl || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    const f = this.opts.fetchImpl || (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : null);
     if (!f) return Promise.reject(new Error('fetch를 쓸 수 없습니다.'));
     return f(this.baseUrl + path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + path); return r.json(); });
@@ -186,6 +186,10 @@
       if (!ES) throw new Error('EventSource를 쓸 수 없습니다.');
       es = new ES(self.baseUrl + '/api/v1/solve/' + encodeURIComponent(jobId) + '/events');
       es.addEventListener('best', (e) => { const p = withString(JSON.parse(e.data)); if (paused) pending = p; else handle._emit('best', p); });
+      es.addEventListener('queued', (e) => { handle.queue = JSON.parse(e.data); handle._emit('queued', handle.queue); });
+      es.addEventListener('status', (e) => { handle.queue = null; handle._emit('server-status', JSON.parse(e.data)); });
+      es.addEventListener('seed-best', (e) => handle._emit('seed-best', withString(JSON.parse(e.data))));
+      es.addEventListener('error', (e) => { if (e && e.data) { es.close(); handle._setStatus('ERROR'); let msg = e.data; try { msg = JSON.parse(e.data).message || msg; } catch (err) { /* 그대로 */ } handle._emit('error', { message: msg }); } });
       es.addEventListener('done', (e) => { es.close(); handle._setStatus('DONE'); handle._emit('done', withString(JSON.parse(e.data))); });
       es.onerror = () => { if (handle.status === 'RUNNING' || handle.status === 'PAUSED') { es.close(); handle._setStatus('ERROR'); handle._emit('error', { message: '이벤트 스트림 연결이 끊어졌습니다.' }); } };
     }).catch((e) => { handle._setStatus('ERROR'); handle._emit('error', { message: e.message }); });
@@ -197,8 +201,14 @@
     return handle;
   };
 
+  /** 서버 점수에 브라우저 채점기의 위반 목록·구단 지표를 합친다(서버는 score·scoreString만 준다). */
   RestEngineAdapter.prototype.score = function (problem, plan, mode) {
-    return this._fetch('/api/v1/score', { problem, plan, mode: mode || 'INITIAL' });
+    const m = mode || 'INITIAL';
+    return this._fetch('/api/v1/score', { problem, plan, mode: m }).then((r) => {
+      let local = null;
+      try { local = scoreLocal(problem, plan, m); } catch (e) { local = null; }
+      return Object.assign({}, local || {}, r);
+    });
   };
 
   function createEngine(config) {

@@ -24,6 +24,7 @@
     this.ui = { teamFilter: new Set(), selectedMatch: null, selectedUnit: null, month: null, focus: null, compare: [] };
     this.engineConfig = this._loadEngineConfig();
     this.engine = Engine.createEngine(this.engineConfig);
+    this._probeServer();
     this.kakaoKey = LS.get(KAKAO_KEY) || '';
     this.kakao = null;
     this.kakaoError = null;
@@ -504,6 +505,17 @@
     try { const v = JSON.parse(LS.get(ENGINE_KEY) || 'null'); if (v && (v.kind === 'MOCK' || v.kind === 'REST')) return v; } catch (e) { /* 무시 */ }
     return { kind: 'MOCK', baseUrl: 'http://localhost:8080' };
   };
+  /** 서버(BaseballWebServer)가 UI를 내주고 있으면, 사용자가 따로 고르기 전까지 같은 출처의 REST 엔진을 쓴다. */
+  App.prototype._probeServer = function () {
+    if (LS.get(ENGINE_KEY)) return;
+    if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
+    fetch('api/v1/info', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((info) => {
+      if (!info || info.name !== 'kbo-scheduler' || LS.get(ENGINE_KEY)) return;
+      this.engineConfig = { kind: 'REST', baseUrl: '', auto: true, info };
+      this.engine = Engine.createEngine(this.engineConfig);
+      this.emitUI(['run']);
+    }).catch(() => { /* 서버 없음: Mock 유지 */ });
+  };
   App.prototype.setEngineConfig = function (cfg) {
     if (!this.guard()) return;
     this.engineConfig = Object.assign({}, this.engineConfig, cfg);
@@ -531,10 +543,10 @@
       this._applyBest(run, p);
       run.status = 'DONE'; run.reason = p.reason;
       const why = { TIME_LIMIT: '최대 실행 시간 도달', UNIMPROVED: '개선 없음 종료', STOPPED: '사용자 중지' }[p.reason] || p.reason;
-      UI.toast('엔진 종료 (' + why + ') — ' + Score.scoreString(p.score), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
+      if (!o.quiet) UI.toast('엔진 종료 (' + why + ') — ' + Score.scoreString(p.score), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
       this.emitUI(['run']);
     });
-    handle.on('error', (e) => { run.status = 'ERROR'; run.reason = e.message; UI.toast('엔진 오류: ' + e.message, 'bad', 7000); this.emitUI(['run']); });
+    handle.on('error', (e) => { run.status = 'ERROR'; run.reason = e.message; if (!o.quiet) UI.toast('엔진 오류: ' + e.message, 'bad', 7000); this.emitUI(['run']); });
     this.emitUI(['run']);
     return true;
   };
