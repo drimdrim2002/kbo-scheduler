@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A · 라이브 스플릿</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .app { display: grid; grid-template-rows: 46px minmax(0, 1fr); }
+  .top { display: flex; align-items: center; gap: 14px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; }
+  .top h1 { font-size: 14px; white-space: nowrap; }
+  .split { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 10px; padding: 10px; min-height: 0; }
+  .split > .panel { min-height: 0; }
+  .link-arrow { font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+
+  /* 입력 폼 */
+  fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 12px; margin: 0 0 12px; }
+  legend { font-size: 12px; font-weight: 700; padding: 0 4px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .days { display: flex; gap: 4px; }
+  .days label { flex: 1; text-align: center; border: 1px solid var(--line-strong); border-radius: 4px; padding: 3px 0; font-size: 12px; cursor: pointer; user-select: none; }
+  .days input { display: none; }
+  .days label:has(input:checked) { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 4px 0 8px; font-size: 11px; line-height: 20px; }
+  .chip button { border: 0; background: none; padding: 0 3px; color: var(--ink-3); }
+  .bo { display: grid; grid-template-columns: minmax(0,1fr) 128px 128px 22px; gap: 4px; align-items: center; margin-bottom: 4px; }
+  .bo:hover .input { border-color: var(--accent); }
+  .ev { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+  .ev:hover { border-color: var(--accent); }
+
+  /* 미리보기 */
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; flex: none; padding: 10px 12px 0; }
+  .kpi { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+  .kpi b { font-size: 18px; display: block; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 11px; color: var(--ink-2); }
+  .kpi.changed { animation: flash 1s; }
+  @keyframes flash { 0% { background: #fff3a8; } 100% { background: transparent; } }
+  .cal { flex: none; padding: 10px 12px 4px; }
+  .cal-row { display: grid; grid-template-columns: 34px repeat(31, minmax(0, 1fr)); gap: 2px; margin-bottom: 2px; align-items: center; }
+  .cal-row > b { font-size: 11px; color: var(--ink-2); font-weight: 600; }
+  .d { height: 18px; border-radius: 2px; background: var(--sunk); position: relative; }
+  .d.play { background: #c9d6f5; }
+  .d.start { box-shadow: inset 2px 0 0 var(--accent); }
+  .d.rest { background: #fff; border: 1px dashed var(--line-strong); }
+  .d.black { background: repeating-linear-gradient(45deg, #ddd 0 3px, #fff 3px 6px); }
+  .d.exc { background: #c9d6f5; outline: 2px solid var(--ok); outline-offset: -2px; }
+  .d.hol::after { content: ""; position: absolute; right: 2px; top: 2px; width: 4px; height: 4px; border-radius: 50%; background: var(--bad); }
+  .d.phase2 { background: repeating-linear-gradient(90deg, #f1efe9 0 4px, #e6e3db 4px 5px); }
+  .d.none { visibility: hidden; }
+  .d.hl { outline: 2px solid var(--note); outline-offset: -1px; z-index: 1; }
+  .d.ev { box-shadow: inset 0 -3px 0 var(--warn); }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--ink-2); padding: 2px 12px 6px; }
+  .legend i { display: inline-block; width: 12px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 3px; }
+  .slotlist { flex: 1; min-height: 0; overflow: auto; padding: 4px 12px 8px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; border-top: 1px solid var(--line); }
+  .slotchip { font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; background: #fff; font-variant-numeric: tabular-nums; }
+  .slotchip.l2 { border-color: #9ab0e8; }
+  .slotchip.l4 { border-color: #7fbf95; }
+  .slotchip.bad { border-color: var(--bad); color: var(--bad); }
+  .preflight { flex: none; border-top: 2px solid var(--line); padding: 6px 12px 8px; background: #fbfbf9; }
+  .preflight .pf { padding: 3px 0; }
+  .preflight h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .pf a { color: var(--accent); font-size: 11px; cursor: pointer; margin-left: auto; white-space: nowrap; }
+
+  .heat { display: grid; grid-template-columns: 44px repeat(10, 1fr); gap: 2px; font-size: 10px; }
+  .heat div { height: 26px; display: grid; place-items: center; border-radius: 2px; font-variant-numeric: tabular-nums; }
+  .ha-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .ha-row.sel { background: var(--accent-soft); }
+  .ha-row .ha { width: calc((100% - 46px) / 45); min-width: 8px; }
+  .vitem { border: 1px solid #eaa29d; border-left: 4px solid var(--bad); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; background: #fff; }
+  .vitem.sel { background: var(--bad-soft); }
+  .gauge { height: 14px; border-radius: 7px; background: var(--sunk); overflow: hidden; position: relative; }
+  .gauge i { position: absolute; inset: 0 auto 0 0; background: var(--ok); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top" data-note="1">
+    <h1>KBO 일정 편성 · 2025</h1>
+    <div class="seg" role="tablist" aria-label="작업 단계" id="stageSeg">
+      <button role="tab" aria-selected="true" data-stage="input">① 입력</button>
+      <button role="tab" aria-selected="false" data-stage="result">② 결과 확인</button>
+      <button role="tab" aria-selected="false" data-stage="ops">③ 시즌 운영</button>
+    </div>
+    <span class="grow"></span>
+    <span id="badge"></span>
+    <button class="btn primary" id="runBtn">▶ 엔진 실행</button>
+  </header>
+
+  <main class="split">
+    <!-- 왼쪽: 입력 / 조치 -->
+    <section class="panel" data-note="2" aria-label="입력">
+      <div class="panel-head"><h2 id="leftTitle">입력</h2><span class="grow"></span><span class="faint small" id="leftHint">값을 바꾸면 오른쪽이 즉시 갱신됩니다</span></div>
+      <div id="left" class="panel-body flush" style="display:flex;flex-direction:column"></div>
+    </section>
+    <!-- 오른쪽: 미리보기 -->
+    <section class="panel" data-note="3" aria-label="미리보기">
+      <div class="panel-head"><h2>실시간 미리보기</h2><span class="link-arrow" id="linkLabel">일정 골격 → 슬롯</span><span class="grow"></span><span class="faint small">페이지 대신 패널 안에서만 스크롤</span></div>
+      <div id="right" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+    </section>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { K, $, $$, esc, state, team, hardBadge, haStrip, metricsTable, generateSlots, toast, seriesInSlot } = W;
+const skel = {
+  opening: "2025-03-22", end: "2025-08-31", restDays: [1],
+  exceptions: ["2025-05-05"],
+  blackouts: [{ name: "경기 없는 날", from: "2025-05-08", to: "2025-05-08" }, { name: "올스타 브레이크", from: "2025-07-11", to: "2025-07-16" }],
+  holidays: ["2025-05-05", "2025-06-06", "2025-08-15"],
+};
+let stage = "input", inputTab = "skel", prevKpi = {}, hlRange = null, pickedTeam = "한화", pickedV = null;
+const seriesDist = { 2: 0, 3: 0, 4: 0 };
+K.series.forEach((s) => (seriesDist[s.len] = (seriesDist[s.len] || 0) + 1));
+
+function renderBadge() { $("#badge").innerHTML = hardBadge(); }
+
+/* ---------- 왼쪽: 입력 폼 ---------- */
+function leftInput() {
+  $("#leftTitle").textContent = "입력";
+  $("#leftHint").textContent = "값을 바꾸면 오른쪽이 즉시 갱신됩니다";
+  $("#left").innerHTML = `
+    <nav class="tabs" role="tablist" id="inTabs">
+      ${[["teams", "구단·구장"], ["skel", "일정 골격"], ["events", "이벤트"], ["series", "시리즈"]].map(([k, l]) => `<button role="tab" data-k="${k}" aria-selected="${k === inputTab}">${l}</button>`).join("")}
+    </nav>
+    <div class="scroll-y" style="flex:1;padding:12px" id="form"></div>`;
+  $$("#inTabs button").forEach((b) => b.onclick = () => { inputTab = b.dataset.k; leftInput(); renderRight(); });
+  const f = $("#form");
+  if (inputTab === "skel") {
+    const W7 = ["일", "월", "화", "수", "목", "금", "토"];
+    f.innerHTML = `
+      <fieldset><legend>시즌 기간</legend>
+        <div class="two"><label class="field"><span>개막일</span><input class="input" type="date" id="fOpen" value="${skel.opening}"></label>
+        <label class="field"><span>1차 편성 종료일</span><input class="input" type="date" id="fEnd" value="${skel.end}"></label></div>
+      </fieldset>
+      <fieldset><legend>휴식 요일</legend>
+        <div class="days">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label><input type="checkbox" data-day="${d}" ${skel.restDays.includes(d) ? "checked" : ""}>${W7[d]}</label>`).join("")}</div>
+        <div class="field" style="margin-top:8px"><span>휴식 예외일 (휴식 요일이지만 경기)</span>
+          <div class="row"><input class="input" type="date" id="fExc" value="2025-06-02"><button class="btn sm" id="addExc">추가</button></div>
+          <div class="chips">${skel.exceptions.map((d, i) => `<span class="chip">${d.slice(5)}<button data-rmexc="${i}" aria-label="삭제">×</button></span>`).join("")}</div></div>
+      </fieldset>
+      <fieldset><legend>경기 없는 기간</legend>
+        ${skel.blackouts.map((b, i) => `<div class="bo" data-bo="${i}"><input class="input" value="${esc(b.name)}" data-bn="${i}"><input class="input" type="date" value="${b.from}" data-bf="${i}"><input class="input" type="date" value="${b.to}" data-bt="${i}"><button class="btn sm ghost" data-rmbo="${i}" aria-label="삭제">×</button></div>`).join("")}
+        <button class="btn sm" id="addBo">+ 기간 추가</button>
+      </fieldset>
+      <fieldset><legend>공휴일 <span class="faint small">(휴일 가중치)</span></legend>
+        <div class="chips">${skel.holidays.map((d, i) => `<span class="chip">${d.slice(5)}<button data-rmhol="${i}" aria-label="삭제">×</button></span>`).join("")}</div>
+      </fieldset>`;
+    $("#fOpen").onchange = (e) => { skel.opening = e.target.value; renderRight(); };
+    $("#fEnd").onchange = (e) => { skel.end = e.target.value; renderRight(); };
+    $$("[data-day]").forEach((c) => c.onchange = () => { skel.restDays = $$("[data-day]").filter((x) => x.checked).map((x) => +x.dataset.day); renderRight(); });
+    $("#addExc").onclick = () => { const v = $("#fExc").value; if (v && !skel.exceptions.includes(v)) skel.exceptions.push(v); leftInput(); renderRight(); };
+    $$("[data-rmexc]").forEach((b) => b.onclick = () => { skel.exceptions.splice(+b.dataset.rmexc, 1); leftInput(); renderRight(); });
+    $$("[data-rmhol]").forEach((b) => b.onclick = () => { skel.holidays.splice(+b.dataset.rmhol, 1); leftInput(); renderRight(); });
+    $$("[data-rmbo]").forEach((b) => b.onclick = () => { skel.blackouts.splice(+b.dataset.rmbo, 1); hlRange = null; leftInput(); renderRight(); });
+    $$("[data-bf],[data-bt],[data-bn]").forEach((inp) => inp.onchange = () => {
+      const i = +(inp.dataset.bf ?? inp.dataset.bt ?? inp.dataset.bn);
+      if (inp.dataset.bf !== undefined) skel.blackouts[i].from = inp.value;
+      else if (inp.dataset.bt !== undefined) skel.blackouts[i].to = inp.value;
+      else skel.blackouts[i].name = inp.value;
+      renderRight();
+    });
+    $$(".bo").forEach((row) => {
+      row.onmouseenter = () => { hlRange = skel.blackouts[+row.dataset.bo]; renderCal(); };
+      row.onmouseleave = () => { hlRange = null; renderCal(); };
+    });
+    $("#addBo").onclick = () => { skel.blackouts.push({ name: "새 기간", from: "2025-06-24", to: "2025-06-26" }); leftInput(); renderRight(); };
+  } else if (inputTab === "teams") {
+    f.innerHTML = `<table class="grid"><thead><tr><th>구단</th><th>구장</th><th></th></tr></thead><tbody>
+      ${K.teams.map((t) => `<tr><td>${team(t.name)}</td><td><input class="input" value="${esc(t.stadium)}" style="width:170px"></td><td>${t.stadium.includes("잠실") ? '<span class="tag accent">공유 구장</span>' : ""}</td></tr>`).join("")}
+      </tbody></table><p class="faint small" style="margin-top:8px">구장명을 바꾸면 오른쪽 거리 행렬의 해당 행·열이 "추정"으로 다시 계산됩니다.</p>`;
+  } else if (inputTab === "events") {
+    f.innerHTML = K.events.map((e) => `<div class="ev"><div class="row"><b>${e.name || e.type}</b><span class="tag">${e.date.slice(5)}</span><span class="tag ${e.mode === "대진 지정" ? "accent" : "warn"}">${e.mode}</span></div>
+      <div class="chips">${e.items.map((x) => `<span class="chip">${x}<button>×</button></span>`).join("")}</div></div>`).join("") + `<button class="btn sm">+ 이벤트 추가</button>`;
+  } else {
+    f.innerHTML = `<fieldset><legend>구단쌍 경기 수</legend><div class="two">
+      <label class="field"><span>시즌 목표</span><input class="input" type="number" value="16"></label>
+      <label class="field"><span>1차 편성</span><input class="input" type="number" value="15"></label></div></fieldset>
+      <fieldset><legend>홈/원정 분배</legend><label class="check"><input type="radio" name="ha" checked> 8:7 / 7:8 교대</label><br><label class="check"><input type="radio" name="ha"> 전년 반대</label></fieldset>`;
+  }
+}
+
+/* ---------- 오른쪽: 입력 미리보기 ---------- */
+function renderRight() {
+  if (stage === "input") {
+    if (inputTab === "skel" || inputTab === "events") return rightSkel();
+    if (inputTab === "teams") return rightTeams();
+    return rightSeries();
+  }
+  if (stage === "result") return rightResult();
+  return rightOps();
+}
+
+let gen = [];
+function rightSkel() {
+  $("#linkLabel").textContent = inputTab === "events" ? "이벤트 → 슬롯 위치" : "일정 골격 → 슬롯 자동 생성";
+  gen = generateSlots(skel);
+  const dist = { 2: 0, 3: 0, 4: 0 };
+  gen.forEach((s) => (dist[s.len] = (dist[s.len] || 0) + 1));
+  const kpi = { slots: gen.length, d2: dist[2], d3: dist[3], d4: dist[4], wk: gen.filter((s) => s.wk).length };
+  const k = (key, label) => `<div class="kpi${prevKpi[key] !== undefined && prevKpi[key] !== kpi[key] ? " changed" : ""}"><b>${kpi[key]}${prevKpi[key] !== undefined && prevKpi[key] !== kpi[key] ? `<span class="small ${kpi[key] > prevKpi[key] ? "faint" : "faint"}"> (${kpi[key] > prevKpi[key] ? "+" : ""}${kpi[key] - prevKpi[key]})</span>` : ""}</b><span>${label}</span></div>`;
+  $("#right").innerHTML = `
+    <div class="kpis" data-note="4">${k("slots", "슬롯 (목표 45)")}${k("d2", "2연전")}${k("d3", "3연전")}${k("d4", "4연전")}${k("wk", "주말 슬롯")}</div>
+    <div class="cal" id="cal"></div>
+    <div class="legend"><span><i style="background:#c9d6f5;box-shadow:inset 2px 0 0 var(--accent)"></i>경기일 (│=슬롯 시작)</span><span><i style="border:1px dashed #999"></i>휴식</span><span><i style="background:repeating-linear-gradient(45deg,#ccc 0 2px,#fff 2px 4px)"></i>경기 없는 기간</span><span><i style="background:#c9d6f5;outline:2px solid var(--ok);outline-offset:-2px"></i>휴식 예외</span><span>● 공휴일</span><span><i style="box-shadow:inset 0 -3px 0 var(--warn)"></i>이벤트</span><span><i style="background:repeating-linear-gradient(90deg,#f1efe9 0 3px,#e6e3db 3px 4px)"></i>재편성 구간(9~10월)</span></div>
+    <div class="slotlist" id="slotlist">${gen.map((s, i) => `<span class="slotchip l${s.len}${s.short ? " bad" : ""}" title="가중치 주말 ${s.wk} · 휴일 ${s.hol}">#${i + 1} ${s.label} ${s.len}연전${s.hol >= 3 ? " ★" : ""}</span>`).join("")}</div>
+    <div class="preflight" data-note="5" id="pf"></div>`;
+  prevKpi = kpi;
+  renderCal();
+  renderPreflight(dist);
+}
+
+function renderCal() {
+  const el = $("#cal");
+  if (!el) return;
+  const byDate = new Map();
+  gen.forEach((s) => { const d = new Date(s.date + "T00:00:00"); for (let i = 0; i < s.len; i++) { const x = new Date(d); x.setDate(d.getDate() + i); byDate.set(iso(x), i === 0 ? "start" : "in"); } });
+  const evDates = new Set(K.events.map((e) => e.date));
+  let html = "";
+  for (let m = 3; m <= 10; m++) {
+    html += `<div class="cal-row"><b>${m}월</b>`;
+    for (let d = 1; d <= 31; d++) {
+      const dt = new Date(2025, m - 1, d);
+      if (dt.getMonth() !== m - 1) { html += `<div class="d none"></div>`; continue; }
+      const s = iso(dt);
+      let c = "d";
+      if (s < skel.opening) c += " none";
+      else if (s > skel.end) c += " phase2";
+      else if (skel.blackouts.some((b) => s >= b.from && s <= b.to)) c += " black";
+      else if (byDate.has(s)) c += skel.exceptions.includes(s) ? " exc" : " play" + (byDate.get(s) === "start" ? " start" : "");
+      else c += " rest";
+      if (skel.holidays.includes(s)) c += " hol";
+      if (evDates.has(s)) c += " ev";
+      if (hlRange && s >= hlRange.from && s <= hlRange.to) c += " hl";
+      html += `<div class="${c}" title="${m}/${d}"></div>`;
+    }
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+function iso(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+
+function renderPreflight(dist) {
+  const half = K.teams.length / 2;
+  const rows = [2, 3, 4].map((k) => {
+    const need = seriesDist[k] || 0, cap = (dist[k] || 0) * half;
+    const s = need > cap ? "bad" : need < cap ? "warn" : "ok";
+    const msg = s === "bad" ? `시리즈 ${need} > 수용 ${cap} — 미배정 불가피` : s === "warn" ? `시리즈 ${need} < 수용 ${cap} — 빈 슬롯은 추가 휴식` : `시리즈 ${need} = 수용 ${cap}`;
+    return { s, t: `${k}연전 수급`, msg };
+  });
+  const short = gen.filter((x) => x.short).length;
+  rows.push({ s: short ? "bad" : "ok", t: "1일짜리 구간", msg: short ? `${short}개 — 시리즈를 만들 수 없음` : "없음" });
+  rows.push({ s: "ok", t: "이벤트 모순", msg: "3개 이벤트 충돌 없음" });
+  rows.push({ s: "ok", t: "구단 수 짝수", msg: `${K.teams.length}개 구단` });
+  const blocked = rows.filter((r) => r.s === "bad").length, warned = rows.filter((r) => r.s === "warn").length;
+  $("#pf").innerHTML = `<h3>사전 점검 <span class="tag ${blocked ? "bad" : warned ? "warn" : "ok"}">${blocked ? `✕ 차단 ${blocked}` : warned ? `! 경고 ${warned}` : "✓ 모두 통과"}</span><span class="faint small" style="font-weight:400">엔진 실행 전 구조적 불가능을 입력 중에 바로 보여 줍니다</span></h3>
+    ${rows.map((r) => `<div class="pf"><span class="s ${r.s}">${r.s === "ok" ? "✓" : r.s === "warn" ? "!" : "✕"}</span><b style="width:96px">${r.t}</b><span class="muted">${r.msg}</span>${r.s !== "ok" ? '<a>입력으로 이동 →</a>' : ""}</div>`).join("")}`;
+  $("#runBtn").disabled = !!blocked;
+  $("#runBtn").title = blocked ? "사전 점검 차단 항목을 먼저 해결하세요" : "";
+  $("#runBtn").style.opacity = blocked ? .45 : 1;
+}
+
+function rightTeams() {
+  $("#linkLabel").textContent = "구단·구장 → 거리 행렬";
+  const n = K.teams.map((t) => t.name);
+  const max = Math.max(...K.dist.flat());
+  $("#right").innerHTML = `<div class="panel-body"><h3 style="margin-bottom:8px">구단 간 이동거리 (km)</h3>
+    <div class="heat"><div></div>${n.map((x) => `<div><b>${x}</b></div>`).join("")}
+    ${n.map((a, i) => `<div><b>${a}</b></div>` + n.map((b, j) => { const v = K.dist[i][j]; const a2 = v / max; return `<div style="background:rgba(37,87,214,${(a2 * .75).toFixed(2)});color:${a2 > .55 ? "#fff" : "inherit"}">${v ? Math.round(v) : "–"}</div>`; }).join("")).join("")}</div>
+    <p class="muted small" style="margin-top:10px">두산·LG는 같은 구장(잠실)을 쓰므로 거리 0, 이동으로 세지 않습니다. 새 구장은 하버사인 × 1.25로 추정하고 "추정" 표시를 붙입니다.</p></div>`;
+}
+function rightSeries() {
+  $("#linkLabel").textContent = "시리즈 → 구단쌍 행렬";
+  const n = K.teams.map((t) => t.name);
+  const cnt = {};
+  K.series.forEach((s) => { const k = s.home + ">" + s.away; cnt[k] = (cnt[k] || 0) + s.len; });
+  $("#right").innerHTML = `<div class="panel-body"><h3 style="margin-bottom:8px">구단쌍 경기 수 (행=홈, 열=원정)</h3>
+    <div class="heat"><div></div>${n.map((x) => `<div><b>${x}</b></div>`).join("")}
+    ${n.map((a) => `<div><b>${a}</b></div>` + n.map((b) => a === b ? `<div style="background:var(--sunk)"></div>` : `<div style="border:1px solid var(--line)">${cnt[a + ">" + b] || 0}</div>`).join("")).join("")}</div>
+    <p class="muted small" style="margin-top:10px">시리즈 길이 분포: 2연전 ${seriesDist[2]} · 3연전 ${seriesDist[3]} · 4연전 ${seriesDist[4] || 0} — 슬롯 분포와 같아야 합니다(H0-d).</p></div>`;
+}
+
+/* ---------- 결과 단계: 왼쪽 = 조치, 오른쪽 = 결과 반영 ---------- */
+function leftResult() {
+  $("#leftTitle").textContent = "조치";
+  $("#leftHint").textContent = "위반을 고르면 오른쪽 해당 칸이 강조됩니다";
+  $("#left").innerHTML = `<div class="scroll-y" style="flex:1;padding:12px">
+    <h3 style="margin-bottom:8px">Hard 위반</h3>
+    ${state.violations.length ? state.violations.map((v) => `<div class="vitem${pickedV === v.id ? " sel" : ""}" data-v="${v.id}"><div class="row"><span class="viol-ico">⚠</span><b>${v.rule}</b><span>${v.name}</span></div><div class="muted small">${K.slots[v.slot].label} · ${v.detail}</div>
+      ${pickedV === v.id ? `<div class="row" style="margin-top:6px"><button class="btn sm" data-fix="${v.id}">제안 적용: 인접 슬롯과 교환</button><button class="btn sm ghost">핀 고정</button></div>` : ""}</div>`).join("") : `<div class="tag ok">✓ 위반 없음</div>`}
+    <h3 style="margin:14px 0 8px">고정(핀) 5 · 스냅샷 2</h3>
+    <div class="chips"><span class="chip">개막전 5대진 📌</span><span class="chip">광복절 LG@두산 📌</span></div>
+    <div class="row" style="margin-top:10px"><button class="btn">↶ 실행 취소</button><button class="btn">스냅샷 저장</button><button class="btn primary">핀 유지 재최적화</button></div>
+  </div>`;
+  $$("[data-v]").forEach((el) => el.onclick = (e) => {
+    if (e.target.dataset.fix) { state.violations = state.violations.filter((v) => v.id !== e.target.dataset.fix); pickedV = null; toast("교환 적용 · 재채점 완료 (Hard −1)"); renderBadge(); leftResult(); renderRight(); return; }
+    pickedV = pickedV === el.dataset.v ? null : el.dataset.v;
+    const v = state.violations.find((x) => x.id === pickedV);
+    if (v) pickedTeam = v.team;
+    leftResult(); renderRight();
+  });
+}
+function rightResult() {
+  $("#linkLabel").textContent = "조치 → 결과 반영";
+  const v = state.violations.find((x) => x.id === pickedV);
+  $("#right").innerHTML = `
+    <div style="flex:1;min-height:0;overflow:auto;padding:10px 12px">
+      <h3 style="margin-bottom:6px">구단별 홈(■)·원정(□) 흐름 <span class="faint small" style="font-weight:400">45슬롯, 빨간 테두리 = 위반</span></h3>
+      ${K.teams.map((t) => `<div class="ha-row${pickedTeam === t.name ? " sel" : ""}" data-t="${t.name}">${team(t.name)}<div>${haStrip(t.name)}</div></div>`).join("")}
+      ${v ? `<div class="vitem sel" style="margin-top:10px;cursor:default"><b>${K.slots[v.slot].label} 슬롯의 5개 시리즈</b><div class="chips">${seriesInSlot(v.slot).map((s) => `<span class="chip">${s.away} @ ${s.home} · ${s.len}연전</span>`).join("")}</div></div>` : ""}
+    </div>
+    <div style="flex:none;height:200px;overflow:auto;border-top:1px solid var(--line)" id="mt"></div>`;
+  metricsTable($("#mt"), { selected: pickedTeam, onPick: (t) => { pickedTeam = t; rightResult(); } });
+  $$(".ha-row").forEach((r) => r.onclick = () => { pickedTeam = r.dataset.t; rightResult(); });
+}
+
+/* ---------- 시즌 운영 단계 ---------- */
+function leftOps() {
+  $("#leftTitle").textContent = "취소 기록 · 재편성 옵션";
+  $("#leftHint").textContent = "기록하면 잔여·수용 게이지가 바로 바뀝니다";
+  const day = seriesInSlot(17);
+  $("#left").innerHTML = `<div class="scroll-y" style="flex:1;padding:12px">
+    <fieldset><legend>경기일 선택</legend><input class="input" type="date" value="2025-05-21"></fieldset>
+    <fieldset><legend>5/21(수) 경기 상태</legend>
+      ${day.map((s, i) => `<div class="row" style="margin-bottom:6px"><span style="width:110px">${s.away} @ ${s.home}</span><select class="input" data-cancel style="width:90px"><option>예정</option><option>완료</option><option ${i === 2 ? "selected" : ""}>취소</option></select><select class="input" style="width:110px"><option>우천</option><option>폭염</option><option>미세먼지</option></select></div>`).join("")}
+      <button class="btn sm">이 날 전체 완료 처리</button></fieldset>
+    <fieldset><legend>재편성 옵션</legend>
+      <div class="two"><label class="field"><span>시작</span><input class="input" type="date" value="2025-09-01"></label><label class="field"><span>종료</span><input class="input" type="date" value="2025-10-31"></label></div>
+      <div style="margin-top:8px"><label class="check"><input type="checkbox" id="mon"> 월요일 경기 허용</label> &nbsp; <label class="check"><input type="checkbox" id="dh" checked> 더블헤더 허용 (구단당 최대 <input class="input" type="number" value="3" style="width:46px;padding:1px 4px">)</label></div></fieldset>
+    <button class="btn primary">재편성 실행</button></div>`;
+  $$("[data-cancel], #mon, #dh").forEach((el) => el.onchange = () => rightOps());
+}
+function rightOps() {
+  $("#linkLabel").textContent = "취소·옵션 → 재편성 수용량";
+  const cancels = $$("[data-cancel]").filter((s) => s.value === "취소").length + 37;
+  const mon = $("#mon") && $("#mon").checked, dh = $("#dh") && $("#dh").checked;
+  const need = 45 + cancels, cap = 46 * 5 / 5 * 1.6 + (mon ? 18 : 0) + (dh ? 20 : 0);
+  const pct = Math.min(100, Math.round((cap / need) * 100));
+  $("#right").innerHTML = `<div class="panel-body">
+    <h3>재편성 대상 ${need}경기 <span class="muted small" style="font-weight:400">= 잔여 45 + 취소 ${cancels}</span></h3>
+    <div style="margin:10px 0 4px" class="row"><span class="small muted">9/1~10/31 수용 가능</span><span class="grow"></span><b>${Math.round(cap)}경기 (${pct}%)</b></div>
+    <div class="gauge"><i style="width:${pct}%;background:${pct < 100 ? "var(--warn)" : "var(--ok)"}"></i></div>
+    <p class="small ${pct < 100 ? "" : "muted"}" style="margin:6px 0 14px">${pct < 100 ? "! 수용량 부족 — 월요일 경기 또는 DH를 허용하세요" : "✓ 기간 안에 모두 배정 가능"}</p>
+    <table class="grid"><thead><tr><th>구단</th><th class="num">소화</th><th class="num">취소</th><th class="num">잔여</th><th>취소 분포</th></tr></thead><tbody>
+    ${K.teams.map((t, i) => { const c = 5 + (i * 3) % 6; return `<tr><td>${team(t.name)}</td><td class="num">${96 - c}</td><td class="num">${c}</td><td class="num">9</td><td><div class="bar" style="width:140px"><i style="width:${c * 10}%"></i></div></td></tr>`; }).join("")}
+    </tbody></table></div>`;
+}
+
+function setStage(s) {
+  stage = s;
+  $$("#stageSeg button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.stage === s)));
+  if (s === "input") leftInput(); else if (s === "result") leftResult(); else leftOps();
+  renderRight();
+}
+$$("#stageSeg button").forEach((b) => b.onclick = () => setStage(b.dataset.stage));
+$("#runBtn").onclick = () => { toast("Mock 엔진 실행 → 결과 확인으로 이동"); setStage("result"); };
+
+renderBadge();
+setStage("input");
+W.wire("A · 라이브 스플릿 — 입력(왼쪽) ↔ 즉시 미리보기(오른쪽)", [
+  "단계 전환은 상단 세그먼트 3개뿐. 어떤 단계든 '왼쪽에서 바꾸고 오른쪽에서 확인'이라는 같은 문법을 씁니다. Hard 배지와 실행 버튼은 항상 보입니다.",
+  "왼쪽 = 입력(또는 조치). 폼만 내부 스크롤합니다. 휴식 요일·경기 없는 기간을 바꿔 보세요. 경기 없는 기간 행에 마우스를 올리면 오른쪽 달력에서 해당 날짜가 강조됩니다.",
+  "오른쪽 = 입력의 결과물. 왼쪽 탭에 따라 슬롯 달력 / 거리 행렬 / 구단쌍 행렬로 자동 전환됩니다.",
+  "핵심 수치는 바뀐 만큼 (+n/−n)을 깜빡여 표시합니다. 무엇이 바뀌었는지 찾을 필요가 없습니다.",
+  "사전 점검을 엔진 실행 전이 아니라 입력하는 동안 계속 보여 줍니다. 차단 항목이 있으면 실행 버튼이 비활성화됩니다(예: 휴식 요일에서 '화'를 추가해 보세요).",
+]);
+</script>
+</body>
+</html>

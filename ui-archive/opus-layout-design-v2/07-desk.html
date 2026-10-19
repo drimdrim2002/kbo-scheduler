@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>편성 데스크</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body { background: #e9e7e2; }
+  header { position: fixed; left: 0; right: 0; top: 0; height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #fff; border-bottom: 1px solid var(--line); z-index: 20; }
+  header h1 { font-size: 15px; margin: 0 6px 0 0; }
+  .presets { display: flex; background: #f0eee9; border-radius: 9px; padding: 2px; }
+  .presets button { border: 0; background: transparent; padding: 5px 11px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .presets button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+  header .sp { flex: 1; }
+  #filter { font-size: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  /* 데스크: 12×8 격자에 위젯을 자석처럼 붙인다 */
+  #desk { position: fixed; left: 8px; right: 8px; top: 56px; bottom: 8px; }
+  #desk.editing { background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px); background-size: calc(100% / 12) calc(100% / 8); }
+  .w { position: absolute; background: #fff; border-radius: 12px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); display: flex; flex-direction: column; overflow: hidden; transition: left 0.18s, top 0.18s, width 0.18s, height 0.18s; }
+  .w.drag { transition: none; z-index: 10; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22); opacity: 0.95; }
+  .w .wh { display: flex; align-items: center; gap: 6px; padding: 7px 10px 5px; cursor: move; user-select: none; }
+  .w .wh .ph { font-size: 9.5px; font-weight: 700; color: #fff; border-radius: 4px; padding: 1px 5px; }
+  .w .wh b { font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .w .wh button { border: 0; background: transparent; color: var(--ink-3); font-size: 12px; padding: 0 2px; }
+  .w .wb { flex: 1; min-height: 0; padding: 0 10px 10px; overflow: auto; font-size: 12px; }
+  .w .rz { position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, #c8c2b7 50%); border-radius: 0 0 10px 0; }
+  .ghost { position: absolute; border: 2px dashed var(--accent); border-radius: 12px; background: rgba(47, 91, 234, 0.06); pointer-events: none; z-index: 5; }
+  .ghost.bad { border-color: var(--bad); background: rgba(201, 48, 44, 0.06); }
+  .p1 { background: #6b6f7b; } .p2 { background: #c9302c; } .p3 { background: #b7791f; } .p4 { background: #2f5bea; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .tc { cursor: pointer; }
+  .tc.on { outline: 2px solid #1d1d1f; border-radius: 4px; }
+  .dim { opacity: 0.25; }
+  .vi { display: flex; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .vi:hover { background: var(--bad-soft); }
+  /* 슬롯 보드 위젯 */
+  .sb { display: flex; gap: 6px; height: 100%; }
+  .sc { flex: none; width: 92px; background: #f6f4f0; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+  .sc.v { box-shadow: inset 0 0 0 2px var(--bad); }
+  .sc.sel { box-shadow: inset 0 0 0 2px var(--accent); }
+  .sc.over { background: #e3eaff; }
+  .sc .sh { font-size: 10.5px; font-weight: 700; cursor: grab; padding: 2px 3px; border-radius: 4px; background: #ebe7df; display: flex; justify-content: space-between; }
+  .sc .g { font-size: 10px; display: flex; gap: 2px; align-items: center; white-space: nowrap; padding: 1px 2px; border-radius: 3px; }
+  .sc .g i { width: 6px; height: 6px; border-radius: 1px; background: var(--c); }
+  .sc .g.hl { background: #dfe7ff; font-weight: 700; }
+  .tray { position: fixed; right: 14px; top: 54px; width: 250px; background: #fff; border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2); padding: 10px; z-index: 30; display: none; }
+  .tray.show { display: block; }
+  .tray button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: transparent; padding: 6px; border-radius: 7px; font-size: 12px; text-align: left; }
+  .tray button:hover { background: var(--accent-soft); }
+  .tray button[disabled] { opacity: 0.4; }
+  .ha { display: inline-block; width: 5px; height: 11px; margin-right: 1px; border-radius: 1px; background: #ddd7cc; }
+  .ha.H { background: var(--home); }
+  .ha.o { box-shadow: 0 0 0 1.5px var(--bad); }
+  table.t { border-collapse: collapse; width: 100%; }
+  table.t td, table.t th { padding: 3px 4px; border-bottom: 1px solid var(--line); text-align: left; font-size: 11.5px; }
+  table.t th { color: var(--ink-3); font-weight: 600; }
+  .daychips { display: flex; gap: 2px; }
+  .daychips button { width: 22px; height: 22px; border: 1px solid var(--line-2); background: #fff; border-radius: 5px; font-size: 11px; padding: 0; }
+  .daychips button[aria-pressed="true"] { background: #3a3835; color: #fff; }
+  input[type="date"], select { border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 5px; font-size: 11.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>편성 데스크</h1>
+  <div class="presets" id="presets">
+    <button data-p="input">① 입력 보드</button><button data-p="review" aria-pressed="true">② 검토 보드</button><button data-p="fix">③ 보정 보드</button><button data-p="report">④ 보고 보드</button>
+  </div>
+  <span class="faint" style="font-size:11.5px">위젯 머리를 끌어 옮기고, 오른쪽 아래 모서리로 크기를 바꿉니다</span>
+  <span class="sp"></span>
+  <span id="filter"></span>
+  <span id="badge"></span>
+  <button class="btn" id="undo">↶</button>
+  <button class="btn" id="add">＋ 위젯</button>
+</header>
+<main id="desk"></main>
+<div class="tray" id="tray"></div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, park, chip, store, fmt, sign, slotDays } = KB;
+  const COLS = 12, ROWS = 8;
+  let team = null, selSlot = 17, skel = KB.defaultSkeleton(), rain = [], spark = [], running = false;
+
+  const WIDGETS = {
+    badge: { t: "Hard 상태 · 위반", ph: 2, min: [2, 2] },
+    score: { t: "점수 분해 · 추이", ph: 2, min: [2, 2] },
+    slots: { t: "슬롯 보드 · 머리를 끌어 교환", ph: 3, min: [4, 2] },
+    km: { t: "구단별 이동거리", ph: 4, min: [3, 2] },
+    ha: { t: "홈/원정 흐름", ph: 4, min: [4, 2] },
+    map: { t: "지도 동선", ph: 4, min: [2, 2] },
+    season: { t: "시즌 골격", ph: 1, min: [3, 2] },
+    teams: { t: "구단 · 구장 · 거리", ph: 1, min: [3, 2] },
+    events: { t: "이벤트 · 고정 경기", ph: 1, min: [2, 2] },
+    solver: { t: "솔버", ph: 2, min: [2, 1] },
+    rain: { t: "우천 취소 · 재편성", ph: 3, min: [2, 2] },
+    matrix: { t: "상대 매트릭스", ph: 4, min: [3, 3] },
+  };
+  const PRESETS = {
+    input: [["season", 0, 0, 5, 4], ["teams", 5, 0, 4, 5], ["events", 9, 0, 3, 3], ["solver", 9, 3, 3, 2], ["map", 0, 4, 5, 4], ["badge", 5, 5, 4, 3], ["rain", 9, 5, 3, 3]],
+    review: [["badge", 0, 0, 3, 4], ["slots", 3, 0, 9, 4], ["score", 0, 4, 3, 4], ["km", 3, 4, 4, 4], ["ha", 7, 4, 5, 2], ["solver", 7, 6, 2, 2], ["map", 9, 6, 3, 2]],
+    fix: [["slots", 0, 0, 8, 4], ["badge", 8, 0, 4, 4], ["ha", 0, 4, 6, 2], ["rain", 6, 4, 3, 4], ["solver", 9, 4, 3, 2], ["km", 0, 6, 6, 2], ["score", 9, 6, 3, 2]],
+    report: [["km", 0, 0, 5, 4], ["map", 5, 0, 3, 4], ["matrix", 8, 0, 4, 5], ["ha", 0, 4, 8, 4], ["score", 8, 5, 4, 3]],
+  };
+  let layout = [];
+  const load = (p) => { layout = PRESETS[p].map(([id, x, y, w, h]) => ({ id, x, y, w, h })); };
+
+  // ── 위젯 본문 ──
+  function body(id, box) {
+    const ev = store.ev;
+    const tchip = (t) => `<span class="tc${team === t ? " on" : ""}" data-team="${t}">${chip(t)}</span>`;
+    switch (id) {
+      case "badge": return `<div style="margin-bottom:6px">${KB.badge(ev)}</div>${ev.hard.map((v) => `<div class="vi" data-slot="${v.slot}"><span class="rule">${v.rule}</span><span>${esc(v.detail)}</span></div>`).join("") || '<div class="faint">위반 없음</div>'}<div class="faint" style="font-size:10.5px;margin-top:4px">첫 화면 위반 3건은 가상 변형 · 누르면 슬롯 보드가 그 자리로</div>`;
+      case "score": {
+        const pts = spark.length > 1 ? spark : [ev.soft.S4, ev.soft.S4];
+        const mn = Math.min(...pts), mx = Math.max(...pts), W = box.w - 24;
+        return `${["S1 이동 횟수", "S2 거리 분산", "S3 휴일 분산", "S4 리그 km"].map((n, k) => `<div class="kv"><span>${n}</span><span class="num">${fmt(-ev.soft["S" + (k + 1)])}</span></div>`).join("")}<svg width="${W}" height="40" style="margin-top:6px"><polyline fill="none" stroke="#2f5bea" stroke-width="2" points="${pts.map((p, k) => `${(k / (pts.length - 1)) * W},${4 + (1 - (p - mn) / Math.max(1, mx - mn)) * 32}`).join(" ")}"/></svg>`;
+      }
+      case "slots": {
+        const from = Math.max(0, Math.min(K.slots.length - 1, selSlot - 4));
+        const vs = new Set(ev.hard.map((v) => v.slot));
+        let h = `<div class="sb" id="sb">`;
+        for (let i = 0; i < K.slots.length; i++) {
+          h += `<div class="sc${vs.has(i) ? " v" : ""}${i === selSlot ? " sel" : ""}" data-sc="${i}"><div class="sh" data-sh="${i}"><span>${K.slots[i].label}</span><span class="faint">${K.slots[i].len}</span></div>${store.inSlot(i).sort((a, b) => a.id - b.id).map((s) => `<div class="g${team && (s.home === team || s.away === team) ? " hl" : team ? " dim" : ""}"><i style="--c:${color(s.away)}"></i>${s.away}@${s.home}${s.pin ? "📌" : ""}</div>`).join("")}</div>`;
+        }
+        return h + `</div><span hidden data-scroll="${from}"></span>`;
+      }
+      case "km": {
+        const W = box.w - 24, bh = Math.max(10, Math.min(24, (box.h - 30) / 10)), mx = 9000;
+        return `<svg width="${W}" height="${bh * 10 + 4}">${T.slice().sort((a, b) => ev.per[b].km - ev.per[a].km).map((t, k) => { const v = ev.per[t].km, over = Math.abs(v - ev.avg.km) > 300; return `<g class="tc" data-team="${t}" opacity="${team && team !== t ? 0.25 : 1}"><text x="0" y="${k * bh + bh * 0.72}" font-size="${Math.min(11, bh - 1)}">${t}</text><rect x="38" y="${k * bh + 1}" width="${(v / mx) * (W - 100)}" height="${bh - 3}" rx="2" fill="${color(t)}"/><text x="${42 + (v / mx) * (W - 100)}" y="${k * bh + bh * 0.72}" font-size="10" fill="${over ? "#c9302c" : "#777"}">${fmt(v)}${over ? "▲" : ""}</text></g>`; }).join("")}<line x1="${38 + (ev.avg.km / mx) * (W - 100)}" x2="${38 + (ev.avg.km / mx) * (W - 100)}" y1="0" y2="${bh * 10}" stroke="#2f5bea" stroke-dasharray="3 3"/></svg>`;
+      }
+      case "ha": {
+        // 위젯 크기에 맞춰 칸 크기를 늘리고 줄인다.
+        const cw = Math.max(3, Math.min(16, (box.w - 80) / 45 - 1)), ch = Math.max(8, Math.min(22, (box.h - 40) / 10 - 3));
+        return T.map((t) => { let run = 0, prev = null; return `<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;margin-bottom:2px" class="${team && team !== t ? "dim" : ""}"><span style="width:46px">${tchip(t)}</span><span style="display:flex">${KB.teamSeq(store.plan, t).map((s) => { const k = s.home === t ? "H" : "A"; run = k === prev ? run + 1 : 1; prev = k; return `<span class="ha ${k}${run > 3 ? " o" : ""}" style="width:${cw}px;height:${ch}px" title="${K.slots[s.slot].label} ${k === "H" ? "홈" : "원정"}"></span>`; }).join("")}</span></div>`; }).join("");
+      }
+      case "map": {
+        const W = box.w - 20, H = box.h - 58, P = KB.projector(W, H, 8), t = team || "롯데";
+        const seq = KB.teamSeq(store.plan, t);
+        let p = "";
+        for (let k = 1; k < seq.length; k++) { const a = KB.teamXY(P, seq[k - 1].home), b = KB.teamXY(P, seq[k].home); if (a[0] !== b[0] || a[1] !== b[1]) p += `<path d="${KB.arc(a, b, 0.15)}" fill="none" stroke="${color(t)}" stroke-width="1.3" opacity=".45"/>`; }
+        return `<svg width="${W}" height="${H}">${KB.mapBase(P, { labels: W > 200 })}${p}${T.map((x) => { const [cx, cy] = KB.teamXY(P, x); return `<circle cx="${cx}" cy="${cy}" r="${x === t ? 6 : 3.5}" fill="${color(x)}" stroke="#fff"/>`; }).join("")}</svg><div class="faint" style="font-size:10.5px">${t} · ${fmt(ev.per[t].km)}km${team ? "" : " (구단을 고르면 바뀝니다)"}</div>`;
+      }
+      case "season": {
+        const g = KB.generateSlots(skel);
+        return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="date" data-sk="opening" value="${skel.opening}">~<input type="date" data-sk="end" value="${skel.end}"></div>
+          <div style="display:flex;gap:6px;align-items:center;margin:6px 0"><span class="faint">휴식</span><div class="daychips">${"일월화수목금토".split("").map((w, k) => `<button data-rd="${k}" aria-pressed="${skel.restDays.includes(k)}">${w}</button>`).join("")}</div></div>
+          <div style="font-size:22px;font-weight:800">${g.length}<span class="faint" style="font-size:12px;font-weight:400"> 슬롯 · 3연전 ${g.filter((x) => x.len === 3).length} · 엔진 입력 45</span></div>
+          ${skel.blackouts.map((b) => `<div class="kv"><span>${esc(b.name)}</span><span>${b.from.slice(5)}~${b.to.slice(5)}</span></div>`).join("")}<div class="kv"><span>공휴일</span><span>${skel.holidays.map((x) => x.slice(5)).join(" · ")}</span></div>`;
+      }
+      case "teams": return `<table class="t"><tr><th>구단</th><th>구장</th><th>${team ? esc(team) + "까지" : "최원거리"}</th></tr>${T.map((t) => `<tr><td>${tchip(t)}</td><td>${park(t)}</td><td class="num">${team ? (t === team ? "-" : `<input data-dist="${t}" value="${KB.dist(team, t).toFixed(0)}" style="width:52px;border:1px solid var(--line-2);border-radius:4px;font-size:11px;text-align:right">`) : fmt(Math.max(...K.dist[KB.idx[t]])) + "km"}</td></tr>`).join("")}</table>`;
+      case "events": return K.events.map((e) => `<div class="kv"><span>${e.date.slice(5)} ${esc(e.name || e.type)}</span><span class="tag">${e.mode}</span></div><div class="faint" style="font-size:10.5px;padding-bottom:4px">${e.items.join(" · ")}</div>`).join("");
+      case "solver": return `<button class="btn primary" data-run ${running ? "disabled" : ""}>${running ? "⏳ 탐색 중…" : "▶ 고정 유지하고 실행"}</button><div class="faint" style="font-size:10.5px;margin-top:6px">고정 ${store.plan.filter((s) => s.pin).length}개 · 30초 · 목업</div>`;
+      case "rain": { const r = rain.length ? KB.rebook(rain, { monday: true }) : null; return `<div class="faint" style="font-size:10.5px">슬롯 보드에서 경기를 누르면 1경기 취소로 기록</div>${rain.map((g) => `<div class="kv"><span>${chip(g.away)}@${chip(g.home)}</span><span>${g.date.slice(5)}</span></div>`).join("")}${r ? `<div style="margin-top:6px;font-weight:700">9~10월 재배치 ${r.placed.length}경기 · 마지막 ${r.last.slice(5)}</div>${r.placed.map((g) => `<div class="kv"><span>${g.away}@${g.home}</span><span>${g.date.slice(5)}</span></div>`).join("")}` : ""}`; }
+      case "matrix": {
+        const cnt = {};
+        store.plan.forEach((s) => { const k = s.home + ">" + s.away; cnt[k] = (cnt[k] || 0) + 1; });
+        const c = Math.floor(Math.min((box.w - 60) / 10, (box.h - 50) / 10));
+        return `<svg width="${40 + c * 10}" height="${14 + c * 10}">${T.map((a, i) => `<text x="34" y="${14 + i * c + c * 0.7}" font-size="9" text-anchor="end">${a}</text>` + T.map((b, j) => { const n = cnt[a + ">" + b] || 0; return `<rect x="${40 + j * c}" y="${14 + i * c}" width="${c - 2}" height="${c - 2}" rx="2" fill="${i === j ? "#f2f2f2" : `rgba(47,91,234,${0.1 + n * 0.25})`}" opacity="${team && a !== team && b !== team ? 0.3 : 1}"/>`; }).join("")).join("")}</svg><div class="faint" style="font-size:10.5px">행=홈, 열=원정 시리즈 수</div>`;
+      }
+    }
+    return "";
+  }
+
+  // ── 그리기 ──
+  const desk = $("#desk");
+  const cell = () => ({ w: desk.clientWidth / COLS, h: desk.clientHeight / ROWS });
+  function render() {
+    const c = cell(), G = 4;
+    desk.innerHTML = layout.map((w) => {
+      const W = WIDGETS[w.id], box = { w: w.w * c.w - G * 2, h: w.h * c.h - G * 2 };
+      return `<section class="w" data-w="${w.id}" style="left:${w.x * c.w + G}px;top:${w.y * c.h + G}px;width:${box.w}px;height:${box.h}px"><div class="wh"><span class="ph p${W.ph}">${["", "입력", "결과", "보정", "분석"][W.ph]}</span><b>${W.t}</b><button data-close="${w.id}" title="위젯 닫기">✕</button></div><div class="wb">${body(w.id, box)}</div><span class="rz" data-rz="${w.id}"></span></section>`;
+    }).join("");
+    const sb = $("#sb");
+    if (sb) { const el = sb.querySelector(`[data-sc="${Math.max(0, selSlot - 2)}"]`); if (el) sb.parentElement.scrollLeft = el.offsetLeft - 10; }
+    $("#badge").innerHTML = KB.badge(store.ev);
+    $("#filter").innerHTML = team ? `교차 필터 ${chip(team)} <button class="btn sm ghost" id="clr">해제</button>` : `<span class="faint">구단 이름을 누르면 모든 위젯이 함께 걸러집니다</span>`;
+    const clr = $("#clr"); if (clr) clr.onclick = () => { team = null; render(); };
+    renderTray();
+  }
+  function renderTray() {
+    const on = new Set(layout.map((w) => w.id));
+    $("#tray").innerHTML = `<div class="faint" style="font-size:11px;margin:0 0 6px 4px">빈 자리에 위젯 추가</div>${Object.entries(WIDGETS).map(([id, W]) => `<button data-addw="${id}" ${on.has(id) ? "disabled" : ""}><span class="ph p${W.ph}" style="font-size:9.5px;color:#fff;border-radius:4px;padding:1px 5px">${["", "입력", "결과", "보정", "분석"][W.ph]}</span>${W.t}${on.has(id) ? " ✓" : ""}</button>`).join("")}`;
+  }
+  store.on(() => render());
+
+  // ── 끌기·크기 조절: 격자에 붙이고, 다른 위젯과 겹치면 놓지 않는다 ──
+  const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const fits = (r, self) => r.x >= 0 && r.y >= 0 && r.x + r.w <= COLS && r.y + r.h <= ROWS && layout.every((o) => o === self || !overlaps(r, o));
+  let op = null;
+  desk.addEventListener("pointerdown", (e) => {
+    const rz = e.target.closest("[data-rz]"), wh = e.target.closest(".wh");
+    const sh = e.target.closest("[data-sh]");
+    if (sh) { op = { kind: "slot", from: +sh.dataset.sh }; e.preventDefault(); return; }
+    if ((!rz && !wh) || e.target.closest("button")) return;
+    const id = (rz || wh.parentElement).dataset.rz || wh.parentElement.dataset.w;
+    const w = layout.find((x) => x.id === id), el = desk.querySelector(`[data-w="${id}"]`);
+    el.classList.add("drag");
+    const g = document.createElement("div"); g.className = "ghost"; desk.appendChild(g);
+    op = { kind: rz ? "rz" : "mv", w, el, g, sx: e.clientX, sy: e.clientY, ox: el.offsetLeft, oy: el.offsetTop, ow: el.offsetWidth, oh: el.offsetHeight, target: { ...w } };
+    desk.classList.add("editing");
+    try { desk.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
+  desk.addEventListener("pointermove", (e) => {
+    if (!op) return;
+    if (op.kind === "slot") {
+      $$(".sc.over").forEach((x) => x.classList.remove("over"));
+      const over = document.elementFromPoint(e.clientX, e.clientY);
+      const sc = over && over.closest("[data-sc]");
+      if (sc && +sc.dataset.sc !== op.from) { sc.classList.add("over"); op.to = +sc.dataset.sc; const pv = KB.preview({ op: "swap", a: op.from, b: op.to }); sc.title = `Hard ${sign(pv.dHard)} · ${sign(pv.dKm, "km")}`; $(".sh span:last-child", sc).textContent = `H${sign(pv.dHard)}`; } else op.to = null;
+      return;
+    }
+    const c = cell(), dx = e.clientX - op.sx, dy = e.clientY - op.sy;
+    const t = { ...op.w };
+    if (op.kind === "mv") { op.el.style.left = op.ox + dx + "px"; op.el.style.top = op.oy + dy + "px"; t.x = Math.round((op.ox + dx) / c.w); t.y = Math.round((op.oy + dy) / c.h); }
+    else { const m = WIDGETS[op.w.id].min; op.el.style.width = op.ow + dx + "px"; op.el.style.height = op.oh + dy + "px"; t.w = Math.max(m[0], Math.round((op.ow + dx) / c.w)); t.h = Math.max(m[1], Math.round((op.oh + dy) / c.h)); }
+    op.target = t;
+    op.ok = fits(t, op.w);
+    op.swap = null;
+    // 다른 위젯 하나 위에 놓으면 두 위젯 자리를 맞바꾼다(둘 다 들어갈 때만).
+    if (!op.ok && op.kind === "mv") {
+      const hits = layout.filter((o) => o !== op.w && overlaps(t, o));
+      if (hits.length === 1) {
+        const o = hits[0], mine = { ...op.w, x: o.x, y: o.y }, theirs = { ...o, x: op.w.x, y: op.w.y };
+        // 폭이 다른 이웃끼리는 같은 줄 안에서 차례만 바꾼다.
+        if (o.y === op.w.y && o.h === op.w.h) { const left = Math.min(o.x, op.w.x); if (o.x > op.w.x) { theirs.x = left; mine.x = left + o.w; } else { mine.x = left; theirs.x = left + op.w.w; } }
+        else if (o.x === op.w.x && o.w === op.w.w) { const top = Math.min(o.y, op.w.y); if (o.y > op.w.y) { theirs.y = top; mine.y = top + o.h; } else { mine.y = top; theirs.y = top + op.w.h; } }
+        const free = (r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= COLS && r.y + r.h <= ROWS && layout.every((q) => q === op.w || q === o || !overlaps(r, q));
+        if (free(mine) && free(theirs) && !overlaps(mine, theirs)) { op.swap = { o, mine, theirs }; op.ok = true; Object.assign(t, mine); }
+      }
+    }
+    op.g.className = "ghost" + (op.ok ? "" : " bad");
+    Object.assign(op.g.style, { left: t.x * c.w + "px", top: t.y * c.h + "px", width: t.w * c.w + "px", height: t.h * c.h + "px" });
+  });
+  desk.addEventListener("pointerup", () => {
+    if (!op) return;
+    const o = op; op = null;
+    if (o.kind === "slot") { if (o.to != null) { store.apply({ op: "swap", a: o.from, b: o.to }); KB.toast(`${K.slots[o.from].label} ↔ ${K.slots[o.to].label} 교환 · Hard ${store.ev.hardSum}`); selSlot = o.to; } else render(); return; }
+    desk.classList.remove("editing");
+    if (o.swap) { Object.assign(o.w, o.swap.mine); Object.assign(o.swap.o, o.swap.theirs); KB.toast("두 위젯 자리를 맞바꿨습니다"); }
+    else if (o.ok) Object.assign(o.w, o.target); else if (o.target.x !== o.w.x || o.target.y !== o.w.y || o.target.w !== o.w.w || o.target.h !== o.w.h) KB.toast("다른 위젯과 겹쳐 제자리로 돌아갑니다");
+    $$(".presets button").forEach((b) => b.setAttribute("aria-pressed", "false"));
+    render();
+  });
+
+  desk.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-team]");
+    if (t) { team = team === t.dataset.team ? null : t.dataset.team; render(); return; }
+    const v = e.target.closest("[data-slot]");
+    if (v) { selSlot = +v.dataset.slot; render(); return; }
+    const x = e.target.closest("[data-close]");
+    if (x) { layout = layout.filter((w) => w.id !== x.dataset.close); render(); return; }
+    const rd = e.target.closest("[data-rd]");
+    if (rd) { const k = +rd.dataset.rd; skel.restDays = skel.restDays.includes(k) ? skel.restDays.filter((q) => q !== k) : [...skel.restDays, k]; render(); return; }
+    if (e.target.closest("[data-run]")) {
+      running = true; spark = [store.ev.soft.S4]; render();
+      KB.solve({ interval: 160, onTick: (ev) => spark.push(ev.soft.S4), onDone: (ev) => { running = false; render(); KB.toast(`완료 · Hard ${ev.hardSum}`); } });
+      return;
+    }
+    const g = e.target.closest(".sc .g");
+    if (g) {
+      const i = +g.closest("[data-sc]").dataset.sc, s = store.inSlot(i).sort((a, b) => a.id - b.id)[[...g.parentElement.querySelectorAll(".g")].indexOf(g)];
+      if (!rain.some((r) => r.sid === s.id)) { rain.push({ sid: s.id, home: s.home, away: s.away, date: slotDays[i][0] }); KB.toast(`${s.away}@${s.home} 1경기 우천 취소 기록`); render(); }
+    }
+  });
+  desk.addEventListener("change", (e) => {
+    const sk = e.target.closest("[data-sk]");
+    if (sk) { skel[sk.dataset.sk] = sk.value; render(); return; }
+    const d = e.target.closest("[data-dist]");
+    if (d) { const a = KB.idx[team], b = KB.idx[d.dataset.dist]; K.dist[a][b] = K.dist[b][a] = +d.value || 0; store.emit({ op: "dist" }); }
+  });
+  $("#add").onclick = () => $("#tray").classList.toggle("show");
+  $("#tray").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-addw]");
+    if (!b) return;
+    const m = WIDGETS[b.dataset.addw].min;
+    for (let y = 0; y <= ROWS - m[1]; y++) for (let x = 0; x <= COLS - m[0]; x++) {
+      const r = { id: b.dataset.addw, x, y, w: m[0], h: m[1] };
+      if (fits(r, null)) { layout.push(r); $("#tray").classList.remove("show"); render(); return; }
+    }
+    KB.toast("빈 자리가 없습니다. 위젯을 닫거나 줄이세요");
+  });
+  $$(".presets button").forEach((b) => b.onclick = () => { load(b.dataset.p); $$(".presets button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); render(); });
+  $("#undo").onclick = () => store.undo();
+  window.addEventListener("resize", render);
+
+  load("review");
+  render();
+  KB.hud("07 편성 데스크", "br");
+  window.DK = { layout: () => layout, render };
+})();
+</script>
+</body>
+</html>

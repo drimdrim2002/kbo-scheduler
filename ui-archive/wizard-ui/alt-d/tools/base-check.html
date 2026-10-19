@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 일정 편성 — 공통 코어 점검 페이지 (opus-ui/base)</title>
+<link rel="stylesheet" href="../app/common/common.css">
+<style>
+  body { padding: 16px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  h2 { margin: 0 0 10px; font-size: 1.05em; }
+  .top { position: sticky; top: 0; z-index: 50; background: var(--bg); padding: 8px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="top"><b>opus-ui/base 공통 부품 점검</b><div id="badge"></div><div id="undo"></div></div>
+<section><h2>구단·구장</h2><div id="teams"></div></section>
+<section><h2>거리 행렬</h2><div id="distance"></div></section>
+<section><h2>일정 골격</h2><div id="season"></div></section>
+<section><h2>슬롯</h2><div id="slots"></div></section>
+<section><h2>시리즈</h2><div id="series"></div></section>
+<section><h2>이벤트</h2><div id="events"></div></section>
+<section><h2>검토</h2><div id="review"></div><div id="solver"></div></section>
+<section><h2>캘린더</h2><div id="calendar"></div><div id="pool"></div></section>
+<section><h2>위반</h2><div id="viol"></div></section>
+<section><h2>슬롯 목록</h2><div id="slotlist"></div></section>
+<section><h2>구단 × 슬롯</h2><div id="tsm"></div></section>
+<section><h2>지표</h2><div id="metrics"></div><div id="soft"></div></section>
+<section><h2>스냅샷</h2><div id="snap"></div></section>
+<section><h2>차트</h2><div id="charts"></div><div id="route"></div></section>
+<section><h2>경기 기록</h2><div id="games"></div></section>
+<section><h2>재편성</h2><div id="resched"></div><div id="progress"></div></section>
+<section><h2>일정표</h2><div id="sched"></div></section>
+<section><h2>설정·데이터</h2><div id="settings"></div><div id="data"></div></section>
+<script src="../core/calendar-gen.js"></script>
+<script src="../core/preset-2025.js"></script>
+<script src="../core/score.js"></script>
+<script src="../core/reschedule.js"></script>
+<script src="../core/mock-solver.js"></script>
+<script src="../core/store.js"></script>
+<script src="../core/engine-adapter.js"></script>
+<script src="../core/svg-chart.js"></script>
+<script src="../core/svg-map.js"></script>
+<script src="../app/common/dom.js"></script>
+<script src="../app/common/app.js"></script>
+<script src="../app/common/map-widget.js"></script>
+<script src="../app/common/panels-input.js"></script>
+<script src="../app/common/panels-result.js"></script>
+<script src="../app/common/panels-quality.js"></script>
+<script src="../app/common/panels-ops.js"></script>
+<script>
+  const app = new KBO.App({ appId: 'base', appName: '공통 코어 점검' });
+  const P = KBO.UI.panels, $ = (id) => document.getElementById(id);
+  app.setNavigator((t) => { const map = { teams: 'teams', distance: 'distance', season: 'season', slots: 'slots', series: 'series', events: 'events', result: 'calendar', review: 'review' }; const el = $(map[t] || t); if (el) el.scrollIntoView({ behavior: 'smooth' }); });
+  app.bindShortcuts();
+  P.badge($('badge'), app); P.undoBar($('undo'), app);
+  P.teams($('teams'), app); P.distance($('distance'), app); P.season($('season'), app); P.slots($('slots'), app); P.series($('series'), app); P.events($('events'), app);
+  P.review($('review'), app); P.solver($('solver'), app);
+  P.calendar($('calendar'), app, { onSeriesClick: (m) => P.seriesDialog(app, m) }); P.pool($('pool'), app); P.violations($('viol'), app);
+  P.slotList($('slotlist'), app); P.teamSlotMatrix($('tsm'), app);
+  P.metrics($('metrics'), app); P.softBreakdown($('soft'), app); P.snapshots($('snap'), app);
+  P.chartsPanel($('charts'), app); P.routeMap($('route'), app);
+  P.games($('games'), app); P.reschedule($('resched'), app); P.progress($('progress'), app); P.teamSchedule($('sched'), app);
+  P.settings($('settings'), app); P.data($('data'), app);
+  window.app = app;
+</script>
+</body>
+</html>

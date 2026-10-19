@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>편성 브리프 — KBO 정규시즌 일정 편성 (opus-ui alt-1)</title>
+<link rel="stylesheet" href="app/common/common.css">
+<link rel="stylesheet" href="app/brief/brief.css">
+</head>
+<body>
+<a class="k-link" href="#brief" style="position:absolute;left:-999px" onfocus="this.style.left='8px'" onblur="this.style.left='-999px'">본문으로 건너뛰기</a>
+<div class="b-shell">
+  <nav class="b-toc" id="toc" aria-label="브리프 목차"></nav>
+  <main class="b-main">
+    <header class="b-masthead">
+      <h1>KBO 정규시즌 일정 편성 브리프</h1>
+      <p>입력 → 검토 → 결과 → 분석 → 운영을 한 문서로 정리한다. 섹션을 확정하면 요약으로 접히고, 인쇄하면 회의 자료가 된다. <span id="masthead-meta"></span></p>
+    </header>
+    <div id="brief"></div>
+  </main>
+</div>
+<script src="core/calendar-gen.js"></script>
+<script src="core/preset-2025.js"></script>
+<script src="core/score.js"></script>
+<script src="core/reschedule.js"></script>
+<script src="core/mock-solver.js"></script>
+<script src="core/store.js"></script>
+<script src="core/engine-adapter.js"></script>
+<script src="core/svg-chart.js"></script>
+<script src="core/svg-map.js"></script>
+<script src="app/common/dom.js"></script>
+<script src="app/common/app.js"></script>
+<script src="app/common/map-widget.js"></script>
+<script src="app/common/panels-input.js"></script>
+<script src="app/common/panels-result.js"></script>
+<script src="app/common/panels-quality.js"></script>
+<script src="app/common/panels-ops.js"></script>
+<script src="app/brief/brief.js"></script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구단 여정</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body { background: #faf8f4; }
+  .app { position: fixed; inset: 0; display: grid; grid-template-columns: 560px 1fr; grid-template-rows: 64px 1fr; }
+  /* 구단 선택: 유니폼 띠 */
+  .teambar { grid-column: 1 / 3; display: flex; align-items: center; gap: 6px; padding: 0 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .teambar .me { font-size: 11px; color: var(--ink-3); margin-right: 4px; }
+  .jersey { border: 0; border-radius: 10px; padding: 0 10px; height: 38px; background: color-mix(in srgb, var(--c) 12%, white); color: var(--ink); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .jersey i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+  .jersey[aria-pressed="true"] { background: var(--c); color: #fff; padding: 0 16px; font-size: 15px; }
+  .jersey[aria-pressed="true"] i { background: #fff; }
+  .jersey .vb { font: 700 10px var(--mono); background: var(--bad); color: #fff; border-radius: 99px; padding: 0 5px; }
+  .teambar .sp { flex: 1; }
+  /* 시즌 다이얼 */
+  .dialwrap { position: relative; border-right: 1px solid var(--line); overflow: hidden; min-height: 0; }
+  #dial { position: absolute; left: 0; top: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; }
+  .seg { cursor: pointer; }
+  .center { position: absolute; left: 280px; top: 372px; transform: translate(-50%, -50%) scale(var(--k, 1)); width: 236px; text-align: center; pointer-events: none; }
+  .center .date { font-size: 13px; color: var(--ink-3); }
+  .center .ha { display: inline-block; font-weight: 800; font-size: 12px; padding: 2px 8px; border-radius: 99px; margin: 4px 0; }
+  .center .ha.H { background: var(--home); color: #fff; }
+  .center .ha.A { background: #e1dcd2; }
+  .center .vs { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .center .park { font-size: 13px; color: var(--ink-2); }
+  .center .leg { margin-top: 8px; font: 12px var(--mono); color: var(--ink-2); }
+  .center .v { margin-top: 6px; color: var(--bad); font-size: 12px; font-weight: 600; }
+  .dialctl { position: absolute; left: 16px; right: 14px; top: 54px; display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--ink-3); }
+  .dialctl span { line-height: 1.3; }
+  .dialtitle { position: absolute; left: 16px; top: 12px; font-size: 12px; color: var(--ink-3); }
+  .dialtitle b { color: var(--ink); font-size: 14px; display: block; }
+  /* 오른쪽: 지도 + 1인칭 작업대 */
+  .right { display: grid; grid-template-rows: 360px 1fr; min-height: 0; }
+  .mapbox { position: relative; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr 236px; }
+  #map { width: 100%; height: 100%; }
+  .legcard { padding: 14px; border-left: 1px solid var(--line); font-size: 12px; overflow: hidden; }
+  .legcard h4, .work h4 { font-size: 10.5px; color: var(--ink-3); margin: 0 0 6px; letter-spacing: 0.4px; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  .bar { height: 6px; border-radius: 3px; background: #ebe7df; position: relative; margin: 3px 0 8px; }
+  .bar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c); }
+  .bar b { position: absolute; top: -3px; width: 2px; height: 12px; background: #1d1d1f; }
+  .work { display: flex; flex-direction: column; min-height: 0; padding: 12px 16px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .tabs button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-weight: 600; color: var(--ink-2); }
+  .tabs button[aria-selected="true"] { background: #1d1d1f; color: #fff; }
+  .pane { flex: 1; min-height: 0; overflow: auto; }
+  .cand { display: grid; grid-template-columns: 1fr 92px 96px 120px 70px; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; background: #fff; font-size: 12.5px; }
+  .cand:hover { border-color: var(--ink-3); }
+  .cand .who { font-size: 11px; color: var(--ink-3); }
+  .cand .d { font: 12px var(--mono); }
+  .cands-head { display: grid; grid-template-columns: 1fr 92px 96px 120px 70px; gap: 10px; padding: 0 10px 4px; font-size: 10.5px; color: var(--ink-3); }
+  .acts { display: flex; gap: 6px; margin-bottom: 10px; }
+  table.dl { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.dl td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table.dl input { width: 64px; border: 1px solid var(--line-2); border-radius: 5px; padding: 2px 5px; text-align: right; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="teambar" id="teambar" aria-label="구단 선택"></nav>
+  <section class="dialwrap">
+    <div class="dialtitle"><b id="dt"></b>시즌 다이얼 · 12시 방향이 개막, 시계 방향으로 8월 말</div>
+    <svg id="dial" viewBox="0 0 560 736"></svg>
+    <div class="center" id="center"></div>
+    <div class="dialctl"><button class="btn sm" id="prev">◀ 이전</button><button class="btn sm" id="play">▶ 여정 재생</button><button class="btn sm" id="next">다음 ▶</button><span style="margin-left:8px">다이얼을 돌리거나 ← → 키 · 바깥 막대 길이 = 그 시리즈로 오는 이동거리 · 빨간 점 = Hard 위반</span></div>
+  </section>
+  <section class="right">
+    <div class="mapbox"><svg id="map"></svg><div class="legcard" id="legcard"></div></div>
+    <div class="work">
+      <div class="tabs" role="tablist"><button role="tab" data-tab="fix" aria-selected="true">③ 이 자리에서 보정</button><button role="tab" data-tab="input" aria-selected="false">① 우리 구단 입력</button><button role="tab" data-tab="stats" aria-selected="false">② 결과 · ④ 지표</button></div>
+      <div class="pane" id="pane"></div>
+    </div>
+  </section>
+</div>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script>
+(() => {
+  const { K, $, $$, esc, T, color, park, chip, store, fmt, sign, slotDays } = KB;
+  let me = "한화", cur = 0, tab = "fix", playing = null;
+  const CX = 280, CY = 372, R0 = 132, R1 = 168, R2 = 178, RMAX = 252;
+  const ang = (i) => (-90 + (i + 0.5) * 8) * Math.PI / 180;
+  const pt = (r, a) => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  function sector(r1, r2, i, pad = 0.6) {
+    const a1 = (-90 + i * 8 + pad) * Math.PI / 180, a2 = (-90 + (i + 1) * 8 - pad) * Math.PI / 180;
+    const [x1, y1] = pt(r1, a1), [x2, y2] = pt(r2, a1), [x3, y3] = pt(r2, a2), [x4, y4] = pt(r1, a2);
+    return `M${x1},${y1} L${x2},${y2} A${r2},${r2} 0 0 1 ${x3},${y3} L${x4},${y4} A${r1},${r1} 0 0 0 ${x1},${y1}Z`;
+  }
+  const seq = () => KB.teamSeq(store.plan, me);
+  const legKm = (S, k) => (k > 0 ? KB.dist(S[k - 1].home, S[k].home) : 0);
+
+  function renderTeams() {
+    const ev = store.ev;
+    $("#teambar").innerHTML = `<span class="me">우리 구단</span>${T.map((t) => { const n = ev.hard.filter((v) => v.team === t || (v.ids || []).some((id) => { const s = store.get(id); return s.home === t || s.away === t; })).length; return `<button class="jersey" style="--c:${color(t)}" data-t="${t}" aria-pressed="${t === me}"><i></i>${t}${n ? `<span class="vb">${n}</span>` : ""}</button>`; }).join("")}<span class="sp"></span>${KB.badge(ev)}<span class="faint" style="font-size:11px;margin-left:8px">리그 ${fmt(ev.soft.S4)}km</span>`;
+  }
+  function myViolations() {
+    return store.ev.hard.filter((v) => v.team === me || (v.ids || []).some((id) => { const s = store.get(id); return s.home === me || s.away === me; }));
+  }
+  function renderDial() {
+    const S = seq(), vs = myViolations(), vSlots = new Set(vs.map((v) => v.slot));
+    let h = `<circle cx="${CX}" cy="${CY}" r="${R0 - 8}" fill="#fff" stroke="#efebe4"/>`;
+    // 월 경계 눈금
+    let lastM = null;
+    K.slots.forEach((sl, i) => {
+      const m = +sl.date.slice(5, 7);
+      if (m !== lastM) { const a = (-90 + i * 8) * Math.PI / 180, [x1, y1] = pt(R0 - 6, a), [x2, y2] = pt(RMAX + 6, a), [lx, ly] = pt(RMAX + 18, a + 0.07); h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d9d3c8" stroke-dasharray="2 3"/><text x="${lx}" y="${ly}" font-size="11" fill="#8b8882" text-anchor="middle">${m}월</text>`; lastM = m; }
+    });
+    S.forEach((s, k) => {
+      const i = s.slot, H = s.home === me, opp = H ? s.away : s.home;
+      const km = legKm(S, k), r = R2 + Math.min(1, km / 420) * (RMAX - R2);
+      h += `<path class="seg" data-i="${i}" d="${sector(R0, R1, i)}" fill="${H ? "var(--home)" : "#e1dcd2"}" ${i === cur ? 'stroke="#1d1d1f" stroke-width="2.5"' : ""}/>`;
+      h += `<path d="${sector(R1 + 2, R1 + 8, i)}" fill="${color(opp)}"/>`;
+      if (km > 0) h += `<path d="${sector(R2, r, i, 2)}" fill="${km > 300 ? "#e8a19d" : "#c9c2b5"}"/>`;
+      if (vSlots.has(i)) { const [x, y] = pt(R0 - 16, ang(i)); h += `<circle cx="${x}" cy="${y}" r="5" fill="var(--bad)"/>`; }
+      if (s.pin) { const [x, y] = pt(R0 - 16, ang(i)); h += `<text x="${x}" y="${y + 4}" font-size="10" text-anchor="middle">📌</text>`; }
+    });
+    // 바늘
+    const [nx, ny] = pt(RMAX + 2, ang(cur)), [bx, by] = pt(R0 - 6, ang(cur));
+    h += `<line x1="${bx}" y1="${by}" x2="${nx}" y2="${ny}" stroke="#1d1d1f" stroke-width="2"/><circle cx="${nx}" cy="${ny}" r="6" fill="#1d1d1f"/>`;
+    // 연속 원정 4 이상 구간 호
+    let run = 0, prev = null, start = 0;
+    S.forEach((s, k) => { const kind = s.home === me ? "H" : "A"; if (kind === prev) run++; else { run = 1; start = k; } prev = kind; if (run === 4) { const a1 = (-90 + S[start].slot * 8) * Math.PI / 180, a2 = (-90 + (s.slot + 1) * 8) * Math.PI / 180, [x1, y1] = pt(R0 - 26, a1), [x2, y2] = pt(R0 - 26, a2); h += `<path d="M${x1},${y1} A${R0 - 26},${R0 - 26} 0 0 1 ${x2},${y2}" fill="none" stroke="var(--bad)" stroke-width="3"/>`; } });
+    $("#dial").innerHTML = h;
+    placeCenter();
+    $("#dt").textContent = `${me} · ${park(me)} 홈`;
+    renderCenter();
+  }
+  // 뷰포트 높이에 따라 다이얼 SVG가 줄어들므로 중앙 카드를 SVG 좌표계에 맞춰 놓고 같은 배율로 줄인다.
+  function placeCenter() {
+    const m = dial.getScreenCTM(), r = $(".dialwrap").getBoundingClientRect(), c = $("#center");
+    if (!m) return;
+    c.style.left = m.a * CX + m.e - r.left + "px";
+    c.style.top = m.d * CY + m.f - r.top + "px";
+    c.style.setProperty("--k", Math.min(1, m.a).toFixed(3));
+  }
+  window.addEventListener("resize", () => { placeCenter(); renderMap(); });
+  function renderCenter() {
+    const S = seq(), k = S.findIndex((s) => s.slot === cur), s = S[k];
+    if (!s) { $("#center").innerHTML = `<div class="date">${K.slots[cur].label}</div><div class="vs">경기 없음</div>`; return; }
+    const H = s.home === me, opp = H ? s.away : s.home, km = legKm(S, k);
+    const vs = myViolations().filter((v) => v.slot === cur);
+    $("#center").innerHTML = `<div class="date">${k + 1}번째 시리즈 · ${K.slots[cur].label} · ${s.len}연전</div><span class="ha ${H ? "H" : "A"}">${H ? "홈" : "원정"}</span><div class="vs">${H ? "vs" : "@"} ${esc(opp)}</div><div class="park">${KB.stadium(s.home)}</div><div class="leg">${k ? `${park(S[k - 1].home)} → ${park(s.home)} ${km ? fmt(km) + "km" : "이동 없음"}` : "개막 시리즈"}</div>${vs.map((v) => `<div class="v">⚠ ${v.rule} ${esc(v.detail)}</div>`).join("")}`;
+  }
+  function renderMap() {
+    const box = $("#map").getBoundingClientRect(), P = KB.projector(box.width, box.height, 22), S = seq();
+    const k = S.findIndex((s) => s.slot === cur);
+    let h = KB.mapBase(P);
+    S.forEach((s, j) => {
+      if (!j) return;
+      const a = KB.teamXY(P, S[j - 1].home), b = KB.teamXY(P, s.home);
+      if (a[0] === b[0] && a[1] === b[1]) return;
+      const past = j <= k, now = j === k;
+      h += `<path d="${KB.arc(a, b, 0.14)}" fill="none" stroke="${now ? "#1d1d1f" : color(me)}" stroke-width="${now ? 3.5 : past ? 1.8 : 1}" opacity="${now ? 1 : past ? 0.55 : 0.13}" ${now ? 'stroke-dasharray="7 4"' : ""}>${now ? '<animate attributeName="stroke-dashoffset" from="22" to="0" dur="0.8s" repeatCount="indefinite"/>' : ""}</path>`;
+    });
+    T.forEach((t) => { const [x, y] = KB.teamXY(P, t); h += `<circle cx="${x}" cy="${y}" r="${t === me ? 7 : 4}" fill="${color(t)}" stroke="#fff" stroke-width="1.5"/>`; });
+    if (S[k]) { const [x, y] = KB.teamXY(P, S[k].home); h += `<circle cx="${x}" cy="${y}" r="14" fill="none" stroke="#1d1d1f" stroke-width="2"><animate attributeName="r" values="10;18;10" dur="1.4s" repeatCount="indefinite"/></circle>`; }
+    $("#map").innerHTML = h;
+    // 지금까지의 여정 카드
+    const done = S.slice(0, k + 1);
+    const kmSoFar = done.reduce((a, s, j) => a + legKm(S, j), 0);
+    const ev = store.ev, per = ev.per[me];
+    $("#legcard").innerHTML = `<h4>여기까지의 여정</h4><div class="kv"><span>소화 시리즈</span><b>${k + 1} / ${S.length}</b></div><div class="kv"><span>누적 이동</span><b class="num">${fmt(kmSoFar)}km</b></div><div class="kv"><span>시즌 총 이동</span><span class="num">${fmt(per.km)}km</span></div>
+      <div class="bar" style="--c:${color(me)}" title="리그 평균 대비"><span style="width:${(per.km / 9000) * 100}%"></span><b style="left:${(ev.avg.km / 9000) * 100}%"></b></div>
+      <div class="kv"><span>리그 평균 대비</span><span class="num ${per.km - ev.avg.km > 300 ? "up" : ""}">${sign(per.km - ev.avg.km, "km")}</span></div>
+      <h4 style="margin-top:12px">다음 3개 정거장</h4>${S.slice(k + 1, k + 4).map((s, j) => `<div class="kv"><span>${K.slots[s.slot].label}</span><span>${s.home === me ? "홈" : "@" + park(s.home)} · ${fmt(legKm(S, k + 1 + j))}km</span></div>`).join("") || '<div class="faint">시즌 끝</div>'}`;
+  }
+
+  // ── 1인칭 보정: 지금 정거장에서 가능한 수를 실제로 채점해 우리 구단 Δ 순으로 보여준다 ──
+  function candidates() {
+    const S = seq(), s = S.find((x) => x.slot === cur);
+    if (!s) return [];
+    const out = [{ o: { op: "flip", id: s.id }, label: `홈·원정 뒤집기 → ${s.home === me ? "원정 @" + park(s.away) : "홈 " + park(me)}` }];
+    for (let d = -3; d <= 3; d++) {
+      const j = cur + d;
+      if (!d || j < 1 || j >= K.slots.length || K.slots[j].len !== K.slots[cur].len) continue;
+      const mine = S.find((x) => x.slot === j);
+      out.push({ o: { op: "swap", a: cur, b: j }, label: `${K.slots[j].label}와 슬롯 교환 ${mine ? `(그날 ${mine.home === me ? "홈" : "@" + park(mine.home)})` : ""}` });
+    }
+    return out.map((c) => {
+      const pv = KB.preview(c.o);
+      const hit = Object.entries(pv.dTeam).filter(([t, v]) => t !== me && Math.abs(v) >= 50).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
+      return { ...c, pv, hit, pinned: store.plan.some((x) => x.pin && (x.slot === cur || (c.o.op === "swap" && x.slot === c.o.b))) };
+    }).sort((a, b) => a.pv.dHard - b.pv.dHard || a.pv.dTeam[me] - b.pv.dTeam[me]);
+  }
+  function renderPane() {
+    const ev = store.ev, per = ev.per[me];
+    $$(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+    if (tab === "fix") {
+      const S = seq(), s = S.find((x) => x.slot === cur);
+      const cs = candidates();
+      $("#pane").innerHTML = `<div class="acts"><button class="btn" id="pin">${s && s.pin ? "📌 고정 해제" : "📌 이 시리즈 고정"}</button><button class="btn" id="rain">☂ 우천 취소 1경기 기록</button><button class="btn" id="undo">↶ 되돌리기</button><button class="btn primary" id="run">▶ 고정 유지하고 재최적화</button></div>
+        <div class="cands-head"><span>이 정거장에서 할 수 있는 수</span><span>리그 Hard</span><span>${esc(me)} 이동</span><span>함께 바뀌는 구단</span><span></span></div>
+        ${cs.map((c, k) => `<div class="cand"><span>${esc(c.label)}</span><span class="d ${c.pv.dHard > 0 ? "up" : c.pv.dHard < 0 ? "down" : ""}">${sign(c.pv.dHard)}</span><span class="d ${c.pv.dTeam[me] > 0 ? "up" : c.pv.dTeam[me] < 0 ? "down" : ""}">${sign(c.pv.dTeam[me], "km")}</span><span class="who">${c.hit.map(([t, v]) => `${t} ${sign(v)}`).join(" · ") || "영향 작음"}</span><button class="btn sm" data-c="${k}" ${c.pinned ? 'disabled title="고정된 시리즈가 있습니다"' : ""}>적용</button></div>`).join("")}`;
+      $$("[data-c]").forEach((b) => b.onclick = () => { const c = cs[+b.dataset.c]; if (store.apply(c.o)) KB.toast(`${c.label} · Hard ${store.ev.hardSum}`); });
+      $("#pin").onclick = () => s && store.apply({ op: "pin", id: s.id });
+      $("#rain").onclick = () => KB.toast(s ? `${s.away}@${s.home} ${slotDays[cur][0].slice(5)} 1경기 취소 → 재편성 대기열(목업)` : "경기 없음");
+      $("#undo").onclick = () => store.undo();
+      $("#run").onclick = () => { $("#run").textContent = "⏳ 탐색 중"; KB.solve({ interval: 120, onDone: (e) => KB.toast(`완료 · Hard ${e.hardSum}`) }); };
+    } else if (tab === "input") {
+      const ob = ["두산", "키움", "한화", "NC", "롯데"].includes(me);
+      $("#pane").innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div><h4>연고 구장</h4><div class="kv"><span>${esc(KB.stadium(me))}</span><span class="faint">${K.teams[KB.idx[me]].lat.toFixed(3)}, ${K.teams[KB.idx[me]].lng.toFixed(3)}</span></div>
+        <h4 style="margin-top:12px">우리 구단에 걸린 이벤트</h4>${K.events.filter((e) => e.items.some((x) => x.includes(me) || x.includes(park(me)))).map((e) => `<div class="kv"><span>${esc(e.name || e.type)} · ${e.date.slice(5)}</span><span class="tag">${e.mode}</span></div>`).join("") || '<div class="faint">없음</div>'}
+        <div class="kv"><span>어린이날 홈 의무 (엔진 호환 목록)</span><span>${ob ? "해당" : "해당 없음"}</span></div>
+        <h4 style="margin-top:12px">구단 요청 메모</h4><textarea style="width:100%;height:54px;border:1px solid var(--line-2);border-radius:6px;padding:6px;font-size:12px" placeholder="예) 7월 셋째 주 원정 3연속 피하고 싶음"></textarea></div>
+        <div><h4>우리 구장에서 다른 구장까지 (km) · 고치면 즉시 재채점</h4><table class="dl">${T.filter((t) => t !== me).map((t) => `<tr><td>${chip(t)}</td><td>${park(t)}</td><td><input data-to="${t}" value="${KB.dist(me, t).toFixed(0)}"></td></tr>`).join("")}</table></div></div>`;
+      $$("[data-to]").forEach((i) => i.onchange = () => { const a = KB.idx[me], b = KB.idx[i.dataset.to]; K.dist[a][b] = K.dist[b][a] = +i.value || 0; store.emit({ op: "dist" }); KB.toast(`${me}–${i.dataset.to} ${i.value}km · ${me} 시즌 ${fmt(store.ev.per[me].km)}km`); });
+    } else {
+      const rows = [["km", "이동거리", "km", 300], ["moves", "이동 횟수", "회", 2], ["hol", "휴일 가중치", "", 1.5], ["wkHome", "주말 홈 (참고)", "", null], ["maxA", "최장 연속 원정 (참고)", "", null]];
+      $("#pane").innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div><h4>우리 구단 vs 리그</h4>${rows.map(([k, l, u, tol]) => { const avg = T.reduce((a, t) => a + ev.per[t][k], 0) / T.length, v = per[k], max = Math.max(...T.map((t) => ev.per[t][k])) * 1.1; return `<div class="kv"><span>${l}</span><span class="num ${tol && Math.abs(v - avg) > tol ? "up" : ""}">${fmt(v)}${u} <span class="faint">(평균 ${avg.toFixed(k === "km" ? 0 : 1)})</span></span></div><div class="bar" style="--c:${color(me)}"><span style="width:${(v / max) * 100}%"></span><b style="left:${(avg / max) * 100}%"></b></div>`; }).join("")}</div>
+        <div><h4>우리 구단 관련 Hard 위반 ${myViolations().length}건</h4>${myViolations().map((v) => `<div class="kv" style="cursor:pointer" data-go="${v.slot}"><span><span class="rule">${v.rule}</span> ${esc(v.detail)}</span><span>→</span></div>`).join("") || '<div class="faint">없음</div>'}
+        <h4 style="margin-top:12px">상대별 시리즈 (홈/원정)</h4>${T.filter((t) => t !== me).map((t) => { const ss = seq().filter((s) => s.home === t || s.away === t); return `<div class="kv"><span>${chip(t)}</span><span class="num">${ss.filter((s) => s.home === me).length} / ${ss.filter((s) => s.away === me).length}</span></div>`; }).join("")}</div></div>`;
+      $$("[data-go]").forEach((el) => el.onclick = () => { cur = +el.dataset.go; tab = "fix"; renderAll(); });
+    }
+  }
+
+  function renderAll() { renderTeams(); renderDial(); renderMap(); renderPane(); }
+  store.on(() => renderAll());
+
+  // 다이얼 돌리기: 포인터 각도 → 슬롯
+  const dial = $("#dial");
+  let turning = false;
+  const toSlot = (e) => {
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(dial.getScreenCTM().inverse());
+    const x = p.x - CX, y = p.y - CY;
+    let a = (Math.atan2(y, x) * 180) / Math.PI + 90;
+    if (a < 0) a += 360;
+    return Math.min(K.slots.length - 1, Math.floor(a / 8));
+  };
+  dial.addEventListener("pointerdown", (e) => { turning = true; try { dial.setPointerCapture(e.pointerId); } catch {} setCur(toSlot(e)); });
+  dial.addEventListener("pointermove", (e) => { if (turning) setCur(toSlot(e)); });
+  dial.addEventListener("pointerup", () => { turning = false; });
+  function setCur(i) { if (i === cur) return; cur = i; renderDial(); renderMap(); if (tab === "fix") renderPane(); }
+  $("#prev").onclick = () => setCur(Math.max(0, cur - 1));
+  $("#next").onclick = () => setCur(Math.min(K.slots.length - 1, cur + 1));
+  $("#play").onclick = () => {
+    if (playing) { clearInterval(playing); playing = null; $("#play").textContent = "▶ 여정 재생"; return; }
+    $("#play").textContent = "⏸ 멈춤";
+    playing = setInterval(() => { if (cur >= K.slots.length - 1) { clearInterval(playing); playing = null; $("#play").textContent = "▶ 여정 재생"; return; } setCur(cur + 1); }, 450);
+  };
+  document.addEventListener("keydown", (e) => {
+    if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if (e.key === "ArrowRight") setCur(Math.min(K.slots.length - 1, cur + 1));
+    if (e.key === "ArrowLeft") setCur(Math.max(0, cur - 1));
+    if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); store.undo(); }
+  });
+  $("#teambar").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) { me = b.dataset.t; renderAll(); } });
+  $$(".tabs button").forEach((b) => b.onclick = () => { tab = b.dataset.tab; renderPane(); });
+
+  // 첫 화면: 한화의 연속 원정 위반 지점에 바늘을 둔다.
+  const v0 = store.ev.hard.find((v) => v.team === me);
+  cur = v0 ? v0.slot : 0;
+  renderAll();
+  KB.hud("05 구단 여정");
+  window.JR = { setCur, setTeam: (t) => { me = t; renderAll(); } };
+})();
+</script>
+</body>
+</html>

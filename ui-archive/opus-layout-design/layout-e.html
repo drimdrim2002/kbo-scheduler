@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E · 편성 워크북</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .app { display: grid; grid-template-rows: 44px 32px minmax(0, 1fr) 32px 24px; background: var(--panel); }
+  .ribbon { display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--line); background: #fbfbf9; }
+  .ribbon h1 { font-size: 14px; margin-right: 8px; }
+  .ribbon .sep { width: 1px; height: 22px; background: var(--line); }
+  .fbar { display: grid; grid-template-columns: 120px 28px minmax(0, 1fr); border-bottom: 1px solid var(--line); align-items: stretch; }
+  .fbar > * { display: flex; align-items: center; padding: 0 8px; border-right: 1px solid var(--line); font-size: 12px; min-width: 0; }
+  .fbar .nm { font-family: var(--mono); }
+  .fbar .fx { font-style: italic; color: var(--ink-3); justify-content: center; }
+  .fbar .val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; gap: 8px; }
+  .fbar .val .f { font-family: var(--mono); color: var(--ok); }
+  .fbar .val .e { color: var(--bad); font-weight: 700; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 290px; min-height: 0; }
+  .main.no-pane { grid-template-columns: minmax(0, 1fr) 0; }
+  .sheet { overflow: auto; min-height: 0; min-width: 0; position: relative; }
+  table.ws { border-collapse: separate; border-spacing: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+  table.ws th, table.ws td { border-right: 1px solid #e3e1db; border-bottom: 1px solid #e3e1db; height: 24px; padding: 0 6px; white-space: nowrap; position: relative; }
+  table.ws thead th { position: sticky; top: 0; z-index: 2; background: var(--sunk); font-weight: 500; color: var(--ink-2); font-size: 11px; text-align: center; }
+  table.ws thead tr.hdr th { top: 24px; background: #f6f5f1; color: var(--ink); font-weight: 700; font-size: 12px; text-align: left; }
+  table.ws .rn { position: sticky; left: 0; z-index: 1; background: var(--sunk); color: var(--ink-3); text-align: center; width: 36px; min-width: 36px; font-size: 11px; }
+  table.ws thead .rn { z-index: 3; }
+  table.ws .c1 { position: sticky; left: 37px; z-index: 1; background: #fff; box-shadow: 1px 0 0 var(--line-strong); }
+  table.ws thead .c1 { z-index: 3; background: #f6f5f1; }
+  table.ws thead tr:first-child .c1 { background: var(--sunk); }
+  table.ws td { cursor: cell; }
+  table.ws td.num { text-align: right; }
+  table.ws td.sel { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; }
+  table.ws td.rng { background: var(--accent-soft) !important; }
+  table.ws td.calc { color: var(--ok); }
+  table.ws td.lock { color: var(--ink-2); background: #fafaf8; }
+  table.ws td.err::after { content: ""; position: absolute; right: 0; top: 0; border-top: 7px solid var(--bad); border-left: 7px solid transparent; }
+  table.ws td.err { background: var(--bad-soft); }
+  table.ws td.warnc::after { content: ""; position: absolute; right: 0; top: 0; border-top: 7px solid var(--warn); border-left: 7px solid transparent; }
+  table.ws td.H { background: #dfe7fa; }
+  table.ws td.A { color: var(--ink-2); }
+  table.ws td input { position: absolute; inset: 0; border: 2px solid var(--accent); padding: 0 5px; font: inherit; width: 100%; }
+  .databar { position: absolute; left: 0; top: 4px; bottom: 4px; background: rgba(37,87,214,.15); z-index: -1; }
+  .databar.bad { background: rgba(192,50,43,.2); }
+  .pane { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: #fbfbf9; }
+  .pane .issue { padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12px; }
+  .pane .issue:hover { background: var(--accent-soft); }
+  .pane .ref { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .tabsbar { display: flex; align-items: stretch; border-top: 1px solid var(--line-strong); background: var(--sunk); overflow-x: auto; overflow-y: hidden; min-width: 0; }
+  .tabsbar button { border: 0; border-right: 1px solid var(--line); background: transparent; padding: 0 12px; font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .tabsbar button[aria-selected="true"] { background: #fff; font-weight: 700; box-shadow: inset 0 -3px 0 var(--k); }
+  .tabsbar button .k { width: 6px; height: 6px; border-radius: 50%; background: var(--k); }
+  .tabsbar .grp { font-size: 10px; color: var(--ink-3); display: flex; align-items: center; padding: 0 6px 0 10px; }
+  .status { display: flex; align-items: center; gap: 14px; padding: 0 12px; font-size: 11px; color: var(--ink-2); border-top: 1px solid var(--line); background: #fbfbf9; }
+  .status .hard-badge { padding: 0 8px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="ribbon" data-note="1">
+    <h1>KBO 편성 워크북 2025</h1>
+    <button class="btn sm">JSON 가져오기</button><button class="btn sm">내보내기 ▾</button>
+    <span class="sep"></span>
+    <button class="btn sm" id="goReview">검토</button><button class="btn sm primary" id="run">▶ 엔진 실행</button>
+    <span class="sep"></span>
+    <button class="btn sm">↶</button><button class="btn sm">↷</button><button class="btn sm">스냅샷</button>
+    <span class="grow"></span>
+    <span id="badge"></span>
+    <button class="btn sm" id="paneBtn" aria-pressed="true">검증 창</button>
+  </header>
+  <div class="fbar" data-note="2"><div class="nm" id="nm">A1</div><div class="fx">fx</div><div class="val" id="val"></div></div>
+  <div class="main" id="main">
+    <div class="sheet" id="sheet" tabindex="0" data-note="3"></div>
+    <aside class="pane" data-note="4" data-note-pos="right">
+      <div class="panel-head"><h3>검증</h3><span class="grow"></span><span class="tag" id="issueCnt"></span></div>
+      <div style="flex:1;min-height:0;overflow:auto" id="issues"></div>
+    </aside>
+  </div>
+  <nav class="tabsbar" role="tablist" id="tabs" data-note="5"></nav>
+  <footer class="status" id="status"></footer>
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+const { K, $, $$, esc, state, hardBadge, avg, seriesInSlot, toast } = W;
+const COL = (i) => String.fromCharCode(65 + (i % 26)).padStart(i >= 26 ? 2 : 1, String.fromCharCode(64 + Math.floor(i / 26)));
+const KIND = { input: ["입력", "#2557d6"], calc: ["계산", "#1d7a45"], result: ["결과", "#a8660b"], ops: ["운영", "#e0458b"] };
+const edits = {};
+
+// 시트 정의: 셀은 값 또는 {v, cls, f(계산식/유래), err, warn, edit}
+const sheets = [
+  { k: "teams", name: "구단", kind: "input", cols: ["구단", "구장명", "위도", "경도", "대표색", "공유 구장"],
+    rows: () => K.teams.map((t) => [{ v: t.name, edit: 1 }, { v: t.stadium, edit: 1 }, { v: t.lat, cls: "num", edit: 1 }, { v: t.lng, cls: "num", edit: 1 }, { v: K.colors[t.name], edit: 1 }, t.stadium.includes("잠실") ? { v: "잠실(두산·LG)", f: "=같은구장(B:B)", cls: "calc" } : ""]) },
+  { k: "dist", name: "거리", kind: "input", cols: ["km", ...K.teams.map((t) => t.name)],
+    rows: () => K.teams.map((t, i) => [t.name, ...K.dist[i].map((v, j) => ({ v: Math.round(v), cls: "num" + (i === j ? " lock" : ""), edit: i !== j, f: i === j ? "같은 구단" : `${t.name}→${K.teams[j].name} (프리셋)`, bg: v }))]) },
+  { k: "skel", name: "일정 골격", kind: "input", cols: ["항목", "값", "비고"],
+    rows: () => [["개막일", { v: "2025-03-22", edit: 1 }, ""], ["1차 편성 종료일", { v: "2025-08-31", edit: 1 }, ""], ["시즌 종료일", { v: "2025-10-31", edit: 1 }, "재편성 상한"], ["휴식 요일", { v: "월", edit: 1 }, "쉼표로 여러 개"], ["휴식 예외일", { v: "2025-05-05", edit: 1 }, "어린이날"], ["경기 없는 기간 1", { v: "2025-05-08 ~ 2025-05-08", edit: 1 }, "경기 없는 날"], ["경기 없는 기간 2", { v: "2025-07-11 ~ 2025-07-16", edit: 1 }, "올스타 브레이크"], ["공휴일", { v: "05-05, 06-06, 08-15", edit: 1 }, "휴일 가중치"], ["구단쌍 목표 경기", { v: 16, cls: "num", edit: 1 }, ""], ["1차 편성 경기", { v: 15, cls: "num", edit: 1 }, ""]] },
+  { k: "events", name: "이벤트", kind: "input", cols: ["유형", "날짜", "모드", "대상", "검증"],
+    rows: () => K.events.flatMap((e) => e.items.map((x, i) => [i ? "" : { v: e.name || e.type, edit: 1 }, i ? "" : { v: e.date, edit: 1 }, i ? "" : { v: e.mode, edit: 1 }, { v: x, edit: 1 }, { v: "✓", cls: "calc" }])) },
+  { k: "slots", name: "슬롯", kind: "calc", cols: ["#", "시작일", "종료", "연전", "주말", "휴일", "상태"],
+    rows: () => K.slots.map((s) => { const e = edits["slots:" + s.i]; return [s.i + 1, { v: s.label, cls: "calc lock", f: "=자동생성(일정 골격!B1:B8)" }, { v: s.end, cls: "calc lock" }, { v: e || s.len, cls: "num " + (e ? "" : "calc"), edit: 1, f: e ? `수동 수정 (자동값 ${s.len})` : "=연전분할(구간 길이, 3연전 우선)", err: e ? "H0-d 시리즈 길이 분포와 불일치" : "" }, { v: s.wk, cls: "num calc", f: "=토·일 포함 ? 1 : 0" }, { v: s.hol, cls: "num calc", f: "=주말 ? (공휴일 ? 3 : 2) : (공휴일 ? 2 : 0)" }, e ? { v: "수정됨", cls: "", warn: "자동 생성값과 다름" } : { v: "자동", cls: "calc" }]; }) },
+  { k: "series", name: "시리즈", kind: "calc", cols: ["#", "홈", "원정", "연전", "배정 슬롯", "핀"],
+    rows: () => K.series.map((s) => [s.id + 1, s.home, s.away, { v: s.len, cls: "num" }, { v: K.slots[s.slot].label, cls: "calc" }, { v: s.slot === 0 ? "📌" : "", edit: 1 }]) },
+  { k: "review", name: "검토", kind: "calc", cols: ["점검 항목", "필요", "보유", "상태", "설명"],
+    rows: () => [["2연전 시리즈 ≤ 슬롯×5", { v: 5, cls: "num" }, { v: 5, cls: "num calc", f: "=COUNTIF(슬롯!D:D,2)*5" }, { v: "✓ 통과", cls: "calc" }, ""], ["3연전 시리즈 ≤ 슬롯×5", { v: 215, cls: "num" }, { v: 215, cls: "num calc" }, { v: "✓ 통과", cls: "calc" }, ""], ["4연전 시리즈 ≤ 슬롯×5", { v: 5, cls: "num" }, { v: Object.keys(edits).length ? 10 : 5, cls: "num calc" }, Object.keys(edits).length ? { v: "! 경고", warn: "빈 슬롯 = 추가 휴식" } : { v: "✓ 통과", cls: "calc" }, ""], ["이벤트 모순", "", "", { v: "✓ 통과", cls: "calc" }, "3개 이벤트"], ["거리 행렬 누락", { v: 100, cls: "num" }, { v: 100, cls: "num calc" }, { v: "✓ 통과", cls: "calc" }, ""], ["구단 수 짝수", "", { v: 10, cls: "num" }, { v: "✓ 통과", cls: "calc" }, ""]] },
+  { k: "result", name: "결과(구단×슬롯)", kind: "result", cols: ["구단", ...K.slots.map((s) => s.label)],
+    rows: () => K.teams.map((t) => [t.name, ...K.slots.map((sl) => { const s = K.series.find((x) => x.slot === sl.i && (x.home === t.name || x.away === t.name)); if (!s) return ""; const h = s.home === t.name; const v = state.violations.find((x) => x.slot === sl.i && x.team === t.name); return { v: (h ? "H " : "@") + (h ? s.away : s.home), cls: h ? "H" : "A", f: `${sl.label} ${h ? "홈" : "원정"} · ${s.away} @ ${s.home} · ${s.len}연전`, err: v ? `${v.rule} ${v.name} — ${v.detail}` : "" }; })]) },
+  { k: "metrics", name: "지표", kind: "result", cols: ["구단", "이동거리 km", "평균 대비", "이동 횟수", "휴일 가중치", "주말 홈 (참고)", "최장 연속 원정 (참고)"],
+    rows: () => { const a = avg("km"), mx = Math.max(...K.metrics.map((m) => m.km)); return K.metrics.map((m) => [m.team, { v: m.km.toLocaleString(), cls: "num", bar: m.km / mx, bad: Math.abs(m.km - a) > 300, f: "=SUM(구단 이동 구간 거리)", warn: Math.abs(m.km - a) > 300 ? `S2(Soft) 허용오차 초과: 평균 ${Math.round(a)} ± 300` : "" }, { v: (m.km - a > 0 ? "+" : "") + Math.round(m.km - a), cls: "num calc" }, { v: m.moves, cls: "num" }, { v: m.hol, cls: "num" }, { v: m.wkHome, cls: "num" }, { v: m.maxA, cls: "num" }]); } },
+  { k: "games", name: "경기 기록", kind: "ops", cols: ["날짜", "원정", "홈", "상태", "사유"],
+    rows: () => K.slots.slice(16, 20).flatMap((sl) => seriesInSlot(sl.i).map((s, i) => [i ? "" : sl.label, s.away, s.home, { v: (sl.i + i) % 7 === 0 ? "취소" : "완료", edit: 1, warn: (sl.i + i) % 7 === 0 ? "취소 → 재편성 대상" : "" }, { v: (sl.i + i) % 7 === 0 ? "우천" : "", edit: 1 }])) },
+  { k: "resched", name: "재편성", kind: "ops", cols: ["항목", "값"],
+    rows: () => [["재편성 기간", { v: "2025-09-01 ~ 2025-10-31", edit: 1 }], ["월요일 경기 허용", { v: "아니오", edit: 1 }], ["더블헤더 허용", { v: "예", edit: 1 }], ["구단당 최대 DH", { v: 3, cls: "num", edit: 1 }], ["재편성 대상", { v: 83, cls: "num calc", f: "=잔여 45 + 취소(경기 기록!D:D) 38" }], ["수용 가능", { v: 88, cls: "num calc" }]] },
+];
+
+let cur = "result", sel = { r: 2, c: 18 }, anchor = null, paneOn = true;
+
+function issues() {
+  const list = [];
+  sheets.forEach((sh) => sh.rows().forEach((row, r) => row.forEach((cell, c) => {
+    if (cell && (cell.err || cell.warn)) list.push({ sh: sh.k, r, c, msg: cell.err || cell.warn, lvl: cell.err ? "bad" : "warn" });
+  })));
+  return list;
+}
+
+function render() {
+  const sh = sheets.find((s) => s.k === cur);
+  const rows = sh.rows();
+  const maxBg = Math.max(...K.dist.flat());
+  const cellHtml = (cell, r, c) => {
+    const o = cell && typeof cell === "object" ? cell : { v: cell ?? "" };
+    let cls = (o.cls || "") + (c === 0 ? " c1" : "") + (o.err ? " err" : o.warn ? " warnc" : "");
+    if (sel.r === r && sel.c === c) cls += " sel";
+    if (anchor && inRange(r, c)) cls += " rng";
+    const style = o.bg !== undefined && o.bg > 0 ? `style="background:rgba(37,87,214,${((o.bg / maxBg) * .55).toFixed(2)})"` : "";
+    const bar = o.bar ? `<span class="databar${o.bad ? " bad" : ""}" style="width:${o.bar * 100}%"></span>` : "";
+    return `<td class="${cls.trim()}" data-r="${r}" data-c="${c}" ${style}>${bar}${esc(o.v)}${o.err ? ' <span class="viol-ico">⚠</span>' : ""}</td>`;
+  };
+  $("#sheet").innerHTML = `<table class="ws"><thead>
+    <tr><th class="rn"></th>${sh.cols.map((_, i) => `<th class="${i === 0 ? "c1" : ""}">${COL(i)}</th>`).join("")}</tr>
+    <tr class="hdr"><th class="rn">1</th>${sh.cols.map((h, i) => `<th class="${i === 0 ? "c1" : ""}">${esc(h)}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map((row, r) => `<tr><td class="rn">${r + 2}</td>${sh.cols.map((_, c) => cellHtml(row[c], r, c)).join("")}</tr>`).join("")}</tbody></table>`;
+  $$("#sheet td[data-r]").forEach((td) => {
+    td.onclick = (e) => { const r = +td.dataset.r, c = +td.dataset.c; if (e.shiftKey) anchor = anchor || { ...sel }; else anchor = null; sel = { r, c }; render(); };
+    td.ondblclick = () => startEdit(td);
+  });
+  // 탭
+  const iss = issues();
+  let lastKind = null;
+  $("#tabs").innerHTML = sheets.map((s) => {
+    const n = iss.filter((x) => x.sh === s.k).length, bad = iss.some((x) => x.sh === s.k && x.lvl === "bad");
+    const grp = s.kind !== lastKind ? `<span class="grp">${KIND[s.kind][0]}</span>` : "";
+    lastKind = s.kind;
+    return `${grp}<button role="tab" data-k="${s.k}" aria-selected="${s.k === cur}" style="--k:${KIND[s.kind][1]}"><span class="k"></span>${s.name}${s.kind === "calc" ? " 🔒" : ""}${n ? ` <span class="tag ${bad ? "bad" : "warn"}">${bad ? "⚠" : "!"}${n}</span>` : ""}</button>`;
+  }).join("");
+  $$("#tabs button").forEach((b) => b.onclick = () => { cur = b.dataset.k; sel = { r: 0, c: 1 }; anchor = null; render(); });
+  // 검증 창
+  $("#issueCnt").textContent = `${iss.length}건`;
+  $("#issueCnt").className = "tag " + (iss.some((x) => x.lvl === "bad") ? "bad" : iss.length ? "warn" : "ok");
+  $("#issues").innerHTML = iss.length ? iss.map((x, i) => { const s = sheets.find((y) => y.k === x.sh); return `<div class="issue" data-i="${i}"><span class="${x.lvl === "bad" ? "viol-ico" : ""}" style="${x.lvl === "warn" ? "color:var(--warn)" : ""}">${x.lvl === "bad" ? "⚠" : "!"}</span> <span class="ref">${s.name}!${COL(x.c)}${x.r + 2}</span><br>${esc(x.msg)}</div>`; }).join("") : `<div class="empty">✓ 문제 없음</div>`;
+  $$(".issue").forEach((el) => el.onclick = () => { const x = iss[+el.dataset.i]; cur = x.sh; sel = { r: x.r, c: x.c }; anchor = null; render(); scrollSel(); });
+  $("#badge").innerHTML = hardBadge();
+  formulaBar(sh, rows);
+  statusBar(sh, rows);
+}
+function inRange(r, c) { return r >= Math.min(anchor.r, sel.r) && r <= Math.max(anchor.r, sel.r) && c >= Math.min(anchor.c, sel.c) && c <= Math.max(anchor.c, sel.c); }
+function cellAt(rows, r, c) { const x = rows[r] && rows[r][c]; return x && typeof x === "object" ? x : { v: x ?? "" }; }
+function formulaBar(sh, rows) {
+  const o = cellAt(rows, sel.r, sel.c);
+  $("#nm").textContent = `${sh.name.replace(/\(.*\)/, "")}!${COL(sel.c)}${sel.r + 2}`;
+  $("#val").innerHTML = `<span>${esc(o.v)}</span>${o.f ? `<span class="f">${esc(o.f)}</span>` : ""}${o.err ? `<span class="e">⚠ ${esc(o.err)}</span>` : o.warn ? `<span style="color:var(--warn);font-weight:700">! ${esc(o.warn)}</span>` : ""}${o.edit ? '<span class="faint small">· 더블클릭 또는 Enter로 편집</span>' : sh.kind === "calc" ? '<span class="faint small">· 계산 셀 — 입력 시트를 고치면 다시 계산됩니다</span>' : ""}`;
+}
+function statusBar(sh, rows) {
+  let nums = [];
+  if (anchor) for (let r = Math.min(anchor.r, sel.r); r <= Math.max(anchor.r, sel.r); r++) for (let c = Math.min(anchor.c, sel.c); c <= Math.max(anchor.c, sel.c); c++) { const n = parseFloat(String(cellAt(rows, r, c).v).replace(/,/g, "")); if (!isNaN(n)) nums.push(n); }
+  const sum = nums.reduce((a, b) => a + b, 0);
+  $("#status").innerHTML = `<span>${KIND[sh.kind][0]} 시트 · ${rows.length}행</span>${nums.length ? `<span>개수 ${nums.length}</span><span>합계 ${sum.toLocaleString()}</span><span>평균 ${(sum / nums.length).toFixed(1)}</span>` : '<span class="faint">Shift+클릭으로 범위를 고르면 합계·평균이 표시됩니다</span>'}<span class="grow"></span><span>H0-e 모드: 구장 기준</span>${hardBadge()}`;
+}
+function startEdit(td) {
+  const sh = sheets.find((s) => s.k === cur), rows = sh.rows(), r = +td.dataset.r, c = +td.dataset.c, o = cellAt(rows, r, c);
+  if (!o.edit) { toast(sh.kind === "calc" ? "계산 셀입니다 — 입력 시트에서 고치세요" : "편집할 수 없는 셀"); return; }
+  td.innerHTML = `<input value="${esc(o.v)}">`;
+  const inp = $("input", td);
+  inp.focus(); inp.select();
+  inp.onkeydown = (e) => {
+    if (e.key === "Escape") return render();
+    if (e.key !== "Enter") return;
+    if (cur === "slots" && c === 3) { const v = +inp.value; if (v !== K.slots[r].len) edits["slots:" + r] = v; else delete edits["slots:" + r]; toast("슬롯 연전 수 수정 → 검토 시트·검증 창 재계산"); }
+    else toast("값 저장 · 관련 계산 시트 갱신");
+    sel = { r: r + 1, c }; render();
+  };
+}
+// scrollIntoView는 iframe 미리보기에서 바깥 페이지까지 움직이므로 시트만 직접 스크롤한다.
+function scrollSel() { const td = $("#sheet td.sel"), S = $("#sheet"); if (td) { S.scrollTop = td.offsetTop - S.clientHeight / 2; S.scrollLeft = td.offsetLeft - S.clientWidth / 2; } }
+
+$("#sheet").addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+  if (d) { e.preventDefault(); if (e.shiftKey) anchor = anchor || { ...sel }; else anchor = null; sel = { r: Math.max(0, sel.r + d[0]), c: Math.max(0, sel.c + d[1]) }; render(); scrollSel(); $("#sheet").focus(); }
+  if (e.key === "Enter") { e.preventDefault(); const td = $("#sheet td.sel"); td && startEdit(td); }
+});
+$("#paneBtn").onclick = () => { paneOn = !paneOn; $("#main").classList.toggle("no-pane", !paneOn); $("#paneBtn").setAttribute("aria-pressed", String(paneOn)); };
+$("#goReview").onclick = () => { cur = "review"; sel = { r: 0, c: 3 }; render(); };
+$("#run").onclick = () => { toast("Mock 엔진 실행 → 결과·지표 시트 갱신"); cur = "result"; render(); };
+
+render();
+scrollSel();
+W.wire("E · 편성 워크북 — 엑셀처럼 시트 탭 + 수식 줄 + 검증 창", [
+  "리본은 한 줄만 둡니다. 엔진 실행·검토·실행 취소·스냅샷처럼 시트와 무관한 명령만 여기에 있습니다.",
+  "수식 줄 = 확인 창구. 선택한 셀의 값, 그 값이 어디서 왔는지(계산식·유래), 위반 메시지를 한 줄로 보여 줍니다. 엔진 결과 셀을 고르면 대진·연전과 위반 원인이 바로 보입니다.",
+  "시트 본문만 가로·세로로 스크롤합니다. 열 머리(A, B…)·항목 행·첫 열은 고정됩니다. 방향키로 이동하고, Enter·더블클릭으로 편집하고, Shift+클릭으로 범위를 골라 합계를 봅니다. 위반 셀에는 엑셀 메모처럼 빨간 삼각형이 붙습니다.",
+  "검증 창은 모든 시트의 문제를 '시트!셀' 주소로 모아 보여 줍니다. 클릭하면 해당 셀로 이동합니다. 예: 슬롯 시트에서 연전 수(D열)를 4로 바꿔 보세요.",
+  "시트 탭은 입력 → 계산 → 결과 → 운영 순서로 묶고 색으로 구분합니다. 계산 시트는 🔒 잠금입니다. 탭마다 문제 건수를 달아 어느 시트를 봐야 할지 알 수 있습니다.",
+]);
+</script>
+</body>
+</html>

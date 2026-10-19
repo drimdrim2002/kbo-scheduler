@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>브리프 스프레드 — KBO 일정 편성 2025 (wizard-ui alt-d)</title>
+<link rel="stylesheet" href="app/spread/spread.css">
+</head>
+<body>
+<a class="sp-skip" href="#sp-main">본문으로 건너뛰기</a>
+<div class="sp-root" id="sp-root">
+  <header class="sp-mast" id="sp-mast"></header>
+  <nav class="sp-chapters" id="sp-chapters" aria-label="편성 단계"></nav>
+  <div class="sp-band" id="sp-band"></div>
+  <div class="sp-spread" id="sp-spread">
+    <main class="sp-main" id="sp-main" tabindex="-1"></main>
+    <aside class="sp-margin" id="sp-margin" aria-label="요약과 다음 할 일"></aside>
+  </div>
+  <footer class="sp-foot" id="sp-foot"></footer>
+</div>
+<div class="sp-layer" id="sp-layer"></div>
+<div class="sp-toasts" id="sp-toasts" role="status" aria-live="polite"></div>
+<div class="sp-narrow" role="alert">이 도구는 1440×900 이상의 데스크톱 화면에 맞춰져 있습니다. 창을 넓혀 주세요.</div>
+<div class="sp-print" id="sp-print" aria-hidden="true"></div>
+
+<script src="app/spread/sp-boot.js"></script>
+<script src="core/calendar-gen.js"></script>
+<script src="core/preset-2025.js"></script>
+<script src="core/score.js"></script>
+<script src="core/reschedule.js"></script>
+<script src="core/mock-solver.js"></script>
+<script src="core/store.js"></script>
+<script src="core/engine-adapter.js"></script>
+<script src="core/svg-chart.js"></script>
+<script src="core/svg-map.js"></script>
+<script src="app/common/dom.js"></script>
+<script src="app/common/app.js"></script>
+<script src="app/spread/features.js"></script>
+<script src="app/spread/sp-core.js"></script>
+<script src="app/spread/sp-grid.js"></script>
+<script src="app/spread/sp-shell.js"></script>
+<script src="app/spread/ch1-data.js"></script>
+<script src="app/spread/ch2-review.js"></script>
+<script src="app/spread/ch3-result.js"></script>
+<script src="app/spread/ch4-quality.js"></script>
+<script src="app/spread/ops.js"></script>
+<script src="app/spread/modals.js"></script>
+<script src="app/spread/sp-main.js"></script>
+<script src="app/spread/selftest.js"></script>
+</body>
+</html>

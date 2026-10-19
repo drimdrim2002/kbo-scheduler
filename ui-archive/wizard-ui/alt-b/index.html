@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 일정 편성 · 단계 레일 (alt-b)</title>
+<link rel="stylesheet" href="app/rail/rail.css">
+<script>
+  // 콘솔 오류 표시(개발용): window.onerror·console.error를 DOM 표식으로 남긴다.
+  (function () {
+    window.__errors = [];
+    function mark(msg) {
+      window.__errors.push(String(msg));
+      try { document.documentElement.setAttribute('data-errors', String(window.__errors.length)); } catch (e) { /* 무시 */ }
+    }
+    window.addEventListener('error', function (e) { mark(e.message + ' @' + (e.filename || '') + ':' + (e.lineno || '')); });
+    window.addEventListener('unhandledrejection', function (e) { mark('promise: ' + (e.reason && e.reason.message || e.reason)); });
+    var ce = console.error.bind(console);
+    console.error = function () { mark(Array.prototype.join.call(arguments, ' ')); ce.apply(null, arguments); };
+  })();
+</script>
+</head>
+<body>
+<div id="app" class="app" aria-live="off"></div>
+<div id="layer"></div>
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+<noscript>이 시안은 JavaScript가 필요합니다.</noscript>
+<script src="core/calendar-gen.js"></script>
+<script src="core/preset-2025.js"></script>
+<script src="core/score.js"></script>
+<script src="core/mock-solver.js"></script>
+<script src="core/reschedule.js"></script>
+<script src="core/store.js"></script>
+<script src="core/svg-map.js"></script>
+<script src="app/rail/base.js"></script>
+<script src="app/rail/charts.js"></script>
+<script src="app/rail/shell.js"></script>
+<script src="app/rail/step1.js"></script>
+<script src="app/rail/importer.js"></script>
+<script src="app/rail/step2.js"></script>
+<script src="app/rail/step3.js"></script>
+<script src="app/rail/step4.js"></script>
+<script src="app/rail/ops.js"></script>
+<script src="app/rail/settings.js"></script>
+<script src="app/rail/main.js"></script>
+<script src="tools/selftest.js"></script>
+</body>
+</html>

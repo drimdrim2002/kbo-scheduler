@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 편성 레이아웃 2차</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  body { background: #f1efea; }
+  .app { position: fixed; inset: 0; display: grid; grid-template-columns: 372px 1fr; grid-template-rows: 58px 1fr; }
+  header { grid-column: 1 / 3; display: flex; align-items: center; gap: 14px; padding: 0 20px; border-bottom: 1px solid var(--line); background: #fff; }
+  header h1 { font-size: 16px; margin: 0; }
+  header p { margin: 0; font-size: 12px; color: var(--ink-3); }
+  header .sp { flex: 1; }
+  .seg { display: inline-flex; background: #ebe8e2; border-radius: 8px; padding: 2px; }
+  .seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+  /* 왼쪽 목록 */
+  .list { padding: 12px; display: flex; flex-direction: column; gap: 7px; border-right: 1px solid var(--line); overflow: auto; }
+  .item { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: center; padding: 6px; border-radius: 12px; border: 1px solid transparent; background: transparent; text-align: left; }
+  .item img { width: 112px; height: 70px; object-fit: cover; object-position: top left; border-radius: 7px; border: 1px solid var(--line); background: #fff; }
+  .item b { display: block; font-size: 13px; }
+  .item span { font-size: 11.5px; color: var(--ink-3); line-height: 1.35; display: block; }
+  .item:hover { background: #fff; }
+  .item[aria-selected="true"] { background: #fff; border-color: var(--ink); }
+  .item .no { font: 700 10px var(--mono); color: var(--accent); }
+  .item.rec .no::after { content: " · 추천"; color: var(--ok); }
+  /* 오른쪽 상세 */
+  .detail { display: grid; grid-template-columns: 1fr 340px; gap: 18px; padding: 16px 20px; min-height: 0; }
+  .shot { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .shot img { width: 100%; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); background: #fff; }
+  .shot h2 { margin: 0; font-size: 22px; letter-spacing: -0.4px; }
+  .shot .one { font-size: 13.5px; color: var(--ink-2); margin: 0; }
+  .shot .open { display: flex; gap: 8px; align-items: center; }
+  .facts { font-size: 12.5px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+  .facts h4 { margin: 0 0 4px; font-size: 11px; color: var(--ink-3); letter-spacing: 0.4px; }
+  .facts ul { margin: 0; padding-left: 16px; }
+  .facts li { margin: 2px 0; }
+  .phase { display: grid; grid-template-columns: 22px 1fr; gap: 4px 6px; }
+  .phase b { font: 700 11px var(--mono); color: #fff; border-radius: 4px; text-align: center; height: 18px; line-height: 18px; }
+  .p1 { background: #6b6f7b; } .p2 { background: #c9302c; } .p3 { background: #b7791f; } .p4 { background: #2f5bea; }
+  .fit { background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; }
+  /* 비교표 */
+  .compare { grid-column: 1 / 3; padding: 16px 20px; overflow: auto; display: none; }
+  .compare.show { display: block; }
+  table.cmp { border-collapse: collapse; width: 100%; background: #fff; border-radius: 12px; overflow: hidden; font-size: 12.5px; }
+  table.cmp th, table.cmp td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+  table.cmp th:first-child, table.cmp td:first-child { text-align: left; }
+  table.cmp thead th { background: #faf9f6; font-size: 11.5px; color: var(--ink-2); }
+  table.cmp td.s3 { color: var(--ok); font-weight: 700; }
+  table.cmp td.s1 { color: var(--ink-3); }
+  .rec-box { margin-top: 14px; background: #fff; border-radius: 12px; padding: 14px 16px; font-size: 13px; line-height: 1.6; border-left: 4px solid var(--ok); }
+  .rec-box h3 { margin: 0 0 6px; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>KBO 편성 UI 레이아웃 2차 시안 · 7종</h1>
+    <p>모두 1280×800 한 화면 · 외부 라이브러리 없음 · 실제 KBO 10개 구단·구장과 input_2025 일정 데이터</p>
+    <span class="sp"></span>
+    <div class="seg" id="view"><button data-v="detail" aria-pressed="true">시안 보기</button><button data-v="compare" aria-pressed="false">비교표 · 추천</button></div>
+  </header>
+  <nav class="list" id="list" aria-label="시안 목록"></nav>
+  <main class="detail" id="detail"></main>
+  <section class="compare" id="compare"></section>
+</div>
+<script>
+(() => {
+  const D = [
+    { f: "01-atlas.html", t: "시즌 아틀라스", k: "캔버스 · 시맨틱 줌", rec: true,
+      one: "시즌 전체를 지도처럼 펼친 무한 캔버스. 확대할수록 슬롯 띠가 ‘개요 → 대진 → 이동 지도’로 자세해지고, 렌즈를 바꾸면 같은 달력이 입력·결과·보정·분석 화면이 됩니다.",
+      act: ["휠 확대·축소, 끌어 이동, 더블클릭 줌인", "위반을 누르면 그 슬롯으로 날아감", "보정 렌즈에서 슬롯 띠를 다른 띠로 끌어 교환(놓기 전 Hard·km Δ)", "확대하면 경기마다 ⇄ 뒤집기 · 📌 고정 · ☂ 우천 취소", "미니맵 · 지역 점프(구단·구장 / 달력 / 분석)"],
+      ph: ["왼쪽 ‘구단·구장’ 지역의 지도와 거리 행렬(직접 수정) + 입력 렌즈: 날짜 칸을 눌러 경기 없는 날 지정, 휴식 요일 변경 시 슬롯 재생성 미리보기(점선 띠)", "결과 렌즈: 위반 띠 빨간 테두리, 점수 분해, 솔버 실행·점수 추이", "보정 렌즈: 띠 끌어 교환, 경기별 뒤집기·고정·우천, 9~10월 카드에 재편성 결과", "분석 렌즈: 구단을 고르면 달력 전체가 그 구단의 홈/원정 패턴, 지도 동선, 오른쪽 분석 지역(이동거리·흐름·상대 매트릭스)"],
+      pro: ["시즌 전체 맥락과 세부를 한 공간에서 오감 — 위치를 기억하기 쉬움", "입력(골격)과 결과(일정)가 같은 달력 위에 있어 인과가 바로 보임", "줌 단계가 곧 정보 밀도라 화면 전환이 없음"],
+      con: ["줌·팬 조작에 익숙해지는 시간이 필요", "개요 배율에서는 글자가 작아 색·모양 신호에 의존", "숫자 표 중심의 정밀 작업은 표 화면보다 느림"],
+      fit: "시즌을 통째로 보며 고치는 사무국 편성 담당자(주 사용자). 의사결정자에게 ‘시즌 한 장’을 보여 줄 때." },
+    { f: "02-command.html", t: "편성 커맨드", k: "명령 팔레트 · 카드 보드",
+      one: "입력·확인·보정·분석을 명령 한 줄로 합니다. 결과는 카드로 받고, 최신 카드가 2×2 무대를 차지하며 이전 카드는 옆으로 밀려나는 벤토 보드입니다.",
+      act: ["⌘K 팔레트 자동완성, Tab으로 예시 채우기", "Enter 전에 결과 Δ를 미리 계산(드라이런)", "‘한화 연속 원정 고쳐줘’ → 주변 수를 실제로 채점한 제안 버튼", "작은 카드를 누르면 무대로, 레일에서 단계별 필터", "명령 기록을 다시 불러 실행"],
+      ph: ["시즌 3/22~8/31 휴식 월 · 구단 · 거리 KIA 롯데 260 · 고정 LG@두산 8/15 · 이벤트", "실행 · 위반 · 점수", "교환 5/13 5/16 · 뒤집기 한화 롯데 5/27 · ○○ 고쳐줘 · 우천 6/10 KIA 삼성 · 재편성 월요일 DH · 되돌리기", "이동거리 · 홈원정 · 지도 롯데 · KIA 일정"],
+      pro: ["키보드만으로 가장 빠름 — 반복 작업에 강함", "명령 기록이 곧 작업 로그(무엇을 왜 바꿨는지 남음)", "제안 카드가 비전문가에게 ‘다음 수’를 알려 줌", "기능 추가가 명령 하나 추가로 끝나 확장이 쉬움"],
+      con: ["명령을 알아야 쓸 수 있음(발견성은 팔레트·추천 칩으로 보완)", "시즌 전체 달력 같은 공간적 개요가 약함", "목업 파서는 키워드 기반 — 진짜 자연어는 LLM 연동이 필요"],
+      fit: "도구에 익숙해진 숙련 운영자, 같은 조정을 자주 반복하는 사람. 향후 자연어(LLM) 입력의 토대." },
+    { f: "03-branches.html", t: "시나리오 분기", k: "분기 나무 · 스와이프 diff",
+      one: "편성안을 git 가지처럼 늘려 갑니다. 두 가지(A/B)를 골라 구단×슬롯 행렬을 겹치고 손잡이를 밀어 비교하며, 다른 슬롯만 골라 체리픽해 새 가지를 만듭니다.",
+      act: ["노드 클릭 = B, Shift+클릭 = A", "스와이프 손잡이 끌기 · 차이만 · 위아래 모드", "슬롯 열을 눌러 체리픽 → 효과 미리보기 → 새 분기", "작성기로 분기 만들기(입력 변경·재실행·교환·뒤집기·재편성)"],
+      ph: ["분기 작성기의 입력 변경(이동거리 가중치 ↑, 광복절 고정 해제) — 노드에 ‘무엇을 바꿨나’가 기록됨", "노드마다 Hard·리그 km, B 상태 배지, 판정 문장", "보정 레인(교환·뒤집기·체리픽), 재편성 레인(월요일 허용 vs DH 허용 비교)", "구단별 이동거리 덤벨(A→B), Soft 단계 Δ"],
+      pro: ["SC-3 ‘여러 안 비교 후 확정’을 1급 개념으로 다룸", "결정 근거가 나무에 남아 보고·감사에 유리", "스와이프 비교가 ‘어디가 달라졌나’를 즉시 보여 줌"],
+      con: ["한 안을 세밀하게 고치는 작업은 다른 화면이 필요", "가지가 많아지면 나무 정리 부담", "A/B·체리픽 개념 설명이 필요"],
+      fit: "여러 안을 놓고 최종안을 고르는 편성팀장·의사결정자." },
+    { f: "04-blocks.html", t: "조건 블록 파이프라인", k: "노드 · 파이프라인",
+      one: "입력 → 규칙 → 솔버 → 보정 → 보기를 블록으로 잇습니다. 수동 수정도 ‘보정 블록’이라 끄고 켜고 순서를 바꿀 수 있고, 결과가 선을 따라 즉시 다시 흐릅니다.",
+      act: ["Hard 규칙 스위치 → 결과 Hard 즉시 재집계", "보정 블록 bypass·순서·삭제(비파괴 수정)", "노드 머리 끌기(선이 따라옴)", "팔레트에서 블록을 캔버스로 끌어 추가(교환·뒤집기·고정·우천·보기)"],
+      ph: ["입력 노드 4개(구단, 거리, 시즌 골격, 이벤트) — 인스펙터에서 편집, 선 위에 흐르는 양(45 슬롯 등) 표시", "결과 노드: 켜진 규칙 기준 Hard·위반, 규칙 노드에 규칙별 위반 수", "보정 블록 체인(첫 화면의 가상 위반 3건도 블록으로 드러남), 재편성 블록", "보기 블록: 이동거리 막대, 지도 동선, 홈/원정 흐름"],
+      pro: ["무엇이 결과를 만들었는지 인과가 눈에 보임", "수정이 비파괴 — 블록을 꺼서 ‘이 수정이 없었다면’을 바로 확인", "규칙 실험(엔진 갭 검토)과 개발자 협업에 좋음"],
+      con: ["엑셀 사용자에게 노드 UI는 낯섦", "일정 자체(달력)를 보는 화면이 아님", "블록이 많아지면 복잡해짐"],
+      fit: "규칙을 설계·검증하는 고급 사용자, 엔진 개발자와 함께 쓰는 검토 회의." },
+    { f: "05-journey.html", t: "구단 여정", k: "구단 1인칭 · 시즌 다이얼",
+      one: "한 구단의 시즌을 원형 다이얼로 돌려 봅니다. 바늘이 가리키는 정거장에서 그 구단 자리에서 할 수 있는 수를, 리그 Hard·우리 구단 이동·함께 바뀌는 구단과 함께 순위로 받습니다.",
+      act: ["다이얼 돌리기(끌기·← →), 여정 재생", "구단 유니폼 띠로 전환(구단별 위반 수 배지)", "정거장 후보(뒤집기, ±3 슬롯 교환) 적용", "지도에 지난 경로·현재 구간 애니메이션"],
+      ph: ["‘우리 구단 입력’ 탭: 연고 구장, 우리 구장에서 다른 구장까지 거리(수정 시 재채점), 걸린 이벤트, 구단 요청 메모", "다이얼의 빨간 점·연속 원정 호, 중앙 카드의 위반, 지표 탭의 관련 위반", "‘이 자리에서 보정’ 탭: 채점된 후보 순위, 고정, 우천, 재최적화", "지도 경로, 누적 이동, 리그 평균 대비 막대, 상대별 홈/원정"],
+      pro: ["구단 민원(‘우리 7월 원정이 길다’)에 바로 답할 수 있음", "공정성 문제가 한 구단의 맥락에서 직관적", "한 수의 파급(다른 구단 Δ)을 함께 보여 줌"],
+      con: ["리그 전체 최적화 관점은 약함", "10개 구단을 오가며 비교하기 번거로움", "원형 차트는 정밀 비교에 불리"],
+      fit: "구단 운영팀(보조 사용자), 구단 요청을 처리하는 사무국 담당." },
+    { f: "06-replay.html", t: "시즌 리플레이", k: "타임 스크러버 · 중계",
+      one: "시즌을 중계처럼 재생합니다. 스크러버를 끌면 지도 위 구단 토큰이 다음 구장으로 날아가고, 누적 이동거리 레이스가 순위를 바꿉니다. 자막에서 바로 우천 취소를 기록하고 9~10월 구간에 재편성합니다.",
+      act: ["스크러버 끌기, 재생·속도, ← → 한 슬롯씩", "레이스 막대를 눌러 한 구단 따라가기", "자막 경기의 ⇄ 📌 ☂", "취소 대기열 → 9~10월 재편성(월요일·DH 옵션)"],
+      ph: ["스크러버의 골격 레인: 주말·공휴일 ★·연전 수·이벤트 🚩·블랙아웃", "자막 위반 테두리, 결과 레인 ⚠, 점수", "자막에서 뒤집기·고정·우천, 재최적화, 재편성 구간 배치", "지도 이동 흐름, 누적 이동 레이스, 따라가기 카드(연속 원정)"],
+      pro: ["연속 원정·이동 몰림 같은 시간 문제를 직관적으로 느낌", "시즌 중 운영(우천 기록·재편성, SC-4·5)에 맞음", "보고·발표용으로 설득력이 큼"],
+      con: ["한 시점씩 보여 동시 비교가 약함", "입력 편집 기능은 얕음", "애니메이션이 많아 성능 관리 필요"],
+      fit: "시즌 중 운영 담당(우천 기록·재편성), 의사결정자 보고." },
+    { f: "07-desk.html", t: "편성 데스크", k: "위젯 자유 배치",
+      one: "12×8 격자 위에 위젯 12종을 자유롭게 배치하는 작업대입니다. 단계별 프리셋으로 시작하고, 구단을 누르면 모든 위젯이 함께 걸러집니다.",
+      act: ["위젯 머리 끌기(격자 스냅, 겹치면 자리 교환)", "모서리로 크기 조절, 추가·닫기", "슬롯 보드에서 슬롯 머리를 끌어 교환(Δ 미리보기)", "구단 교차 필터"],
+      ph: ["입력 보드: 시즌 골격, 구단·구장·거리(필터 구단 기준 수정), 이벤트", "검토 보드: Hard 상태, 점수, 슬롯 보드, 솔버", "보정 보드: 슬롯 보드, 우천 취소·재편성", "보고 보드: 이동거리, 지도, 상대 매트릭스, 홈/원정"],
+      pro: ["역할마다 자기 작업대를 꾸릴 수 있음", "엑셀·BI 사용자에게 익숙한 대시보드 문법", "기능 확장이 위젯 추가로 끝남"],
+      con: ["정보 밀도가 위젯 크기에 좌우됨", "배치 관리가 또 하나의 일", "일곱 안 중 가장 익숙한 형태 — 새로움은 적음"],
+      fit: "여러 역할이 한 도구를 같이 쓸 때, 화면을 직접 꾸미고 싶은 파워 유저." },
+  ];
+  let cur = 0;
+  const list = document.getElementById("list");
+  list.innerHTML = D.map((d, i) => `<button class="item${d.rec ? " rec" : ""}" data-i="${i}" role="tab" aria-selected="${i === cur}"><img src="thumbs/0${i + 1}.png" alt=""><span><span class="no">0${i + 1} · ${d.k}</span><b>${d.t}</b><span>${d.one.split(". ")[0]}.</span></span></button>`).join("");
+  function show(i) {
+    cur = i;
+    [...list.children].forEach((el, k) => el.setAttribute("aria-selected", String(k === i)));
+    const d = D[i];
+    document.getElementById("detail").innerHTML = `<div class="shot"><div class="open"><h2>0${i + 1} ${d.t}</h2><span class="tag">${d.k}</span>${d.rec ? '<span class="tag" style="background:var(--ok-soft);color:var(--ok)">추천</span>' : ""}<span style="flex:1"></span><a class="btn primary" href="${d.f}">시안 열기 →</a></div><p class="one">${d.one}</p><a href="${d.f}"><img src="thumbs/0${i + 1}.png" alt="${d.t} 화면"></a></div>
+      <div class="facts"><div><h4>네 단계가 있는 곳</h4><div class="phase">${d.ph.map((p, k) => `<b class="p${k + 1}">${k + 1}</b><span>${p}</span>`).join("")}</div></div>
+      <div><h4>움직이는 상호작용</h4><ul>${d.act.map((a) => `<li>${a}</li>`).join("")}</ul></div>
+      <div><h4>강점</h4><ul>${d.pro.map((a) => `<li>${a}</li>`).join("")}</ul></div>
+      <div><h4>약점</h4><ul>${d.con.map((a) => `<li>${a}</li>`).join("")}</ul></div>
+      <div class="fit"><h4>적합한 사용자</h4>${d.fit}</div></div>`;
+  }
+  list.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) { show(+b.dataset.i); setView("detail"); } });
+  const C = [
+    ["시즌 전체 조망", 3, 1, 2, 1, 1, 2, 2],
+    ["세부 보정의 정밀도", 3, 2, 2, 2, 3, 2, 3],
+    ["입력의 편의", 2, 3, 2, 3, 2, 1, 3],
+    ["원인 → 결과 가시성", 3, 2, 2, 3, 2, 2, 2],
+    ["여러 안 비교·의사결정", 1, 2, 3, 2, 1, 1, 2],
+    ["시즌 중 운영(우천·재편성)", 2, 2, 2, 2, 2, 3, 2],
+    ["엑셀 사용자의 학습 부담 (높을수록 쉬움)", 2, 1, 2, 1, 3, 3, 3],
+    ["구현 난이도 (높을수록 쉬움)", 1, 3, 2, 1, 2, 2, 2],
+  ];
+  const mark = (v) => ["", "○", "◐", "●"][v];
+  document.getElementById("compare").innerHTML = `<table class="cmp"><thead><tr><th>기준</th>${D.map((d, i) => `<th>0${i + 1}<br>${d.t}</th>`).join("")}</tr></thead><tbody>${C.map(([n, ...v]) => `<tr><td>${n}</td>${v.map((x) => `<td class="s${x}">${mark(x)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    <div class="rec-box"><h3>추천: 01 시즌 아틀라스를 주 작업면으로, 03 분기 비교와 02 명령 팔레트를 그 위에 얹는 조합</h3>
+    주 사용자는 시즌 전체를 머리에 두고 일정을 고치는 사무국 편성 담당자입니다. 아틀라스는 입력(골격)과 결과(일정)를 같은 달력 위에 두고, 줌으로 밀도를 바꿔 화면 전환 없이 네 단계를 모두 처리합니다. 1차 시안의 핵심 문제였던 ‘원인과 결과가 다른 자리에 있다’를 가장 직접적으로 풉니다.<br>
+    아틀라스가 약한 두 가지는 다른 시안의 장점으로 메웁니다. <b>여러 안 비교(SC-3)</b>는 03의 분기 나무와 스와이프 diff를 ‘비교 모드’로 붙이고, <b>반복 작업의 속도</b>는 02의 ⌘K 팔레트(드라이런 Δ, 수정 제안)를 캔버스 위 단축 입력으로 넣습니다. 05 구단 여정은 구단 운영팀 배포용 읽기 전용 화면으로, 06 리플레이는 보고용 재생 모드로 후속 검토를 권합니다.<br>
+    <span class="faint">● 강함 · ◐ 보통 · ○ 약함. 자세한 근거는 README.md.</span></div>`;
+  function setView(v) {
+    document.querySelectorAll("#view button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+    document.getElementById("detail").style.display = v === "detail" ? "" : "none";
+    document.getElementById("list").style.display = v === "detail" ? "" : "none";
+    document.getElementById("compare").classList.toggle("show", v === "compare");
+  }
+  document.querySelectorAll("#view button").forEach((b) => b.onclick = () => setView(b.dataset.v));
+  document.addEventListener("keydown", (e) => { if (e.key === "ArrowDown") show(Math.min(D.length - 1, cur + 1)); if (e.key === "ArrowUp") show(Math.max(0, cur - 1)); });
+  show(0);
+})();
+</script>
+</body>
+</html>

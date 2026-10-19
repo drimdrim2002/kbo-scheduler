@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 편성 UI 템플릿 비교</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --surface: #fff; --line: #dfe3e8; --text: #16202c; --muted: #5b6673;
+    --accent: #1d4ed8; --navy: #0a1e3c;
+    --a: #1d4ed8; --b: #0f766e; --c: #15803d; --d: #7c2d12;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 13px/1.5 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
+  header { background: var(--navy); color: #fff; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 700; }
+  header .sub { color: #b8c3d4; font-size: 12px; }
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tabs button, .seg button { border: 1px solid transparent; background: transparent; color: inherit; padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+  header .tabs button { color: #cdd6e4; }
+  header .tabs button[aria-pressed="true"] { background: #fff; color: var(--navy); font-weight: 700; }
+  main { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px 24px; }
+  .view { display: none; } .view.on { display: block; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 2px; flex-wrap: wrap; }
+  .seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+  .seg button:focus-visible, .tabs button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .grid4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .card .head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .card .head b { font-size: 13px; }
+  .card .head .lay { color: var(--muted); font-size: 12px; }
+  .card .head a { margin-left: auto; color: var(--accent); font-size: 12px; text-decoration: none; }
+  .card img { display: block; width: 100%; height: auto; cursor: zoom-in; background: #eef0f3; }
+  .card .missing { padding: 40px; text-align: center; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); border: 1px solid var(--line); }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8f9fb; font-weight: 700; font-size: 12px; color: var(--muted); }
+  td.c { text-align: center; }
+  .rate { font-size: 14px; letter-spacing: 1px; }
+  .note { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+  .note h3 { margin: 0 0 6px; font-size: 14px; }
+  .note ul { margin: 4px 0 0; padding-left: 18px; }
+  .detail { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; }
+  .detail .side { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .detail .side h2 { margin: 0 0 4px; font-size: 16px; }
+  .detail .side h4 { margin: 14px 0 4px; font-size: 12px; color: var(--muted); }
+  .detail .side ul { margin: 0; padding-left: 18px; }
+  .detail .side code { font-size: 11px; background: #f1f3f6; padding: 1px 4px; border-radius: 3px; word-break: break-all; }
+  .frame { background: #1f2933; border-radius: 10px; padding: 10px; overflow: auto; }
+  .frame .scale { transform-origin: 0 0; }
+  .frame iframe { border: 0; background: #fff; display: block; }
+  .lightbox { position: fixed; inset: 0; background: rgba(10, 16, 24, .88); display: none; align-items: center; justify-content: center; z-index: 10; cursor: zoom-out; padding: 20px; }
+  .lightbox.on { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; box-shadow: 0 0 0 1px #000; }
+  .lightbox .cap { position: absolute; top: 10px; left: 20px; color: #fff; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>KBO 정규시즌 편성 UI 템플릿</h1>
+  <span class="sub">위저드 골격 + alt-1 내용 + 고정 데스크톱 화면 · 요구사항 <code style="color:#fff">KBO_WIZARD_UI_REQUIREMENTS.md</code></span>
+  <nav class="tabs" aria-label="보기">
+    <button data-view="final" aria-pressed="false">확정안: 표준·옵션</button>
+    <button data-view="screens" aria-pressed="false">화면별 비교</button>
+    <button data-view="table" aria-pressed="false">비교표 · 추천</button>
+    <button data-view="live" aria-pressed="false">직접 써 보기</button>
+  </nav>
+</header>
+<main>
+  <section class="view" id="v-final">
+    <div class="bar">
+      <div class="seg" id="finSeg" role="group" aria-label="표준·옵션"></div>
+      <div class="seg" id="finSize" role="group" aria-label="크기">
+        <button data-size="1440" aria-pressed="true">1440×900</button>
+        <button data-size="1920" aria-pressed="false">1920×1080</button>
+      </div>
+      <span class="hint" id="finHint"></span>
+    </div>
+    <div class="note" id="finNote"></div>
+    <div id="finBody"></div>
+  </section>
+
+  <section class="view" id="v-screens">
+    <div class="bar">
+      <div class="seg" id="screenSeg" role="group" aria-label="화면"></div>
+      <div class="seg" id="sizeSeg" role="group" aria-label="크기">
+        <button data-size="1440" aria-pressed="true">1440×900</button>
+        <button data-size="1920" aria-pressed="false">1920×1080</button>
+      </div>
+      <span class="hint">이미지를 누르면 크게 봅니다 · ← → 키로 화면 전환</span>
+    </div>
+    <div class="grid4" id="shots"></div>
+  </section>
+
+  <section class="view" id="v-table">
+    <table>
+      <thead><tr><th style="width:150px">기준</th><th>alt-a 편성 스튜디오</th><th>alt-b 단계 레일</th><th>alt-c 편성 워크북</th><th>alt-d 브리프 스프레드</th></tr></thead>
+      <tbody>
+        <tr><th>단계 표시</th><td>상단 가로 스테퍼</td><td>왼쪽 세로 레일(하위 탭 펼침, 접기)</td><td>상단 가로 스테퍼 + 하단 시트 탭</td><td>상단 장(章) 탭 + 확정 요약 카드 띠</td></tr>
+        <tr><th>단계 안 배치</th><td>목록 · 본문 · 인스펙터 3분할</td><td>입력(왼쪽) ↔ 즉시 결과(오른쪽)</td><td>격자 + 수식 줄 + 검증 창</td><td>본문(넓게) + 오른쪽 여백(요약·다음 할 일)</td></tr>
+        <tr><th>시각 언어</th><td>밝은 업무 도구, 남색·파랑, 고밀도</td><td>따뜻한 회색 + 청록, 큰 요약 숫자</td><td>오피스 도구풍, 녹색 선택, 최고 밀도</td><td>종이 보고서, 명조 제목·상아색 지면</td></tr>
+        <tr><th colspan="5" style="background:#fff;font-weight:400">아래 ● 평가는 스크린샷과 에이전트 보고를 보고 내린 <b>제 판단</b>이며 측정값이 아닙니다.</th></tr>
+        <tr><th>위반 → 조치 동선</th><td class="c rate">●●●</td><td class="c rate">●●○</td><td class="c rate">●●○</td><td class="c rate">●●○</td></tr>
+        <tr><th>엑셀 사용자 친숙도</th><td class="c rate">●●○</td><td class="c rate">●○○</td><td class="c rate">●●●</td><td class="c rate">●○○</td></tr>
+        <tr><th>처음 쓰는 사람</th><td class="c rate">●○○</td><td class="c rate">●●●</td><td class="c rate">●●○</td><td class="c rate">●●●</td></tr>
+        <tr><th>입력 ↔ 결과 인과</th><td class="c rate">●●○</td><td class="c rate">●●●</td><td class="c rate">●●○</td><td class="c rate">●●○</td></tr>
+        <tr><th>회의·인쇄 품질</th><td class="c rate">●○○</td><td class="c rate">●●○</td><td class="c rate">●○○</td><td class="c rate">●●●</td></tr>
+        <tr><th>1440 본문 폭</th><td>약 890px (인스펙터 접으면 1200px)</td><td>약 700px (레일 접으면 약 900px)</td><td>약 1130px (추정)</td><td>약 1110px (추정)</td></tr>
+        <tr><th>약점</th><td>밀도가 높아 처음엔 낯섦. ②처럼 볼 것이 적은 단계에서 인스펙터가 비어 보임</td><td>1440에서 입력 영역이 좁음. 화면마다 오른쪽 결과 패널을 따로 설계해야 함</td><td>한 번에 시트 하나만 보임. 차트·흐름 판단이 표 뒤로 밀림. "엑셀처럼" 기대(범위 선택·붙여넣기)를 부름</td><td>여백(300px)이 위반·상세·후보로 붐빔. 머리·바닥이 172px. 명조가 OS마다 달라 보임</td></tr>
+        <tr><th>검증</th><td>27화면 × 2크기 스크롤 0, 오류 0, 자체 테스트 29/29</td><td>23화면 × 2크기 스크롤 0, 오류 0, 자체 테스트 24/24</td><td>18화면 × 2크기 스크롤 0, 오류 0, 자체 테스트 37/37</td><td>17화면 × 2크기 스크롤 0, 오류 0, 자체 테스트 39/39</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <h3>제 추천 (선택은 직접 보시고): alt-a 편성 스튜디오를 골격으로</h3>
+      <ul>
+        <li>주 업무인 SC-2(위반 확인 → 고정·이동 → 재최적화)를 가장 짧게 처리합니다. 위반을 누르면 위치로 이동하고, 인스펙터의 조치 후보를 Hard·Soft Δ와 함께 바로 적용합니다.</li>
+        <li>모든 단계와 시즌 운영이 같은 3분할 문법이라 한 번 익히면 끝납니다. 시트 표에 행 번호·열 글자가 있어 엑셀 가져오기 오류 위치와 화면이 맞습니다.</li>
+        <li>약점(밀도, 빈 인스펙터)은 다른 후보의 장점으로 메울 수 있습니다.
+          <ul>
+            <li>① 데이터 준비의 인스펙터를 alt-b식 <b>즉시 결과 패널</b>(연전 수급 막대·시즌 띠)로 바꿉니다.</li>
+            <li>시트 표는 alt-c의 <b>수식 줄·셀 오류 표식</b>을 가져옵니다.</li>
+            <li>④ 품질·배포와 구단별 일정표 인쇄는 alt-d의 <b>표·그림 캡션과 인쇄 스타일</b>을 씁니다.</li>
+          </ul>
+        </li>
+        <li>다른 선택: 사용자가 대부분 엑셀로만 일한다면 alt-c, 회의 자료 비중이 크면 alt-d가 낫습니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="view" id="v-live">
+    <div class="bar">
+      <div class="seg" id="liveSeg" role="group" aria-label="후보"></div>
+      <div class="seg" id="liveSize" role="group" aria-label="크기">
+        <button data-size="1440" aria-pressed="true">1440×790</button>
+        <button data-size="1920" aria-pressed="false">1920×970</button>
+      </div>
+      <span class="hint">실제 뷰포트 크기의 iframe을 화면에 맞춰 축소해 보여 줍니다. 새 창으로 열면 원래 크기로 쓸 수 있습니다.</span>
+    </div>
+    <div class="detail">
+      <aside class="side" id="liveSide"></aside>
+      <div class="frame" id="frameBox"><div class="scale" id="scaleBox"><iframe id="liveFrame" title="후보 화면"></iframe></div></div>
+    </div>
+  </section>
+</main>
+<div class="lightbox" id="lb" role="dialog" aria-label="크게 보기"><span class="cap" id="lbCap"></span><img id="lbImg" alt=""></div>
+
+<script>
+(function () {
+  'use strict';
+  const C = [
+    { id: 'a', name: '편성 스튜디오', lay: '상단 스테퍼 · 목록/본문/인스펙터', color: 'var(--a)',
+      strong: ['위반 → 원인 → 조치가 가장 짧다(인스펙터에서 Δ 보고 적용)', '모든 단계가 같은 3분할 문법', '시트 표에 행 번호·열 글자 — 가져오기 오류 위치와 일치'],
+      weak: ['처음 쓰는 사람에게 촘촘함', '볼 것이 적은 단계에서 인스펙터가 비어 보임', '차트가 평범함'],
+      urls: [['① 시리즈', '#step=1&tab=series'], ['한 건 편집', '#step=1&tab=series&demo=edit'], ['가져오기', '#step=1&modal=import'], ['② 실행 중', '#step=2&demo=running'], ['③ 위반 인스펙터', '#step=3&month=5&sel=v:H0-b%7C14%7C70%2C74'], ['④ 지표', '#step=4&qv=metrics&team=KT'], ['시즌 운영', '#ops=games'], ['설정', '#step=1&drawer=settings']] },
+    { id: 'b', name: '단계 레일', lay: '왼쪽 레일 · 입력 ↔ 즉시 결과', color: 'var(--b)',
+      strong: ['바꾸면 오른쪽 결과·레일 상태·배지가 동시에 바뀜', '레일에 현재 위치와 모든 단계 상태가 늘 보임', '차분한 시각 언어, 단계마다 할 일이 분명'],
+      weak: ['1440에서 입력 영역 약 700px', '화면마다 결과 패널을 따로 설계해야 함', '캘린더 끌어 놓기 없음(교환 후보로 이동)'],
+      urls: [['① 슬롯', '#step=1&tab=slots'], ['한 건 편집', '#step=1&tab=series&edit=demo'], ['가져오기', '#step=1&modal=import'], ['② 실행 중', '#step=2&run=frozen'], ['③ 결과', '#step=3&sel=35'], ['④ 지표', '#step=4&tab=metrics'], ['시즌 운영', '#view=ops&tab=games'], ['설정', '#view=settings']] },
+    { id: 'c', name: '편성 워크북', lay: '상단 스테퍼 · 엑셀식 격자', color: 'var(--c)',
+      strong: ['가져온 시트와 탭·열·행이 1:1', '모든 단계에서 부품 위치가 같음, 가장 촘촘함', '수식 줄로 값의 출처·위반 코드를 셀 단위로 확인'],
+      weak: ['한 번에 시트 하나만 보임', '흐름·공정성 판단이 표 뒤로 밀림', '①의 수정이 엔진 재실행 전까지 ③에 반영되지 않음(시안 한계)'],
+      urls: [['① 슬롯', '#step=1&sheet=slots'], ['한 건 편집', '#step=1&sheet=series&demo=edit'], ['가져오기', '#step=1&modal=import'], ['② 실행 중', '#step=2&run=0.62'], ['③ 달력', '#step=3&view=cal&month=5&team=LG&vsel=1'], ['④ 지표', '#step=4&sheet=metrics'], ['시즌 운영', '#ops=games&date=2025-08-17'], ['설정', '#modal=settings']] },
+    { id: 'd', name: '브리프 스프레드', lay: '상단 장 탭 · 본문 + 여백', color: 'var(--d)',
+      strong: ['alt-1의 읽는 흐름과 인쇄 품질을 세로 스크롤 없이 유지', '오른쪽 여백이 늘 "볼 것·할 일"을 답함', '연전을 한 블록으로 그린 캘린더'],
+      weak: ['여백 300px가 위반·상세·후보로 붐빔', '머리·바닥 172px로 본문 높이가 낮음', '하루 종일 편집하기엔 덜 촘촘함'],
+      urls: [['① 슬롯', '#step=1&tab=slots'], ['한 건 편집', '#step=1&tab=series&demo=edit'], ['가져오기', '#step=1&tab=series&modal=import'], ['② 실행 중', '#step=2&tab=run&run=hold'], ['③ 결과', '#step=3&tab=calendar&month=5&sel=88'], ['④ 지표', '#step=4&tab=metrics'], ['시즌 운영', '#view=ops&tab=games'], ['설정', '#modal=settings']] }
+  ];
+  const S = [
+    { k: 'data', label: '① 데이터 준비', f: { a: 'p2-data', b: 'p2-slots', c: 'p1p2-data-prep', d: 'P1-P2-data' } },
+    { k: 'edit', label: '한 건 편집', f: { a: 'p3-edit', b: 'p3-edit-series', c: 'p3-row-edit', d: 'P3-edit' } },
+    { k: 'import', label: '가져오기 미리보기', f: { a: 'p4-import', b: 'p4-import', c: 'p4-import-preview', d: 'P4-import' } },
+    { k: 'review', label: '② 검토', f: { a: 'p5-review', b: 'p5-review', c: 'p5b-review', d: 'P5-review' } },
+    { k: 'run', label: '② 실행 중', f: { a: 'p5-running', b: 'p5-running', c: 'p5-review-run', d: 'P5-running' } },
+    { k: 'result', label: '③ 결과·수정', f: { a: 'p6-violation', b: 'p6-result', c: 'p6-result-calendar', d: 'P6-result' } },
+    { k: 'quality', label: '④ 지표', f: { a: 'p7-metrics', b: 'p7-metrics', c: 'p7-quality', d: 'P7-quality' } },
+    { k: 'charts', label: '④ 차트', f: { a: 'p7-a1', b: 'p7-charts', c: 'p7b-flow-a3', d: 'P7-charts' } },
+    { k: 'games', label: '시즌 운영: 경기 기록', f: { a: 'p8-games', b: 'p8-ops-games', c: 'p8-ops-games', d: 'P8-ops-games' } },
+    { k: 'resched', label: '시즌 운영: 재편성', f: { a: 'p8-reschedule', b: 'p8-ops-reschedule', c: 'p8b-ops-reschedule', d: 'P8-ops-resched' } },
+    { k: 'settings', label: '설정', f: { a: 'p9-settings', b: 'p9-settings', c: 'p9-settings', d: 'P9-settings' } }
+  ];
+  // 확정안: alt-a 골격 표준(std) + 영역별 옵션
+  const FIN = [
+    { id: 'std', name: '표준 (std)', dir: 'std',
+      note: '<h3>표준 — alt-a 골격 + 단계별 차용</h3><ul><li>① 인스펙터 위쪽에 입력 결과 그림(시즌 띠·구단쌍 경기 수 행렬·연전 수급). 셀을 고치면 바로 바뀌고 바뀐 칸을 강조합니다.</li><li>전체 화면 일반 용어(필수 규칙 위반, 공정성·이동 부담). 설정의 <b>개발자 모드</b>를 켜야 Hard/Soft·규칙 코드·원점수·점수 추이가 보입니다.</li><li>② 실행 옵션은 실행 시간(1분·5분·30분)과 시작 방식 두 가지뿐입니다.</li><li>④ 지표 표 아래에 이동거리 막대와 이동 횟수·휴일 가중치·주말 홈 점 차트를 붙였습니다.</li><li>시즌 운영에 <b>이동 경로</b> 탭(지도 위 구단별 이동 애니메이션)을 추가했습니다.</li></ul>',
+      shots: [['① 시즌 골격', 's1-season'], ['① 시리즈 + 행렬', 's1-series'], ['한 건 편집', 's3-edit'], ['가져오기 미리보기', 's4-import'], ['② 검토·실행', 's5-review'], ['② 개발자 옵션', 's5-dev'], ['③ 결과·수정', 's6-result'], ['④ 지표 + 차트', 's7-metrics'], ['시즌 운영: 이동 경로', 's8-route'], ['설정: 개발자 모드', 's9-settings-dev']] },
+    { id: 'opt-1', name: '옵션 1 입력 분할형', dir: 'opt-1', area: '① 데이터 준비 · 한 건 편집 · 가져오기 미리보기',
+      note: '<h3>옵션 1 — ① 그림을 표 옆에 크게</h3><ul><li>본문을 표 ↔ 큰 그림(즉시 반영)으로 나눕니다. 행렬 칸이 1440에서 약 1.5배, 1920에서 약 2배 큽니다.</li><li>인스펙터는 행을 골랐을 때만 나옵니다(1440에서는 접힌 레일).</li><li>가져오기 미리보기에서 <b>현재 ↔ 가져온 뒤</b>를 나란히 비교합니다.</li><li>대신 1440에서 표가 좁아 일부 열은 가로 스크롤이 필요하고, 행 상세를 보려면 한 번 더 누릅니다.</li></ul>',
+      pairs: [['① 시즌 골격', 's1-season', 'o1-season'], ['① 시리즈 + 행렬', 's1-series', 'o1-series'], ['한 건 편집 (인스펙터 접힘)', 's3-edit', 'o1-edit'], ['한 건 편집 (인스펙터 펼침)', 's3-edit', 'o1-edit-insp'], ['가져오기 미리보기', 's4-import', 'o1-import']] },
+    { id: 'opt-2', name: '옵션 2 지표 대시보드형', dir: 'opt-2', area: '④ 지표 · ② 실행 옵션',
+      note: '<h3>옵션 2 — ④ 지표를 대시보드로, ② 옵션을 큰 카드로</h3><ul><li>④: 요약 카드 4개(평균 이동거리·허용 범위 초과 구단·가장 큰 편차·주말 홈 편차) + 지표별 차트 2×2 + 접히는 비교표.</li><li>②: 실행 시간·시작 방식을 "언제 쓰나요"와 예상 종료가 적힌 큰 카드로 고릅니다.</li><li>대신 지표 8개 전체를 보려면 표를 펼쳐야 하고, 카드가 std보다 높이를 더 씁니다.</li></ul>',
+      pairs: [['④ 지표', 's7-metrics', 'o2-metrics'], ['④ 지표 (표 펼침)', 's7-metrics', 'o2-metrics-table'], ['② 검토·실행', 's5-review', 'o2-review'], ['② 개발자 옵션', 's5-dev', 'o2-review-dev']] },
+    { id: 'opt-3', name: '옵션 3 경로 극장형', dir: 'opt-3', area: '시즌 운영 → 이동 경로',
+      note: '<h3>옵션 3 — 지도 전면 + 하단 시즌 타임라인, 여러 구단 동시 재생</h3><ul><li>구단 칩으로 최대 3개를 골라 같은 시간축에서 동시에 재생합니다. 구간 정보는 지도 위 말풍선으로 보입니다.</li><li>하단 타임라인을 끌어 시점을 옮기고, 구단별 홈/원정·취소·재편성 줄을 함께 봅니다. 수도권 확대 지도를 넣었습니다.</li><li>대신 구단 색이 비슷하면 보조색으로 그리고, std의 구간별 기록 표는 없습니다.</li></ul>',
+      pairs: [['이동 경로 (1구단)', 's8-route', 'o3-route-1team'], ['이동 경로 (3구단 동시)', 's8-route', 'o3-route-3teams'], ['이동 경로 (재편성 포함)', 's8-route', 'o3-route-resched']] }
+  ];
+  const st = { view: 'final', fin: 'std', finSize: '1440', screen: 0, size: '1440', live: 'a', liveSize: '1440' };
+  try { Object.assign(st, JSON.parse(localStorage.getItem('wizard-gallery') || '{}')); } catch (e) { /* 저장 없음 */ }
+  const hp = new URLSearchParams(location.hash.slice(1));
+  if (hp.get('view')) st.view = hp.get('view');
+  if (hp.get('fin')) st.fin = hp.get('fin');
+  if (hp.get('alt')) st.live = hp.get('alt');
+  if (hp.get('size')) st.liveSize = st.size = hp.get('size');
+  const save = () => { try { localStorage.setItem('wizard-gallery', JSON.stringify(st)); } catch (e) { /* 무시 */ } };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const press = (box, attr, val) => box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[attr] === String(val))));
+
+  $('screenSeg').innerHTML = S.map((s, i) => '<button data-i="' + i + '">' + esc(s.label) + '</button>').join('');
+  $('liveSeg').innerHTML = C.map((c) => '<button data-live="' + c.id + '">alt-' + c.id + ' ' + esc(c.name) + '</button>').join('');
+
+  function renderShots() {
+    const s = S[st.screen];
+    press($('screenSeg'), 'i', st.screen);
+    press($('sizeSeg'), 'size', st.size);
+    $('shots').innerHTML = C.map((c) => {
+      const src = 'alt-' + c.id + '/shots/' + s.f[c.id] + '-' + st.size + '.png';
+      return '<div class="card"><div class="head"><span class="dot" style="background:' + c.color + '"></span><b>alt-' + c.id + ' ' + esc(c.name) + '</b><span class="lay">' + esc(c.lay) + '</span><a href="alt-' + c.id + '/index.html" target="_blank">새 창 ↗</a></div>' +
+        '<img src="' + src + '" alt="alt-' + c.id + ' ' + esc(s.label) + '" data-cap="alt-' + c.id + ' ' + esc(c.name) + ' · ' + esc(s.label) + ' · ' + st.size + '" onerror="this.outerHTML=\'<div class=missing>스크린샷 없음</div>\'"></div>';
+    }).join('');
+  }
+  function shotCard(dir, label, file, size, color) {
+    const src = dir + '/shots/' + file + '-' + size + '.png';
+    return '<div class="card"><div class="head"><span class="dot" style="background:' + color + '"></span><b>' + esc(label) + '</b><a href="' + dir + '/index.html" target="_blank">새 창 ↗</a></div>' +
+      '<img src="' + src + '" alt="' + esc(label) + '" data-cap="' + esc(label + ' · ' + size) + '" onerror="this.outerHTML=\'<div class=missing>스크린샷 없음</div>\'"></div>';
+  }
+  function renderFinal() {
+    const f = FIN.find((x) => x.id === st.fin) || FIN[0];
+    press($('finSeg'), 'fin', f.id);
+    press($('finSize'), 'size', st.finSize);
+    $('finNote').innerHTML = f.note + '<p class="hint" style="margin:8px 0 0">worktree <code>wizard-ui/' + f.dir + '</code> · 브랜치 <code>wizard-ui/' + f.dir + '</code> · <a href="' + f.dir + '/index.html" target="_blank">직접 열기 ↗</a> · <a href="' + f.dir + '/README.md" target="_blank">README</a></p>';
+    $('finHint').textContent = f.area ? '바뀌는 영역: ' + f.area + ' — 왼쪽 표준, 오른쪽 옵션' : '표준의 주요 화면 · 이미지를 누르면 크게 봅니다';
+    if (!f.pairs) {
+      $('finBody').innerHTML = '<div class="grid4">' + f.shots.map((s) => shotCard('std', s[0], s[1], st.finSize, 'var(--a)')).join('') + '</div>';
+    } else {
+      $('finBody').innerHTML = f.pairs.map((p) => '<h3 style="font-size:14px;margin:16px 0 8px">' + esc(p[0]) + '</h3><div class="grid4">' +
+        shotCard('std', '표준 · ' + p[0], p[1], st.finSize, 'var(--a)') + shotCard(f.dir, f.name + ' · ' + p[0], p[2], st.finSize, 'var(--b)') + '</div>').join('');
+    }
+  }
+  function renderLive() {
+    const c = C.find((x) => x.id === st.live);
+    press($('liveSeg'), 'live', st.live);
+    press($('liveSize'), 'size', st.liveSize);
+    $('liveSide').innerHTML = '<h2 style="color:' + c.color + '">alt-' + c.id + ' ' + esc(c.name) + '</h2><div class="hint">' + esc(c.lay) + '</div>' +
+      '<p><a href="alt-' + c.id + '/index.html" target="_blank">새 창으로 열기 ↗</a> · <a href="alt-' + c.id + '/README.md" target="_blank">README</a></p>' +
+      '<h4>화면 바로 가기</h4><ul>' + c.urls.map((u) => '<li><a href="#" data-hash="' + esc(u[1]) + '">' + esc(u[0]) + '</a></li>').join('') + '</ul>' +
+      '<h4>강점</h4><ul>' + c.strong.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      '<h4>약점</h4><ul>' + c.weak.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      '<h4>worktree</h4><code>wizard-ui/alt-' + c.id + '</code> · 브랜치 <code>wizard-ui/alt-' + c.id + '</code>';
+    loadFrame('alt-' + c.id + '/index.html');
+  }
+  function loadFrame(src) {
+    const w = st.liveSize === '1920' ? 1920 : 1440, h = st.liveSize === '1920' ? 970 : 790;
+    const f = $('liveFrame');
+    f.width = w; f.height = h;
+    if (f.getAttribute('src') !== src) f.setAttribute('src', src);
+    fit();
+  }
+  function fit() {
+    const f = $('liveFrame'), box = $('frameBox');
+    const avail = box.clientWidth - 20;
+    const k = Math.min(1, avail / f.width);
+    $('scaleBox').style.transform = 'scale(' + k + ')';
+    $('scaleBox').style.width = f.width + 'px';
+    $('scaleBox').style.height = (f.height * k) + 'px';
+  }
+  function setView(v) {
+    st.view = v; save();
+    document.querySelectorAll('header .tabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v));
+    if (v === 'final') renderFinal();
+    if (v === 'screens') renderShots();
+    if (v === 'live') renderLive();
+  }
+
+  document.querySelector('header .tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.view); });
+  $('screenSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.screen = +b.dataset.i; save(); renderShots(); } });
+  $('sizeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.size = b.dataset.size; save(); renderShots(); } });
+  $('liveSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.live = b.dataset.live; save(); renderLive(); } });
+  $('liveSize').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.liveSize = b.dataset.size; save(); renderLive(); } });
+  $('liveSide').addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-hash]'); if (!a) return;
+    e.preventDefault();
+    const base = 'alt-' + st.live + '/index.html';
+    $('liveFrame').setAttribute('src', base + '?g=' + Date.now() + a.dataset.hash);
+  });
+  $('finSeg').innerHTML = FIN.map((f) => '<button data-fin="' + f.id + '">' + esc(f.name) + '</button>').join('');
+  $('finSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.fin = b.dataset.fin; save(); renderFinal(); } });
+  $('finSize').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { st.finSize = b.dataset.size; save(); renderFinal(); } });
+  $('finBody').addEventListener('click', (e) => {
+    const img = e.target.closest('img'); if (!img) return;
+    $('lbImg').src = img.src; $('lbCap').textContent = img.dataset.cap; $('lb').classList.add('on');
+  });
+  $('shots').addEventListener('click', (e) => {
+    const img = e.target.closest('img'); if (!img) return;
+    $('lbImg').src = img.src; $('lbCap').textContent = img.dataset.cap; $('lb').classList.add('on');
+  });
+  $('lb').addEventListener('click', () => $('lb').classList.remove('on'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('lb').classList.remove('on');
+    if (st.view !== 'screens' || $('lb').classList.contains('on')) return;
+    if (e.key === 'ArrowRight') { st.screen = (st.screen + 1) % S.length; save(); renderShots(); }
+    if (e.key === 'ArrowLeft') { st.screen = (st.screen + S.length - 1) % S.length; save(); renderShots(); }
+  });
+  window.addEventListener('resize', fit);
+  setView(st.view);
+})();
+</script>
+</body>
+</html>
