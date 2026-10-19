@@ -640,11 +640,15 @@ public class BaseballApp {
         return totalDistanceMap;
     }
 
-    private static JSONObject readJsonFile() {
+    public static JSONObject readJsonFile() {
+        return readJsonFile(Constants.inputFileName);
+    }
+
+    public static JSONObject readJsonFile(String path) {
         JSONParser parser = new JSONParser();
         JSONObject jsonObject;
         try {
-            Reader reader = new FileReader(Constants.inputFileName);
+            Reader reader = new FileReader(path);
 //            Reader reader = new FileReader("../../../data/baseball/input.json");
             jsonObject = (JSONObject) parser.parse(reader);
 
