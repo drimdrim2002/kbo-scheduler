@@ -71,7 +71,7 @@
 - **서버**: 기존 Maven 프로젝트에 `org.optaplanner.examples.baseball.web` 패키지. JDK 내장 `HttpServer`, 정적 파일(`ui/` + 소개 페이지) 서빙, 작업 큐(동시 실행 1~2개, 대기 순번 표시), 결과 캐시(파라미터 해시+시드 → 결과 JSON).
 - **REST**: 기준 요구사항 §7.3을 따르되 응답에 `trace`와 `seedResults`를 더한다. `POST /api/v1/solve` → `{jobId}`, `GET /api/v1/solve/{jobId}/events`(SSE: `seed-best`, `best`, `done`), `POST /api/v1/score`(실제 일정 채점).
 - **UI**: `ui/core/engine-adapter.js`의 REST 어댑터를 구현해 Mock과 바꿔 끼운다. 트레이스 재생기와 보여주는 문은 새 페이지.
-- **운영**: VM 1대, systemd, Java 25, Cloudflare 프록시(HTTPS·캐시·방어), IP당 동시 1작업, 애널리틱스, 피드백 폼.
+- **운영**: VM 1대, systemd, Java 25, Cloudflare 프록시(HTTPS·캐시·방어), IP당 동시 1작업, 애널리틱스, 피드백 폼. 절차와 스크립트는 [`deploy/README.md`](../deploy/README.md)(2026-10-20).
 
 ### 5.1 서버 실행과 API (2026-10-20 구현, `src/main/java/org/optaplanner/examples/baseball/web/`)
 

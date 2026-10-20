@@ -1,0 +1,18 @@
+# /etc/caddy/Caddyfile — HTTPS 종단 + 리버스 프록시. Cloudflare 프록시(주황 구름)를 켜면 SSL 모드는 "Full (strict)".
+# Caddy 가 Let's Encrypt 인증서를 HTTP-01 로 받으므로 80 포트가 열려 있어야 한다.
+kbo-scheduler.ai, www.kbo-scheduler.ai {
+    encode zstd gzip
+    # SSE(/api/v1/solve/{id}/events)는 버퍼링 없이 흘려보낸다
+    reverse_proxy 127.0.0.1:8080 {
+        flush_interval -1
+        header_up X-Forwarded-For {remote_host}
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    # OG 이미지·정적 파일은 Cloudflare 가 캐시한다(서버는 Cache-Control 만 준다)
+    log {
+        output file /var/log/caddy/kbo-scheduler.log
+    }
+}

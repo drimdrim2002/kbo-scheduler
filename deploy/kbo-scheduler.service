@@ -1,0 +1,28 @@
+# /etc/systemd/system/kbo-scheduler.service
+# 설치: sudo cp deploy/kbo-scheduler.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now kbo-scheduler
+[Unit]
+Description=KBO scheduler playground (OptaPlanner multistart + static UI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kbo
+Group=kbo
+WorkingDirectory=/opt/kbo-scheduler/app
+Environment=PORT=8080
+Environment=DATA_DIR=/var/lib/kbo-scheduler/results
+Environment=MAX_SECONDS=30
+Environment=JAVA_XMX=8g
+ExecStart=/opt/kbo-scheduler/app/deploy/run.sh
+Restart=always
+RestartSec=5
+# 솔버가 코어를 다 쓰므로 nice 를 조금 낮춰 Caddy·SSH 가 밀리지 않게 한다
+Nice=5
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/kbo-scheduler /opt/kbo-scheduler/app/data/results
+
+[Install]
+WantedBy=multi-user.target
