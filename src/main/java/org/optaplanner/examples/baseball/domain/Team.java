@@ -17,6 +17,8 @@ public class Team extends AbstractPersistable {
     private int index;
     private int stadiumIndex;
     private long[] distanceTenthsByTeamIndex;
+    /** 어린이날 시리즈를 홈에서 치러야 하는 구단. 기본값은 {@link Constants#HOME_OBLIGATION_CHILDREN}. */
+    private boolean childrenDayHome;
 //    private HashMap<String, BigDecimal> distanceFrom;
 
     public Team() {
@@ -26,6 +28,7 @@ public class Team extends AbstractPersistable {
         super(id);
         this.name = name;
         this.stadium = stadium;
+        this.childrenDayHome = Constants.HOME_OBLIGATION_CHILDREN.contains(name);
     }
 
     public Team(long id, String name, String stadium, HashMap<String, BigDecimal> distanceMap) {
@@ -33,7 +36,16 @@ public class Team extends AbstractPersistable {
         this.name = name;
         this.stadium = stadium;
         this.distanceMap = distanceMap;
+        this.childrenDayHome = Constants.HOME_OBLIGATION_CHILDREN.contains(name);
 //        this.distanceFrom = distanceFrom;
+    }
+
+    public boolean isChildrenDayHome() {
+        return childrenDayHome;
+    }
+
+    public void setChildrenDayHome(boolean childrenDayHome) {
+        this.childrenDayHome = childrenDayHome;
     }
 
     public String getName() {

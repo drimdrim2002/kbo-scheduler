@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -55,21 +56,29 @@ public final class BaseballWebServer {
 
     private final ServerLimits limits;
     private final Path uiRoot;
+    private final Path showRoot;
     private final JobManager jobs;
+    private final Showcase showcase;
     private final SolutionManager<BaseballSolution, BendableLongScore> scorer;
     private HttpServer server;
 
-    BaseballWebServer(ServerLimits limits, Path uiRoot) {
+    BaseballWebServer(ServerLimits limits, Path uiRoot, Path dataDir, Path inputFile) throws IOException {
         this.limits = limits;
         this.uiRoot = uiRoot == null ? null : uiRoot.toAbsolutePath().normalize();
-        this.jobs = new JobManager(limits);
+        this.showRoot = this.uiRoot == null ? null : this.uiRoot.resolve("show");
+        ResultStore store = new ResultStore(dataDir);
+        this.jobs = new JobManager(limits, store);
+        this.showcase = new Showcase(jobs, store, limits, inputFile);
         SolverConfig config = BenchSupport.solverConfig(0, 1, "NONE", null, null);
         this.scorer = SolutionManager.create(SolverFactory.create(config));
     }
 
     public static void main(String[] args) throws IOException {
+        System.setProperty("java.awt.headless", "true");
         int port = 8080;
         Path ui = Path.of("ui");
+        Path data = Path.of("data", "results");
+        Path input = Path.of(org.optaplanner.examples.baseball.domain.Constants.inputFileName);
         ServerLimits base = ServerLimits.defaults();
         long maxSeconds = base.maxSeconds();
         int seeds = base.defaultSeeds();
@@ -79,13 +88,16 @@ public final class BaseballWebServer {
                 case "--ui" -> ui = Path.of(args[i + 1]);
                 case "--max-seconds" -> maxSeconds = Long.parseLong(args[i + 1]);
                 case "--seeds" -> seeds = Integer.parseInt(args[i + 1]);
+                case "--data" -> data = Path.of(args[i + 1]);
+                case "--input" -> input = Path.of(args[i + 1]);
                 default -> throw new IllegalArgumentException("알 수 없는 인자: " + args[i]);
             }
         }
         ServerLimits limits = new ServerLimits(Math.min(base.defaultSeconds(), maxSeconds), maxSeconds, seeds,
                 Math.max(seeds, base.maxSeeds()), base.maxJobsPerIp(), base.cacheSize(), base.maxBodyBytes());
-        BaseballWebServer app = new BaseballWebServer(limits, Files.isDirectory(ui) ? ui : null);
+        BaseballWebServer app = new BaseballWebServer(limits, Files.isDirectory(ui) ? ui : null, data, input);
         app.start(port);
+        app.showcase.ensureDefault();
         LOG.info("{} {} listening on http://localhost:{} (ui={}, seeds={}, maxSeconds={})", NAME, VERSION, port,
                 app.uiRoot, limits.defaultSeeds(), limits.maxSeconds());
     }
@@ -124,6 +136,8 @@ public final class BaseballWebServer {
             }
             if (path.startsWith("/api/v1/")) {
                 api(ex, method, path.substring("/api/v1/".length()));
+            } else if (path.startsWith("/og/") && "GET".equals(method)) {
+                og(ex, path.substring(4));
             } else if ("GET".equals(method) || "HEAD".equals(method)) {
                 serveStatic(ex, path);
             } else {
@@ -142,8 +156,28 @@ public final class BaseballWebServer {
     }
 
     private void api(HttpExchange ex, String method, String rest) throws IOException, ParseException {
+        if ("compare".equals(rest) && "GET".equals(method)) {
+            Optional<JSONObject> c = showcase.compare();
+            if (c.isPresent()) {
+                sendJson(ex, 200, c.get());
+            } else {
+                sendJson(ex, 503, Json.obj("error", "기본 결과를 준비하는 중입니다.", "status", showcase.defaultStatus()));
+            }
+            return;
+        }
+        if (rest.startsWith("results/") && "GET".equals(method)) {
+            String id = rest.substring("results/".length());
+            Optional<JSONObject> r = ResultStore.validId(id) ? showcase.result(id) : Optional.empty();
+            if (r.isPresent()) {
+                sendJson(ex, 200, r.get());
+            } else {
+                sendJson(ex, 404, Json.obj("error", "결과가 없습니다: " + id));
+            }
+            return;
+        }
         if ("info".equals(rest) && "GET".equals(method)) {
             sendJson(ex, 200, Json.obj("name", NAME, "version", VERSION, "engine", "OptaPlanner multistart",
+                    "defaultResult", showcase.defaultStatus(),
                     "defaultSeconds", limits.defaultSeconds(), "maxSeconds", limits.maxSeconds(),
                     "defaultSeeds", (long) limits.defaultSeeds(), "maxSeeds", (long) limits.maxSeeds(),
                     "queueLength", (long) jobs.queueLength()));
@@ -242,15 +276,59 @@ public final class BaseballWebServer {
         }
     }
 
+    // ───────────── OG 이미지 ─────────────
+
+    private void og(HttpExchange ex, String rest) throws IOException {
+        String id = rest.endsWith(".png") ? rest.substring(0, rest.length() - 4) : rest;
+        Optional<byte[]> png = showcase.og(id);
+        if (png.isEmpty()) {
+            sendJson(ex, 404, Json.obj("error", "결과가 없습니다: " + id));
+            return;
+        }
+        ex.getResponseHeaders().set("Content-Type", "image/png");
+        ex.getResponseHeaders().set("Cache-Control", "public, max-age=86400");
+        ex.sendResponseHeaders(200, png.get().length);
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(png.get());
+        }
+    }
+
     // ───────────── 정적 파일 ─────────────
+
+    /**
+     * 경로 규칙: {@code /}·{@code /compare}는 보여주는 문(ui/show/)이 있으면 그것, 없으면 위저드.
+     * {@code /r/<id>}는 ui/show/r.html. {@code /studio/...}는 위저드(ui/). 그 밖의 경로는 ui/show/ → ui/ 순서로 찾는다.
+     */
+    private Path resolveStatic(String path) {
+        String rel = path.endsWith("/") ? path + "index.html" : path;
+        if (rel.startsWith("/r/") && showRoot != null) {
+            return showRoot.resolve("r.html");
+        }
+        if ("/compare".equals(rel) && showRoot != null) {
+            return showRoot.resolve("compare.html");
+        }
+        if (rel.startsWith("/studio/")) {
+            String sub = rel.substring("/studio/".length());
+            return uiRoot.resolve(sub.isEmpty() ? "index.html" : sub).normalize();
+        }
+        if ("/studio".equals(rel)) {
+            return uiRoot.resolve("index.html");
+        }
+        if (showRoot != null) {
+            Path inShow = showRoot.resolve(rel.substring(1)).normalize();
+            if (inShow.startsWith(showRoot) && Files.isRegularFile(inShow)) {
+                return inShow;
+            }
+        }
+        return uiRoot.resolve(rel.substring(1)).normalize();
+    }
 
     private void serveStatic(HttpExchange ex, String path) throws IOException {
         if (uiRoot == null) {
             sendJson(ex, 404, Json.obj("error", "정적 UI 디렉터리가 없습니다. --ui 로 지정하세요."));
             return;
         }
-        String rel = path.endsWith("/") ? path + "index.html" : path;
-        Path file = uiRoot.resolve(rel.substring(1)).normalize();
+        Path file = resolveStatic(path);
         if (!file.startsWith(uiRoot) || !Files.isRegularFile(file)) {
             sendJson(ex, 404, Json.obj("error", "없는 파일: " + path));
             return;

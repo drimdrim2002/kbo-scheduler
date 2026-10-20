@@ -1070,7 +1070,7 @@ public final class BaseballSolutionInitializer {
     private static int[] obligationHomes(List<Team> teams) {
         List<Integer> homes = new ArrayList<>();
         for (Team team : teams) {
-            if (Constants.HOME_OBLIGATION_CHILDREN.contains(team.getName())) {
+            if (team.isChildrenDayHome()) {
                 homes.add(team.getIndex());
             }
         }

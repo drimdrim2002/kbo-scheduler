@@ -13,6 +13,7 @@ import org.optaplanner.core.api.score.stream.ConstraintStreamImplType;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
 import org.optaplanner.examples.baseball.domain.Match;
+import org.optaplanner.examples.baseball.domain.ScoreSettings;
 import org.optaplanner.examples.baseball.domain.Team;
 import org.optaplanner.test.api.score.stream.ConstraintVerifier;
 
@@ -288,9 +289,11 @@ class BaseballConstraintProviderTest {
         return Team.prepareIndices(teams);
     }
 
+    /** 리그 합계 제약은 허용오차 사실(ScoreSettings)과 조인하므로 기본 설정을 함께 준다. */
     private static Object[] facts(List<?> teams, List<?> matches) {
-        Object[] all = new Object[teams.size() + matches.size()];
+        Object[] all = new Object[teams.size() + matches.size() + 1];
         int index = 0;
+        all[index++] = ScoreSettings.DEFAULT;
         for (Object team : teams) {
             all[index++] = team;
         }

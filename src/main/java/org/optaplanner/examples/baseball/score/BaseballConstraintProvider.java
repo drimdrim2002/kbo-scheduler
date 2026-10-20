@@ -23,6 +23,7 @@ import org.optaplanner.core.api.score.stream.uni.UniConstraintCollector;
 import org.optaplanner.core.api.score.stream.uni.UniConstraintStream;
 import org.optaplanner.examples.baseball.domain.Calendar;
 import org.optaplanner.examples.baseball.domain.Match;
+import org.optaplanner.examples.baseball.domain.ScoreSettings;
 import org.optaplanner.examples.baseball.domain.Team;
 import org.optaplanner.examples.baseball.score.ScoreFormulas.TeamRouteAccumulator;
 import org.optaplanner.examples.baseball.score.ScoreFormulas.TeamSummary;
@@ -50,8 +51,8 @@ public class BaseballConstraintProvider implements ConstraintProvider {
     private static final UniConstraintCollector<TeamSummary, ?, List<TeamSummary>> SUMMARY_LIST =
             ConstraintCollectors.toList();
     private static final UniConstraintCollector<Team, ?, Integer> TEAM_COUNT = ConstraintCollectors.count();
-    private static final BiFunction<List<TeamSummary>, Integer, TeamTotals> TO_TOTALS =
-            (summaries, teamCount) -> ScoreFormulas.totalsFrom(summaries, teamCount);
+    private static final TriFunction<List<TeamSummary>, Integer, ScoreSettings, TeamTotals> TO_TOTALS =
+            (summaries, teamCount, settings) -> ScoreFormulas.totalsFrom(summaries, teamCount, settings);
 
     private static final BiFunction<Calendar, List<Match>, Long> TEAM_COUNT_DEVIATION =
             (calendar, matches) -> ScoreFormulas.countDeviation(
@@ -67,11 +68,11 @@ public class BaseballConstraintProvider implements ConstraintProvider {
     private static final Predicate<TeamSummary> HAS_STREAK = summary -> summary.streakPenalty() > 0L;
     private static final ToLongFunction<TeamSummary> STREAK_PENALTY = TeamSummary::streakPenalty;
     private static final Function<TeamTotals, Long> MOVE_WEIGHT =
-            totals -> ScoreFormulas.moveVariancePenalty(totals.moveCount);
+            totals -> ScoreFormulas.moveVariancePenalty(totals.moveCount, totals.settings.getMoveTolerance());
     private static final Function<TeamTotals, Long> DISTANCE_WEIGHT =
-            totals -> ScoreFormulas.distanceVariancePenalty(totals.distanceTenths);
+            totals -> ScoreFormulas.distanceVariancePenalty(totals.distanceTenths, totals.settings.getDistanceToleranceTenths());
     private static final Function<TeamTotals, Long> HOLIDAY_WEIGHT =
-            totals -> ScoreFormulas.holidayVariancePenalty(totals.holidayWeight);
+            totals -> ScoreFormulas.holidayVariancePenalty(totals.holidayWeight, totals.settings.getHolidayTolerance());
     private static final Function<TeamTotals, Long> TOTAL_DISTANCE_WEIGHT =
             totals -> ScoreFormulas.totalDistanceKm(totals.distanceTenths);
     private static final Predicate<Long> POSITIVE_LONG = value -> value > 0L;
@@ -176,8 +177,10 @@ public class BaseballConstraintProvider implements ConstraintProvider {
 
     private static UniConstraintStream<TeamTotals> leagueTotals(ConstraintFactory factory,
             UniConstraintStream<TeamSummary> summaries) {
+        // 허용오차 사실(ScoreSettings)은 해마다 정확히 하나다(BaseballSolution.getSettings가 기본값을 보장한다).
         return summaries.groupBy(SUMMARY_LIST)
                 .join(factory.forEach(Team.class).groupBy(TEAM_COUNT))
+                .join(factory.forEach(ScoreSettings.class))
                 .map(TO_TOTALS);
     }
 

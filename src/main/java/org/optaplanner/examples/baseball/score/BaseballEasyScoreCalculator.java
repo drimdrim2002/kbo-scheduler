@@ -30,6 +30,6 @@ public class BaseballEasyScoreCalculator implements EasyScoreCalculator<Baseball
         if (matchList == null) {
             matchList = List.of();
         }
-        return ScoreFormulas.evaluate(teamList, calendarList, matchList);
+        return ScoreFormulas.evaluate(teamList, calendarList, matchList, baseballSolution.getSettings());
     }
 }

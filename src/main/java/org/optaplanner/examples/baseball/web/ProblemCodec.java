@@ -4,13 +4,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.optaplanner.examples.baseball.app.BaseballApp;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
 import org.optaplanner.examples.baseball.domain.Match;
+import org.optaplanner.examples.baseball.domain.ScoreSettings;
+import org.optaplanner.examples.baseball.domain.Team;
 
 /**
  * UI 프로젝트 JSON(기준 요구사항 §8, input_2025.json 상위 호환) ↔ BaseballSolution.
@@ -67,9 +71,62 @@ final class ProblemCodec {
         return a;
     }
 
-    /** 배정 없는(모든 calendar null) 문제를 만든다. */
+    /** 배정 없는(모든 calendar null) 문제를 만들고, settings의 손잡이(허용오차·어린이날 홈 구단)를 적용한다. */
     static BaseballSolution toSolution(JSONObject problem) {
-        return BaseballApp.makeSolution(engineInput(problem));
+        BaseballSolution solution = BaseballApp.makeSolution(engineInput(problem));
+        applySettings(solution, problem);
+        return solution;
+    }
+
+    /** UI settings: distanceToleranceKm(기본 300), holidayTolerance(1.5), moveTolerance(2), obligationTeams(어린이날 홈 5구단). */
+    static void applySettings(BaseballSolution solution, JSONObject problem) {
+        JSONObject settings = Json.object(problem.get("settings"));
+        if (settings == null) {
+            settings = new JSONObject();
+        }
+        ScoreSettings def = ScoreSettings.DEFAULT;
+        double distanceKm = Json.asDouble(settings.get("distanceToleranceKm"), def.getDistanceToleranceKm());
+        double holiday = Json.asDouble(settings.get("holidayTolerance"), def.getHolidayTolerance());
+        double move = Json.asDouble(settings.get("moveTolerance"), def.getMoveTolerance());
+        if (distanceKm < 0 || distanceKm > 5000 || holiday <= 0 || holiday > 100 || move <= 0 || move > 100) {
+            throw new IllegalArgumentException("허용오차 값이 범위를 벗어났습니다(이동거리 0~5000km, 휴일·이동 횟수 0 초과 100 이하).");
+        }
+        solution.setSettings(ScoreSettings.ofKm(distanceKm, holiday, move));
+        JSONArray obligation = Json.array(settings.get("obligationTeams"));
+        if (obligation != null && !obligation.isEmpty()) {
+            Set<String> names = new LinkedHashSet<>();
+            for (Object o : obligation) {
+                names.add(Json.asString(o, ""));
+            }
+            Set<String> known = new LinkedHashSet<>();
+            for (Team t : solution.getTeamList()) {
+                known.add(t.getName());
+            }
+            if (!known.containsAll(names)) {
+                throw new IllegalArgumentException("어린이날 홈 구단에 모르는 구단이 있습니다: " + names);
+            }
+            int half = solution.getTeamList().size() / 2;
+            if (names.size() != half) {
+                throw new IllegalArgumentException("어린이날 홈 구단은 " + half + "개여야 합니다(지금 " + names.size() + "개).");
+            }
+            for (Team t : solution.getTeamList()) {
+                t.setChildrenDayHome(names.contains(t.getName()));
+            }
+        }
+    }
+
+    /** 캐시 키·재현에 쓰는 손잡이 값만 뽑는다. */
+    static JSONObject knobs(JSONObject problem) {
+        JSONObject settings = Json.object(problem.get("settings"));
+        JSONObject out = new JSONObject();
+        if (settings != null) {
+            for (String k : new String[] {"distanceToleranceKm", "holidayTolerance", "moveTolerance", "obligationTeams"}) {
+                if (settings.get(k) != null) {
+                    out.put(k, settings.get(k));
+                }
+            }
+        }
+        return out;
     }
 
     /**

@@ -128,9 +128,14 @@
       const d = dayNum(typeof h === 'string' ? h : h.date);
       if (Number.isFinite(d)) holidays.push(d);
     }
+    const numOr = (v, d) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : d);
     return {
       teams, stadiumOf, dist, slots, matches, h0eMode: mode, h0e, holidays,
-      longTripTenths: Math.round((settings.longTripKm || 600) * 10)
+      longTripTenths: Math.round((settings.longTripKm || 600) * 10),
+      // 평준화 허용오차(손잡이). 엔진 ScoreSettings와 같은 의미·기본값
+      distanceToleranceTenths: Math.round(numOr(o.distanceToleranceKm != null ? o.distanceToleranceKm : settings.distanceToleranceKm, DISTANCE_TOLERANCE_TENTHS / 10) * 10),
+      holidayTolerance: numOr(settings.holidayTolerance, HOLIDAY_TOLERANCE),
+      moveTolerance: numOr(settings.moveTolerance, MOVE_TOLERANCE)
     };
   }
 
@@ -156,7 +161,10 @@
       stamp: new Int32Array(N * N), stampGen: 1,
       moveCount: new Float64Array(N), distTenths: new Float64Array(N), holidayW: new Float64Array(N),
       h0e: input.h0e || [], h0eMode: input.h0eMode || 'STADIUM',
-      h0eBySlot: null, compatMaskBySlot: new Int32Array(S)
+      h0eBySlot: null, compatMaskBySlot: new Int32Array(S),
+      distanceToleranceTenths: input.distanceToleranceTenths || DISTANCE_TOLERANCE_TENTHS,
+      holidayTolerance: input.holidayTolerance || HOLIDAY_TOLERANCE,
+      moveTolerance: input.moveTolerance || MOVE_TOLERANCE
     };
     for (let m = 0; m < M; m++) {
       const mt = input.matches[m];
@@ -223,7 +231,8 @@
     return variance;
   }
 
-  function distanceVariance(values, n) {
+  function distanceVariance(values, n, toleranceTenths) {
+    const tol = toleranceTenths || DISTANCE_TOLERANCE_TENTHS;
     if (n === 0) return 0;
     let sum = 0;
     for (let i = 0; i < n; i++) sum += values[i];
@@ -231,8 +240,8 @@
     let hundredths = 0;
     for (let i = 0; i < n; i++) {
       const diff = Math.abs(values[i] - mean);
-      if (diff > DISTANCE_TOLERANCE_TENTHS) {
-        const ex = diff - DISTANCE_TOLERANCE_TENTHS;
+      if (diff > tol) {
+        const ex = diff - tol;
         hundredths += ex * ex;
       }
     }
@@ -335,9 +344,9 @@
     o[0] = -hard0;
     o[1] = -hard1;
     o[2] = -soft0;
-    o[3] = -squaredFloorTolerance(moveCount, N, MOVE_TOLERANCE) * 100;
-    o[4] = -distanceVariance(distTenths, N);
-    o[5] = -squaredFloorTolerance(holidayW, N, HOLIDAY_TOLERANCE);
+    o[3] = -squaredFloorTolerance(moveCount, N, ctx.moveTolerance) * 100;
+    o[4] = -distanceVariance(distTenths, N, ctx.distanceToleranceTenths);
+    o[5] = -squaredFloorTolerance(holidayW, N, ctx.holidayTolerance);
     o[6] = -Math.floor(sumTenths / 10);
     return o;
   }
@@ -548,12 +557,12 @@
     const meanHw = N ? hw.reduce((a, b) => a + b, 0) / N : 0;
     const sumDt = dt.reduce((a, b) => a + b, 0);
     const meanDt = N ? Math.trunc(sumDt / N) : 0;
-    const s1Items = teamMetrics.map((x) => { const steps = Math.floor(Math.abs(x.moves - meanMv) / MOVE_TOLERANCE); return { team: x.team, value: x.moves, dev: x.moves - meanMv, steps, contrib: steps * steps * 100 }; });
-    const s3Items = teamMetrics.map((x) => { const steps = Math.floor(Math.abs(x.holidayWeight - meanHw) / HOLIDAY_TOLERANCE); return { team: x.team, value: x.holidayWeight, dev: x.holidayWeight - meanHw, steps, contrib: steps * steps }; });
+    const s1Items = teamMetrics.map((x) => { const steps = Math.floor(Math.abs(x.moves - meanMv) / ctx.moveTolerance); return { team: x.team, value: x.moves, dev: x.moves - meanMv, steps, contrib: steps * steps * 100 }; });
+    const s3Items = teamMetrics.map((x) => { const steps = Math.floor(Math.abs(x.holidayWeight - meanHw) / ctx.holidayTolerance); return { team: x.team, value: x.holidayWeight, dev: x.holidayWeight - meanHw, steps, contrib: steps * steps }; });
     let hundredths = 0;
     const s2Items = teamMetrics.map((x) => {
       const diff = Math.abs(x.distanceTenths - meanDt);
-      const ex = diff > DISTANCE_TOLERANCE_TENTHS ? diff - DISTANCE_TOLERANCE_TENTHS : 0;
+      const ex = diff > ctx.distanceToleranceTenths ? diff - ctx.distanceToleranceTenths : 0;
       hundredths += ex * ex;
       return { team: x.team, value: x.distanceTenths / 10, dev: (x.distanceTenths - meanDt) / 10, excessKm: ex / 10, contrib: (ex * ex) / 100 };
     });
@@ -568,7 +577,7 @@
     for (const v of violations) { if (v.level === 0) hard0 += v.amount; else hard1 += v.amount; }
     for (let s = 0; s < S; s++) slotStats[s].hard = slotHard[s];
     for (const tm of teamMetrics) {
-      tm.overDistance = Math.abs(tm.distanceTenths - meanDt) > DISTANCE_TOLERANCE_TENTHS;
+      tm.overDistance = Math.abs(tm.distanceTenths - meanDt) > ctx.distanceToleranceTenths;
       tm.overMoves = s1Items[tm.team].steps > 0;
       tm.overHoliday = s3Items[tm.team].steps > 0;
     }
@@ -581,9 +590,9 @@
       teamMetrics, h0eMode: ctx.h0eMode,
       softBreakdown: {
         S0: { total: soft[0], items: unassigned.map((m) => ({ match: m })) },
-        S1: { total: soft[1], mean: meanMv, tolerance: MOVE_TOLERANCE, items: s1Items },
-        S2: { total: soft[2], meanKm: meanDt / 10, toleranceKm: DISTANCE_TOLERANCE_TENTHS / 10, items: s2Items },
-        S3: { total: soft[3], mean: meanHw, tolerance: HOLIDAY_TOLERANCE, items: s3Items },
+        S1: { total: soft[1], mean: meanMv, tolerance: ctx.moveTolerance, items: s1Items },
+        S2: { total: soft[2], meanKm: meanDt / 10, toleranceKm: ctx.distanceToleranceTenths / 10, items: s2Items },
+        S3: { total: soft[3], mean: meanHw, tolerance: ctx.holidayTolerance, items: s3Items },
         S4: { total: soft[4], items: teamMetrics.map((x) => ({ team: x.team, value: x.distanceTenths / 10 })) }
       },
       league: {

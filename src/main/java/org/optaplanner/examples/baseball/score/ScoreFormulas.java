@@ -8,6 +8,7 @@ import org.optaplanner.core.api.score.buildin.bendablelong.BendableLongScore;
 import org.optaplanner.examples.baseball.domain.Calendar;
 import org.optaplanner.examples.baseball.domain.Constants;
 import org.optaplanner.examples.baseball.domain.Match;
+import org.optaplanner.examples.baseball.domain.ScoreSettings;
 import org.optaplanner.examples.baseball.domain.Team;
 
 /**
@@ -83,7 +84,7 @@ public final class ScoreFormulas {
         }
         long penalty = 0L;
         for (Match match : matches) {
-            if (Constants.HOME_OBLIGATION_CHILDREN.contains(match.getAway().getName())) {
+            if (match.getAway().isChildrenDayHome()) {
                 penalty++;
             }
         }
@@ -205,6 +206,7 @@ public final class ScoreFormulas {
         public final long[] moveCount;
         public final long[] holidayWeight;
         public final long[] streakPenalty;
+        public ScoreSettings settings = ScoreSettings.DEFAULT;
 
         public TeamTotals(int teamCount) {
             distanceTenths = new long[teamCount];
@@ -256,7 +258,12 @@ public final class ScoreFormulas {
      * contribution of a team that has no regular series.
      */
     public static TeamTotals totalsFrom(List<TeamSummary> summaries, int teamCount) {
+        return totalsFrom(summaries, teamCount, ScoreSettings.DEFAULT);
+    }
+
+    public static TeamTotals totalsFrom(List<TeamSummary> summaries, int teamCount, ScoreSettings settings) {
         TeamTotals totals = new TeamTotals(teamCount);
+        totals.settings = settings == null ? ScoreSettings.DEFAULT : settings;
         for (TeamSummary summary : summaries) {
             addSummary(totals, summary);
         }
@@ -284,6 +291,12 @@ public final class ScoreFormulas {
      * The scratch is thread-local because move threads call one calculator instance together.
      */
     public static BendableLongScore evaluate(List<Team> teams, List<Calendar> calendars, List<Match> matches) {
+        return evaluate(teams, calendars, matches, ScoreSettings.DEFAULT);
+    }
+
+    public static BendableLongScore evaluate(List<Team> teams, List<Calendar> calendars, List<Match> matches,
+            ScoreSettings settings) {
+        ScoreSettings st = settings == null ? ScoreSettings.DEFAULT : settings;
         Scratch scratch = SCRATCH.get();
         scratch.prepare(teams, calendars, matches.size());
         try {
@@ -291,9 +304,9 @@ public final class ScoreFormulas {
             long hard0 = scratch.dailyHard(calendars, matches);
             scratch.finishTeams();
             hard0 += totalStreakPenalty(scratch.totals);
-            long soft1 = moveVariancePenalty(scratch.totals.moveCount);
-            long soft2 = distanceVariancePenalty(scratch.totals.distanceTenths);
-            long soft3 = holidayVariancePenalty(scratch.totals.holidayWeight);
+            long soft1 = moveVariancePenalty(scratch.totals.moveCount, st.getMoveTolerance());
+            long soft2 = distanceVariancePenalty(scratch.totals.distanceTenths, st.getDistanceToleranceTenths());
+            long soft3 = holidayVariancePenalty(scratch.totals.holidayWeight, st.getHolidayTolerance());
             long soft4 = totalDistanceKm(scratch.totals.distanceTenths);
             return BendableLongScore.of(
                     new long[] {-hard0, -scratch.hard1},
@@ -309,6 +322,10 @@ public final class ScoreFormulas {
      * Penalty is {@code floor(sum((max(0, |d-mean|-300))^2))}.
      */
     public static long distanceVariancePenalty(long[] distanceTenths) {
+        return distanceVariancePenalty(distanceTenths, DISTANCE_TOLERANCE_TENTHS);
+    }
+
+    public static long distanceVariancePenalty(long[] distanceTenths, long toleranceTenths) {
         if (distanceTenths.length == 0) {
             return 0L;
         }
@@ -320,8 +337,8 @@ public final class ScoreFormulas {
         long hundredths = 0L;
         for (long distance : distanceTenths) {
             long diffTenths = Math.abs(distance - meanTenths);
-            if (diffTenths > DISTANCE_TOLERANCE_TENTHS) {
-                long excessTenths = diffTenths - DISTANCE_TOLERANCE_TENTHS;
+            if (diffTenths > toleranceTenths) {
+                long excessTenths = diffTenths - toleranceTenths;
                 hundredths += excessTenths * excessTenths;
             }
         }
@@ -337,12 +354,20 @@ public final class ScoreFormulas {
     }
 
     public static long holidayVariancePenalty(long[] holidayWeight) {
-        return squaredFloorTolerance(holidayWeight, Constants.TOLERANCE.HOLIDAY.toDouble());
+        return holidayVariancePenalty(holidayWeight, Constants.TOLERANCE.HOLIDAY.toDouble());
+    }
+
+    public static long holidayVariancePenalty(long[] holidayWeight, double tolerance) {
+        return squaredFloorTolerance(holidayWeight, tolerance);
     }
 
     /** Move-count variance multiplied by 100, matching the legacy soft weight. */
     public static long moveVariancePenalty(long[] moveCount) {
-        return squaredFloorTolerance(moveCount, Constants.TOLERANCE.TOTAL_MOVE.toDouble()) * 100L;
+        return moveVariancePenalty(moveCount, Constants.TOLERANCE.TOTAL_MOVE.toDouble());
+    }
+
+    public static long moveVariancePenalty(long[] moveCount, double tolerance) {
+        return squaredFloorTolerance(moveCount, tolerance) * 100L;
     }
 
     private static long squaredFloorTolerance(long[] values, double tolerance) {
@@ -693,7 +718,7 @@ public final class ScoreFormulas {
                 if (match.getConsecutive() != calendar.getConsecutive()) {
                     lengthMismatch[slot]++;
                 }
-                if (calendar.isChildrenDay() && Constants.HOME_OBLIGATION_CHILDREN.contains(away.getName())) {
+                if (calendar.isChildrenDay() && away.isChildrenDayHome()) {
                     childrenPenalty[slot]++;
                 }
                 addRoute(home, slot, match);

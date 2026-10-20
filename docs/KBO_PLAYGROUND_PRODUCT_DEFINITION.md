@@ -94,6 +94,12 @@ scripts/run-server.sh --port 8080 --ui ui --max-seconds 30 --seeds 8
 | `GET /api/v1/solve/{jobId}/events` | SSE: `queued`(대기 순번) → `status` → `seed-best`·`best` → `done`(plan, score, seedResults, trace) / `error` |
 | `GET /api/v1/solve/{jobId}` · `POST .../stop` | 상태 조회, 조기 종료 |
 | `POST /api/v1/score` `{problem, plan?}` | 같은 채점기로 임의 plan 채점(실제 일정 채점용) |
+| `GET /api/v1/compare` | 실제 2025 1차 일정(input의 initialPlan) vs 기본 결과(`default`) 지표·점수·diff. 기본 결과가 없으면 시작 때 한 번 편성(503 준비 중) |
+| `GET /api/v1/results/{id}` | 디스크에 남긴 결과(id = 캐시 키 앞 12자리, plan·score·trace·knobs·title·metrics·real). 공유 링크의 데이터 |
+| `GET /og/{id}.png` | 공유 미리보기 이미지 1200×630(java.awt, 파일 캐시) |
+| 경로 규칙 | `/`·`/compare`·`/r/{id}`는 `ui/show/`(보여주는 문), `/studio/`는 위저드(`ui/`), 그 밖은 `ui/show/` → `ui/` 순서 |
+
+손잡이(2026-10-20): `problem.settings`의 `distanceToleranceKm`·`holidayTolerance`·`moveTolerance`·`obligationTeams`(어린이날 홈, 정확히 N/2개)를 서버가 읽어 `ScoreSettings` 사실과 `Team.childrenDayHome`에 넣는다. 브라우저 채점기(`ui/core/score.js`)도 같은 settings를 읽어 점수가 일치한다. 결과는 `data/results/<id>.json`에 남고 `default.json`만 저장소에 둔다.
 
 UI 연결: `ui/core/engine-adapter.js`의 REST 어댑터(큐·시드 이벤트 수신, 점수 응답에 브라우저 위반 목록 병합), `ui/app/common/app.js`가 http(s)로 열리면 `/api/v1/info`를 탐색해 자동으로 REST를 고른다. `ui/app/studio/step-review.js`의 "편성 시작"은 목업에서 실제 `app().solve()` 호출로 바뀌었다(서버 없으면 브라우저 Mock 엔진).
 

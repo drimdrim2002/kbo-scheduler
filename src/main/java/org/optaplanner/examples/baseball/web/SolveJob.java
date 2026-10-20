@@ -31,6 +31,8 @@ final class SolveJob {
     private final List<BlockingQueue<Event>> subscribers = new ArrayList<>();
     volatile MultiStartSolver solver;
     volatile boolean stopRequested;
+    /** 끝났을 때 한 번 부른다(기본 결과 저장 등). 캐시 적중이면 submit이 바로 부른다. */
+    volatile java.util.function.Consumer<JSONObject> onDone;
 
     SolveJob(String id, String cacheKey, String clientIp, JSONObject problem, SolveOptions options) {
         this.id = id;

@@ -39,9 +39,11 @@ final class JobManager {
     private final Deque<SolveJob> queue = new ArrayDeque<>();
     private final Map<String, JSONObject> cache;
     private final Map<String, Integer> activePerIp = new HashMap<>();
+    private final ResultStore store;
 
-    JobManager(ServerLimits limits) {
+    JobManager(ServerLimits limits, ResultStore store) {
         this.limits = limits;
+        this.store = store;
         this.cache = new LinkedHashMap<>(64, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, JSONObject> eldest) {
@@ -81,6 +83,9 @@ final class JobManager {
         JSONObject cached;
         synchronized (this) {
             cached = cache.get(cacheKey);
+        }
+        if (cached == null && store != null) {
+            cached = store.load(resultId(cacheKey)).orElse(null);
         }
         if (cached != null) {
             jobs.put(id, job);
@@ -153,10 +158,27 @@ final class JobManager {
                     job.options.timeLimitSec(), job.options.unimprovedSec(), sink);
             JSONObject payload = donePayload(job, result);
             if (!"STOPPED".equals(result.reason())) {
+                String id = resultId(job.cacheKey);
+                payload.put("id", id);
+                payload.put("createdAt", java.time.Instant.now().toString());
+                payload.put("knobs", knobsWithDefaults(job.problem));
+                payload.put("title", titleOf(job.problem, result.bestSeed()));
+                payload.put("metrics", Metrics.of(result.best()));
+                JSONObject forCache = (JSONObject) payload.clone();
+                forCache.remove("jobId");
                 synchronized (this) {
-                    JSONObject forCache = (JSONObject) payload.clone();
-                    forCache.remove("jobId");
                     cache.put(job.cacheKey, forCache);
+                }
+                if (store != null) {
+                    store.save(id, forCache);
+                }
+                java.util.function.Consumer<JSONObject> hook = job.onDone;
+                if (hook != null) {
+                    try {
+                        hook.accept(forCache);
+                    } catch (RuntimeException e) {
+                        LOG.warn("onDone hook failed", e);
+                    }
                 }
             }
             job.done(payload, "STOPPED".equals(result.reason()));
@@ -206,6 +228,46 @@ final class JobManager {
         return payload;
     }
 
+    /** 공유 링크 id: 캐시 키 앞 12자리. */
+    static String resultId(String cacheKey) {
+        return cacheKey.substring(0, 12);
+    }
+
+    @SuppressWarnings("unchecked")
+    static JSONObject knobsWithDefaults(JSONObject problem) {
+        JSONObject k = ProblemCodec.knobs(problem);
+        JSONObject out = Json.obj("distanceToleranceKm", 300.0, "holidayTolerance", 1.5, "moveTolerance", 2.0,
+                "childrenDayHomeTeams", Json.arr(java.util.List.of("두산", "키움", "한화", "NC", "롯데")),
+                "unavailableHomeSlots", new JSONArray());
+        if (k.get("distanceToleranceKm") != null) {
+            out.put("distanceToleranceKm", Json.asDouble(k.get("distanceToleranceKm"), 300.0));
+        }
+        if (k.get("holidayTolerance") != null) {
+            out.put("holidayTolerance", Json.asDouble(k.get("holidayTolerance"), 1.5));
+        }
+        if (k.get("moveTolerance") != null) {
+            out.put("moveTolerance", Json.asDouble(k.get("moveTolerance"), 2.0));
+        }
+        if (k.get("obligationTeams") != null) {
+            out.put("childrenDayHomeTeams", k.get("obligationTeams"));
+        }
+        return out;
+    }
+
+    static String titleOf(JSONObject problem, long seed) {
+        JSONObject k = knobsWithDefaults(problem);
+        StringBuilder teams = new StringBuilder();
+        for (Object t : Json.array(k.get("childrenDayHomeTeams"))) {
+            if (teams.length() > 0) {
+                teams.append('·');
+            }
+            teams.append(t);
+        }
+        double km = Json.asDouble(k.get("distanceToleranceKm"), 300.0);
+        return "이동거리 허용오차 " + (km == Math.floor(km) ? String.valueOf((long) km) : String.valueOf(km)) + "km · 어린이날 홈 "
+                + teams + " · 시드 " + seed;
+    }
+
     private static String cacheKey(JSONObject problem, SolveOptions options, boolean fullPlan) {
         JSONObject key = ProblemCodec.engineInput(problem);
         if (fullPlan && "KEEP".equals(options.init())) {
@@ -221,6 +283,7 @@ final class JobManager {
             key.put("pinned", pins);
         }
         key.put("options", options.toJson());
+        key.put("knobs", ProblemCodec.knobs(problem));
         return sha256(Json.canonical(key));
     }
 
