@@ -63,6 +63,7 @@ test('AC-1 JS 채점기 = Java ScoreFormulas.evaluate (엔진 호환 모드, 골
     const spec = plans.find((p) => p.name === g.name);
     const cal = spec.initialPlan ? base : spec.calendar.map((c) => (c === 9999 ? -1 : c));
     const p = project();
+    p.settings.holidayTolerance = 1.5; // 골든 값은 엔진 상수(1.5)로 만들었다. 프리셋 기본값(1.0)과 분리
     p.settings.h0eMode = 'ENGINE';
     p.plan = cal.map((c, m) => ({ match: m, calendar: c }));
     const ctx = Score.createContext(Score.buildInput(p));

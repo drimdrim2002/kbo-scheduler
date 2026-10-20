@@ -69,6 +69,7 @@
     return lo === hi ? f(lo) : f(lo) + '~' + f(hi);
   }
   const findTeam = (teams, name) => (teams || []).find((t) => t.name === name);
+  const spread = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? Math.max(...xs) - Math.min(...xs) : null; };
 
   /** 실제·엔진 지표(같은 모양)에서 화면에 쓰는 문자열 묶음을 만든다. */
   function view(real, engine, extra) {
@@ -81,7 +82,7 @@
     v['diff.totalKmWord'] = pct == null ? '' : (pct >= 0 ? '적음' : '많음');
     v['real.spreadKm'] = fmtInt(real.spreadKm); v['engine.spreadKm'] = fmtInt(engine.spreadKm);
     const ratio = real.spreadKm ? engine.spreadKm / real.spreadKm : null;
-    v['diff.spreadText'] = ratio == null ? '–' : (ratio <= 0.6 ? '약 1/' + Math.round(1 / ratio) : (ratio < 1 ? Math.round((1 - ratio) * 100) + '% 적음' : Math.round((ratio - 1) * 100) + '% 많음'));
+    v['diff.spreadText'] = ratio == null ? '–' : (ratio < 1 ? Math.round((1 - ratio) * 100) + '% 적음' : Math.round((ratio - 1) * 100) + '% 많음');
     v['diff.spreadRatio'] = ratio == null ? '–' : ratio.toFixed(2);
     v['real.maxTeam'] = real.maxTeam || ''; v['real.minTeam'] = real.minTeam || '';
     v['engine.maxTeam'] = engine.maxTeam || ''; v['engine.minTeam'] = engine.minTeam || '';
@@ -95,6 +96,14 @@
     put('real.weekend', rt.length ? r1(rt, 'weekendHome') : (real.weekendHomeMin != null ? real.weekendHomeMin + '~' + real.weekendHomeMax : null));
     put('engine.weekend', et.length ? r1(et, 'weekendHome') : (engine.weekendHomeMin != null ? engine.weekendHomeMin + '~' + engine.weekendHomeMax : null));
     put('real.awayRun', r1(rt, 'maxAwayRun')); put('engine.awayRun', r1(et, 'maxAwayRun'));
+    // 주말 홈 시리즈 수: 편차(최대−최소)로 어느 쪽이 더 고른지 판정한다. 같으면 "같은 수준"
+    const rw = real.weekendHomeMin != null ? real.weekendHomeMax - real.weekendHomeMin : (rt.length ? spread(rt, 'weekendHome') : null);
+    const ew = engine.weekendHomeMin != null ? engine.weekendHomeMax - engine.weekendHomeMin : (et.length ? spread(et, 'weekendHome') : null);
+    if (rw != null && ew != null) {
+      v['diff.weekendCmp'] = ew > rw ? 'real' : (ew < rw ? 'engine' : 'even');
+      v['diff.weekendWord'] = ew > rw ? '실제 일정이 더 고릅니다' : (ew < rw ? '엔진이 더 고릅니다' : '같은 수준입니다');
+      v['diff.weekendTag'] = ew > rw ? '실제가 더 고름' : (ew < rw ? '엔진이 고름' : '같음');
+    }
     const sec = o.seconds != null ? o.seconds : (engine.options && engine.options.timeLimitSec) || (engine.elapsedMs ? Math.round(engine.elapsedMs / 1000) : null);
     if (sec != null) v['engine.seconds'] = String(sec);
     if (engine.seed != null) v['engine.seed'] = String(engine.seed);
@@ -313,7 +322,17 @@
   pages.compare = function () {
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
-      bind(view(cmp.real, cmp.engine));
+      const vv = view(cmp.real, cmp.engine);
+      bind(vv);
+      // 주말 홈 행: 더 고른 쪽을 노란 줄·태그로 표시한다
+      const row = $('#row-weekend'), tag = $('#weekend-tag');
+      if (row && tag && vv['diff.weekendCmp']) {
+        row.classList.toggle('sh-row-real', vv['diff.weekendCmp'] === 'real');
+        tag.textContent = vv['diff.weekendTag'];
+        tag.className = 'sh-tag ' + (vv['diff.weekendCmp'] === 'real' ? 'sh-tag-real' : vv['diff.weekendCmp'] === 'engine' ? 'sh-tag-engine' : 'sh-tag-even');
+        const realCell = $('#weekend-real-cell'), engCell = $('#weekend-engine-cell');
+        if (realCell && engCell) (vv['diff.weekendCmp'] === 'real' ? realCell : engCell).appendChild(tag);
+      }
       const d = $('#chart-dist'); if (d) teamBars(d, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
       const w = $('#chart-weekend'); if (w) teamBars(w, cmp.real.teams, cmp.engine.teams, 'weekendHome', { unit: '회', label: '주말 홈 시리즈 수', max: Math.max(14, ...cmp.real.teams.map((t) => t.weekendHome), ...cmp.engine.teams.map((t) => t.weekendHome)) });
       if (cmp.range) bind({ 'range.from': cmp.range.from, 'range.to': cmp.range.to, 'range.slots': String(cmp.range.slots), 'range.series': String(cmp.range.series) });
@@ -355,7 +374,10 @@
       setMeta('og:title', title + ' — ' + SHOW.SITE); setMeta('og:description', ogd); setMeta('description', ogd);
       const tb = $('#cmp-total'); if (tb) totalBars(tb, real, engine);
       const trend = $('#weekend-note');
-      if (trend && real.weekendHomeMin != null) trend.textContent = '주말 홈 시리즈 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회' + (engine.weekendHomeMax - engine.weekendHomeMin > real.weekendHomeMax - real.weekendHomeMin ? ' — 실제 일정이 더 고릅니다.' : '.');
+      if (trend && real.weekendHomeMin != null) {
+        const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;
+        trend.textContent = '주말 홈 시리즈 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회 — ' + (ew2 > rw2 ? '실제 일정이 더 고릅니다.' : ew2 < rw2 ? '이 결과가 더 고릅니다.' : '같은 수준입니다.');
+      }
       mark('show', 'result-ok');
       const box = $('#replay-box');
       if (box) {

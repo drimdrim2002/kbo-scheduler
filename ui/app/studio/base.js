@@ -115,7 +115,7 @@
     { id: 'X2', name: '구글 시트 공유 링크', ref: 'FR-X2', desc: '공유 링크(보기 전용)로 시트를 읽는다.', must: true },
     { id: 'R2', name: '사전 점검', ref: 'FR-R2', desc: '엔진 실행 전 구조적 불가능을 차단·경고한다.', must: true },
     { id: 'V5', name: '위반 목록', ref: 'FR-V5', desc: '규칙별 위반과 위치 이동.', must: true },
-    { id: 'A1', name: '총 이동거리 차트', ref: 'FR-A1', desc: '평균선과 ±300km 허용오차 밴드.', must: true },
+    { id: 'A1', name: '총 이동거리 차트', ref: 'FR-A1', desc: '평균선과 허용오차 밴드(기본 ±300km).', must: true },
     { id: 'A2', name: '이동·휴일·주말 비교 차트', ref: 'FR-A2', desc: '구단별 세 지표의 평균·허용오차.', must: true },
     { id: 'A3', name: '홈/원정 흐름 스트립', ref: 'FR-A3', desc: '구단 × 슬롯, 3연속 초과 강조.', must: true },
     { id: 'M7', name: '스냅샷 저장·복원', ref: 'FR-M7', desc: '배정을 이름 붙여 저장하고 되돌린다.', must: true },

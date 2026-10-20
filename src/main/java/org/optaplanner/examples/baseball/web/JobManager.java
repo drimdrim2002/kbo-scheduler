@@ -236,14 +236,14 @@ final class JobManager {
     @SuppressWarnings("unchecked")
     static JSONObject knobsWithDefaults(JSONObject problem) {
         JSONObject k = ProblemCodec.knobs(problem);
-        JSONObject out = Json.obj("distanceToleranceKm", 300.0, "holidayTolerance", 1.5, "moveTolerance", 2.0,
+        JSONObject out = Json.obj("distanceToleranceKm", 300.0, "holidayTolerance", ProblemCodec.WEB_DEFAULT_HOLIDAY_TOLERANCE, "moveTolerance", 2.0,
                 "childrenDayHomeTeams", Json.arr(java.util.List.of("두산", "키움", "한화", "NC", "롯데")),
                 "unavailableHomeSlots", new JSONArray());
         if (k.get("distanceToleranceKm") != null) {
             out.put("distanceToleranceKm", Json.asDouble(k.get("distanceToleranceKm"), 300.0));
         }
         if (k.get("holidayTolerance") != null) {
-            out.put("holidayTolerance", Json.asDouble(k.get("holidayTolerance"), 1.5));
+            out.put("holidayTolerance", Json.asDouble(k.get("holidayTolerance"), ProblemCodec.WEB_DEFAULT_HOLIDAY_TOLERANCE));
         }
         if (k.get("moveTolerance") != null) {
             out.put("moveTolerance", Json.asDouble(k.get("moveTolerance"), 2.0));
@@ -283,7 +283,8 @@ final class JobManager {
             key.put("pinned", pins);
         }
         key.put("options", options.toJson());
-        key.put("knobs", ProblemCodec.knobs(problem));
+        // 기본값이 바뀌어도 다른 키가 되도록, 명시된 값이 아니라 실제 적용되는 값을 넣는다
+        key.put("knobs", knobsWithDefaults(problem));
         return sha256(Json.canonical(key));
     }
 

@@ -30,6 +30,8 @@
 
   function tms() { return D().ex.teamMetrics; }
   function league() { return D().ex.league; }
+  /** 허용오차(손잡이). 채점 결과에서 읽는다: km(초과 감점), moves·holiday(편차 이상 감점) */
+  function tols() { const sb = D().ex.softBreakdown || {}; return { km: sb.S2 ? sb.S2.toleranceKm : 300, moves: sb.S1 ? sb.S1.tolerance : 2, holiday: sb.S3 ? sb.S3.tolerance : 1.5 }; }
 
   function renderList() {
     const u = S.ui;
@@ -93,7 +95,7 @@
     return {
       meanKm: L.meanDistanceKm, totalKm: L.totalKm, top: byDist[0], low: byDist[byDist.length - 1],
       over: over.map((t) => t.name), overMoves: T.filter((t) => t.overMoves).length, overHoliday: T.filter((t) => t.overHoliday).length,
-      dev: dev ? { name: dev.t.name, km: dev.d, beyond: Math.max(0, Math.abs(dev.d) - 300) } : null,
+      dev: dev ? { name: dev.t.name, km: dev.d, beyond: Math.max(0, Math.abs(dev.d) - tols().km) } : null,
       wMax, wMin, wGap: wMax - wMin, wMaxTeams: T.filter((t) => t.weekendHome === wMax).map((t) => t.name), wMinTeams: T.filter((t) => t.weekendHome === wMin).map((t) => t.name), wMean: L.meanWeekendHome
     };
   };
@@ -112,7 +114,7 @@
       '최다 ' + chip(m.top.name, S.wide ? fmt.km(m.top.distanceKm) : '') + ' 최소 ' + chip(m.low.name, S.wide ? fmt.km(m.low.distanceKm) : ''),
       st ? '<b>' + esc(st.name) + '</b> ' + fmt.km(st.distanceKm) + 'km · 평균 대비 ' + fmt.signed1(sd) : '',
       ' data-v="' + m.meanKm.toFixed(1) + '" data-total="' + m.totalKm + '"');
-    s += card('over', icon('warn') + '허용 범위 초과 구단 <span class="q-card-kx">이동거리 평균 ±300km 밖</span>' + dv('S2'),
+    s += card('over', icon('warn') + '허용 범위 초과 구단 <span class="q-card-kx">이동거리 평균 ±' + tols().km + 'km 밖</span>' + dv('S2'),
       '<b class="' + (m.over.length ? 'bad' : 'good') + '">' + (m.over.length ? '▲ ' : '') + m.over.length + '</b><span class="u">구단</span><span class="q-card-aside">이동 횟수 초과 ' + m.overMoves + ' · 휴일 초과 ' + m.overHoliday + '</span>',
       m.over.length ? m.over.map((n) => chip(n)).join('') : '<span class="muted">모든 구단이 범위 안</span>',
       st ? '<b>' + esc(st.name) + '</b> ' + (st.overDistance ? '<span class="bad">▲ 범위 밖 (평균 대비 ' + fmt.signed1(sd) + 'km)</span>' : '범위 안 (평균 대비 ' + fmt.signed1(sd) + 'km)') : '',
@@ -136,10 +138,11 @@
     const one = (title, items, mean, tol, f) => S.mchart.dotRows({ sel, width: w, rowH: h, bare: true, title, rows: [{ title, items, mean, tol, fmt: f }] });
     const rowH = Math.max(9, Math.min(30, Math.floor((h - (compact ? 24 : 36)) / T.length)));
     const tolNote = (t) => '띠 = 평균 ±' + t + ' · ▲ = 초과';
+    const tl = tols();
     return [
-      { id: 'distance', title: '총 이동거리', code: 'S2', note: compact ? '띠 ±300km · 빗금 ▲ 초과' : '점선 = 평균 · 띠 = ±300km · 빗금 ▲ = 초과', svg: S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: 300, sel, width: w, rowH, ticks: !compact, title: '구단별 총 이동거리' }) },
-      { id: 'moves', title: '이동 횟수', code: 'S1', note: tolNote('2회'), svg: one('이동 횟수', T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), L.meanMoves, 2, (v) => fmt.num1(v) + '회') },
-      { id: 'holiday', title: '휴일 가중치', code: 'S3', note: tolNote('1.5'), svg: one('휴일 가중치', T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), L.meanHoliday, 1.5) },
+      { id: 'distance', title: '총 이동거리', code: 'S2', note: compact ? '띠 ±' + tl.km + 'km · 빗금 ▲ 초과' : '점선 = 평균 · 띠 = ±' + tl.km + 'km · 빗금 ▲ = 초과', svg: S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: tl.km, sel, width: w, rowH, ticks: !compact, title: '구단별 총 이동거리' }) },
+      { id: 'moves', title: '이동 횟수', code: 'S1', note: tolNote(tl.moves + '회'), svg: one('이동 횟수', T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), L.meanMoves, tl.moves, (v) => fmt.num1(v) + '회') },
+      { id: 'holiday', title: '휴일 가중치', code: 'S3', note: tolNote(tl.holiday), svg: one('휴일 가중치', T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), L.meanHoliday, tl.holiday) },
       { id: 'weekend', title: '주말 홈 (참고)', code: '', note: compact ? '점수 미반영' : '띠 = 평균 ±2 · 점수 미반영', svg: one('주말 홈', T.map((t) => ({ name: t.name, value: t.weekendHome, over: false })), L.meanWeekendHome, 2) }
     ];
   };
@@ -195,8 +198,8 @@
     let s = S.paneHead(S.term('softBreak'), '공정성·이동 부담 점수가 어느 구단의 어떤 값에서 나오는지 연결합니다.');
     s += '<div class="pane-body pad" data-sk="q-soft"><div class="tiles">' + tiles + '</div>';
     const items = (sb[lv].items || []).slice();
-    const desc = { S0: '미배정 시리즈 수. 슬롯이 없거나 더미 슬롯에 놓인 시리즈.', S1: 'Σ ⌊|이동 횟수 − 평균| / 2⌋² × 100', S2: 'Σ (max(0, |이동거리 − 평균| − 300km))², 0.1km 정수 연산', S3: 'Σ ⌊|휴일 가중치 − 평균| / 1.5⌋²', S4: 'Σ 구단 이동거리 (km, 버림)' }[lv];
-    const plainDesc = { S0: '슬롯에 놓이지 못한 시리즈 수입니다. 0이어야 합니다.', S1: '구단별 이동 횟수가 리그 평균에서 2회 넘게 벗어날수록 감점합니다.', S2: '구단별 총 이동거리가 리그 평균에서 300km 넘게 벗어날수록 감점합니다.', S3: '구단별 휴일 가중치 합이 평균에서 1.5 넘게 벗어날수록 감점합니다.', S4: '리그 전체 이동거리 합입니다. 작을수록 좋습니다.' }[lv];
+    const desc = { S0: '미배정 시리즈 수. 슬롯이 없거나 더미 슬롯에 놓인 시리즈.', S1: 'Σ ⌊|이동 횟수 − 평균| / ' + tols().moves + '⌋² × 100', S2: 'Σ (max(0, |이동거리 − 평균| − ' + tols().km + 'km))², 0.1km 정수 연산', S3: 'Σ ⌊|휴일 가중치 − 평균| / ' + tols().holiday + '⌋²', S4: 'Σ 구단 이동거리 (km, 버림)' }[lv];
+    const plainDesc = { S0: '슬롯에 놓이지 못한 시리즈 수입니다. 0이어야 합니다.', S1: '구단별 이동 횟수가 리그 평균에서 ' + tols().moves + '회 이상 벗어날수록 감점합니다.', S2: '구단별 총 이동거리가 리그 평균에서 ' + tols().km + 'km 넘게 벗어날수록 감점합니다.', S3: '구단별 휴일 가중치 합이 평균에서 ' + tols().holiday + ' 이상 벗어날수록 감점합니다.', S4: '리그 전체 이동거리 합입니다. 작을수록 좋습니다.' }[lv];
     s += '<div class="small muted" style="margin:10px 0 6px">' + (S.dev() ? '<b style="color:var(--text)">' + lv + '</b> = ' + esc(desc) : '<b style="color:var(--text)">' + esc(S.ruleName(lv)) + '</b> — ' + esc(plainDesc)) + '</div>';
     if (lv === 'S0') {
       s += items.length ? items.map((x) => '<div class="hbar">' + esc(app().matchLabel(x.match)) + '</div>').join('') : '<div class="empty"><b>' + icon('check') + ' 미배정 시리즈 없음</b>모든 시리즈가 슬롯에 놓였습니다.</div>';
@@ -223,14 +226,14 @@
   function a1() {
     const L = league();
     const items = tms().map((t) => ({ label: t.name, value: t.distanceKm, color: t.team != null ? app().state.teams[t.team].color : '#1F5FD6', flag: t.overDistance, key: t.name, note: t.overDistance ? '허용오차 초과' : '' }));
-    return chartWrap('총 이동거리', '구단별 1차 편성 총 이동거리. 점선 = 리그 평균, 띠 = ±300km 허용오차, 빗금·▲ = 초과.', C().bar({ items, width: W(), height: S.wide ? 520 : 400, mean: L.meanDistanceKm, band: { lo: L.meanDistanceKm - 300, hi: L.meanDistanceKm + 300, label: '허용오차 ±300km' }, unit: 'km', format: (v) => fmt.km(v), yZero: false, title: '구단별 총 이동거리' }));
+    return chartWrap('총 이동거리', '구단별 1차 편성 총 이동거리. 점선 = 리그 평균, 띠 = ±' + tols().km + 'km 허용오차, 빗금·▲ = 초과.', C().bar({ items, width: W(), height: S.wide ? 520 : 400, mean: L.meanDistanceKm, band: { lo: L.meanDistanceKm - tols().km, hi: L.meanDistanceKm + tols().km, label: '허용오차 ±' + tols().km + 'km' }, unit: 'km', format: (v) => fmt.km(v), yZero: false, title: '구단별 총 이동거리' }));
   }
   function a2() {
     const L = league(), T = tms();
     const mk = (title, key, mean, tol, unit) => '<div class="blk"><div class="blk-head">' + esc(title) + '<span class="r small muted">평균 ' + fmt.num1(mean) + (tol ? ' · ±' + tol : '') + '</span></div><div class="blk-body">' +
       C().bar({ items: T.map((t) => ({ label: t.name, value: t[key], color: app().state.teams[t.team].color, flag: tol ? Math.abs(t[key] - mean) >= tol : false, key: t.name })), width: W(), height: S.wide ? 200 : 140, mean, band: tol ? { lo: mean - tol, hi: mean + tol, label: '±' + tol } : null, unit, yZero: false, title }) + '</div></div>';
     return S.paneHead('이동·휴일·주말 비교', '세 지표를 같은 구단 순서로 나란히 봅니다. 주말 홈은 참고 지표입니다.') +
-      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi" style="grid-template-columns:minmax(0,1fr);gap:8px">' + mk('이동 횟수 (채점' + (S.dev() ? ' S1' : '') + ')', 'moves', L.meanMoves, 2, '회') + mk('휴일 가중치 합 (채점' + (S.dev() ? ' S3' : '') + ')', 'holidayWeight', L.meanHoliday, 1.5, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
+      '<div class="pane-body pad" data-sk="q-chart"><div class="small-multi" style="grid-template-columns:minmax(0,1fr);gap:8px">' + mk('이동 횟수 (채점' + (S.dev() ? ' S1' : '') + ')', 'moves', L.meanMoves, tols().moves, '회') + mk('휴일 가중치 합 (채점' + (S.dev() ? ' S3' : '') + ')', 'holidayWeight', L.meanHoliday, tols().holiday, '') + mk('주말 홈 시리즈 (참고)', 'weekendHome', L.meanWeekendHome, 0, '') + '</div></div>';
   }
   function a3() {
     const c = D(), T = tms(), u = S.ui;

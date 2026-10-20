@@ -26,7 +26,7 @@
 ## 3. 플레이그라운드 범위
 
 ### 3.1 사용자가 만지는 손잡이 (딱 4개)
-1. **공평성 허용오차 슬라이더**: 이동거리 허용오차(기본 300km), 휴일 가중치 허용오차(기본 1.5)
+1. **공평성 허용오차 슬라이더**: 이동거리 허용오차(기본 300km), 휴일 가중치 허용오차(기본 1.0)
 2. **어린이날 홈 구단 선택**: 10구단 중 5개 체크(기본: 두산·키움·한화·NC·롯데)
 3. **특정 날짜 홈 불가**: 날짜 + 구단 + 사유(예: 잠실 콘서트 대관) 목록 추가·삭제
 4. **시리즈 고정**: 일정판에서 시리즈 카드를 원하는 슬롯에 놓고 핀 고정(개막전·어린이날은 기본 고정)
@@ -99,7 +99,7 @@ scripts/run-server.sh --port 8080 --ui ui --max-seconds 30 --seeds 8
 | `GET /og/{id}.png` | 공유 미리보기 이미지 1200×630(java.awt, 파일 캐시) |
 | 경로 규칙 | `/`·`/compare`·`/r/{id}`는 `ui/show/`(보여주는 문), `/studio/`는 위저드(`ui/`), 그 밖은 `ui/show/` → `ui/` 순서 |
 
-손잡이(2026-10-20): `problem.settings`의 `distanceToleranceKm`·`holidayTolerance`·`moveTolerance`·`obligationTeams`(어린이날 홈, 정확히 N/2개)를 서버가 읽어 `ScoreSettings` 사실과 `Team.childrenDayHome`에 넣는다. 브라우저 채점기(`ui/core/score.js`)도 같은 settings를 읽어 점수가 일치한다. 결과는 `data/results/<id>.json`에 남고 `default.json`만 저장소에 둔다.
+손잡이(2026-10-20): `problem.settings`의 `distanceToleranceKm`(기본 300)·`holidayTolerance`(**기본 1.0**, 엔진 상수 1.5와 다름 — 편차 1 이상이면 감점이라 주말 홈 수가 실제 일정과 같은 11~12가 된다)·`moveTolerance`(2)·`obligationTeams`(어린이날 홈, 정확히 N/2개)를 서버가 읽어 `ScoreSettings` 사실과 `Team.childrenDayHome`에 넣는다. 브라우저 채점기(`ui/core/score.js`)도 같은 settings를 읽어 점수가 일치한다. 결과는 `data/results/<id>.json`에 남고 `default.json`만 저장소에 둔다.
 
 UI 연결: `ui/core/engine-adapter.js`의 REST 어댑터(큐·시드 이벤트 수신, 점수 응답에 브라우저 위반 목록 병합), `ui/app/common/app.js`가 http(s)로 열리면 `/api/v1/info`를 탐색해 자동으로 REST를 고른다. `ui/app/studio/step-review.js`의 "편성 시작"은 목업에서 실제 `app().solve()` 호출로 바뀌었다(서버 없으면 브라우저 Mock 엔진).
 

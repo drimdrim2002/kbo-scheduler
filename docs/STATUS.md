@@ -10,7 +10,7 @@
 | 1~2일 정의 | **완료** | 제품 정의서, 보여주는 문 정의서, 엔진 벤치마크(멀티스타트 채택) |
 | 3~6일 서버·엔진 연결 | **완료** | HTTP 서버, REST·SSE, 멀티스타트(코어 수만큼 단일스레드 10초), 작업 큐·캐시, 위저드 ② "편성 시작"이 실제 엔진 호출, 트레이스 |
 | 재생기(추가) | **완료** | `ui/replay.html` + 위저드 「탐색 과정 보기」 모달 |
-| 7~9일 보여주는 문 | **서버 완료 · 페이지 진행 중** | 손잡이(허용오차·어린이날 홈), 결과 디스크 저장·공유 id, compare·results·OG API, 경로 규칙은 main에 있음. 소개·비교·결과 3쪽(`ui/show/`)은 별도 세션(표준 버전)이 제작 중 |
+| 7~9일 보여주는 문 | **표준 버전 완료(2026-10-21)** | 소개·비교·결과 3쪽(`ui/show/`)이 main에 병합됨. 소개의 「편성 시작」은 아직 목업. 휴일 허용오차 기본값 1.0으로 바꿔 주말 홈이 실제와 같은 11~12 |
 | 배포 준비 | **스크립트 완료 · 실행 전** | `deploy/`(VM 생성·설치·systemd·Caddy·갱신). 도메인 구입, Cloudflare, VM 생성은 사용자가 실행해야 함 |
 | 10~11일 다듬기 | 미착수 | 부하 시험(동시 10명), 모바일 375px 눈 확인, 문구, 피드백 폼, 애널리틱스 스니펫 |
 | 12~13일 콘텐츠 | 미착수 | 한국어 장문 글, 영어 글, 20초 영상·GIF, 채널별 글. 만든 사람 블록·"엔진이 모르는 것" 목록은 사용자 제공 대기 |
@@ -43,7 +43,7 @@ curl -s -X POST localhost:8080/api/v1/score -H 'Content-Type: application/json' 
 기대: `[0/0]hard/[0/-400/-573307/-13/-72955]soft`. `problem.settings`에 `"distanceToleranceKm": 100`을 넣으면 거리 편차 감점이 커지고, `"obligationTeams": ["LG","키움","한화","NC","롯데"]`를 넣으면 어린이날 홈 구단이 바뀐다(5개가 아니면 400).
 
 ### 2.4 비교·결과·공유 미리보기
-- http://localhost:8080/api/v1/compare : 실제 72,955km vs 엔진 약 62,500km, `diff.totalKmPct` 약 14.
+- http://localhost:8080/api/v1/compare : 실제 72,955km vs 엔진 63,312km, `diff.totalKmPct` 13.2, 주말 홈 둘 다 11~12.
 - http://localhost:8080/api/v1/results/default : plan·score·trace·knobs·title·metrics.
 - http://localhost:8080/og/default.png : 1200×630 이미지(한글 폰트 확인).
 - 편성 한 번 뒤 `data/results/<id>.json`이 생기고 `/og/<id>.png`도 열린다. 서버를 재시작해도 같은 조건은 즉시 돌아온다.
@@ -59,7 +59,7 @@ curl -s -X POST localhost:8080/api/v1/score -H 'Content-Type: application/json' 
 | 엔진 벤치(선택, 약 10분) | `docs/ENGINE_SEED_BENCHMARK.md` 재현 명령 | 시드 편차 표 |
 
 ### 2.6 아직 못 보는 것
-- `/`(소개), `/compare`, `/r/<id>` 페이지: 표준 버전 세션이 끝나 병합되기 전까지 `/`는 위저드로 떨어지고 `/compare`·`/r/…`는 404.
+- 소개의 「편성 시작」은 목업(10초 뒤 기본 결과로 이동). 서버 연결은 다음 작업.
 - 모바일 화면: 재생기만 ≤700px 레이아웃이 있고, 소개 페이지는 세션 작업 중.
 - 실제 도메인·HTTPS·Cloudflare: VM 생성 뒤.
 

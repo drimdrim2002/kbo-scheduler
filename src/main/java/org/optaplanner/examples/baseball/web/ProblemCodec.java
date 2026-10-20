@@ -23,6 +23,7 @@ import org.optaplanner.examples.baseball.domain.Team;
 final class ProblemCodec {
 
     static final long UNASSIGNED = -1L;
+    static final double WEB_DEFAULT_HOLIDAY_TOLERANCE = 1.0;
 
     private ProblemCodec() {
     }
@@ -86,7 +87,8 @@ final class ProblemCodec {
         }
         ScoreSettings def = ScoreSettings.DEFAULT;
         double distanceKm = Json.asDouble(settings.get("distanceToleranceKm"), def.getDistanceToleranceKm());
-        double holiday = Json.asDouble(settings.get("holidayTolerance"), def.getHolidayTolerance());
+        // 웹 기본값은 1.0(편차 1 이상이면 감점 → 평균이 정수면 전부 같아야 함). 엔진 상수 1.5는 편차 1까지 허용해 주말 홈이 10~13으로 벌어졌다
+        double holiday = Json.asDouble(settings.get("holidayTolerance"), WEB_DEFAULT_HOLIDAY_TOLERANCE);
         double move = Json.asDouble(settings.get("moveTolerance"), def.getMoveTolerance());
         if (distanceKm < 0 || distanceKm > 5000 || holiday <= 0 || holiday > 100 || move <= 0 || move > 100) {
             throw new IllegalArgumentException("허용오차 값이 범위를 벗어났습니다(이동거리 0~5000km, 휴일·이동 횟수 0 초과 100 이하).");

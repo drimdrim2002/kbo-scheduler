@@ -518,7 +518,7 @@
   App.prototype._probeServer = function () {
     if (LS.get(ENGINE_KEY)) return;
     if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
-    fetch('api/v1/info', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((info) => {
+    fetch('/api/v1/info', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((info) => {
       if (!info || info.name !== 'kbo-scheduler' || LS.get(ENGINE_KEY)) return;
       this.engineConfig = { kind: 'REST', baseUrl: '', auto: true, info };
       this.engine = Engine.createEngine(this.engineConfig);

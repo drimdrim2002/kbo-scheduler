@@ -688,6 +688,8 @@
     roadFactor: 1.25,
     h0eMode: 'STADIUM',
     obligationTeams: ['두산', '키움', '한화', 'NC', '롯데'],
+    // 평준화 허용오차(손잡이). 편차가 이 값 이상이면 감점. 휴일 1.0 = 주말·공휴일 홈 가중치를 정수로 가능한 한 같게
+    distanceToleranceKm: 300, holidayTolerance: 1.0, moveTolerance: 2,
     referenceDate: '',
     longTripKm: 600,
     solver: { timeLimitSec: 10, unimprovedSec: 5, seed: 42, init: 'KEEP' }

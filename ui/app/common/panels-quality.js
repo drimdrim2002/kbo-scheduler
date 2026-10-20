@@ -9,11 +9,19 @@
   const { esc, fmt, on } = UI;
   const { Dates, Score, Chart } = KBO;
 
+  /** 허용오차는 프로젝트 settings(손잡이)에 따라 달라지므로 채점 결과의 softBreakdown에서 읽는다. S2는 km(초과 감점), S1·S3는 편차 "이상" 감점 */
+  function tolOf(m, app) {
+    const sb = app.derived().ex.softBreakdown || {};
+    if (m.tolRule === 'S2') return sb.S2 ? sb.S2.toleranceKm : null;
+    if (m.tolRule === 'S1') return sb.S1 ? sb.S1.tolerance : null;
+    if (m.tolRule === 'S3') return sb.S3 ? sb.S3.tolerance : null;
+    return null;
+  }
   /** 지표 정의. scored = 엔진 채점 지표, ref = 참고 지표 (FR-Q2) */
   const METRICS = [
-    { key: 'distanceKm', label: '총 이동거리', unit: 'km', kind: 'scored', rule: 'S2·S4', fmt: (v) => fmt.km(v), tol: 300, over: 'overDistance', better: 'mean' },
-    { key: 'moves', label: '이동 횟수', unit: '회', kind: 'scored', rule: 'S1', tol: 2, over: 'overMoves', better: 'mean' },
-    { key: 'holidayWeight', label: '휴일 가중치 합', unit: '', kind: 'scored', rule: 'S3', tol: 1.5, over: 'overHoliday', better: 'mean' },
+    { key: 'distanceKm', label: '총 이동거리', unit: 'km', kind: 'scored', rule: 'S2·S4', fmt: (v) => fmt.km(v), tolRule: 'S2', over: 'overDistance', better: 'mean' },
+    { key: 'moves', label: '이동 횟수', unit: '회', kind: 'scored', rule: 'S1', tolRule: 'S1', over: 'overMoves', better: 'mean' },
+    { key: 'holidayWeight', label: '휴일 가중치 합', unit: '', kind: 'scored', rule: 'S3', tolRule: 'S3', over: 'overHoliday', better: 'mean' },
     { key: 'streakPenalty', label: '4연속 초과', unit: '', kind: 'scored', rule: 'H0-f', better: 'low' },
     { key: 'weekendHome', label: '주말 홈', unit: '시리즈', kind: 'ref', rule: 'R1', better: 'mean' },
     { key: 'weekendAway', label: '주말 원정', unit: '시리즈', kind: 'ref', rule: 'R1', better: 'mean' },
@@ -50,12 +58,12 @@
           const v = metricValue(tm, m.key);
           const dev = v - means[m.key];
           const over = m.over ? tm[m.over] : false;
-          h += '<td class="' + (over ? 'k-over' : '') + '"><span class="k-mv">' + f(m, v) + '</span>' + (m.kind === 'scored' && m.tol ? '<span class="k-dev">' + fmt.signed(dev, m.fmt ? (x) => fmt.km(x) : fmt.num1) + '</span>' : '') + (over ? '<span class="k-overmark" title="허용오차 ±' + m.tol + m.unit + ' 초과">▲ 초과</span>' : '') + '</td>';
+          h += '<td class="' + (over ? 'k-over' : '') + '"><span class="k-mv">' + f(m, v) + '</span>' + (m.kind === 'scored' && tolOf(m, app) ? '<span class="k-dev">' + fmt.signed(dev, m.fmt ? (x) => fmt.km(x) : fmt.num1) + '</span>' : '') + (over ? '<span class="k-overmark" title="허용오차 ±' + tolOf(m, app) + m.unit + ' 초과">▲ 초과</span>' : '') + '</td>';
         }
         h += '</tr>';
       }
-      h += '</tbody><tfoot><tr><th>리그 평균</th>' + cols.map((m) => '<td>' + f(m, means[m.key]) + (m.tol ? '<span class="k-small k-muted"> ±' + m.tol + '</span>' : '') + '</td>').join('') + '</tr></tfoot></table></div>';
-      h += '<p class="k-small k-muted"><span class="k-mtag k-mtag-scored">채점</span> 엔진 Soft/Hard 점수에 들어가는 지표 · <span class="k-mtag k-mtag-ref">참고</span> 엔진이 직접 최적화하지 않는 지표. ▲ 초과 = 리그 평균 대비 엔진 허용오차(거리 ±300km, 이동 ±2회, 휴일 ±1.5) 초과.</p>';
+      h += '</tbody><tfoot><tr><th>리그 평균</th>' + cols.map((m) => '<td>' + f(m, means[m.key]) + (tolOf(m, app) ? '<span class="k-small k-muted"> ±' + tolOf(m, app) + '</span>' : '') + '</td>').join('') + '</tr></tfoot></table></div>';
+      h += '<p class="k-small k-muted"><span class="k-mtag k-mtag-scored">채점</span> 엔진 Soft/Hard 점수에 들어가는 지표 · <span class="k-mtag k-mtag-ref">참고</span> 엔진이 직접 최적화하지 않는 지표. ▲ 초과 = 리그 평균 대비 허용오차(거리 ±' + (tolOf(METRICS[0], app) || 300) + 'km 초과, 이동 ±' + (tolOf(METRICS[1], app) || 2) + '회 이상, 휴일 ±' + (tolOf(METRICS[2], app) || 1.5) + ' 이상) 초과.</p>';
       el.innerHTML = h;
     };
     on(el, 'click', '[data-sort]', (e, b) => { const k = b.dataset.sort; if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k === 'name' ? 1 : -1; } render(); });
@@ -74,8 +82,8 @@
       h += '<div class="k-soft-total k-mono">' + esc(Score.scoreString(ex.score)) + '</div>';
       h += '<details open><summary><b>S0 미배정 시리즈</b> <span class="k-soft-v">' + fmt.int(sb.S0.total) + '</span></summary><ul>' + (sb.S0.items.length ? sb.S0.items.map((x) => '<li><button class="k-link" data-match="' + x.match + '">' + esc(app.matchLabel(x.match)) + ' (' + app.state.matches[x.match].consecutive + '연전)</button></li>').join('') : '<li class="k-muted">없음</li>') + '</ul></details>';
       h += '<details open><summary><b>S1 이동 횟수 분산</b> <span class="k-soft-v">' + fmt.int(sb.S1.total) + '</span> <span class="k-muted k-small">Σ⌊|x−평균 ' + fmt.num1(sb.S1.mean) + '|/2⌋² × 100</span></summary><ul>' + row(sb.S1.items, (v) => fmt.num1(v), (x) => ' · ' + x.steps + '단계') + '</ul></details>';
-      h += '<details open><summary><b>S2 이동 거리 분산</b> <span class="k-soft-v">' + fmt.int(sb.S2.total) + '</span> <span class="k-muted k-small">Σ(max(0, |d−평균 ' + fmt.km(sb.S2.meanKm) + '| − 300))²</span></summary><ul>' + row(sb.S2.items, (v) => fmt.km(v) + 'km', (x) => ' · 초과 ' + fmt.km(x.excessKm) + 'km') + '</ul></details>';
-      h += '<details open><summary><b>S3 휴일 가중치 분산</b> <span class="k-soft-v">' + fmt.int(sb.S3.total) + '</span> <span class="k-muted k-small">Σ⌊|h−평균 ' + fmt.num1(sb.S3.mean) + '|/1.5⌋²</span></summary><ul>' + row(sb.S3.items, (v) => fmt.num1(v), (x) => ' · ' + x.steps + '단계') + '</ul></details>';
+      h += '<details open><summary><b>S2 이동 거리 분산</b> <span class="k-soft-v">' + fmt.int(sb.S2.total) + '</span> <span class="k-muted k-small">Σ(max(0, |d−평균 ' + fmt.km(sb.S2.meanKm) + '| − ' + sb.S2.toleranceKm + '))²</span></summary><ul>' + row(sb.S2.items, (v) => fmt.km(v) + 'km', (x) => ' · 초과 ' + fmt.km(x.excessKm) + 'km') + '</ul></details>';
+      h += '<details open><summary><b>S3 휴일 가중치 분산</b> <span class="k-soft-v">' + fmt.int(sb.S3.total) + '</span> <span class="k-muted k-small">Σ⌊|h−평균 ' + fmt.num1(sb.S3.mean) + '|/' + sb.S3.tolerance + '⌋²</span></summary><ul>' + row(sb.S3.items, (v) => fmt.num1(v), (x) => ' · ' + x.steps + '단계') + '</ul></details>';
       h += '<details><summary><b>S4 리그 총 이동거리</b> <span class="k-soft-v">' + fmt.int(sb.S4.total) + '</span> <span class="k-muted k-small">km, 버림</span></summary><ul>' + sb.S4.items.slice().sort((a, b) => b.value - a.value).map((x) => '<li>' + UI.teamChip(teams[x.team]) + ' ' + fmt.km(x.value) + 'km</li>').join('') + '</ul></details>';
       el.innerHTML = h + '</div>';
     };
@@ -140,14 +148,14 @@
   const C = P.charts = P.charts || {};
   const teamItems = (app, key, flagKey) => app.derived().ex.teamMetrics.map((t) => ({ label: t.name, value: metricValue(t, key), color: app.state.teams[t.team].color, flag: flagKey ? !!t[flagKey] : false, key: t.name }));
 
-  /** FR-A1 구단별 총 이동거리 + 평균선 + ±300km 밴드 */
+  /** FR-A1 구단별 총 이동거리 + 평균선 + 허용오차 밴드 */
   C.distance = (app, o) => {
     const ex = app.derived().ex;
-    const m = ex.league.meanDistanceKm;
-    return Chart.bar({ items: teamItems(app, 'distanceKm', 'overDistance'), mean: m, band: { lo: Math.max(0, m - 300), hi: m + 300, label: '엔진 허용오차 ±300km' }, unit: 'km', format: (v) => fmt.int(v), title: '구단별 총 이동거리', width: (o && o.width) || 640, yZero: false });
+    const m = ex.league.meanDistanceKm, tk = (ex.softBreakdown && ex.softBreakdown.S2) ? ex.softBreakdown.S2.toleranceKm : 300;
+    return Chart.bar({ items: teamItems(app, 'distanceKm', 'overDistance'), mean: m, band: { lo: Math.max(0, m - tk), hi: m + tk, label: '엔진 허용오차 ±' + tk + 'km' }, unit: 'km', format: (v) => fmt.int(v), title: '구단별 총 이동거리', width: (o && o.width) || 640, yZero: false });
   };
-  C.moves = (app, o) => { const m = app.derived().ex.league.meanMoves; return Chart.bar({ items: teamItems(app, 'moves', 'overMoves'), mean: m, band: { lo: m - 2, hi: m + 2, label: '허용오차 ±2회' }, unit: '회', title: '구단별 이동 횟수', width: (o && o.width) || 640, yZero: false }); };
-  C.holiday = (app, o) => { const m = app.derived().ex.league.meanHoliday; return Chart.bar({ items: teamItems(app, 'holidayWeight', 'overHoliday'), mean: m, band: { lo: m - 1.5, hi: m + 1.5, label: '허용오차 ±1.5' }, title: '구단별 휴일 가중치 합 (홈)', width: (o && o.width) || 640, yZero: false }); };
+  C.moves = (app, o) => { const ex = app.derived().ex, m = ex.league.meanMoves, t = ex.softBreakdown ? ex.softBreakdown.S1.tolerance : 2; return Chart.bar({ items: teamItems(app, 'moves', 'overMoves'), mean: m, band: { lo: m - t, hi: m + t, label: '허용오차 ±' + t + '회' }, unit: '회', title: '구단별 이동 횟수', width: (o && o.width) || 640, yZero: false }); };
+  C.holiday = (app, o) => { const ex = app.derived().ex, m = ex.league.meanHoliday, t = ex.softBreakdown ? ex.softBreakdown.S3.tolerance : 1.5; return Chart.bar({ items: teamItems(app, 'holidayWeight', 'overHoliday'), mean: m, band: { lo: m - t, hi: m + t, label: '허용오차 ±' + t }, title: '구단별 휴일 가중치 합 (홈)', width: (o && o.width) || 640, yZero: false }); };
   C.weekend = (app, o) => {
     const tms = app.derived().ex.teamMetrics;
     const m = mean(tms.map((t) => t.weekendHome));
