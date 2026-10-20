@@ -114,7 +114,7 @@
       '최다 ' + chip(m.top.name, S.wide ? fmt.km(m.top.distanceKm) : '') + ' 최소 ' + chip(m.low.name, S.wide ? fmt.km(m.low.distanceKm) : ''),
       st ? '<b>' + esc(st.name) + '</b> ' + fmt.km(st.distanceKm) + 'km · 평균 대비 ' + fmt.signed1(sd) : '',
       ' data-v="' + m.meanKm.toFixed(1) + '" data-total="' + m.totalKm + '"');
-    s += card('over', icon('warn') + '허용 범위 초과 구단 <span class="q-card-kx">이동거리 평균 ±' + tols().km + 'km 밖</span>' + dv('S2'),
+    s += card('over', icon('warn') + '평균보다 ' + tols().km + 'km 넘게 많이·적게 다니는 구단 <span class="q-card-kx">띠 밖</span>' + dv('S2'),
       '<b class="' + (m.over.length ? 'bad' : 'good') + '">' + (m.over.length ? '▲ ' : '') + m.over.length + '</b><span class="u">구단</span><span class="q-card-aside">이동 횟수 초과 ' + m.overMoves + ' · 휴일 초과 ' + m.overHoliday + '</span>',
       m.over.length ? m.over.map((n) => chip(n)).join('') : '<span class="muted">모든 구단이 범위 안</span>',
       st ? '<b>' + esc(st.name) + '</b> ' + (st.overDistance ? '<span class="bad">▲ 범위 밖 (평균 대비 ' + fmt.signed1(sd) + 'km)</span>' : '범위 안 (평균 대비 ' + fmt.signed1(sd) + 'km)') : '',
@@ -137,10 +137,10 @@
     const L = league(), T = tms(), sel = S.ui.team;
     const one = (title, items, mean, tol, f) => S.mchart.dotRows({ sel, width: w, rowH: h, bare: true, title, rows: [{ title, items, mean, tol, fmt: f }] });
     const rowH = Math.max(9, Math.min(30, Math.floor((h - (compact ? 24 : 36)) / T.length)));
-    const tolNote = (t) => '띠 = 평균 ±' + t + ' · ▲ = 초과';
+    const tolNote = (t) => '띠 = 평균에서 ±' + t + ' 안쪽 · ▲ = 띠 밖';
     const tl = tols();
     return [
-      { id: 'distance', title: '총 이동거리', code: 'S2', note: compact ? '띠 ±' + tl.km + 'km · 빗금 ▲ 초과' : '점선 = 평균 · 띠 = ±' + tl.km + 'km · 빗금 ▲ = 초과', svg: S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: tl.km, sel, width: w, rowH, ticks: !compact, title: '구단별 총 이동거리' }) },
+      { id: 'distance', title: '총 이동거리', code: 'S2', note: compact ? '띠 = 평균에서 ' + tl.km + 'km 안쪽 · ▲ 띠 밖' : '점선 = 평균 · 띠 = 평균에서 ' + tl.km + 'km 안쪽 · 빗금 ▲ = 띠 밖', svg: S.mchart.distanceBars({ items: T.map((t) => ({ name: t.name, value: t.distanceKm, over: t.overDistance })), mean: L.meanDistanceKm, tol: tl.km, sel, width: w, rowH, ticks: !compact, title: '구단별 총 이동거리' }) },
       { id: 'moves', title: '이동 횟수', code: 'S1', note: tolNote(tl.moves + '회'), svg: one('이동 횟수', T.map((t) => ({ name: t.name, value: t.moves, over: t.overMoves })), L.meanMoves, tl.moves, (v) => fmt.num1(v) + '회') },
       { id: 'holiday', title: '휴일 가중치', code: 'S3', note: tolNote(tl.holiday), svg: one('휴일 가중치', T.map((t) => ({ name: t.name, value: t.holidayWeight, over: t.overHoliday })), L.meanHoliday, tl.holiday) },
       { id: 'weekend', title: '주말 홈 (참고)', code: '', note: compact ? '점수 미반영' : '띠 = 평균 ±2 · 점수 미반영', svg: one('주말 홈', T.map((t) => ({ name: t.name, value: t.weekendHome, over: false })), L.meanWeekendHome, 2) }

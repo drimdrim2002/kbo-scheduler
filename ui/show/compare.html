@@ -39,20 +39,26 @@
     <h1 class="sh-h1" id="cmp-h">실제 2025 일정 vs 엔진</h1>
     <p class="sh-lead">실제 = KBO 발표 2025 정규시즌 1차 일정(<span data-n="range.from">2025-03-22</span> ~ <span data-n="range.to">2025-08-29</span>, <span data-n="range.slots">45</span>개 날짜 칸, <span data-n="range.series">225</span>시리즈). 엔진 = 같은 대진·같은 규칙으로 PC 한 대에서 시드 <span data-n="engine.seeds">8</span>개를 <span data-n="engine.seconds">10</span>초씩 동시에 돌려 고른 일정. 두 일정을 같은 채점 방식으로 쟀어요.</p>
 
+    <div class="sh-card sh-summary">
+      <ul class="sh-msgs">
+        <li><b data-n="msg.total">이동거리를 13% 줄였어요</b><span>실제 <span data-n="real.totalKm">72,955</span>km → 엔진 <span data-n="engine.totalKm">63,312</span>km</span></li>
+        <li><b data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</b><span>실제 <span data-n="real.rangeKm">6,711~8,084</span>km → 엔진 <span data-n="engine.rangeKm">6,078~6,632</span>km</span></li>
+        <li><b data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</b><span>실제 <span data-n="real.holiday">22~28</span> → 엔진 <span data-n="engine.holidayText">모두 25</span></span></li>
+      </ul>
+    </div>
     <div class="sh-card">
       <table class="sh-table">
-        <caption class="sh-small" style="text-align:left;padding:0 0 8px">지표별 비교. 노란 줄은 실제 일정이 더 나은 지표.</caption>
+        <caption class="sh-small" style="text-align:left;padding:0 0 8px">숫자로 보면. 노란 줄은 실제 일정이 더 나은 지표.</caption>
         <thead><tr><th scope="col">지표</th><th scope="col"><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제 2025</th><th scope="col"><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>엔진</th></tr></thead>
         <tbody>
           <tr><th scope="row">10구단 총 이동거리<small>시즌 전체 합계</small></th><td class="sh-num"><b><span data-n="real.totalKm">72,955</span> km</b></td><td class="sh-num"><b><span data-n="engine.totalKm">63,312</span> km</b><span class="sh-tag sh-tag-engine"><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></span></td></tr>
-          <tr><th scope="row">구단 간 이동거리 차이<small>가장 많이 다니는 구단 − 가장 적게</small></th><td class="sh-num"><b><span data-n="real.spreadKm">1,373</span> km</b><small><span data-n="real.maxTeam">KIA</span> <span data-n="real.maxKm">8,084</span> / <span data-n="real.minTeam">두산</span> <span data-n="real.minKm">6,711</span></small></td><td class="sh-num"><b><span data-n="engine.spreadKm">554</span> km</b><small><span data-n="engine.maxTeam">롯데</span> <span data-n="engine.maxKm">6,557</span> / <span data-n="engine.minTeam">두산</span> <span data-n="engine.minKm">6,090</span></small><span class="sh-tag sh-tag-engine">훨씬 고름</span></td></tr>
+          <tr><th scope="row">구단별 이동거리<small>가장 적게 다니는 구단 ~ 가장 많이</small></th><td class="sh-num"><b><span data-n="real.rangeKm">6,711~8,084</span> km</b><small><span data-n="real.minTeam">두산</span> ~ <span data-n="real.maxTeam">KIA</span> · 차이 <span data-n="real.spreadKm">1,373</span>km</small></td><td class="sh-num"><b><span data-n="engine.rangeKm">6,078~6,632</span> km</b><small><span data-n="engine.minTeam">SSG</span> ~ <span data-n="engine.maxTeam">키움</span> · 차이 <span data-n="engine.spreadKm">554</span>km</small><span class="sh-tag sh-tag-engine" data-n="diff.spreadTag">훨씬 공정</span></td></tr>
           <tr><th scope="row">구단별 이동 횟수<small>원정을 떠나거나 돌아온 횟수</small></th><td class="sh-num"><b><span data-n="real.moves">32~38</span>회</b></td><td class="sh-num"><b><span data-n="engine.moves">31~34</span>회</b><span class="sh-tag sh-tag-engine">조금 적고 고름</span></td></tr>
-          <tr><th scope="row">휴일 가중치<small>주말·공휴일 홈 경기의 무게. 구단끼리 비슷할수록 좋아요</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span></b></td><td class="sh-num"><b><span data-n="engine.holiday">24~26</span></b><span class="sh-tag sh-tag-engine">엔진이 고름</span></td></tr>
-          <tr id="row-weekend"><th scope="row">주말 홈 시리즈 수<small>구단별 토·일 홈 3연전 수</small></th><td class="sh-num" id="weekend-real-cell"><b><span data-n="real.weekend">11~12</span>회</b></td><td class="sh-num" id="weekend-engine-cell"><b><span data-n="engine.weekend">11~12</span>회</b><span class="sh-tag sh-tag-even" id="weekend-tag">같음</span></td></tr>
+          <tr><th scope="row">주말·공휴일 홈 경기 몫<small>구단끼리 똑같을수록 공정해요</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span></b></td><td class="sh-num"><b><span data-n="engine.holidayText">모두 25</span></b><span class="sh-tag sh-tag-engine" data-n="diff.holidayTag">똑같이</span></td></tr>
+          <tr id="row-weekend"><th scope="row">주말 홈 경기 수<small>구단별 토·일 홈 3연전 수</small></th><td class="sh-num" id="weekend-real-cell"><b><span data-n="real.weekend">11~12</span>회</b></td><td class="sh-num" id="weekend-engine-cell"><b><span data-n="engine.weekend">11~12</span>회</b><span class="sh-tag sh-tag-even" id="weekend-tag">같음</span></td></tr>
           <tr><th scope="row">가장 긴 원정 연속<small>집에 못 돌아오는 최대 시리즈 수</small></th><td class="sh-num"><b><span data-n="real.awayRun">2~3</span>시리즈</b></td><td class="sh-num"><b><span data-n="engine.awayRun">3</span>시리즈</b><span class="sh-tag sh-tag-even">비슷</span></td></tr>
         </tbody>
       </table>
-      <div class="sh-honest" id="honest"><b>숨기지 않을 것:</b> 엔진은 이동거리·이동 횟수·주말과 공휴일 홈의 공평함을 목표로 둡니다. 주말 홈 시리즈 수는 <span data-n="diff.weekendWord">같은 수준입니다</span>(실제 <span data-n="real.weekend">11~12</span>회, 엔진 <span data-n="engine.weekend">11~12</span>회). 실제 일정은 엔진이 모르는 조건(아래 목록)을 반영한 결과라서, 실제가 더 나은 지표가 있으면 노란 줄로 그대로 보여 드립니다. 그게 믿을 수 있는 비교라고 생각해요.</div>
     </div>
   </section>
 
@@ -65,8 +71,8 @@
     </div>
     <div class="sh-card">
       <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>엔진</span></div>
-      <div class="sh-chart-h"><b>구단별 주말 홈 시리즈 수</b><span class="sh-small">실제 → 엔진, 회. <span data-n="diff.weekendWord">같은 수준입니다</span></span></div>
-      <div class="sh-teams" id="chart-weekend" role="img" aria-label="구단별 주말 홈 시리즈 수 막대 (불러오는 중)"></div>
+      <div class="sh-chart-h"><b>구단별 주말 홈 경기 수</b><span class="sh-small">실제 → 엔진, 회. <span data-n="diff.weekendWord">같은 수준입니다</span></span></div>
+      <div class="sh-teams" id="chart-weekend" role="img" aria-label="구단별 주말 홈 경기 수 막대 (불러오는 중)"></div>
     </div>
   </section>
 

@@ -264,8 +264,9 @@ final class JobManager {
             teams.append(t);
         }
         double km = Json.asDouble(k.get("distanceToleranceKm"), 300.0);
-        return "이동거리 허용오차 " + (km == Math.floor(km) ? String.valueOf((long) km) : String.valueOf(km)) + "km · 어린이날 홈 "
-                + teams + " · 시드 " + seed;
+        // 일상어 제목. ui/show/show.js tolWord와 같은 구간
+        String word = km <= 150 ? "이동거리 거의 똑같게" : km <= 450 ? "이동거리 비슷하게" : "이동거리 달라도 괜찮게";
+        return word + " · 어린이날 홈 " + teams + " · 시드 " + seed;
     }
 
     private static String cacheKey(JSONObject problem, SolveOptions options, boolean fullPlan) {

@@ -96,6 +96,20 @@
     put('real.weekend', rt.length ? r1(rt, 'weekendHome') : (real.weekendHomeMin != null ? real.weekendHomeMin + '~' + real.weekendHomeMax : null));
     put('engine.weekend', et.length ? r1(et, 'weekendHome') : (engine.weekendHomeMin != null ? engine.weekendHomeMin + '~' + engine.weekendHomeMax : null));
     put('real.awayRun', r1(rt, 'maxAwayRun')); put('engine.awayRun', r1(et, 'maxAwayRun'));
+    // 메시지 한 줄 + 아래 숫자: 통계 용어 대신 뜻을 말한다
+    const kmRange = (teams) => { const xs = teams.map((t) => t.distanceKm).filter((x) => typeof x === 'number'); return xs.length ? fmtInt(Math.min(...xs)) + '~' + fmtInt(Math.max(...xs)) : null; };
+    put('real.rangeKm', kmRange(rt)); put('engine.rangeKm', kmRange(et));
+    v['msg.total'] = pct == null ? '이동거리를 비교해요' : pct > 0 ? '이동거리를 ' + pct + '% 줄였어요' : pct === 0 ? '이동거리는 같아요' : '이동거리가 ' + (-pct) + '% 늘었어요';
+    v['msg.fair'] = ratio == null ? '구단별 이동거리를 비교해요' : ratio < 0.6 ? '구단별 이동거리가 훨씬 공정해졌어요' : ratio < 0.9 ? '구단별 이동거리가 더 공정해졌어요' : ratio <= 1.1 ? '구단별 이동거리는 비슷하게 공정해요' : '구단별 이동거리는 실제가 더 공정해요';
+    v['diff.spreadTag'] = ratio == null ? '' : ratio < 0.6 ? '훨씬 공정' : ratio < 0.9 ? '더 공정' : ratio <= 1.1 ? '비슷' : '실제가 공정';
+    const hs = (teams) => spread(teams, 'holidayWeight');
+    const rh = rt.length ? hs(rt) : null, eh = et.length ? hs(et) : null;
+    if (eh != null) v['engine.holidayText'] = eh === 0 ? '모두 ' + et[0].holidayWeight : r1(et, 'holidayWeight');
+    if (rh != null) v['real.holidayText'] = rh === 0 ? '모두 ' + rt[0].holidayWeight : r1(rt, 'holidayWeight');
+    if (rh != null && eh != null) {
+      v['msg.weekend'] = eh === 0 ? '주말·공휴일 홈 경기를 똑같이 나눴어요' : eh < rh ? '주말·공휴일 홈 경기를 더 고르게 나눴어요' : eh === rh ? '주말·공휴일 홈 경기는 실제처럼 나눴어요' : '주말·공휴일 홈 경기는 실제가 더 고르게 나눴어요';
+      v['diff.holidayTag'] = eh === 0 ? '똑같이' : eh < rh ? '더 고름' : eh === rh ? '비슷' : '실제가 고름';
+    }
     // 주말 홈 시리즈 수: 편차(최대−최소)로 어느 쪽이 더 고른지 판정한다. 같으면 "같은 수준"
     const rw = real.weekendHomeMin != null ? real.weekendHomeMax - real.weekendHomeMin : (rt.length ? spread(rt, 'weekendHome') : null);
     const ew = engine.weekendHomeMin != null ? engine.weekendHomeMax - engine.weekendHomeMin : (et.length ? spread(et, 'weekendHome') : null);
@@ -282,8 +296,7 @@
   /** ④ 직접 해보기 — 손잡이 2개 + 목업 진행(서버 연결 전) */
   function tryForm() {
     const form = $('#try-form'); if (!form) return;
-    const slider = $('#tol'), out = $('#tol-out');
-    if (slider && out) { const show = () => { out.textContent = slider.value + ' km'; out.value = slider.value; }; slider.addEventListener('input', show); show(); }
+    const tolOf = () => { const r = $('input[name="tol"]:checked', form); return r ? r.value : '300'; };
     const boxes = $$('input[name="cd"]', form), count = $('#cd-count');
     const MAXSEL = 5;
     function refresh() {
@@ -311,7 +324,7 @@
         txt.textContent = (k < 0.3 ? '시드 8개로 동시에 짜는 중' : k < 0.7 ? '이동거리를 줄이는 중' : '구단 간 차이를 고르는 중') + ' · ' + Math.round(el / 1000) + '/' + Math.round(total / 1000) + '초';
         if (el < total) { setTimeout(tick, 250); return; }
         // 서버 연결 뒤: POST /api/v1/solve → SSE → /r/<id>. 지금은 기본 결과로 이동한다(목업).
-        const p = new URLSearchParams({ id: 'default', tol: slider ? slider.value : '', cd: teams.join(',') });
+        const p = new URLSearchParams({ id: 'default', tol: tolOf(), cd: teams.join(',') });
         location.href = 'r.html?' + p.toString();
       };
       tick();
@@ -362,8 +375,8 @@
       bind({ 'result.title': title, 'result.sub': res.title || '', 'result.id': id });
       const kb = res.knobs || {};
       bind({
-        'knob.tol': kb.distanceToleranceKm != null ? fmtInt(kb.distanceToleranceKm) + ' km' : '–',
-        'knob.holiday': kb.holidayTolerance != null ? String(kb.holidayTolerance) : '–',
+        'knob.tol': kb.distanceToleranceKm != null ? tolWord(kb.distanceToleranceKm) + ' (±' + fmtInt(kb.distanceToleranceKm) + 'km)' : '–',
+        'knob.holiday': kb.holidayTolerance != null ? (kb.holidayTolerance <= 1 ? '똑같이 나누기' : '한두 번 차이는 괜찮게') : '–',
         'knob.cd': (kb.childrenDayHomeTeams || []).join('·') || '–',
         'knob.unavail': (kb.unavailableHomeSlots || []).length ? kb.unavailableHomeSlots.map((u) => (u.date || u.slot || '') + ' ' + (u.team || '') + (u.reason ? ' (' + u.reason + ')' : '')).join(', ') : '없음',
         'knob.run': (res.options ? (res.options.timeLimitSec || '–') + '초 · 시드 ' + (res.options.seeds || '–') + '개 동시' : '–') + (res.seed != null ? ' · 고른 시드 ' + res.seed : ''),
@@ -376,7 +389,7 @@
       const trend = $('#weekend-note');
       if (trend && real.weekendHomeMin != null) {
         const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;
-        trend.textContent = '주말 홈 시리즈 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회 — ' + (ew2 > rw2 ? '실제 일정이 더 고릅니다.' : ew2 < rw2 ? '이 결과가 더 고릅니다.' : '같은 수준입니다.');
+        trend.textContent = '주말 홈 경기 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회 — ' + (ew2 > rw2 ? '실제 일정이 더 고릅니다.' : ew2 < rw2 ? '이 결과가 더 고릅니다.' : '같은 수준입니다.');
       }
       mark('show', 'result-ok');
       const box = $('#replay-box');
@@ -401,10 +414,12 @@
     bindShare();
     fixStudioLinks();
   };
+  /** 손잡이 값 → 일상어. 서버 JobManager.titleOf와 같은 구간 */
+  function tolWord(km) { return km <= 150 ? '이동거리 거의 똑같게' : km <= 450 ? '이동거리 비슷하게' : '이동거리 달라도 괜찮게'; }
   function knobsTitle(k) {
     if (!k) return '';
     const parts = [];
-    if (k.distanceToleranceKm != null) parts.push('이동거리 허용오차 ' + fmtInt(k.distanceToleranceKm) + 'km');
+    if (k.distanceToleranceKm != null) parts.push(tolWord(k.distanceToleranceKm));
     if (k.childrenDayHomeTeams && k.childrenDayHomeTeams.length) parts.push('어린이날 홈 ' + k.childrenDayHomeTeams.join('·'));
     if (k.unavailableHomeSlots && k.unavailableHomeSlots.length) parts.push('홈 불가 ' + k.unavailableHomeSlots.length + '건');
     return parts.join(' · ');

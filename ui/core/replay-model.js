@@ -20,10 +20,10 @@
 
   /** 소프트 단계 일반 용어(인덱스 순). 점수는 음수(감점)이므로 화면에는 절댓값을 쓴다. */
   const LEVELS = [
-    { key: 'unassigned', label: '미배정 시리즈', unit: '개' },
-    { key: 'moveDev', label: '이동 횟수 편차', unit: '' },
-    { key: 'distDev', label: '거리 편차', unit: '' },
-    { key: 'holidayDev', label: '휴일 편차', unit: '' },
+    { key: 'unassigned', label: '슬롯 없는 시리즈', unit: '개' },
+    { key: 'moveDev', label: '구단 간 이동 횟수 차이', unit: '' },
+    { key: 'distDev', label: '구단 간 이동거리 차이', unit: '' },
+    { key: 'holidayDev', label: '주말·공휴일 홈 경기 차이', unit: '' },
     { key: 'totalKm', label: '총 이동거리', unit: 'km' }
   ];
 
