@@ -32,3 +32,4 @@ x-slotlist|step=3&view=slots
 x-a4|step=4&qv=a4&team=KT
 x-a5|step=4&qv=a5
 x-sched|step=4&qv=sched&team=KT
+x-replay|step=2&modal=replay

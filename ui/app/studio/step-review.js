@@ -238,6 +238,7 @@
       row(n ? 'block' : 'ok', n ? '<b>' + esc(S.termPlain('hardViol')) + ' ' + n + '건</b> — ' + esc(Array.from(new Set(ex.violations.map((v) => S.ruleName(v.code)))).join(', ')) : esc(S.termPlain('hardViol')) + ' 없음 — 편성 가능', n ? '<button class="btn sm" data-act="go-step" data-step="3">' + icon('right') + '③ 결과·수정에서 고치기</button>' : '') +
       row(c.pool.length ? 'warn' : 'ok', c.pool.length ? '미배정 시리즈 ' + c.pool.length + '개' : '모든 시리즈가 슬롯에 놓였습니다') +
       row(over.length ? 'warn' : 'ok', over.length ? '이동거리가 허용 범위(평균 ±300km)를 넘는 구단 ' + over.length + '개 — ' + esc(over.map((t) => t.name).join(', ')) : '모든 구단 이동거리가 허용 범위 안', '<button class="btn sm" data-act="q-view" data-qv="metrics">' + icon('right') + '④ 지표에서 보기</button>') +
+      (S.lastRun.trace ? row('info', '서버 엔진이 더 나은 일정을 찾아간 순서 — 개선 ' + (S.lastRun.trace.events || []).length + '회를 20~40초로 늘려 재생합니다', '<button class="btn sm" data-act="open-replay">' + icon('play') + '탐색 과정 보기</button>') : '') +
       '</div></div>';
   }
 
@@ -357,7 +358,8 @@
     const r = S.run;
     if (!r) return;
     const why = { TIME_LIMIT: '최대 실행 시간', UNIMPROVED: '개선 없음', STOPPED: '사용자 중지', ERROR: '오류' }[reason] || reason;
-    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()), engine: r.engine, seeds: r.seeds };
+    const ar = app().run;
+    S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()), engine: r.engine, seeds: r.seeds, trace: (ar && ar.trace) || null };
     S.run = null;
     if (reason === 'ERROR') { S.toast('편성 실패 — ' + (message || '엔진 오류'), 'bad', 7000); S.render(); return; }
     const ex = D().ex;
@@ -394,4 +396,39 @@
     S.ui.step = 2; S.ui.ops = null;
     S.render();
   };
+  // ───────── 탐색 과정 재생 모달 (제품 정의서 §4.2) ─────────
+  // 서버 엔진의 done 이벤트에 담긴 trace를 app.run.trace → S.lastRun.trace로 보관하고, KBO.Replay가 모달 안에서 재생한다.
+  // 트레이스가 없으면(주소 modal=replay로 직접 열었을 때) 샘플 core/trace-sample.json을 읽어 보여 준다.
+  S.modals.replay = function () {
+    const tr = S.lastRun && S.lastRun.trace;
+    S.afterRender(() => S.mountReplay(tr || null));
+    return '<div class="modal replay-modal" role="dialog" aria-label="탐색 과정 재생"><div class="modal-head"><h3>' + icon('play') + ' 탐색 과정 재생</h3>' +
+      '<span class="muted small">서버 엔진이 더 나은 일정을 찾아간 순서를 20~40초로 늘려 재생합니다. 카드 1장 = 시리즈 1개, 색은 홈 구단.</span>' +
+      (tr ? '' : '<span class="tag ref">샘플 트레이스</span>') +
+      '<button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" title="닫기">' + icon('x') + '</button></div>' +
+      '<div class="modal-body"><div id="replayHost" class="replay-host"></div></div></div>';
+  };
+  /** 모달이 다시 그려져도 같은 플레이어(재생 위치 유지)를 호스트에 다시 붙인다. */
+  S.mountReplay = function (trace) {
+    const host = document.getElementById('replayHost');
+    if (!host || !window.KBO.Replay) return;
+    const start = (tr) => {
+      if (!S.replayPlayer || S.replayPlayer.trace !== tr) {
+        if (S.replayPlayer) S.replayPlayer.destroy();
+        try { S.replayPlayer = KBO.Replay.open(tr, { embedded: true, autoplay: !S.quiet }); }
+        catch (e) { host.innerHTML = '<div class="empty">트레이스를 재생할 수 없습니다 — ' + esc(e.message) + '</div>'; return; }
+      }
+      if (S.replayPlayer.el.parentNode !== host) host.innerHTML = ''; // '불러오는 중' 안내 제거
+      S.replayPlayer.attach(host);
+    };
+    if (trace) { start(trace); return; }
+    if (S.sampleTrace) { start(S.sampleTrace); return; }
+    host.innerHTML = '<div class="empty">샘플 트레이스를 불러오는 중…</div>';
+    KBO.Replay.load('core/trace-sample.json', (err, tr) => {
+      if (err) { if (S.ui.modal === 'replay' && document.getElementById('replayHost')) document.getElementById('replayHost').innerHTML = '<div class="empty">샘플 트레이스를 불러올 수 없습니다 (' + esc(err) + '). 편성 서버로 열면 됩니다.</div>'; return; }
+      S.sampleTrace = tr;
+      if (S.ui.modal === 'replay') start(tr);
+    });
+  };
+  S.actions['open-replay'] = () => S.go({ modal: 'replay' });
 })();

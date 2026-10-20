@@ -60,6 +60,13 @@
 - 브라우저는 트레이스를 20~40초로 늘려 재생한다. 속도 조절·일시정지·한 스텝씩. 화면은 왼쪽 일정판(카드 이동), 오른쪽 점수 곡선(소프트 5단계가 차례로 0이 되고 총거리가 내려감), 아래 한 줄 해설("켐페 체인: LG·두산 7라운드↔12라운드 교환").
 - 기본 조건의 트레이스는 서버에 미리 만들어 두어 첫 화면이 즉시 뜬다.
 
+**구현 메모 (2026-10-20, 탐색 과정 재생기)**
+- 상태 계산은 `ui/core/replay-model.js`(`KBO.ReplayModel.build(trace)`, 순수 모듈·Node 테스트 3개)가 한다: 이벤트 i까지 적용한 시리즈→슬롯 배정과 슬롯 안 줄 번호, 누적 이동 수, 소프트 단계 절댓값, 해설 문자열. 시간 축은 이벤트 간 균등 + 바뀐 시리즈 수 가중(최대 +60%)으로 전체 20~40초(= 이벤트 수 × 0.8초를 20~40에 가둠)다.
+- 화면은 `ui/replay.html` + `ui/app/replay/`(`KBO.Replay.open(trace, {host, embedded})`, 외부 라이브러리 없음): 왼쪽 9×5 슬롯 격자 위에 시리즈 카드를 transform으로 놓고 320ms 전환으로 움직인다. 오른쪽은 소프트 5단계(미배정·이동 횟수 편차·거리 편차·휴일 편차·총 이동거리 km) 계단 곡선과 현재 시점 커서, 아래는 해설 한 줄과 재생/일시정지·0.5×/1×/2×·한 스텝 앞뒤·슬라이더·처음으로다. `replay.html?src=<json>&t=<초>&autoplay=0`로 열고, 기본은 `ui/core/trace-sample.json`(data/baseball의 복사본)이다.
+- 위저드 연동: `app.js`가 SSE `done`의 `trace`를 `run.trace`에 두고, ② 검토·실행의 「지난 실행 결과」가 `S.lastRun.trace`가 있을 때만(서버 엔진) 「탐색 과정 보기」 버튼을 보여 모달(`modal=replay`)로 같은 재생기를 띄운다. 트레이스 없이 주소로 열면 샘플을 읽는다. 지난 실행은 메모리에만 있어 새로고침하면 버튼이 사라진다.
+- 점검: Node 21/21, 자가 점검 64/64(1440·1920, 재생기 5개 추가), 화면 점검 35경로×2크기 70/70(`x-replay` 추가). 점검 스크립트는 file://에서 샘플 JSON을 읽도록 `--allow-file-access-from-files`를 켰다. 스크린샷 `ui/shots/replay-play-1440.png`·`replay-mobile-375.png`·`s5-replay-*.png`.
+- 빈틈: 모바일(≤700px)은 3열 격자에 페이지 세로 스크롤을 허용했고 헤드리스 최소 폭(500px) 탓에 375px 화면은 직접 확인하지 못했다. KEEP 모드로 Hard 위반이 남은 트레이스는 미배정 카드를 숨기고 머리글에 수만 적는다. 무브 종류 이름(§7-2)은 아직 없다.
+
 ## 5. 아키텍처
 - **서버**: 기존 Maven 프로젝트에 `org.optaplanner.examples.baseball.web` 패키지. JDK 내장 `HttpServer`, 정적 파일(`ui/` + 소개 페이지) 서빙, 작업 큐(동시 실행 1~2개, 대기 순번 표시), 결과 캐시(파라미터 해시+시드 → 결과 JSON).
 - **REST**: 기준 요구사항 §7.3을 따르되 응답에 `trace`와 `seedResults`를 더한다. `POST /api/v1/solve` → `{jobId}`, `GET /api/v1/solve/{jobId}/events`(SSE: `seed-best`, `best`, `done`), `POST /api/v1/score`(실제 일정 채점).

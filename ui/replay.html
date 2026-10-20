@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko" class="rp-html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>탐색 과정 재생 — KBO 일정 편성</title>
+<meta name="description" content="OptaPlanner 솔버가 KBO 일정을 더 낫게 바꿔 가는 과정을 20~40초로 늘려 재생합니다.">
+<script>
+  /* 콘솔 오류 수집 (점검용, index.html과 같은 형식). 화면 동작에는 영향이 없다. */
+  (function () {
+    var errs = [];
+    window.__studioErrors = errs;
+    function mark() { try { document.documentElement.setAttribute('data-errors', String(errs.length)); if (errs.length) document.documentElement.setAttribute('data-error-list', errs.slice(0, 5).join(' | ')); } catch (e) { /* 무시 */ } }
+    window.addEventListener('error', function (e) { errs.push('error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || '')); mark(); }, true);
+    window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + (e.reason && e.reason.message || e.reason)); mark(); });
+    var ce = console.error;
+    console.error = function () { errs.push('console: ' + Array.prototype.join.call(arguments, ' ')); mark(); return ce.apply(console, arguments); };
+    mark();
+  })();
+</script>
+<link rel="stylesheet" href="app/replay/replay.css">
+</head>
+<body class="rp-body">
+<div id="replay" class="rp-page"></div>
+<noscript>JavaScript가 필요합니다.</noscript>
+<script src="core/replay-model.js"></script>
+<script src="app/replay/replay.js"></script>
+<script>KBO.Replay.boot();</script>
+</body>
+</html>

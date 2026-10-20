@@ -551,6 +551,7 @@
     handle.on('done', (p) => {
       this._applyBest(run, p);
       run.status = 'DONE'; run.reason = p.reason;
+      if (p.trace) run.trace = p.trace; // 서버 엔진의 탐색 트레이스(§4.2 재생용)
       const why = { TIME_LIMIT: '최대 실행 시간 도달', UNIMPROVED: '개선 없음 종료', STOPPED: '사용자 중지' }[p.reason] || p.reason;
       if (!o.quiet) UI.toast('엔진 종료 (' + why + ') — ' + Score.scoreString(p.score), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
       this.emitUI(['run']);
