@@ -79,7 +79,7 @@
 | 3 | 점검: 375·768·1440 스크린샷, 링크 공유 왕복(카카오톡·X 미리보기), 부하(동시 10명), 문구 다듬기 |
 
 ## 9. 표준 버전 구현 메모 (2026-10-20, `ui/show/`)
-- 3쪽(`index.html`·`compare.html`·`r.html?id=<id>`) + `show.css`·`show.js` 한 벌. 데이터 경로는 `show.js`의 `SHOW.api` 두 줄뿐이라 서버 연결 때 `'/api/v1/compare'`·`'/api/v1/results/' + id`로 바꾸면 된다(file://에서도 돌도록 XHR). `r.html`은 `/r/<id>`에서도 상대 경로가 맞도록 `<base href="../show/">`를 두고, 위저드 링크(`data-studio`)는 http에서 `/studio/`로 바뀐다.
+- 3쪽(`index.html`·`compare.html`·`r.html?id=<id>`) + `show.css`·`show.js` 한 벌. 데이터 경로는 `show.js`의 `SHOW.api` 한 곳: http(s)면 서버 API(`/api/v1/compare`, `/api/v1/results/<id>`), 서버 없이 file://로 열면 같은 모양의 `fixtures/`(XHR로 읽는다). `r.html`은 `/r/<id>`에서도 상대 경로가 맞도록 `<base href="../show/">`를 두고, 위저드 링크(`data-studio`)는 http에서 `/studio/`로 바뀐다.
 - 첫 화면 숫자는 HTML에 박힌 기본값(정의서 §1의 10초 결과: 62,728·467·10초)이고 fetch 뒤 `data-n` 요소가 응답값으로 바뀐다. 지금 fixture(`result-default.json`, 30초·8시드)로는 62,526·487·30초가 보인다. 헤드라인의 "N초"도 같은 값에 묶여 있다.
 - 재생기는 `ui/app/replay/` 모듈을 그대로 쓰되 `show.css`가 `.sh-replay .rp-*`로 세로 쌓기(일정판 위·곡선 아래)로 덮는다. 소개 쪽은 뷰포트에 들어올 때 모듈·트레이스를 읽어 2배속 15초 미리보기(≤700px는 9열 축소판) 뒤 멈추고, 탭하면 1배속 전체 재생. 「편성 시작」은 10초 진행 뒤 `r.html?id=default`로 가는 목업('목업' 표시).
 - 점검 `ui/tools/show/check.sh`(3쪽 × 375·768·1440: 가로 스크롤 0·콘솔 오류 0·데이터 ok·재생기 ready, `?replay=now`로 즉시 로드)와 `shot.sh`(`ui/shots/show-*.png` 9장). 헤드리스 Chrome이 500px 밑 창을 못 만들어 `frame.html`의 iframe 안에서 재고 속성을 바깥으로 복사한다.

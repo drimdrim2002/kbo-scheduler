@@ -1,6 +1,6 @@
 /*
  * 보여주는 문(ui/show/) 공통 스크립트. 소개·비교·결과 3쪽이 이 파일 하나를 쓰고 body[data-page]로 갈린다.
- * 데이터 경로는 SHOW.api 한 곳에만 둔다. 서버에 붙일 때는 그 두 줄만 '/api/v1/compare', '/api/v1/results/' + id 로 바꾼다.
+ * 데이터 경로는 SHOW.api 한 곳에만 둔다: http(s)면 서버 API('/api/v1/compare', '/api/v1/results/' + id), file://면 fixtures/.
  * 외부 라이브러리·빌드 없음. file://로 열어도 되도록 JSON은 XMLHttpRequest로 읽는다(fetch는 file 스킴을 거부한다).
  * 화면 글자는 일반 용어만 쓴다(필수 규칙·공정성, 점수 원문 없음).
  */
@@ -8,10 +8,15 @@
   'use strict';
   const SHOW = window.SHOW = window.SHOW || {};
 
-  // ───────── 데이터 경로 (서버 연결 때 여기만 바꾼다) ─────────
-  SHOW.api = {
-    compare: 'fixtures/compare.json',                   // 서버: '/api/v1/compare'
-    result: (id) => 'fixtures/result-' + id + '.json'   // 서버: '/api/v1/results/' + encodeURIComponent(id)
+  // ───────── 데이터 경로 (한 곳) ─────────
+  // http(s)로 열면 서버 API, 서버 없이 file://로 열면 같은 모양의 고정 JSON(fixtures/)로 떨어진다.
+  const isFile = location.protocol === 'file:';
+  SHOW.api = isFile ? {
+    compare: 'fixtures/compare.json',
+    result: (id) => 'fixtures/result-' + id + '.json'
+  } : {
+    compare: '/api/v1/compare',
+    result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
   SHOW.replayScripts = ['../core/replay-model.js', '../app/replay/replay.js'];
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
@@ -30,7 +35,6 @@
     return (n < 0 ? '−' : '') + s;
   };
   const query = new URLSearchParams(location.search);
-  const isFile = location.protocol === 'file:';
   const html = document.documentElement;
   const mark = (k, v) => html.setAttribute('data-' + k, String(v));
 
