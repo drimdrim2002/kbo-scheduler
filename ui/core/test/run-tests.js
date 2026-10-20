@@ -7,9 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 const core = path.resolve(__dirname, '..');
-for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map']) require(path.join(core, f + '.js'));
+for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model']) require(path.join(core, f + '.js'));
 const K = globalThis.KBO;
-const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit } = K;
+const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel } = K;
 
 let passed = 0, failed = 0;
 const queue = [];
@@ -269,6 +269,58 @@ test('CSV·차트·지도 렌더 스모크', () => {
   eq(csv.trim().split('\r\n').length, 1 + 675, 'CSV 경기 행 수');
   assert(Chart.bar({ items: [{ label: 'A', value: 3 }, { label: 'B', value: 5, flag: true }], mean: 4, band: { lo: 3, hi: 5 } }).includes('<svg'));
   assert(MapKit.render({ markers: [{ id: 'a', lat: 37.5, lon: 127, label: 'A' }] }).svg.includes('kmap-marker'));
+});
+
+// ───────── 탐색 과정 재생 모델 (제품 정의서 §4.2) ─────────
+const sampleTrace = () => JSON.parse(fs.readFileSync(path.join(core, 'trace-sample.json'), 'utf8'));
+
+test('재생 모델: 샘플 트레이스를 모두 적용하면 모든 시리즈가 슬롯에 있고 슬롯마다 5개', () => {
+  const t = sampleTrace();
+  const m = ReplayModel.build(t);
+  eq(m.states.length, t.events.length + 1, '상태 수 = 이벤트 수 + 1');
+  const last = m.states[m.n];
+  assert(Array.from(last.assign).every((s) => s >= 0 && s < m.slots.length), '미배정 없음');
+  const counts = m.slotCounts(m.n);
+  assert(Array.from(counts).every((c) => c === 5), '슬롯마다 시리즈 5개: ' + Array.from(counts).join(','));
+  // 같은 슬롯 안에서 줄(row)이 겹치지 않는다
+  for (let i = 0; i <= m.n; i++) {
+    const seen = new Set();
+    m.states[i].assign.forEach((s, k) => { if (s < 0) return; const key = s + ':' + m.states[i].row[k]; assert(!seen.has(key), '상태 ' + i + ' 줄 겹침 ' + key); seen.add(key); });
+  }
+  eq(last.moves, t.events.reduce((s, e) => s + e.changes.length, 0), '누적 이동 수');
+});
+
+test('재생 모델: 마지막 점수 = 트레이스 마지막 이벤트, 시간 축 20~40초·단조 증가, 해설 문자열', () => {
+  const t = sampleTrace();
+  const m = ReplayModel.build(t);
+  const lastEv = t.events[t.events.length - 1];
+  eq(m.states[m.n].soft, lastEv.score.soft.map((v) => Math.abs(v)), '마지막 소프트 점수');
+  eq(m.states[0].soft, t.initialScore.soft.map((v) => Math.abs(v)), '초기 점수');
+  assert(m.durationMs >= 20000 && m.durationMs <= 40000, '재생 길이 ' + m.durationMs);
+  for (let i = 1; i < m.times.length; i++) assert(m.times[i] > m.times[i - 1], '시각 단조 증가');
+  eq(m.times[0], 0); assert(m.times[m.n] < m.durationMs, '마지막 이벤트 뒤 여유');
+  eq(m.indexAt(0), 0); eq(m.indexAt(m.times[3]), 3); eq(m.indexAt(m.times[3] - 1), 2); eq(m.indexAt(m.durationMs), m.n);
+  assert(/^시작 상태/.test(m.captions[0]) && /총 이동거리 70,198km/.test(m.captions[0]), m.captions[0]);
+  assert(/^1번째 개선 · 시리즈 6개 이동 · 거리 편차 5,101 → 756/.test(m.captions[1]), m.captions[1]);
+  assert(/^22번째 개선 · 시리즈 7개 이동 · 총 이동거리 68,505 → 68,501km · /.test(m.captions[22]), m.captions[22]);
+  const names = m.captions[22].split(' · ').pop().split('·');
+  assert(names.length >= 2 && names.length <= 3 && names.every((n) => t.teams.some((x) => x.name === n.replace(/ 외 \d+$/, ''))), '구단명 2~3개: ' + names.join(','));
+});
+
+test('재생 모델: 마지막 상태에서 되감으면 원래 배정으로 돌아온다', () => {
+  const t = sampleTrace();
+  const m = ReplayModel.build(t);
+  let assign = m.states[m.n].assign, row = m.states[m.n].row;
+  for (let i = m.n; i >= 1; i--) {
+    const r = ReplayModel.apply(m, assign, row, m.events[i - 1].changes, -1);
+    assign = r.assign; row = r.row;
+    eq(Array.from(assign), Array.from(m.states[i - 1].assign), '상태 ' + (i - 1) + ' 배정 복원');
+  }
+  const init = t.series.map((s) => m.slotIndex.get(s.slot));
+  eq(Array.from(assign), init, '초기 배정');
+  // 잘못된 트레이스는 설명이 있는 오류
+  let err = null; try { ReplayModel.build({ teams: [] }); } catch (e) { err = e; }
+  assert(err && /트레이스 형식 오류/.test(err.message), '형식 오류 메시지');
 });
 
 test('Worker 소스 생성 (팩토리 직렬화)', () => {

@@ -296,6 +296,30 @@
     at({ step: 3, sel: null, view: 'calendar' }, '개발자 ③');
     S.devOverride = null;
     ok('검사기 자체 확인 (개발자 모드에서는 잡힘)', leaks.length >= 3, leaks.length + '건');
+    // 14. 탐색 과정 재생기(§4.2): 합성 트레이스로 모달·스텝 이동·닫기 (네트워크 없이)
+    {
+      const tr = { seed: 7, initialScore: { hard: [0, 0], soft: [0, 0, -10, -2, -1000] },
+        teams: [{ index: 0, name: 'A' }, { index: 1, name: 'B' }, { index: 2, name: 'C' }, { index: 3, name: 'D' }],
+        slots: [{ id: 0, start: '2025-03-22', games: 3 }, { id: 1, start: '2025-03-25', games: 3 }, { id: 2, start: '2025-03-28', games: 3 }],
+        series: [{ id: 0, home: 0, away: 1, games: 3, slot: 0 }, { id: 1, home: 2, away: 3, games: 3, slot: 0 }, { id: 2, home: 1, away: 0, games: 3, slot: 1 }, { id: 3, home: 3, away: 2, games: 3, slot: 1 }, { id: 4, home: 0, away: 2, games: 3, slot: 2 }, { id: 5, home: 1, away: 3, games: 3, slot: 2 }],
+        events: [{ elapsedMs: 10, score: { hard: [0, 0], soft: [0, 0, -4, -2, -980] }, changes: [[0, 0, 1], [2, 1, 0]] }, { elapsedMs: 20, score: { hard: [0, 0], soft: [0, 0, 0, 0, -900] }, changes: [[4, 2, 1], [3, 1, 2]] }] };
+      const keep = S.lastRun;
+      S.run = null; if (S.app.run && S.app.run.handle && !S.app.run.handle.on) S.app.run = null; // 시연 '실행 중' 상태 해제
+      S.lastRun = Object.assign({}, keep || { history: [], elapsed: 0, improvements: 0, reason: '', count: 1, when: '' }, { trace: tr });
+      click('.step[data-step="2"]'); flush();
+      ok('지난 실행 결과에 「탐색 과정 보기」(트레이스가 있을 때만)', !!document.querySelector('[data-act="open-replay"]'));
+      click('[data-act="open-replay"]'); flush();
+      const p = S.replayPlayer;
+      ok('재생기 모달: 카드 6장 · 슬롯 3개 · 곡선 5개', S.ui.modal === 'replay' && !!p && document.querySelectorAll('.modal .rp-card').length === 6 && document.querySelectorAll('.modal .rp-slot').length === 3 && document.querySelectorAll('.modal .rp-lv').length === 5);
+      p.stepFwd(); p.stepFwd();
+      ok('한 스텝 앞 ×2 → 마지막 상태·해설', p.idx === 2 && /2번째 개선/.test(document.querySelector('.modal .rp-cap').textContent) && document.querySelector('.modal .rp-ev').textContent === '2' && Array.from(p.model.states[2].assign).join(',') === '1,0,0,2,1,2');
+      p.stepBack(); p.stepBack();
+      ok('한 스텝 뒤 ×2 → 시작 상태', p.idx === 0 && /시작 상태/.test(document.querySelector('.modal .rp-cap').textContent));
+      click('.modal [data-act="close-modal"]'); flush();
+      ok('재생기 닫힘', !S.ui.modal && !document.querySelector('.rp'));
+      p.destroy(); S.replayPlayer = null;
+      S.lastRun = keep;
+    }
     S.resetFeatures(); S.go({ ops: null, step: 1, drawer: null, modal: null, menu: null });
   } catch (e) {
     out.push('FAIL 예외: ' + e.message);
@@ -305,5 +329,5 @@
     document.documentElement.setAttribute('data-selftest', (fails ? 'FAIL ' + fails : 'ALL PASS') + ' / ' + out.length + ' :: ' + out.join(' | '));
   }
   setTimeout(run, 50);
-  // opt-2: 점검 항목은 std 49개 + opt-2 10개
+  // opt-2: 점검 항목은 std 49개 + opt-2 10개 + 재생기 5개
 })();

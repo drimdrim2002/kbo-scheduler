@@ -1081,3 +1081,9 @@ svg.mc text { font-family: var(--font); }
 .simple-opts.big .choices.big { flex: 1; }
 .q-charts .mc-box .blk-head > b { white-space: nowrap; flex: none; }
 .btn.lg.go[disabled] { box-shadow: none; }
+
+/* ---------- 탐색 과정 재생 모달 (§4.2) ---------- */
+.modal.replay-modal { width: min(1400px, calc(100vw - 32px)); height: min(820px, calc(100vh - 32px)); }
+.replay-host { min-height: 0; display: flex; flex-direction: column; }
+.replay-host > .rp { flex: 1; min-height: 0; }
+.res-row .st.plain.info { color: var(--blue); }
