@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 144경기 일정, 컴퓨터가 10초 만에 짜면? — KBO 일정 편성 플레이그라운드</title>
+<meta name="description" content="실제 2025 KBO 일정과 같은 조건으로 컴퓨터가 짠 일정을 비교합니다. 총 이동거리 14% 절감, 구단 간 차이 1/3. 직접 조건을 바꿔 돌려 보고 링크로 공유하세요.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KBO 144경기 일정, 컴퓨터가 10초 만에 짜면?">
+<meta property="og:description" content="같은 조건, 10초 만에 이동거리 14% 절감·구단 간 편차 1/3. 탐색 과정을 재생해 보고 직접 돌려 보세요.">
+<meta property="og:image" content="/og/default.png">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  /* 콘솔 오류 수집 (점검용, replay.html과 같은 형식). 화면 동작에는 영향이 없다. */
+  (function () {
+    var errs = [];
+    window.__studioErrors = errs;
+    function mark() { try { document.documentElement.setAttribute('data-errors', String(errs.length)); if (errs.length) document.documentElement.setAttribute('data-error-list', errs.slice(0, 5).join(' | ')); } catch (e) { /* 무시 */ } }
+    window.addEventListener('error', function (e) { errs.push('error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || '')); mark(); }, true);
+    window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + (e.reason && e.reason.message || e.reason)); mark(); });
+    var ce = console.error;
+    console.error = function () { errs.push('console: ' + Array.prototype.join.call(arguments, ' ')); mark(); return ce.apply(console, arguments); };
+    mark();
+  })();
+</script>
+<link rel="stylesheet" href="../app/common/common.css">
+<link rel="stylesheet" href="../app/replay/replay.css">
+<link rel="stylesheet" href="show.css">
+</head>
+<body class="sh-body" data-page="index">
+<header class="sh-top">
+  <div class="sh-wrap">
+    <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="#try">직접 해보기</a></nav>
+  </div>
+</header>
+
+<main class="sh-wrap">
+  <!-- ① 한 문장 + 숫자 3개 (JS 없이도 보이도록 기본 숫자를 박아 두고 fetch 뒤 갱신) -->
+  <section class="sh-sec" id="hero" aria-labelledby="hero-h">
+    <p class="sh-kicker">실제 2025 KBO 일정 vs 컴퓨터</p>
+    <h1 class="sh-h1" id="hero-h">KBO 144경기 일정, 컴퓨터가 <span data-n="engine.seconds">10</span>초 만에 짜면?</h1>
+    <p class="sh-lead">같은 조건으로 돌렸더니 총 이동거리는 <span data-n="diff.totalKmPct">14</span>% 줄고, 구단 간 차이는 <span data-n="diff.spreadText">약 1/3</span>이 됐어요.</p>
+    <div class="sh-stats">
+      <div class="sh-stat">
+        <span class="sh-stat-l">10구단 총 이동거리</span>
+        <span class="sh-stat-v"><span data-n="engine.totalKm">62,728</span><small>km</small></span>
+        <span class="sh-stat-d">실제 <span data-n="real.totalKm">72,955</span>km<br><b><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></b></span>
+      </div>
+      <div class="sh-stat">
+        <span class="sh-stat-l">구단 간 이동거리 차이</span>
+        <span class="sh-stat-v"><span data-n="engine.spreadKm">467</span><small>km</small></span>
+        <span class="sh-stat-d">실제 <span data-n="real.spreadKm">1,372</span>km<br><b><span data-n="diff.spreadText">약 1/3</span></b></span>
+      </div>
+      <div class="sh-stat">
+        <span class="sh-stat-l">걸린 시간</span>
+        <span class="sh-stat-v"><span data-n="engine.seconds">10</span><small>초</small></span>
+        <span class="sh-stat-d">PC 한 대에서<br>시드 <span data-n="engine.seeds">8</span>개 동시에</span>
+      </div>
+    </div>
+    <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 엔진 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
+  </section>
+
+  <!-- ② 비교 카드 -->
+  <section class="sh-sec" id="compare" aria-labelledby="cmp-h">
+    <h2 class="sh-h2" id="cmp-h">실제 일정 vs 엔진 일정</h2>
+    <div class="sh-card">
+      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025 1차 일정</span><span><i class="sh-sw-engine"></i>엔진</span></div>
+      <div class="sh-chart-h"><b>10구단 총 이동거리</b><span class="sh-small">시즌 전체 합계</span></div>
+      <div class="sh-bars" id="cmp-total" role="img" aria-label="10구단 총 이동거리: 실제 72,955km, 엔진 62,728km">
+        <div class="sh-bar-row"><span class="sh-bar-name">실제</span><div class="sh-bar-track"><div class="sh-bar sh-bar-real" style="width:100%"></div></div><span class="sh-bar-val">72,955<small> km</small></span></div>
+        <div class="sh-bar-row"><span class="sh-bar-name">엔진</span><div class="sh-bar-track"><div class="sh-bar sh-bar-engine" style="width:86%"></div></div><span class="sh-bar-val">62,728<small> km</small></span></div>
+      </div>
+      <div class="sh-chart-h" style="margin-top:18px"><b>구단별 이동거리</b><span class="sh-small">실제 → 엔진, km</span></div>
+      <div class="sh-teams" id="cmp-teams" role="img" aria-label="구단별 이동거리 막대 (불러오는 중)"></div>
+      <div class="sh-honest"><b>솔직하게:</b> 주말 홈 시리즈 수는 실제 일정이 더 고릅니다(실제 <span data-n="real.weekend">11~12</span>회, 엔진 <span data-n="engine.weekend">10~13</span>회). 엔진은 이동거리와 그 공평함만 목표로 두었고, 실제 일정은 엔진이 모르는 조건(구장 대관·중계·지역 행사)도 반영합니다.</div>
+      <div class="sh-card-foot"><span class="sh-small">같은 채점 방식으로 둘 다 쟀어요.</span><a class="k-btn sh-more" href="compare.html">자세히 보기 →</a></div>
+    </div>
+  </section>
+
+  <!-- ③ 탐색 과정 미리보기 -->
+  <section class="sh-sec" id="replay" aria-labelledby="replay-h">
+    <h2 class="sh-h2" id="replay-h">컴퓨터는 이렇게 고쳐 나가요</h2>
+    <p class="sh-lead">카드 1장이 3연전 한 묶음, 색은 홈 구단이에요. 카드가 옮겨질 때마다 아래 곡선이 내려갑니다. 15초 미리보기 뒤 탭하면 처음부터 전체 재생해요.</p>
+    <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">화면에 들어오면 탐색 과정을 불러와요.</div></div></div>
+  </section>
+
+  <!-- ④ 직접 해보기 -->
+  <section class="sh-sec" id="try" aria-labelledby="try-h">
+    <h2 class="sh-h2" id="try-h">직접 해보기</h2>
+    <p class="sh-lead">조건 두 가지만 바꿔서 다시 짜 보세요. 결과는 링크로 공유할 수 있어요.</p>
+    <form class="sh-card sh-try" id="try-form" novalidate>
+      <span class="sh-mock" title="서버 연결 전: 10초 뒤 기본 결과로 이동합니다">목업</span>
+      <div class="sh-field">
+        <div class="sh-field-h"><label for="tol">구단 간 이동거리 허용오차</label><output id="tol-out" for="tol">300 km</output></div>
+        <input class="sh-range" type="range" id="tol" name="tol" min="100" max="600" step="50" value="300" aria-describedby="tol-help">
+        <div class="sh-range-ticks" aria-hidden="true"><span>100 km (빡빡하게)</span><span>600 km (느슨하게)</span></div>
+        <p class="sh-field-help" id="tol-help">구단별 이동거리가 평균에서 이만큼까지 벗어나도 봐줘요. 작을수록 고르지만 총 이동거리는 늘 수 있어요.</p>
+      </div>
+      <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
+        <div class="sh-field-h"><legend style="padding:0">어린이날(5/5) 홈 구단</legend><span class="sh-count" id="cd-count">5/5</span></div>
+        <div class="sh-teamsel">
+          <label><input type="checkbox" name="cd" value="SSG">SSG</label>
+          <label><input type="checkbox" name="cd" value="두산" checked>두산</label>
+          <label><input type="checkbox" name="cd" value="LG">LG</label>
+          <label><input type="checkbox" name="cd" value="KT">KT</label>
+          <label><input type="checkbox" name="cd" value="키움" checked>키움</label>
+          <label><input type="checkbox" name="cd" value="한화" checked>한화</label>
+          <label><input type="checkbox" name="cd" value="삼성">삼성</label>
+          <label><input type="checkbox" name="cd" value="KIA">KIA</label>
+          <label><input type="checkbox" name="cd" value="NC" checked>NC</label>
+          <label><input type="checkbox" name="cd" value="롯데" checked>롯데</label>
+        </div>
+        <p class="sh-field-help" id="cd-help">5개 구단이 어린이날 홈에서 경기해요.</p>
+      </fieldset>
+      <button class="k-btn k-btn-primary sh-go" type="submit">편성 시작 (약 10초)</button>
+      <div class="sh-progress" id="try-progress" hidden role="progressbar" aria-label="편성 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="sh-progress-track"><div class="sh-progress-bar" id="try-bar"></div></div>
+        <div class="sh-progress-txt"><span id="try-txt">준비 중</span><span>끝나면 결과 쪽으로 이동해요</span></div>
+      </div>
+      <p class="sh-pc">PC에서는 <a href="../index.html" data-studio>편성 스튜디오</a>에서 더 많은 조건(특정 날짜 홈 불가, 시리즈 고정, 휴일 가중치)을 다룰 수 있어요.</p>
+    </form>
+  </section>
+
+  <!-- ⑤ 어떻게 하는 건가요 -->
+  <section class="sh-sec" id="how" aria-labelledby="how-h">
+    <h2 class="sh-h2" id="how-h">어떻게 하는 건가요?</h2>
+    <div class="sh-steps">
+      <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 짜기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 경우의 수는 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈이나 원정이 4연속으로 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 휴일 경기 수를 고르게 하는 것. 컴퓨터는 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 1초에 수천 번</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 한 시리즈를 다른 날짜로 옮기는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 엔진은 오픈소스 OptaPlanner를 써요.</p></div></div>
+    </div>
+  </section>
+
+  <!-- ⑥ 만든 사람 (내용은 사용자가 채운다) -->
+  <section class="sh-sec" id="maker" aria-labelledby="maker-h">
+    <h2 class="sh-h2" id="maker-h">만든 사람</h2>
+    <div class="sh-card sh-maker">
+      <div class="sh-avatar" aria-hidden="true">사진</div>
+      <div>
+        <p class="sh-maker-name">이름 <span class="sh-placeholder">작성 예정</span></p>
+        <p class="sh-small" style="margin:0">한 줄 소개 자리입니다. 산업공학·최적화를 하는 사람이라는 것, 왜 이걸 만들었는지 한 줄. <span class="sh-placeholder">작성 예정</span></p>
+        <div class="sh-maker-links">
+          <a href="#" aria-label="이전 글 (링크 작성 예정)">이전 글: 2025 일정 비교 글 <span class="sh-placeholder">링크 예정</span></a>
+          <a href="#" aria-label="메일 (주소 작성 예정)">메일 <span class="sh-placeholder">주소 예정</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑦ 공유 -->
+  <section class="sh-sec" id="share" aria-labelledby="share-h">
+    <h2 class="sh-h2" id="share-h">공유하기</h2>
+    <div class="sh-card">
+      <div class="sh-share">
+        <button class="k-btn" type="button" data-share="copy" aria-label="링크 복사"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>링크 복사</button>
+        <button class="k-btn" type="button" data-share="x" aria-label="X(트위터)에 공유">X</button>
+        <button class="k-btn" type="button" data-share="threads" aria-label="스레드에 공유">스레드</button>
+        <button class="k-btn" type="button" data-share="kakao" aria-label="카카오톡으로 보내기 (공유 창이 없으면 링크 복사)">카카오톡</button>
+      </div>
+      <p class="sh-share-url" aria-hidden="true"></p>
+      <p class="sh-small" style="margin:8px 0 0">카카오톡은 휴대폰의 공유 창으로 보내요. 공유 창이 없으면 링크를 복사해 대화창에 붙여 넣으세요.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="sh-foot">
+  <div class="sh-wrap">
+    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 45슬롯 225시리즈)과 구장 간 거리표. 엔진: OptaPlanner.</p>
+    <p><a href="compare.html">실제 vs 엔진 자세히</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a> · 의견 보내기 <span class="sh-placeholder">구글 폼 링크 예정</span></p>
+  </div>
+</footer>
+<script src="show.js"></script>
+</body>
+</html>

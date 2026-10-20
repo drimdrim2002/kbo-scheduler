@@ -1,0 +1,187 @@
+/*
+ * 보여주는 문(ui/show/) 표준 버전 스타일. 모바일 375px 우선, 768·1440은 가운데 720px 컬럼.
+ * 디자인 토큰은 ../app/common/common.css 를 그대로 쓰고 여기서는 .sh- 접두어 규칙만 더한다.
+ * 막대 색: 실제 = --sh-real(#b54708, 공통 --away), 엔진 = --sh-engine(#2f5bd3, 공통 --accent).
+ * 두 색은 색각 이상(적록·청황) 분리 ΔE 28 이상, 흰 바탕 대비 3:1 이상이고 글자는 항상 본문색을 쓴다.
+ */
+:root { --sh-real: #b54708; --sh-engine: #2f5bd3; --sh-max: 720px; }
+html { -webkit-text-size-adjust: 100%; }
+body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-height: 1.55; min-width: 320px; }
+.sh-wrap { max-width: var(--sh-max); margin: 0 auto; padding: 0 16px; }
+.sh-body a { color: var(--accent); text-underline-offset: 2px; }
+.sh-body p { margin: 0 0 12px; }
+.sh-body h1, .sh-body h2, .sh-body h3 { word-break: keep-all; }
+
+/* 상단 띠 */
+.sh-top { position: sticky; top: 0; z-index: 10; background: rgba(246, 247, 249, .94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.sh-top .sh-wrap { display: flex; align-items: center; gap: 8px; height: 48px; }
+.sh-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--fg); text-decoration: none; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sh-mark { flex: none; width: 30px; height: 20px; border-radius: 4px; background: #0a1e3c; color: #fff; font-size: 10px; font-weight: 800; display: grid; place-items: center; }
+.sh-nav { margin-left: auto; display: flex; gap: 2px; flex: none; }
+.sh-nav a { text-decoration: none; color: var(--muted); font-size: 14px; padding: 6px 8px; border-radius: 6px; white-space: nowrap; }
+.sh-nav a:hover, .sh-nav a[aria-current] { color: var(--fg); background: var(--surface-2); }
+
+/* 블록 */
+.sh-sec { padding: 32px 0; border-top: 1px solid var(--line); scroll-margin-top: 56px; }
+.sh-sec:first-child { border-top: 0; }
+.sh-kicker { font-size: 13px; font-weight: 700; color: var(--accent); margin: 0 0 6px; }
+.sh-h1 { font-size: 26px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.01em; }
+.sh-h2 { font-size: 20px; line-height: 1.3; margin: 0 0 12px; }
+.sh-h3 { font-size: 16px; margin: 18px 0 8px; }
+.sh-lead { font-size: 16px; color: var(--muted); margin: 0 0 18px; }
+.sh-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.sh-card + .sh-card { margin-top: 12px; }
+.sh-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; font-size: 14px; }
+.sh-card-foot .k-btn { min-height: 40px; }
+.sh-more { margin-left: auto; }
+.sh-note { background: var(--info-bg); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.sh-honest { background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+.sh-honest b { color: var(--warn); }
+.sh-placeholder { display: inline-block; border: 1px dashed var(--warn); background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 700; vertical-align: 1px; }
+.sh-list { padding-left: 20px; margin: 0; }
+.sh-list li { margin: 4px 0; }
+.sh-small { font-size: 13px; color: var(--muted); }
+
+/* 숫자 3개 */
+.sh-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sh-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; min-width: 0; }
+.sh-stat-l { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; line-height: 1.3; word-break: keep-all; }
+.sh-stat-v { display: block; font-size: 22px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; white-space: nowrap; }
+.sh-stat-v small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+.sh-stat-d { display: block; font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+.sh-stat-d b { color: var(--ok); font-weight: 700; }
+.sh-stat-d b.sh-worse { color: var(--sh-real); }
+
+/* 막대 (실제 vs 엔진) */
+.sh-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.sh-legend i, .sh-sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.sh-sw-real { background: var(--sh-real); } .sh-sw-engine { background: var(--sh-engine); }
+.sh-bars { display: grid; gap: 8px; }
+.sh-bar-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 13px; }
+.sh-bar-name { color: var(--muted); white-space: nowrap; }
+.sh-bar-track { height: 22px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.sh-bar { height: 100%; width: 0; max-width: 100%; border-radius: 0 4px 4px 0; background: var(--sh-engine); transition: width .5s ease; }
+.sh-bar-real { background: var(--sh-real); }
+.sh-bar-val { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 700; }
+.sh-bar-val small { color: var(--muted); font-weight: 400; }
+.sh-teams { display: grid; gap: 7px; margin-top: 14px; }
+.sh-team { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 12px; }
+.sh-team-name { font-weight: 600; white-space: nowrap; }
+.sh-team-bars { display: grid; gap: 2px; }
+.sh-team-bars .sh-bar { height: 8px; }
+.sh-team-val { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sh-team-val b { color: var(--fg); font-weight: 600; }
+.sh-chart-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 8px; }
+.sh-chart-h b { font-size: 15px; }
+
+/* 탐색 과정 재생기 (ui/app/replay 모듈을 세로로 쌓는다) */
+.sh-replay { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-height: 320px; }
+.sh-replay-msg { padding: 40px 16px; text-align: center; color: var(--muted); }
+.sh-replay-msg.sh-err { color: var(--bad); }
+.sh-replay .rp { height: auto; min-height: 0; grid-template-rows: auto auto auto; background: transparent; }
+.sh-replay .rp-main { grid-template-columns: minmax(0, 1fr); padding: 8px; gap: 8px; }
+.sh-replay .rp-board { flex: none; }
+.sh-replay .rp-grid { height: auto; grid-auto-rows: 112px; }
+.sh-replay .rp-score { flex: none; height: 300px; }
+.sh-replay .rp-cap { height: auto; min-height: 36px; white-space: normal; padding: 8px 12px; font-size: 13px; line-height: 1.4; }
+.sh-replay .rp-ctrl { position: static; height: auto; flex-wrap: wrap; padding: 8px 10px; gap: 6px; box-shadow: none; }
+.sh-replay .rp-range { flex: 1 1 100%; order: 9; margin: 0; }
+.sh-replay .rp-time { margin-left: auto; }
+.sh-replay.sh-preview .rp-ctrl { display: none; }
+@media (max-width: 700px) {
+  .sh-replay .rp-grid { grid-auto-rows: 108px; }
+  .sh-replay .rp-score { height: 360px; }
+  /* 15초 미리보기: 일정판 전체가 한눈에 들어오도록 9열로 촘촘히 */
+  .sh-replay.sh-preview .rp-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); grid-auto-rows: 84px; gap: 2px; }
+  .sh-replay.sh-preview .rp-slot-h { font-size: 8.5px; padding: 0 2px; height: 16px; }
+  .sh-replay.sh-preview .rp-slot-h .rp-g { display: none; }
+  .sh-replay.sh-preview .rp-score { height: 260px; }
+}
+.sh-veil { position: absolute; inset: 0; border: 0; margin: 0; padding: 12px; background: linear-gradient(to bottom, rgba(10, 30, 60, .55), rgba(10, 30, 60, 0) 28%); color: #fff; display: flex; align-items: flex-start; justify-content: center; cursor: pointer; font: inherit; font-weight: 700; font-size: 14px; text-align: center; }
+.sh-veil span { display: inline-flex; align-items: center; gap: 6px; background: #0a1e3c; border: 1px solid rgba(255, 255, 255, .55); border-radius: 999px; padding: 8px 14px; box-shadow: 0 4px 14px rgba(10, 30, 60, .35); }
+.sh-veil:focus-visible span { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* 직접 해보기 */
+.sh-mock { position: absolute; top: 10px; right: 10px; font-size: 11px; color: var(--muted); border: 1px dashed var(--line); border-radius: 4px; padding: 1px 6px; background: var(--surface); }
+.sh-field { margin: 0 0 20px; }
+.sh-field-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; font-weight: 600; }
+.sh-field-h output, .sh-field-h .sh-count { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.sh-field-help { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.sh-range { display: block; width: 100%; accent-color: var(--accent); margin: 6px 0 2px; height: 32px; }
+.sh-range-ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.sh-teamsel { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.sh-teamsel label { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 42px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 13px; cursor: pointer; user-select: none; }
+.sh-teamsel label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+.sh-teamsel label:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+.sh-teamsel input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); flex: none; }
+.sh-go { width: 100%; justify-content: center; min-height: 48px; font-size: 16px; font-weight: 700; border-radius: 10px; }
+.sh-progress { margin-top: 12px; }
+.sh-progress-track { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.sh-progress-bar { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .25s linear; }
+.sh-progress-txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.sh-pc { display: none; margin-top: 14px; font-size: 14px; }
+@media (min-width: 1024px) { .sh-pc { display: block; } }
+
+/* 어떻게 하는 건가요 · 만든 사람 */
+.sh-steps { display: grid; gap: 14px; }
+.sh-step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+.sh-step i { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-style: normal; font-weight: 800; display: grid; place-items: center; }
+.sh-step h3 { margin: 5px 0 4px; font-size: 16px; }
+.sh-step p { margin: 0; }
+.sh-maker { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: start; }
+.sh-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--surface-2); border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+.sh-maker-name { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
+.sh-maker-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; margin-top: 6px; }
+
+/* 공유 */
+.sh-share { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sh-share .k-btn { justify-content: center; min-height: 44px; padding: 6px 4px; font-size: 13px; font-weight: 600; }
+.sh-share .k-btn svg { width: 16px; height: 16px; flex: none; }
+.sh-share-url { margin-top: 10px; font-size: 12px; color: var(--muted); word-break: break-all; }
+.sh-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+.sh-toast.on { opacity: 1; }
+
+/* 표 (비교·조건) */
+.sh-table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 13px; table-layout: fixed; }
+.sh-table th, .sh-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; word-break: keep-all; overflow-wrap: anywhere; }
+.sh-table th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+.sh-table th:first-child { width: 36%; }
+.sh-table td b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.sh-table small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.35; }
+.sh-table tr.sh-row-real td { background: color-mix(in srgb, var(--warn-bg) 55%, transparent); }
+.sh-table .sh-tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 5px; margin-top: 3px; }
+.sh-tag-engine { background: var(--accent-soft); color: var(--accent); }
+.sh-tag-real { background: var(--warn-bg); color: var(--warn); }
+.sh-tag-even { background: var(--surface-2); color: var(--muted); }
+.sh-dl { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: 0; margin: 0; font-size: 14px; }
+.sh-dl dt { color: var(--muted); padding: 7px 0; border-bottom: 1px solid var(--line); }
+.sh-dl dd { margin: 0; padding: 7px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+
+/* 결과 공유 */
+.sh-result-title { font-size: 22px; line-height: 1.3; margin: 0 0 6px; }
+.sh-result-sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+.sh-cta { display: grid; gap: 8px; }
+.sh-cta .k-btn { justify-content: center; min-height: 48px; font-size: 16px; font-weight: 700; border-radius: 10px; }
+
+/* 바닥 */
+.sh-foot { padding: 24px 0 48px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.sh-foot a { color: inherit; }
+.sh-foot p { margin: 0 0 6px; }
+
+/* 가로 폭 */
+@media (min-width: 768px) {
+  .sh-sec { padding: 40px 0; }
+  .sh-h1 { font-size: 34px; }
+  .sh-h2 { font-size: 22px; }
+  .sh-stat { padding: 16px 14px; }
+  .sh-stat-v { font-size: 30px; }
+  .sh-stat-l, .sh-stat-d { font-size: 13px; }
+  .sh-card { padding: 20px; }
+  .sh-bar-row { grid-template-columns: 56px minmax(0, 1fr) auto; font-size: 14px; }
+  .sh-team { grid-template-columns: 48px minmax(0, 1fr) auto; font-size: 13px; }
+  .sh-table { font-size: 14px; }
+  .sh-table small { font-size: 12.5px; }
+  .sh-result-title { font-size: 26px; }
+  .sh-share .k-btn { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .sh-bar, .sh-progress-bar, .sh-toast { transition: none; } }

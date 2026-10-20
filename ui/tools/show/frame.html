@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>show 점검 틀</title>
+<!-- 헤드리스 Chrome은 --dump-dom에서 창 폭을 500px 밑으로 줄이지 못하므로, 원하는 폭의 iframe 안에서 쪽을 열고
+     안쪽 문서의 data-* 속성(scroll·errors·replay·show)을 바깥 <html>로 복사한다. file://끼리 접근하려면 --allow-file-access-from-files. -->
+<style>html, body { margin: 0; background: #888; } iframe { border: 0; display: block; background: #fff; }</style>
+</head>
+<body>
+<script>
+  var q = new URLSearchParams(location.search);
+  var w = +q.get('w') || 375, h = +q.get('h') || 812, src = q.get('src') || '../../show/index.html';
+  var f = document.createElement('iframe');
+  f.width = w; f.height = h; f.src = src; f.setAttribute('title', '점검 대상');
+  document.body.appendChild(f);
+  function copy() {
+    try {
+      var d = f.contentDocument && f.contentDocument.documentElement;
+      if (!d) return;
+      ['data-scroll', 'data-errors', 'data-error-list', 'data-replay', 'data-show', 'data-page'].forEach(function (a) {
+        var v = d.getAttribute(a); if (v != null) document.documentElement.setAttribute(a, v);
+      });
+      document.documentElement.setAttribute('data-frame', w + 'x' + h + ' inner ' + f.contentWindow.innerWidth + 'x' + f.contentWindow.innerHeight);
+    } catch (e) { document.documentElement.setAttribute('data-frame', 'err ' + e.message); }
+  }
+  setInterval(copy, 250);
+</script>
+</body>
+</html>
