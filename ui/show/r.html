@@ -63,7 +63,12 @@
         <span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 이 결과 <b><span data-n="engine.holidayText">모두 25</span></b> <span class="sh-small">(주말 홈 <span data-n="engine.weekend">11~12</span>회)</span></span>
       </div>
     </div>
-      <p class="sh-small" style="margin-top:8px"><span data-n="engine.seconds">30</span>초 · 시드 <span data-n="engine.seeds">8</span>개 동시 · <span data-n="engine.improvements">117</span>번 개선</p>
+      <!-- 생각 시간: N초 생각한 결과 + 다음 단계로 다시 해 보기(같은 조건·같은 출발점, show.js thinkBox) -->
+      <div class="sh-think-box" id="think-box">
+        <p><b><span data-n="engine.seconds">30</span>초 생각한 결과</b><span class="sh-small"> · 출발점 <span data-n="engine.seeds">8</span>개 중 가장 좋은 것 · <span data-n="engine.improvements">117</span>번 개선</span></p>
+        <p class="sh-small" id="think-note">가장 오래(30초) 생각한 결과예요. 다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.</p>
+        <a class="k-btn" id="think-more" href="index.html#try">다른 출발점에서 다시 해 보기</a>
+      </div>
       <div class="sh-card" style="margin-top:12px">
         <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025 1차 일정</span><span><i class="sh-sw-engine"></i>이 결과</span></div>
         <div class="sh-bars" id="cmp-total" role="img" aria-label="10구단 총 이동거리: 실제 72,955km, 이 결과 63,312km">

@@ -87,7 +87,7 @@
     <h2 class="sh-h2" id="try-h">직접 해보기</h2>
     <p class="sh-lead">조건 두 가지만 바꿔서 다시 짜 보세요. 결과는 링크로 공유할 수 있어요.</p>
     <form class="sh-card sh-try" id="try-form" novalidate>
-      <span class="sh-mock" title="서버 연결 전: 10초 뒤 기본 결과로 이동합니다">목업</span>
+      <span class="sh-mock" title="서버 연결 전: 고른 시간만큼 기다린 뒤 기본 결과로 이동합니다">목업</span>
       <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
         <div class="sh-field-h"><legend style="padding:0">구단마다 이동거리를 얼마나 비슷하게 맞출까요?</legend></div>
         <div class="sh-teamsel sh-choice3" role="radiogroup" aria-describedby="tol-help">
@@ -113,10 +113,22 @@
         </div>
         <p class="sh-field-help" id="cd-help">5개 구단이 어린이날 홈에서 경기해요.</p>
       </fieldset>
-      <button class="k-btn k-btn-primary sh-go" type="submit">편성 시작 (약 10초)</button>
+      <!-- 생각 시간: AI 챗봇의 '깊게 생각하기'처럼 고른다. 숫자는 docs/STATUS.md 서버 시간별 실측(기본 조건, 5번씩) -->
+      <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
+        <div class="sh-field-h"><legend style="padding:0">엔진이 얼마나 오래 생각할까요?</legend></div>
+        <div class="sh-think" role="radiogroup" aria-describedby="t-help">
+          <label><input type="radio" name="t" value="3"><span><b>빠르게 · 3초</b><small>약 7초 걸려요. 구단 간 이동거리 차이는 이때 이미 맞춰요. 총 이동거리는 실제보다 평균 3% 짧아요.</small></span></label>
+          <label><input type="radio" name="t" value="10" checked><span><b>보통 · 10초 <em>기본</em></b><small>약 15초 걸려요. 총 이동거리가 실제보다 평균 6% 짧아요.</small></span></label>
+          <label><input type="radio" name="t" value="30"><span><b>꼼꼼하게 · 30초</b><small>약 35초 걸려요. 평균 8%, 잘 풀리면 14%까지 짧아져요.</small></span></label>
+        </div>
+        <p class="sh-field-help" id="t-help">AI 챗봇에게 "더 깊게 생각해 줘"라고 하는 것과 비슷해요. 구단 간 이동거리 차이는 몇 초면 맞추고, 오래 생각할수록 총 이동거리를 더 줄일 기회가 늘어요. 막다른 길에 들면 그대로일 수도 있어서 출발점 <span id="t-seeds">4</span>개를 동시에 돌려 가장 좋은 걸 골라요. (기본 조건으로 5번씩 돌려 본 숫자예요.)</p>
+        <p class="sh-field-help sh-think-busy" id="t-busy" hidden>지금 기다리는 분이 있어서 꼼꼼하게(30초)는 잠시 쉬어요. 대기 줄이 비면 다시 고를 수 있어요.</p>
+      </fieldset>
+      <button class="k-btn k-btn-primary sh-go" type="submit">편성 시작 (약 15초)</button>
       <div class="sh-progress" id="try-progress" hidden role="progressbar" aria-label="편성 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="sh-progress-track"><div class="sh-progress-bar" id="try-bar"></div></div>
         <div class="sh-progress-txt"><span id="try-txt">준비 중</span><span>끝나면 결과 쪽으로 이동해요</span></div>
+        <p class="sh-progress-news" id="try-news" aria-live="polite"></p>
       </div>
       <p class="sh-try-err" id="try-err" role="alert" hidden></p>
       <p class="sh-pc">PC에서는 <a href="../index.html" data-studio>편성 스튜디오</a>에서 더 많은 조건(특정 날짜 홈 불가, 시리즈 고정, 휴일 가중치)을 다룰 수 있어요.</p>
