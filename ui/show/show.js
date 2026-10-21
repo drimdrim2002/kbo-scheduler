@@ -21,7 +21,10 @@
   SHOW.replayScripts = ['../core/replay-model.js', '../app/replay/replay.js'];
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
-  SHOW.MOCK_SOLVE_MS = 10000;   // 「편성 시작」 목업 진행 시간
+  // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
+  SHOW.THINK = { 3: { word: '빠르게', wait: 7 }, 10: { word: '보통', wait: 15 }, 30: { word: '꼼꼼하게', wait: 35 } };
+  SHOW.THINK_DEFAULT = 10;
+  SHOW.REAL_KM = 72955;         // 실제 2025 1차 일정 총 이동거리. 소개 쪽은 비교 API 값으로 덮어쓴다
   SHOW.TEAMS = ['SSG', '두산', 'LG', 'KT', '키움', '한화', '삼성', 'KIA', 'NC', '롯데'];
   SHOW.SITE = 'KBO 일정 편성 플레이그라운드';
 
@@ -281,6 +284,7 @@
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
       const v = view(cmp.real, cmp.engine);
       bind(v);
+      if (cmp.real.totalKm) SHOW.REAL_KM = cmp.real.totalKm;
       const tb = $('#cmp-total'); if (tb) totalBars(tb, cmp.real, cmp.engine);
       const tt = $('#cmp-teams'); if (tt) teamBars(tt, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
       mark('show', 'compare-ok');
@@ -293,19 +297,64 @@
     fixStudioLinks();
   };
 
-  /** ④ 직접 해보기 — 손잡이 2개. 서버면 실제 편성(POST /api/v1/solve → SSE → /r/<id>), file://이면 목업 진행 */
+  /** ④ 직접 해보기 — 손잡이 2개 + 생각 시간. 서버면 실제 편성(POST /api/v1/solve → SSE → /r/<id>), file://이면 목업 진행 */
   function tryForm() {
     const form = $('#try-form'); if (!form) return;
     const tolOf = () => { const r = $('input[name="tol"]:checked', form); return r ? r.value : '300'; };
+    const thinks = $$('input[name="t"]', form);
+    const thinkOf = () => { const r = thinks.find((x) => x.checked); return r ? Number(r.value) : SHOW.THINK_DEFAULT; };
     const boxes = $$('input[name="cd"]', form), count = $('#cd-count');
-    const btn = form.querySelector('[type="submit"]'), btnLabel = btn.textContent;
-    const prog = $('#try-progress'), bar = $('#try-bar'), txt = $('#try-txt'), err = $('#try-err');
+    const btn = form.querySelector('[type="submit"]');
+    const btnLabel = () => '편성 시작 (약 ' + (SHOW.THINK[thinkOf()] || SHOW.THINK[SHOW.THINK_DEFAULT]).wait + '초)';
+    const prog = $('#try-progress'), bar = $('#try-bar'), txt = $('#try-txt'), err = $('#try-err'), news = $('#try-news');
     const MAXSEL = 5;
     // 두산·LG는 잠실을 같이 쓴다: 어린이날 홈 5구단에 둘 중 정확히 하나가 있어야 엔진이 첫 일정을 만든다
     const SHARED = ['두산', 'LG'];
     const mock = $('.sh-mock', form); if (mock) mock.hidden = !isFile;
-    let seeds = null;
-    if (!isFile) load('/api/v1/info', (e, info) => { if (!e && info && info.defaultSeeds) seeds = info.defaultSeeds; });
+    // 결과 쪽 「더 오래 다시 해 보기」가 넘긴 조건(?t=&tol=&cd=&seed=)을 미리 골라 둔다. 바로 돌리지는 않는다
+    let presetSeed = null;
+    (function prefill() {
+      const t = query.get('t'), tol = query.get('tol'), cd = query.get('cd'), sd = query.get('seed');
+      if (t) thinks.forEach((x) => { if (x.value === t) x.checked = true; });
+      if (tol) $$('input[name="tol"]', form).forEach((x) => { if (Number(x.value) === Number(tol)) x.checked = true; });
+      if (cd) {
+        const names = cd.split(',').filter((n, i, a) => SHOW.TEAMS.indexOf(n) >= 0 && a.indexOf(n) === i);
+        if (names.length === MAXSEL && SHARED.filter((n) => names.indexOf(n) >= 0).length === 1) boxes.forEach((b) => { b.checked = names.indexOf(b.value) >= 0; });
+      }
+      if (sd && /^\d{1,15}$/.test(sd)) presetSeed = Number(sd);
+    })();
+    // 서버 정보: 출발점 수, 최대 시간, 대기 줄. 한 번에 작업 1개라 기다리는 분이 있으면 30초는 쉬게 한다
+    let seeds = null, maxSec = null, waiting = 0, infoAt = 0;
+    function getInfo() {
+      if (isFile || Date.now() - infoAt < 5000) return;
+      infoAt = Date.now();
+      load('/api/v1/info', (e, info) => {
+        if (e || !info) return;
+        if (info.defaultSeeds) { seeds = info.defaultSeeds; const ts = $('#t-seeds'); if (ts) ts.textContent = String(seeds); }
+        if (info.maxSeconds) maxSec = info.maxSeconds;
+        waiting = info.queueLength || 0;
+        refreshThink();
+      });
+    }
+    function refreshThink() {
+      let bumped = false;
+      thinks.forEach((x) => {
+        const v = Number(x.value);
+        x.disabled = (maxSec != null && v > maxSec) || (v >= 30 && waiting > 0);
+        if (x.disabled && x.checked) { x.checked = false; bumped = true; }
+      });
+      if (!thinks.some((x) => x.checked)) { const d = thinks.find((x) => !x.disabled && Number(x.value) === SHOW.THINK_DEFAULT) || thinks.find((x) => !x.disabled); if (d) d.checked = true; }
+      const busy = $('#t-busy');
+      if (busy) {
+        busy.hidden = !(waiting > 0);
+        busy.textContent = '지금 기다리는 분이 있어서 꼼꼼하게(30초)는 잠시 쉬어요.' + (bumped ? ' 보통으로 바꿔 뒀어요.' : '') + ' 대기 줄이 비면 다시 고를 수 있어요.';
+      }
+      if (!form.classList.contains('sh-running')) btn.textContent = btnLabel();
+    }
+    thinks.forEach((x) => x.addEventListener('change', () => { refreshThink(); getInfo(); }));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') getInfo(); });
+    refreshThink();
+    getInfo();
     function refresh() {
       const picked = boxes.filter((b) => b.checked).map((b) => b.value), n = picked.length;
       const shared = SHARED.filter((t) => picked.indexOf(t) >= 0).length;
@@ -327,8 +376,9 @@
     }
     function reset(message) {
       form.classList.remove('sh-running');
-      btn.textContent = btnLabel;
+      btn.textContent = btnLabel();
       prog.hidden = true; setBar(0);
+      if (news) news.textContent = '';
       if (err) { err.textContent = message || ''; err.hidden = !message; }
       refresh();
     }
@@ -342,13 +392,14 @@
       if (err) err.hidden = true;
       prog.hidden = false; setBar(0);
       txt.textContent = '준비 중';
+      if (news) news.textContent = '';
       const teams = boxes.filter((b) => b.checked).map((b) => b.value);
-      if (isFile) mockSolve(teams); else serverSolve(Number(tolOf()), teams);
+      if (isFile) mockSolve(teams, thinkOf()); else serverSolve(Number(tolOf()), teams, thinkOf());
     });
 
-    /** 서버 없이 열었을 때: 10초 진행 막대 뒤 기본 결과로 이동한다 */
-    function mockSolve(teams) {
-      const total = SHOW.MOCK_SOLVE_MS, t0 = Date.now();
+    /** 서버 없이 열었을 때: 고른 생각 시간만큼 진행 막대 뒤 기본 결과로 이동한다 */
+    function mockSolve(teams, sec) {
+      const total = sec * 1000, t0 = Date.now();
       const tick = () => {
         const el = Math.min(total, Date.now() - t0), k = el / total;
         setBar(k);
@@ -361,7 +412,7 @@
     }
 
     /** 실제 편성: 프리셋 문제에 조건 2개를 덮어써 서버에 보내고, SSE로 진행을 받다가 끝나면 결과 쪽으로 간다 */
-    function serverSolve(tol, teams) {
+    function serverSolve(tol, teams, timeLimitSec) {
       loadPreset((e0) => {
         if (e0) { reset('편성 준비 파일을 읽지 못했어요. 새로고침 뒤 다시 해 보세요.'); return; }
         const problem = window.KBO.Preset.buildProject();
@@ -370,17 +421,16 @@
         // 어린이날 이벤트의 구장도 고른 구단의 홈구장으로 맞춘다(서버는 obligationTeams를, 브라우저 채점기는 구장을 본다)
         const ev = problem.events.find((x) => x.type === 'CHILDREN');
         if (ev) ev.stadiums = teams.map((n) => (problem.teams.find((t) => t.name === n) || {}).stadium).filter((s, i, a) => s && a.indexOf(s) === i);
-        const timeLimitSec = 10;
-        const options = { timeLimitSec, init: 'SCRATCH', seed: Math.floor(Math.random() * 1e9) };
+        const options = { timeLimitSec, init: 'SCRATCH', seed: presetSeed != null ? presetSeed : Math.floor(Math.random() * 1e9) };
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/v1/solve', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = () => {
           let body = null; try { body = JSON.parse(xhr.responseText); } catch (e) { body = null; }
-          if (xhr.status === 429) { reset('이 인터넷 주소에서 이미 편성이 돌고 있어요. 그게 끝난 뒤(10초쯤) 다시 눌러 주세요.'); return; }
+          if (xhr.status === 429) { reset('이 인터넷 주소에서 이미 편성이 돌고 있어요. 그게 끝난 뒤 다시 눌러 주세요.'); return; }
           if (xhr.status === 400) { reset('조건을 받아들이지 못했어요' + (body && body.error ? ': ' + body.error : '.')); return; }
           if (xhr.status < 200 || xhr.status >= 300 || !body || !body.jobId) { reset('서버가 편성을 받지 못했어요(' + xhr.status + '). 잠시 뒤 다시 해 보세요.'); return; }
-          follow(body.jobId, timeLimitSec);
+          follow(body.jobId, timeLimitSec, tol);
         };
         xhr.onerror = () => reset('서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 해 보세요.');
         xhr.send(JSON.stringify({ problem, options, mode: 'INITIAL' }));
@@ -388,18 +438,23 @@
     }
 
     /** SSE: queued(대기 순번) → status(RUNNING) → best(지금까지 가장 좋은 일정) → done(id) / error */
-    function follow(jobId, timeLimitSec) {
+    function follow(jobId, timeLimitSec, tol) {
       if (typeof EventSource === 'undefined') { reset('이 브라우저는 진행 상황을 받을 수 없어요. 다른 브라우저로 해 보세요.'); return; }
       const es = new EventSource('/api/v1/solve/' + encodeURIComponent(jobId) + '/events');
       let t0 = null, bestKm = null, finished = false, timer = null;
-      const total = timeLimitSec * 1000;
+      const limit = timeLimitSec * 1000, total = ((SHOW.THINK[timeLimitSec] || {}).wait || timeLimitSec + 4) * 1000;
+      // 진행 중 소식: 같은 종류는 최신 것만 남기고, 하나를 1.5초는 보여 준 뒤 다음으로 넘긴다
+      let pending = [], shownAt = 0, saidFair = false, lastStep = -1;
+      const say = (kind, msg) => { pending = pending.filter((p) => p.kind !== kind); pending.push({ kind, msg }); };
+      const sayNext = () => { if (news && pending.length && Date.now() - shownAt >= 1500) { news.textContent = pending.shift().msg; shownAt = Date.now(); } };
       const finish = (message) => { finished = true; es.close(); clearTimeout(timer); if (message !== undefined) reset(message); };
       const running = () => {
         if (finished) return;
-        const el = Math.min(total, Date.now() - t0);
-        setBar(el / total);
+        const el = Date.now() - t0;
+        setBar(Math.min(0.97, el / total));
         const head = bestKm != null ? '지금까지 가장 좋은 일정: ' + fmtInt(bestKm) + ' km' : (seeds ? '출발점 ' + seeds + '개에서 동시에 짜는 중' : '여러 출발점에서 동시에 짜는 중');
-        txt.textContent = head + ' · ' + Math.round(el / 1000) + '/' + timeLimitSec + '초';
+        txt.textContent = head + ' · ' + (el < limit ? Math.floor(el / 1000) + '/' + timeLimitSec + '초 생각' : '거의 다 됐어요');
+        sayNext();
         timer = setTimeout(running, 250);
       };
       const start = () => { if (t0 == null) { t0 = Date.now(); running(); } };
@@ -413,7 +468,17 @@
         try {
           const p = JSON.parse(e.data), s = p.score;
           // 점수의 마지막 소프트 단계가 10구단 총 이동거리(km, 음수)다. 필수 규칙 위반이 남아 있으면 아직 보여 주지 않는다
-          if (s && s.hard && s.hard.every((h) => h === 0) && s.soft && s.soft.length) bestKm = -s.soft[s.soft.length - 1];
+          if (s && s.hard && s.hard.every((h) => h === 0) && s.soft && s.soft.length) {
+            bestKm = -s.soft[s.soft.length - 1];
+            const sec = Math.max(1, Math.round((Date.now() - t0) / 1000));
+            // soft[2] = 구단 간 이동거리 차이(정한 범위를 넘은 만큼, ui/core/replay-model.js LEVELS)
+            if (!saidFair && s.soft.length >= 5 && s.soft[2] === 0) { saidFair = true; say('fair', sec + '초 만에 구단 간 이동거리 차이를 ±' + fmtInt(tol) + 'km 안으로 맞췄어요'); }
+            // 총 이동거리: 실제보다 짧아진 순간, 그 뒤로는 2%씩 더 짧아질 때마다
+            const pct = (1 - bestKm / SHOW.REAL_KM) * 100;
+            const step = pct > 0 ? Math.floor(pct / 2) * 2 : -1;
+            if (step > lastStep) { lastStep = step; say('km', step === 0 ? '총 이동거리가 실제 일정보다 짧아졌어요' : '총 이동거리가 실제보다 ' + step + '% 짧아졌어요 · ' + sec + '초'); }
+            sayNext();
+          }
         } catch (x) { /* 무시 */ }
       });
       es.addEventListener('done', (e) => {
@@ -516,6 +581,7 @@
       }
       const sl = $('#studio-link');
       if (sl) sl.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + studioQuery(kb, res.seed) + '#step=2');
+      thinkBox(kb, res.options || {});
       mark('show', 'result-ok');
       const box = $('#replay-box');
       if (box) {
@@ -539,6 +605,30 @@
     bindShare();
     fixStudioLinks();
   };
+  /**
+   * 결과 쪽 생각 시간 상자: 다음 단계(3→10→30초)가 있으면 같은 조건·같은 출발점(options.seed, 출발점 seed+0..n-1)으로
+   * 더 오래 다시 해 보기, 가장 긴 단계면 다른 출발점에서 다시 해 보기. 소개 쪽 tryForm prefill이 ?t=&tol=&cd=&seed=를 읽는다.
+   */
+  function thinkBox(k, opt) {
+    const note = $('#think-note'), more = $('#think-more');
+    if (!note || !more) return;
+    const sec = opt.timeLimitSec, steps = Object.keys(SHOW.THINK).map(Number).sort((a, b) => a - b);
+    const next = sec != null ? steps.find((x) => x > sec) : null;
+    const p = new URLSearchParams();
+    if (k.distanceToleranceKm != null) p.set('tol', String(Math.round(k.distanceToleranceKm)));
+    if (k.childrenDayHomeTeams && k.childrenDayHomeTeams.length) p.set('cd', k.childrenDayHomeTeams.join(','));
+    if (next) {
+      p.set('t', String(next));
+      if (opt.seed != null) p.set('seed', String(opt.seed));
+      note.textContent = '같은 출발점에서 ' + next + '초 동안 생각하면 이동거리가 더 줄 때가 많아요. 다만 막다른 길에 들면 거의 그대로일 수도 있어요.';
+      more.textContent = '더 오래(' + SHOW.THINK[next].word + ' ' + next + '초) 다시 해 보기';
+    } else {
+      p.set('t', String(steps[steps.length - 1]));
+      note.textContent = sec != null ? '가장 오래(' + sec + '초) 생각한 결과예요. 다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.' : '다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.';
+      more.textContent = '다른 출발점에서 다시 해 보기';
+    }
+    more.setAttribute('href', 'index.html?' + p.toString() + '#try');
+  }
   /** 결과의 조건·시드를 위저드로 넘기는 쿼리. 위저드(app.js applyLinkSettings)가 읽어 settings에 싣는다 */
   function studioQuery(k, seed) {
     const p = new URLSearchParams();
