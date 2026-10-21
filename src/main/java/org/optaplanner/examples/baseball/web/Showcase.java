@@ -176,8 +176,10 @@ final class Showcase {
         long realKm = Json.asLong(real.get("totalKm"), 0);
         double realSpread = Json.asDouble(real.get("spreadKm"), 0);
         long pct = Math.round((1 - engKm / (double) Math.max(1, realKm)) * 100);
+        JSONObject opts = Json.object(res.get("options"));
+        long seconds = opts == null ? 10 : Json.asLong(opts.get("timeLimitSec"), 10);
         OgImage.Spec spec = new OgImage.Spec(
-                DEFAULT_ID.equals(id) ? "KBO 일정, 컴퓨터가 10초 만에 짜면?" : "내가 짠 KBO 2025 일정",
+                DEFAULT_ID.equals(id) ? "KBO 일정, 엔진이 " + seconds + "초 만에 짜면?" : "내가 짠 KBO 2025 일정",
                 Json.asString(res.get("title"), ""),
                 new String[] {"총 이동거리", "실제 대비", "구단 간 차이 (실제 " + String.format("%,.0f", realSpread) + "km)"},
                 new String[] {String.format("%,d km", engKm), (pct >= 0 ? "−" : "+") + Math.abs(pct) + "%",
