@@ -382,15 +382,20 @@ public final class BaseballWebServer {
     }
 
     private static String clientIp(HttpExchange ex) {
-        String fwd = ex.getRequestHeaders().getFirst("X-Forwarded-For");
-        if (fwd != null && !fwd.isBlank()) {
-            return fwd.split(",")[0].trim();
+        return clientIp(ex.getRemoteAddress().getAddress(), ex.getRequestHeaders().getFirst("X-Real-IP"));
+    }
+
+    /**
+     * IP당 동시 1작업 제한에 쓰는 방문자 주소.
+     * 같은 기계의 Caddy를 거쳐 온 요청(루프백)일 때만 Caddy가 넣은 X-Real-IP를 믿는다. Caddy는 Cloudflare 대역에서 온
+     * 요청에서만 CF-Connecting-IP를 방문자 주소로 받아 X-Real-IP로 넘긴다(deploy/Caddyfile). 그 밖의 요청이 보낸
+     * X-Forwarded-For·CF-Connecting-IP 같은 헤더는 누구나 꾸밀 수 있어 보지 않는다.
+     */
+    static String clientIp(java.net.InetAddress remote, String realIp) {
+        if (remote.isLoopbackAddress() && realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
         }
-        String cf = ex.getRequestHeaders().getFirst("CF-Connecting-IP");
-        if (cf != null && !cf.isBlank()) {
-            return cf.trim();
-        }
-        return ex.getRemoteAddress().getAddress().getHostAddress();
+        return remote.getHostAddress();
     }
 
 }

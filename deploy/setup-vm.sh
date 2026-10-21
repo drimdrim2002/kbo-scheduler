@@ -40,6 +40,9 @@ sudo -u kbo -H bash -c "cd '$APP_DIR' && bash deploy/build.sh"
 
 cp "$APP_DIR/deploy/kbo-scheduler.service" /etc/systemd/system/kbo-scheduler.service
 cp "$APP_DIR/deploy/Caddyfile" /etc/caddy/Caddyfile
+# Cloudflare 대역 신뢰(client_ip_headers)는 Caddy 2.7 이상. 설정이 틀리면 재시작 전에 멈춘다
+caddy version
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 mkdir -p /var/log/caddy && chown caddy:caddy /var/log/caddy
 systemctl daemon-reload
 systemctl enable --now kbo-scheduler

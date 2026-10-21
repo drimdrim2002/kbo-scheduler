@@ -30,12 +30,14 @@ sudo REPO_URL=https://github.com/<owner>/optaplanner-practice.git bash -c "$(cur
 4. Caching: 기본값. SSE(`/api/v1/solve/*/events`)와 API는 Cloudflare가 캐시하지 않는다. OG 이미지는 서버가 `Cache-Control: public, max-age=86400`을 주므로 캐시된다.
 5. Web Analytics(무료, 쿠키 배너 불필요): 사이트 추가 → 스니펫을 `ui/show/index.html`에 넣는다.
 6. 확인: `https://kbo-scheduler.ai/api/v1/info`, `https://kbo-scheduler.ai/og/default.png`.
+7. 방문자 주소 확인(IP당 동시 1작업): Caddy가 Cloudflare 대역에서 온 요청만 `CF-Connecting-IP`를 방문자 주소로 받아 `X-Real-IP`로 넘기고, 서버는 루프백에서 온 `X-Real-IP`만 믿는다(`deploy/Caddyfile` 맨 위 대역 목록). 휴대폰(LTE)과 PC(Wi-Fi)에서 동시에 「편성 시작」 → 둘 다 진행(하나는 "대기 1번째")이면 정상. 같은 기기에서 두 번 → 두 번째만 429 안내.
 
 ## 4. 갱신 배포 (개발 PC)
 ```bash
 bash deploy/deploy.sh
 ```
 VM에서 `git pull` → 빌드 → 서비스 재시작 → `/api/v1/info` 확인. 다른 브랜치는 `BRANCH=<이름>`.
+`deploy/Caddyfile`을 바꿨으면 VM에서 따로 반영한다: `sudo cp /opt/kbo-scheduler/app/deploy/Caddyfile /etc/caddy/Caddyfile && sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`.
 
 ## 5. 운영
 | 할 일 | 명령 |
