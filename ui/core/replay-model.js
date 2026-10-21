@@ -117,7 +117,25 @@
     const names = [];
     for (const idx of st.changed) { const t = model.teams[model.series[idx].home]; const nm = t ? t.name : String(model.series[idx].home); if (!names.includes(nm)) names.push(nm); }
     const shown = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
-    return i + '번째 개선 · 시리즈 ' + ev.changes.length + '개 이동' + (desc ? ' · ' + desc : '') + (hard ? ' · 필수 규칙 위반 ' + hard + '건' : '') + (shown ? ' · ' + shown : '');
+    return i + '번째 개선 · ' + moveWord(model, prev, ev.changes) + (desc ? ' · ' + desc : '') + (hard ? ' · 필수 규칙 위반 ' + hard + '건' : '') + (shown ? ' · ' + shown : '');
+  }
+
+  /**
+   * 한 번의 개선이 어떤 수였는지 일상어로. 이벤트의 changes는 받아들인 수 하나가 옮긴 시리즈 전부다.
+   * 1개 = 한 시리즈를 다른 날짜로 · 2개가 자리를 바꿈 = 맞바꿈 · 날짜 두 칸의 시리즈가 전부 오감 = 두 날짜를 통째로 맞바꿈 ·
+   * 두 칸 사이에서 일부만 오감 = 바꿔 넣음 · 그 밖(세 칸 이상을 도는 수) = 돌려 넣음.
+   */
+  function moveWord(model, prev, changes) {
+    const n = changes.length;
+    if (n === 1) return '시리즈 1개를 다른 날짜로';
+    const slots = new Set();
+    for (const c of changes) { slots.add(c[1]); slots.add(c[2]); }
+    if (slots.size !== 2) return '시리즈 ' + n + '개 돌려 넣음';
+    if (n === 2) return '시리즈 2개 맞바꿈';
+    // 두 칸에 있던 시리즈 수(옮기기 전 상태)와 옮긴 수가 같으면 두 날짜를 통째로 바꾼 것
+    let inSlots = 0;
+    for (const id of slots) { const k = model.slotIndex.get(id); if (k != null) for (let s = 0; s < prev.assign.length; s++) if (prev.assign[s] === k) inSlots++; }
+    return inSlots === n ? '날짜 두 칸 통째로 맞바꿈 (시리즈 ' + n + '개)' : '두 날짜 사이에서 시리즈 ' + n + '개 바꿔 넣음';
   }
 
   /**
@@ -160,5 +178,5 @@
     return model;
   }
 
-  KBO.ReplayModel = { build, normalize, apply, timeline, caption, LEVELS, PALETTE, fmtInt };
+  KBO.ReplayModel = { build, normalize, apply, timeline, caption, moveWord, LEVELS, PALETTE, fmtInt };
 });

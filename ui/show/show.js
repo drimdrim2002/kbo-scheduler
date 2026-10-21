@@ -190,17 +190,57 @@
         if (err2) { fail('탐색 과정을 불러올 수 없어요. ' + err2); return; }
         const trace = data && data.trace ? data.trace : data;
         if (!trace || !trace.events) { fail('이 결과에는 탐색 과정 기록이 없어요.'); return; }
+        // 상자가 화면 위쪽 밖에 있을 때(예: #try로 들어와 폼을 보는 중) 재생기가 커지면 보던 자리가 밀린다. 커진 만큼 스크롤을 따라 옮긴다
+        const before = box.getBoundingClientRect();
         host.innerHTML = '';
         let p;
         try {
           p = window.KBO.Replay.open(trace, { host, embedded: true, autoplay: o.autoplay !== false, speed: o.preview ? 2 : 1 });
         } catch (e) { fail('탐색 과정 형식이 맞지 않아요. ' + e.message); return; }
         if (o.preview) preview(box, p);
+        fitBoard(box, p);
+        if (before.bottom <= 0) { const grown = box.getBoundingClientRect().height - before.height; if (grown) window.scrollBy(0, grown); }
         mark('replay', 'ready ' + p.model.n + ' ' + p.idx);
         checkScroll();
         if (cb) cb(null, p);
       });
     }));
+  }
+  /**
+   * 휴대폰(show.css ≤700px)에서 일정판은 380px 창 안에서 스크롤된다. 지금 옮겨진 카드(.rp-hot)가 창 안에 보이도록 따라간다.
+   * 판이 스크롤되지 않는 폭(넓은 화면·「크게 보기」)에서는 아무것도 하지 않는다.
+   */
+  /**
+   * 보여주는 문의 해설은 "어떤 수로 총 이동거리가 얼마에서 얼마가 됐나"만 말한다.
+   * 모듈 기본 해설(ui/core/replay-model.js caption)은 슬롯 없는 시리즈·구단 간 차이 같은 단계까지 적는데, 여기서는 개념만 보여 주면 된다.
+   */
+  function simpleCaptions(p) {
+    const m = p.model, RM = window.KBO.ReplayModel, km = (st) => (st.soft && st.soft.length >= 5 ? fmtInt(st.soft[4]) + 'km' : null);
+    m.captions = m.states.map((st, i) => {
+      if (i === 0) return '시작 상태' + (km(st) ? ' · 총 이동거리 ' + km(st) : '');
+      const prev = m.states[i - 1], a = km(prev), b = km(st);
+      const dist = a && b ? (a === b ? '총 이동거리 ' + b + ' 그대로' : '총 이동거리 ' + a + ' → ' + b) : '';
+      const names = [];
+      for (const idx of st.changed) { const t = m.teams[m.series[idx].home]; const nm = t ? t.name : String(m.series[idx].home); if (names.indexOf(nm) < 0) names.push(nm); }
+      const who = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
+      return i + '번째 개선 · ' + RM.moveWord(m, prev, m.events[i - 1].changes) + (dist ? ' · ' + dist : '') + (who ? ' · ' + who : '');
+    });
+    p.update();
+  }
+  /**
+   * 보여주는 문에 맞게 재생기를 손본다: 해설을 단순하게(simpleCaptions), 그리고 show.css가 숨긴 날짜 칸(휴대폰은 앞 12칸만 펼침)에
+   * 놓인 카드는 같이 숨긴다. 모듈의 place()는 보이지 않는 칸의 자리를 0으로 재서 카드를 왼쪽 위에 겹쳐 놓기 때문이다.
+   */
+  function fitBoard(box, p) {
+    simpleCaptions(p);
+    const slots = $$('.rp-slot', box);
+    const place = p.place.bind(p);
+    p.place = (i) => {
+      place(i);
+      const st = p.model.states[i];
+      for (let k = 0; k < p.cards.length; k++) { const a = st.assign[k]; if (a >= 0 && slots[a] && slots[a].offsetParent === null) p.cards[k].hidden = true; }
+    };
+    p.place(p.idx);
   }
   function preview(box, p) {
     box.classList.add('sh-preview');
@@ -374,12 +414,14 @@
       bar.style.width = (Math.max(0, Math.min(1, k)) * 100).toFixed(1) + '%';
       prog.setAttribute('aria-valuenow', String(Math.round(Math.max(0, Math.min(1, k)) * 100)));
     }
+    // 진행·오류가 화면 밖에 생기지 않게 보이는 곳까지만 끌어온다
+    const show = (el) => { try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { el.scrollIntoView(); } };
     function reset(message) {
       form.classList.remove('sh-running');
       btn.textContent = btnLabel();
       prog.hidden = true; setBar(0);
       if (news) news.textContent = '';
-      if (err) { err.textContent = message || ''; err.hidden = !message; }
+      if (err) { err.textContent = message || ''; err.hidden = !message; if (message) show(err); }
       refresh();
     }
     // 결과 쪽에서 뒤로 왔을 때(bfcache) "편성 중…"에 멈춰 있지 않게 한다
@@ -393,6 +435,7 @@
       prog.hidden = false; setBar(0);
       txt.textContent = '준비 중';
       if (news) news.textContent = '';
+      show(prog);
       const teams = boxes.filter((b) => b.checked).map((b) => b.value);
       if (isFile) mockSolve(teams, thinkOf()); else serverSolve(Number(tolOf()), teams, thinkOf());
     });
@@ -560,7 +603,8 @@
       const v = view(real, Object.assign({}, engine, { options: res.options, seed: res.seed, elapsedMs: res.elapsedMs, improvementCount: res.improvementCount }));
       bind(v);
       const title = knobsTitle(res.knobs) || res.title || '편성 결과';
-      bind({ 'result.title': title, 'result.sub': res.title || '', 'result.id': id });
+      // 머리글은 제목(조건)을 되풀이하지 않고 결과 번호만 단다
+      bind({ 'result.title': title, 'result.sub': '번호 ' + id, 'result.id': id });
       const kb = res.knobs || {};
       bind({
         'knob.tol': kb.distanceToleranceKm != null ? tolWord(kb.distanceToleranceKm) + ' (±' + fmtInt(kb.distanceToleranceKm) + 'km)' : '–',
@@ -594,6 +638,15 @@
             try {
               const p = window.KBO.Replay.open(res.trace, { host, embedded: true, autoplay: auto, speed: 1 });
               window.replayPlayer = p;
+              // 휴대폰 축소판(색 막대) ↔ 큰 판(구단 이름). 바꾼 뒤 카드 자리를 다시 잰다
+              const sz = $('#replay-size');
+              if (sz) sz.addEventListener('click', () => {
+                const big = box.classList.toggle('sh-big');
+                sz.setAttribute('aria-pressed', String(big));
+                sz.textContent = big ? '앞 12칸만 보기' : '판 전체 펼치기 (45칸)';
+                p.layout();
+              });
+              fitBoard(box, p);
               mark('replay', 'ready ' + p.model.n + ' ' + p.idx);
             } catch (e) { host.innerHTML = '<div class="sh-replay-msg sh-err">탐색 과정 형식이 맞지 않아요. ' + esc(e.message) + '</div>'; mark('replay', 'format-error'); }
             checkScroll();
