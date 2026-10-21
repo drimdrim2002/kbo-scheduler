@@ -49,7 +49,7 @@ HOST=<서버 IP> bash deploy/deploy.sh
 | 상태·로그 | `systemctl status kbo-scheduler` · `journalctl -u kbo-scheduler -f` · `/var/log/caddy/kbo-scheduler.log` |
 | 한도 조정 | `/etc/systemd/system/kbo-scheduler.service`의 `MAX_SECONDS`·`SEEDS`·`JAVA_XMX` → `systemctl daemon-reload && systemctl restart kbo-scheduler` |
 | 결과 파일 | `/var/lib/kbo-scheduler/results/<id>.json`·`.png`. `default.json`을 지우면 다음 시작 때 다시 만든다 |
-| 부하 | 한 번에 작업 1개(큐), IP당 1개. 4 vCPU에서 10초 요청은 시드 4개 병렬. 실사용 힙은 1~2GB라 `JAVA_XMX=5g`. 동시 10명이면 마지막 사람은 약 100초 대기 |
+| 부하 | 한 번에 작업 1개(큐), IP당 1개. 4 vCPU에서 10초 요청은 시드 4개 병렬. 실사용 힙은 1~2GB라 `JAVA_XMX=5g`. 10초 요청이 서버에서 13~16초라 동시 10명이면 마지막 사람은 약 2분 대기. 대기 중 탭을 닫은 작업은 20~25초 안에 줄에서 빠진다. 부하 시험: `docs/LOAD_TEST.md`, `deploy/loadtest.py` |
 
 ## 6. 파일
 | 파일 | 역할 |
@@ -61,6 +61,7 @@ HOST=<서버 IP> bash deploy/deploy.sh
 | `kbo-scheduler.service` | systemd 유닛 |
 | `Caddyfile` | HTTPS·리버스 프록시(SSE 무버퍼) |
 | `deploy.sh` | 갱신 배포(개발 PC) |
+| `loadtest.py` | 동시 N명 부하 시험(서버 안에서 루프백으로, 방문자마다 다른 X-Real-IP) |
 
 ## 7. 아직 안 한 것
 - 백업: 결과 파일은 재계산 가능하므로 백업하지 않는다. `default.json`은 저장소에 있다.

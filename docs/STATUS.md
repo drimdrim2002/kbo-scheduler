@@ -1,7 +1,7 @@
 # 진행 상황과 테스트 안내 (2026-10-21 기준)
 
 > 2주 계획(10-20 ~ 11-03)의 어디까지 왔는지, 지금 main에 있는 것을 어떻게 직접 테스트하는지. 다른 세션·모델로 이어받을 때 먼저 읽는 문서.
-> 관련 문서: [제품 정의서](KBO_PLAYGROUND_PRODUCT_DEFINITION.md) · [보여주는 문 정의서](KBO_SHOWCASE_DEFINITION.md) · [엔진 벤치마크](ENGINE_SEED_BENCHMARK.md) · [배포 절차](../deploy/README.md)
+> 관련 문서: [제품 정의서](KBO_PLAYGROUND_PRODUCT_DEFINITION.md) · [보여주는 문 정의서](KBO_SHOWCASE_DEFINITION.md) · [엔진 벤치마크](ENGINE_SEED_BENCHMARK.md) · [배포 절차](../deploy/README.md) · [부하 시험](LOAD_TEST.md)
 
 ## 1. 진행률
 
@@ -11,8 +11,8 @@
 | 3~6일 서버·엔진 연결 | **완료** | HTTP 서버, REST·SSE, 멀티스타트(코어 수만큼 단일스레드 10초), 작업 큐·캐시, 위저드 ② "편성 시작"이 실제 엔진 호출, 트레이스 |
 | 재생기(추가) | **완료** | `ui/replay.html` + 위저드 「탐색 과정 보기」 모달 |
 | 7~9일 보여주는 문 | **완료(2026-10-21)** | 소개·비교·결과 3쪽(`ui/show/`). 소개의 「편성 시작」이 서버 엔진에 연결됨(file://에서만 목업). 결과 쪽 「스튜디오에서 이어서 다듬기」가 조건·시드를 위저드로 넘김. 휴일 허용오차 기본값 1.0 |
-| 배포 | **공개 완료(2026-10-21)** | https://schedulelab.kr — Akamai(Linode) 도쿄 2 Dedicated 4 vCPU·8GB(월 $72, Ubuntu 26.04) + Caddy 2.11.7(Let's Encrypt, 2027-01-19 만료 전 자동 갱신) + Cloudflare 프록시(Full strict). 확인: Cloudflare 경유 편성·진행 상황 스트림·같은 주소 두 번째 요청 429, 서버가 방문자 실제 IP를 받음, 휴대폰(LTE)·PC 동시 편성·결과·링크 복사(사용자 확인). 남은 것: 부하 시험(동시 10명), Web Analytics 스니펫, HEAD 요청이 404(GET은 정상) |
-| 10~11일 다듬기 | 미착수 | 부하 시험(동시 10명), 모바일 375px 눈 확인, 문구, 피드백 폼, 애널리틱스 스니펫 |
+| 배포 | **공개 완료(2026-10-21)** | https://schedulelab.kr — Akamai(Linode) 도쿄 2 Dedicated 4 vCPU·8GB(월 $72, Ubuntu 26.04) + Caddy 2.11.7(Let's Encrypt, 2027-01-19 만료 전 자동 갱신) + Cloudflare 프록시(Full strict). 확인: Cloudflare 경유 편성·진행 상황 스트림·같은 주소 두 번째 요청 429, 서버가 방문자 실제 IP를 받음, 휴대폰(LTE)·PC 동시 편성·결과·링크 복사(사용자 확인). 남은 것: 대기 줄 고침 배포, Web Analytics 스니펫, HEAD 요청이 404(GET은 정상) |
+| 10~11일 다듬기 | 진행 중 | 부하 시험(동시 10명) 완료: 서버에서 1·5·10명 모두 성공(10번째 123초 대기·136초 완료, CPU 100%, 메모리 5.6/7.9GB), Cloudflare 경유 10번째도 524 없이 완료, 압축이 SSE를 막지 않음. 대기 줄 고침(안 보는 대기 작업 빼기·대기 중 중지 즉시·같은 주소 다시 내기 자리 이어받기·끝난 작업 10분 뒤 잊기·keepalive 5초, 아직 배포 안 함). 자세한 표는 [LOAD_TEST.md](LOAD_TEST.md). 그 밖에 모바일 375px 눈 확인, 문구, 피드백 폼, 애널리틱스 스니펫 |
 | 12~13일 콘텐츠 | 미착수 | 한국어 장문 글, 영어 글, 20초 영상·GIF, 채널별 글. 만든 사람 블록·"엔진이 모르는 것" 목록은 사용자 제공 대기 |
 | 14일 발행 | 미착수 | |
 
@@ -57,7 +57,7 @@ curl -s -X POST localhost:8080/api/v1/score -H 'Content-Type: application/json' 
 ### 2.5 자동 점검 (전부 통과해야 정상)
 | 점검 | 명령 | 기대 |
 | :--- | :--- | :--- |
-| Java 테스트 | `mvn -q test` | 23개 통과 |
+| Java 테스트 | `mvn -q test` | 29개 통과 |
 | UI 코어 테스트 | `node ui/core/test/run-tests.js` | 21 통과 |
 | 위저드 자가 점검 | `bash ui/tools/studio/selftest.sh 1440 877` | ALL PASS / 64 |
 | 화면 점검 35경로×2크기 | `bash ui/tools/studio/checkall.sh` | 70줄 모두 `data-errors="0" data-scroll="OK…"` |

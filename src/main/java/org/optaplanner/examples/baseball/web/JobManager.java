@@ -3,15 +3,17 @@ package org.optaplanner.examples.baseball.web;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
@@ -24,26 +26,40 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 작업 큐(한 번에 하나: 한 작업이 코어를 모두 쓴다), 결과 캐시(같은 문제·옵션이면 같은 결과), IP당 동시 작업 제한.
+ * 대기 중인데 아무도 지켜보지 않는 작업(탭 닫기·연결 끊김)은 차례가 오기 전에 빼서 뒷사람의 대기를 줄인다.
  */
 final class JobManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobManager.class);
+    /** 대기 중 작업을 이만큼 아무도 지켜보지 않으면 뺀다. POST 뒤 SSE를 여는 틈보다 넉넉하게. */
+    static final long ABANDON_MS = 10_000;
+    /** 같은 주소에서 다시 눌렀을 때는 이만큼만 지나도 앞 작업을 버린 것으로 본다(끊김 → 다시 누름). */
+    static final long RETRY_ABANDON_MS = 1_000;
+    /** 끝난 작업은 이만큼 들고 있다가 잊는다(결과는 캐시·ResultStore에 남는다). */
+    static final long KEEP_FINISHED_MS = 10 * 60_000;
 
     private final ServerLimits limits;
-    private final ExecutorService runner = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "kbo-job-runner");
-        t.setDaemon(true);
-        return t;
-    });
+    private final Executor runner;
     private final Map<String, SolveJob> jobs = new ConcurrentHashMap<>();
-    private final Deque<SolveJob> queue = new ArrayDeque<>();
+    /** 대기 줄. 실행 순서도 이 줄을 따른다(runNext가 맨 앞을 꺼낸다). */
+    private final List<SolveJob> queue = new ArrayList<>();
     private final Map<String, JSONObject> cache;
     private final Map<String, Integer> activePerIp = new HashMap<>();
     private final ResultStore store;
 
     JobManager(ServerLimits limits, ResultStore store) {
+        this(limits, store, Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "kbo-job-runner");
+            t.setDaemon(true);
+            return t;
+        }));
+    }
+
+    /** 테스트는 작업을 실제로 돌리지 않는 runner를 넣는다. */
+    JobManager(ServerLimits limits, ResultStore store, Executor runner) {
         this.limits = limits;
         this.store = store;
+        this.runner = runner;
         this.cache = new LinkedHashMap<>(64, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, JSONObject> eldest) {
@@ -69,8 +85,41 @@ final class JobManager {
         return queue.size();
     }
 
+    /** 5초마다 sweep을 돈다(서버에서만 켠다). */
+    void startSweeper() {
+        ScheduledExecutorService s = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "kbo-job-sweeper");
+            t.setDaemon(true);
+            return t;
+        });
+        s.scheduleWithFixedDelay(() -> {
+            try {
+                sweep(System.currentTimeMillis());
+            } catch (RuntimeException e) {
+                LOG.warn("sweep failed", e);
+            }
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    /** 아무도 지켜보지 않는 대기 작업을 빼고, 끝난 지 오래된 작업을 잊는다. */
+    void sweep(long now) {
+        synchronized (this) {
+            for (SolveJob j : List.copyOf(queue)) {
+                if (j.unwatchedFor(now, ABANDON_MS)) {
+                    cancelQueued(j, "ABANDONED");
+                }
+            }
+        }
+        jobs.values().removeIf(j -> j.isFinished() && now - j.finishedAt() > KEEP_FINISHED_MS);
+    }
+
     /** 작업을 만든다. 캐시에 있으면 바로 DONE 상태로 돌려준다. */
     SolveJob submit(JSONObject problem, SolveOptions options, String clientIp) {
+        return submit(problem, options, clientIp, false);
+    }
+
+    /** unattended: 서버가 스스로 낸 작업이라 지켜보는 사람이 없어도 빼지 않는다. */
+    SolveJob submit(JSONObject problem, SolveOptions options, String clientIp, boolean unattended) {
         if (!"INITIAL".equals(options.mode())) {
             throw new RejectedException(400, "이번 버전은 mode=INITIAL만 지원합니다.");
         }
@@ -80,6 +129,7 @@ final class JobManager {
         String cacheKey = cacheKey(problem, options, fullPlan);
         String id = UUID.randomUUID().toString().substring(0, 8);
         SolveJob job = new SolveJob(id, cacheKey, clientIp, problem, options);
+        job.unattended = unattended;
         JSONObject cached;
         synchronized (this) {
             cached = cache.get(cacheKey);
@@ -97,21 +147,35 @@ final class JobManager {
             return job;
         }
         synchronized (this) {
+            // 연결이 끊겨 다시 누른 경우: 같은 주소의 대기 작업을 아무도 보고 있지 않으면 그 자리를 이어받는다
+            int place = queue.size();
+            if (activePerIp.getOrDefault(clientIp, 0) >= limits.maxJobsPerIp()) {
+                long now = System.currentTimeMillis();
+                for (SolveJob j : List.copyOf(queue)) {
+                    if (j.clientIp.equals(clientIp) && j.unwatchedFor(now, RETRY_ABANDON_MS)) {
+                        place = Math.min(place, queue.indexOf(j));
+                        cancelQueued(j, "ABANDONED");
+                    }
+                }
+            }
             int active = activePerIp.getOrDefault(clientIp, 0);
             if (active >= limits.maxJobsPerIp()) {
                 throw new RejectedException(429, "이미 실행 중인 편성이 있습니다. 끝난 뒤 다시 시도하세요.");
             }
             activePerIp.put(clientIp, active + 1);
             jobs.put(id, job);
-            queue.addLast(job);
+            queue.add(Math.min(place, queue.size()), job);
             renumber();
         }
-        runner.submit(() -> run(job));
+        runner.execute(this::runNext);
         return job;
     }
 
     void stop(SolveJob job) {
         job.stopRequested = true;
+        if (cancelQueued(job, "STOPPED")) {
+            return;
+        }
         MultiStartSolver s = job.solver;
         if (s != null) {
             s.stop();
@@ -125,14 +189,45 @@ final class JobManager {
         }
     }
 
-    private void run(SolveJob job) {
+    /** 아직 차례가 오지 않은 작업을 큐에서 빼고 IP 몫을 바로 돌려준다. 이미 큐에 없으면(돌기 시작함) false. */
+    private synchronized boolean cancelQueued(SolveJob job, String reason) {
+        if (!queue.remove(job)) {
+            return false;
+        }
+        releaseIp(job.clientIp);
+        renumber();
+        job.done(Json.obj("jobId", job.id, "reason", reason, "score", null, "plan", new JSONArray()), true);
+        LOG.info("job {} {} while queued", job.id, reason);
+        return true;
+    }
+
+    private synchronized void releaseIp(String ip) {
+        int active = activePerIp.getOrDefault(ip, 0);
+        if (active <= 1) {
+            activePerIp.remove(ip);
+        } else {
+            activePerIp.put(ip, active - 1);
+        }
+    }
+
+    /** submit마다 하나씩 runner에 들어간다. 그 사이 취소된 작업이 있으면 꺼낼 것이 없어 그냥 끝난다. */
+    void runNext() {
+        SolveJob job;
         synchronized (this) {
-            queue.remove(job);
+            if (queue.isEmpty()) {
+                return;
+            }
+            job = queue.remove(0);
             renumber();
         }
+        run(job);
+    }
+
+    private void run(SolveJob job) {
         try {
-            if (job.stopRequested) {
-                job.done(Json.obj("jobId", job.id, "reason", "STOPPED", "score", null, "plan", new JSONArray()), true);
+            if (job.stopRequested || job.unwatchedFor(System.currentTimeMillis(), ABANDON_MS)) {
+                job.done(Json.obj("jobId", job.id, "reason", job.stopRequested ? "STOPPED" : "ABANDONED", "score", null,
+                        "plan", new JSONArray()), true);
                 return;
             }
             job.running();
@@ -189,14 +284,7 @@ final class JobManager {
             job.error(e.getMessage() == null ? e.toString() : e.getMessage());
         } finally {
             job.solver = null;
-            synchronized (this) {
-                int active = activePerIp.getOrDefault(job.clientIp, 0);
-                if (active <= 1) {
-                    activePerIp.remove(job.clientIp);
-                } else {
-                    activePerIp.put(job.clientIp, active - 1);
-                }
-            }
+            releaseIp(job.clientIp);
         }
     }
 

@@ -90,7 +90,7 @@ final class Showcase {
         JSONObject options = Json.obj("timeLimitSec", Math.min(30L, limits.maxSeconds()), "seed", 42L,
                 "seeds", (long) limits.defaultSeeds(), "init", "SCRATCH");
         try {
-            SolveJob job = jobs.submit(problem, SolveOptions.from(options, limits), "server-default");
+            SolveJob job = jobs.submit(problem, SolveOptions.from(options, limits), "server-default", true);
             job.onDone = payload -> {
                 JSONObject copy = (JSONObject) payload.clone();
                 copy.put("id", DEFAULT_ID);

@@ -46,6 +46,7 @@ public final class BaseballWebServer {
     private static final Logger LOG = LoggerFactory.getLogger(BaseballWebServer.class);
     private static final String NAME = "kbo-scheduler";
     private static final String VERSION = "0.1.0";
+    static final long KEEPALIVE_SEC = 5;
     private static final Map<String, String> MIME = Map.ofEntries(
             Map.entry("html", "text/html; charset=utf-8"), Map.entry("js", "text/javascript; charset=utf-8"),
             Map.entry("css", "text/css; charset=utf-8"), Map.entry("json", "application/json; charset=utf-8"),
@@ -68,6 +69,7 @@ public final class BaseballWebServer {
         this.showRoot = this.uiRoot == null ? null : this.uiRoot.resolve("show");
         ResultStore store = new ResultStore(dataDir);
         this.jobs = new JobManager(limits, store);
+        jobs.startSweeper();
         this.showcase = new Showcase(jobs, store, limits, inputFile);
         SolverConfig config = BenchSupport.solverConfig(0, 1, "NONE", null, null);
         this.scorer = SolutionManager.create(SolverFactory.create(config));
@@ -255,7 +257,9 @@ public final class BaseballWebServer {
         BlockingQueue<SolveJob.Event> q = job.subscribe();
         try (OutputStream os = ex.getResponseBody()) {
             while (true) {
-                SolveJob.Event e = q.poll(15, TimeUnit.SECONDS);
+                // 5초마다 주석 줄: 프록시(Cloudflare 100초)가 끊지 않게 하고, 탭을 닫은 사람을 쓰기 실패로 빨리 알아챈다
+                // (JobManager가 아무도 보지 않는 대기 작업을 뺀다)
+                SolveJob.Event e = q.poll(KEEPALIVE_SEC, TimeUnit.SECONDS);
                 if (e == null) {
                     os.write(": keep-alive\n\n".getBytes(StandardCharsets.UTF_8));
                     os.flush();

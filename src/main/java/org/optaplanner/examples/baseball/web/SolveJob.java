@@ -28,11 +28,16 @@ final class SolveJob {
     private Event lastBest;
     private final Map<Long, Event> lastSeedBest = new LinkedHashMap<>();
     private Event terminal;
+    private long finishedAt;
+    /** 마지막으로 누가 이 작업을 지켜본 때(만든 때·SSE 연결·끊김·상태 조회). */
+    private long lastSeenAt = createdAt;
     private final List<BlockingQueue<Event>> subscribers = new ArrayList<>();
     volatile MultiStartSolver solver;
     volatile boolean stopRequested;
     /** 끝났을 때 한 번 부른다(기본 결과 저장 등). 캐시 적중이면 submit이 바로 부른다. */
     volatile java.util.function.Consumer<JSONObject> onDone;
+    /** 서버가 스스로 낸 작업(기본 결과). 지켜보는 사람이 없어도 취소하지 않는다. */
+    volatile boolean unattended;
 
     SolveJob(String id, String cacheKey, String clientIp, JSONObject problem, SolveOptions options) {
         this.id = id;
@@ -73,8 +78,18 @@ final class SolveJob {
         publish(lastBest);
     }
 
+    /** SSE 연결이 하나도 없고 graceMs 넘게 아무도 지켜보지 않았다(탭을 닫았거나 연결이 끊겼다). */
+    synchronized boolean unwatchedFor(long now, long graceMs) {
+        return !unattended && subscribers.isEmpty() && now - lastSeenAt >= graceMs;
+    }
+
+    synchronized long finishedAt() {
+        return finishedAt;
+    }
+
     synchronized void done(JSONObject payload, boolean stopped) {
         status = stopped ? Status.STOPPED : Status.DONE;
+        finishedAt = System.currentTimeMillis();
         terminal = new Event("done", Json.str(payload));
         publish(terminal);
         subscribers.clear();
@@ -82,6 +97,7 @@ final class SolveJob {
 
     synchronized void error(String message) {
         status = Status.ERROR;
+        finishedAt = System.currentTimeMillis();
         terminal = new Event("error", Json.str(Json.obj("jobId", id, "message", message)));
         publish(terminal);
         subscribers.clear();
@@ -90,6 +106,7 @@ final class SolveJob {
     /** 현재 상태를 먼저 재생하고 이후 이벤트를 받는 큐를 돌려준다. */
     synchronized BlockingQueue<Event> subscribe() {
         BlockingQueue<Event> q = new LinkedBlockingQueue<>();
+        lastSeenAt = System.currentTimeMillis();
         if (status == Status.QUEUED) {
             q.add(new Event("queued", Json.str(Json.obj("jobId", id, "position", (long) queuePosition))));
         } else if (status == Status.RUNNING) {
@@ -109,6 +126,7 @@ final class SolveJob {
 
     synchronized void unsubscribe(BlockingQueue<Event> q) {
         subscribers.remove(q);
+        lastSeenAt = System.currentTimeMillis();
     }
 
     private void publish(Event e) {
@@ -119,6 +137,7 @@ final class SolveJob {
 
     /** GET /api/v1/solve/{jobId} 응답. */
     synchronized JSONObject statusJson() {
+        lastSeenAt = System.currentTimeMillis();
         JSONObject o = Json.obj("jobId", id, "status", status.name());
         if (status == Status.QUEUED) {
             o.put("position", (long) queuePosition);
