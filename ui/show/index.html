@@ -8,7 +8,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="KBO 144경기 일정, 엔진이 30초 만에 짜면?">
 <meta property="og:description" content="같은 조건, 30초 만에 이동거리 13% 절감·구단 간 차이 60% 축소. 탐색 과정을 재생해 보고 직접 돌려 보세요.">
-<meta property="og:image" content="/og/default.png">
+<meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>
   /* 콘솔 오류 수집 (점검용, replay.html과 같은 형식). 화면 동작에는 영향이 없다. */
@@ -55,6 +55,8 @@
         <span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b> <span class="sh-small">(주말 홈 <span data-n="engine.weekend">11~12</span>회)</span></span>
       </div>
     </div>
+    <!-- 첫 화면에서 바로 「직접 해보기」로. 휴대폰에서는 폼까지 세 화면 가까이 내려가야 해서 -->
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="#try">직접 해보기 <small>약 15초</small></a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
     <p class="sh-small" style="margin-top:8px">PC 한 대에서 <span data-n="engine.seconds">30</span>초, 시드 <span data-n="engine.seeds">8</span>개를 동시에 돌려 가장 좋은 일정을 골랐어요.</p>
     <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 엔진 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
   </section>
@@ -124,13 +126,14 @@
         <p class="sh-field-help" id="t-help">AI 챗봇에게 "더 깊게 생각해 줘"라고 하는 것과 비슷해요. 구단 간 이동거리 차이는 몇 초면 맞추고, 오래 생각할수록 총 이동거리를 더 줄일 기회가 늘어요. 막다른 길에 들면 그대로일 수도 있어서 출발점 <span id="t-seeds">4</span>개를 동시에 돌려 가장 좋은 걸 골라요. (기본 조건으로 5번씩 돌려 본 숫자예요.)</p>
         <p class="sh-field-help sh-think-busy" id="t-busy" hidden>지금 기다리는 분이 있어서 꼼꼼하게(30초)는 잠시 쉬어요. 대기 줄이 비면 다시 고를 수 있어요.</p>
       </fieldset>
-      <button class="k-btn k-btn-primary sh-go" type="submit">편성 시작 (약 15초)</button>
+      <!-- 진행·오류는 버튼 위에 둔다. 휴대폰에서 버튼을 화면 맨 아래에서 누르면 버튼 아래쪽은 화면 밖이라서 -->
       <div class="sh-progress" id="try-progress" hidden role="progressbar" aria-label="편성 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="sh-progress-track"><div class="sh-progress-bar" id="try-bar"></div></div>
         <div class="sh-progress-txt"><span id="try-txt">준비 중</span><span>끝나면 결과 쪽으로 이동해요</span></div>
         <p class="sh-progress-news" id="try-news" aria-live="polite"></p>
       </div>
       <p class="sh-try-err" id="try-err" role="alert" hidden></p>
+      <button class="k-btn k-btn-primary sh-go" type="submit">편성 시작 (약 15초)</button>
       <p class="sh-pc">PC에서는 <a href="../index.html" data-studio>편성 스튜디오</a>에서 더 많은 조건(특정 날짜 홈 불가, 시리즈 고정, 휴일 가중치)을 다룰 수 있어요.</p>
     </form>
   </section>

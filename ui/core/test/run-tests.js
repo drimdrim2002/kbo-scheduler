@@ -302,8 +302,8 @@ test('재생 모델: 마지막 점수 = 트레이스 마지막 이벤트, 시간
   eq(m.times[0], 0); assert(m.times[m.n] < m.durationMs, '마지막 이벤트 뒤 여유');
   eq(m.indexAt(0), 0); eq(m.indexAt(m.times[3]), 3); eq(m.indexAt(m.times[3] - 1), 2); eq(m.indexAt(m.durationMs), m.n);
   assert(/^시작 상태/.test(m.captions[0]) && /총 이동거리 70,198km/.test(m.captions[0]), m.captions[0]);
-  assert(/^1번째 개선 · 시리즈 6개 이동 · 구단 간 이동거리 차이 5,101 → 756/.test(m.captions[1]), m.captions[1]);
-  assert(/^22번째 개선 · 시리즈 7개 이동 · 총 이동거리 68,505 → 68,501km · /.test(m.captions[22]), m.captions[22]);
+  assert(/^1번째 개선 · 두 날짜 사이에서 시리즈 6개 바꿔 넣음 · 구단 간 이동거리 차이 5,101 → 756/.test(m.captions[1]), m.captions[1]);
+  assert(/^22번째 개선 · 시리즈 7개 돌려 넣음 · 총 이동거리 68,505 → 68,501km · /.test(m.captions[22]), m.captions[22]);
   const names = m.captions[22].split(' · ').pop().split('·');
   assert(names.length >= 2 && names.length <= 3 && names.every((n) => t.teams.some((x) => x.name === n.replace(/ 외 \d+$/, ''))), '구단명 2~3개: ' + names.join(','));
 });
