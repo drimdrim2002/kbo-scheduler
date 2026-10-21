@@ -25,7 +25,7 @@ ssh root@<서버 IP>
 # 서버 안에서
 sudo REPO_URL=https://github.com/drimdrim2002/kbo-scheduler.git bash -c "$(curl -fsSL https://raw.githubusercontent.com/drimdrim2002/kbo-scheduler/main/deploy/setup-vm.sh)"
 ```
-`setup-vm.sh`가 하는 일: Temurin JDK 25·Maven·git·Caddy·한글 폰트(Noto CJK, OG 이미지용) 설치, 시스템 사용자 `kbo`, `/opt/kbo-scheduler/app`에 clone, `deploy/build.sh`, systemd 유닛과 Caddyfile 복사, 서비스 시작. 끝에 `/api/v1/info`가 찍히면 성공. 첫 시작 때 기본 결과(30초)를 만든다.
+`setup-vm.sh`가 하는 일: Temurin JDK 25·Maven·git·Caddy·한글 폰트(Noto CJK, OG 이미지용) 설치, 시스템 사용자 `kbo`, `/opt/kbo-scheduler/app`에 clone, `deploy/build.sh`, systemd 유닛과 Caddyfile 복사, 서비스 시작. 끝에 `/api/v1/info`가 찍히면 성공. 기본 결과는 저장소의 `data/results/default.json`(시드 8개, 소개 쪽 문구의 근거)을 결과 폴더에 복사해 쓴다. 그 파일이 없을 때만 서버가 30초 동안 새로 만든다(서버 코어 수만큼 시드라 숫자가 달라진다).
 
 ## 3. Cloudflare·DNS
 1. Cloudflare에 사이트 추가(Free) → 가져온 DNS 레코드 중 가비아 기본값(파킹 등)은 지운다 → Cloudflare가 주는 네임서버 2개를 가비아(My가비아 → 도메인 관리 → 네임서버 설정)에 1·2차로 넣고 나머지 칸은 비운다. 가비아에서 DNSSEC를 켰다면 먼저 끈다. 반영은 수 분~수 시간, 끝나면 Cloudflare가 "Active" 메일을 보낸다.

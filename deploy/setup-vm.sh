@@ -43,6 +43,8 @@ mkdir -p "$APP_DIR" "$DATA_DIR"
 if [ ! -d "$APP_DIR/.git" ]; then
   git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 fi
+# 소개 쪽 문구(−13%, 시드 8개)는 저장소의 기본 결과 기준이다. 없으면 서버가 시드 4개로 새로 만들어 숫자가 달라지므로 복사해 둔다
+[ -f "$DATA_DIR/default.json" ] || cp "$APP_DIR/data/results/default.json" "$DATA_DIR/default.json"
 chown -R kbo:kbo /opt/kbo-scheduler /var/lib/kbo-scheduler
 
 # 빌드는 kbo 사용자로 (maven 캐시도 그 홈에)
