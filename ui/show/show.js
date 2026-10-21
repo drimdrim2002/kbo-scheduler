@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js', '../app/replay/replay.js'];
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261022', '../app/replay/replay.js?v=20261022']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
