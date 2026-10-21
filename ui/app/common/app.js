@@ -283,6 +283,31 @@
   App.prototype.updateSolverSettings = function (patch) {
     return this.store.commit('엔진 옵션 변경', (s) => { Object.assign(s.settings.solver, patch); }, { tags: ['settings'], undo: false });
   };
+  /**
+   * 결과 공유 쪽 「스튜디오에서 이어서 다듬기」 링크의 쿼리(?tol=&hol=&cd=&seed=)를 settings에 싣는다.
+   * 어린이날 홈 구단은 CHILDREN 이벤트의 구장도 함께 바꾼다(브라우저 채점기 구장 기준 모드가 이벤트 구장을 본다).
+   * 실은 항목을 돌려준다(없으면 null).
+   */
+  App.prototype.applyLinkSettings = function (search) {
+    const q = new URLSearchParams(search || '');
+    const st = this.state;
+    const tol = Number(q.get('tol')), hol = Number(q.get('hol')), seed = parseInt(q.get('seed'), 10);
+    const teams = (q.get('cd') || '').split(',').map((x) => x.trim()).filter((x) => x && st.teams.some((t) => t.name === x));
+    const patch = {};
+    if (tol > 0) patch.distanceToleranceKm = tol;
+    if (hol > 0) patch.holidayTolerance = hol;
+    if (teams.length && teams.length === Math.floor(st.teams.length / 2) && new Set(teams).size === teams.length) patch.obligationTeams = teams;
+    if (!Object.keys(patch).length && isNaN(seed)) return null;
+    this.store.commit('공유 링크 조건 적용', (s) => {
+      Object.assign(s.settings, patch);
+      if (!isNaN(seed)) s.settings.solver.seed = seed;
+      if (patch.obligationTeams) {
+        const ev = (s.events || []).find((e) => e.type === 'CHILDREN');
+        if (ev) ev.stadiums = patch.obligationTeams.map((n) => (s.teams.find((t) => t.name === n) || {}).stadium).filter((x, i, a) => x && a.indexOf(x) === i);
+      }
+    }, { undo: false, tags: ['settings', 'events'] });
+    return Object.assign({}, patch, isNaN(seed) ? {} : { seed });
+  };
   /** 설정으로 생성할 슬롯과 현재 슬롯이 다른가 */
   App.prototype.slotsOutOfDate = function () {
     const gen = CalendarGen.generateSlots(this.state.settings).slots;

@@ -293,42 +293,157 @@
     fixStudioLinks();
   };
 
-  /** ④ 직접 해보기 — 손잡이 2개 + 목업 진행(서버 연결 전) */
+  /** ④ 직접 해보기 — 손잡이 2개. 서버면 실제 편성(POST /api/v1/solve → SSE → /r/<id>), file://이면 목업 진행 */
   function tryForm() {
     const form = $('#try-form'); if (!form) return;
     const tolOf = () => { const r = $('input[name="tol"]:checked', form); return r ? r.value : '300'; };
     const boxes = $$('input[name="cd"]', form), count = $('#cd-count');
+    const btn = form.querySelector('[type="submit"]'), btnLabel = btn.textContent;
+    const prog = $('#try-progress'), bar = $('#try-bar'), txt = $('#try-txt'), err = $('#try-err');
     const MAXSEL = 5;
+    // 두산·LG는 잠실을 같이 쓴다: 어린이날 홈 5구단에 둘 중 정확히 하나가 있어야 엔진이 첫 일정을 만든다
+    const SHARED = ['두산', 'LG'];
+    const mock = $('.sh-mock', form); if (mock) mock.hidden = !isFile;
+    let seeds = null;
+    if (!isFile) load('/api/v1/info', (e, info) => { if (!e && info && info.defaultSeeds) seeds = info.defaultSeeds; });
     function refresh() {
-      const n = boxes.filter((b) => b.checked).length;
-      boxes.forEach((b) => { b.disabled = !b.checked && n >= MAXSEL; });
+      const picked = boxes.filter((b) => b.checked).map((b) => b.value), n = picked.length;
+      const shared = SHARED.filter((t) => picked.indexOf(t) >= 0).length;
+      // 잠실 자리가 남아 있어야 하면 마지막 한 칸은 두산·LG 몫으로 남긴다
+      const full = (b) => n >= MAXSEL || (shared === 0 && n === MAXSEL - 1 && SHARED.indexOf(b.value) < 0);
+      boxes.forEach((b) => { b.disabled = !b.checked && (full(b) || (shared >= 1 && SHARED.indexOf(b.value) >= 0)); });
       if (count) count.textContent = n + '/' + MAXSEL;
-      form.querySelector('[type="submit"]').disabled = n !== MAXSEL;
-      const help = $('#cd-help'); if (help) help.textContent = n === MAXSEL ? '5개 구단이 어린이날 홈에서 경기해요. 바꾸려면 하나를 풀고 다른 구단을 고르세요.' : (MAXSEL - n) + '개 더 고르세요. 어린이날에는 꼭 5개 구단이 홈이어야 해요.';
+      const ok = n === MAXSEL && shared === 1;
+      btn.disabled = !ok || form.classList.contains('sh-running');
+      const help = $('#cd-help');
+      if (help) help.textContent = (ok ? '5개 구단이 어린이날 홈에서 경기해요. 바꾸려면 하나를 풀고 다른 구단을 고르세요.' : (MAXSEL - n) + '개 더 고르세요. 어린이날에는 꼭 5개 구단이 홈이어야 해요.') +
+        ' 두산과 LG는 잠실을 같이 써서 둘 중 하나만, 꼭 하나는 골라야 해요.';
     }
     boxes.forEach((b) => b.addEventListener('change', refresh));
     refresh();
+    function setBar(k) {
+      bar.style.width = (Math.max(0, Math.min(1, k)) * 100).toFixed(1) + '%';
+      prog.setAttribute('aria-valuenow', String(Math.round(Math.max(0, Math.min(1, k)) * 100)));
+    }
+    function reset(message) {
+      form.classList.remove('sh-running');
+      btn.textContent = btnLabel;
+      prog.hidden = true; setBar(0);
+      if (err) { err.textContent = message || ''; err.hidden = !message; }
+      refresh();
+    }
+    // 결과 쪽에서 뒤로 왔을 때(bfcache) "편성 중…"에 멈춰 있지 않게 한다
+    window.addEventListener('pageshow', (e) => { if (e.persisted) reset(); });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (form.classList.contains('sh-running')) return;
       form.classList.add('sh-running');
-      const btn = form.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = '편성 중…';
-      const prog = $('#try-progress'), bar = $('#try-bar'), txt = $('#try-txt');
-      prog.hidden = false;
-      const total = SHOW.MOCK_SOLVE_MS, t0 = Date.now();
+      btn.disabled = true; btn.textContent = '편성 중…';
+      if (err) err.hidden = true;
+      prog.hidden = false; setBar(0);
+      txt.textContent = '준비 중';
       const teams = boxes.filter((b) => b.checked).map((b) => b.value);
+      if (isFile) mockSolve(teams); else serverSolve(Number(tolOf()), teams);
+    });
+
+    /** 서버 없이 열었을 때: 10초 진행 막대 뒤 기본 결과로 이동한다 */
+    function mockSolve(teams) {
+      const total = SHOW.MOCK_SOLVE_MS, t0 = Date.now();
       const tick = () => {
         const el = Math.min(total, Date.now() - t0), k = el / total;
-        bar.style.width = (k * 100).toFixed(1) + '%';
-        prog.setAttribute('aria-valuenow', String(Math.round(k * 100)));
-        txt.textContent = (k < 0.3 ? '시드 8개로 동시에 짜는 중' : k < 0.7 ? '이동거리를 줄이는 중' : '구단 간 차이를 고르는 중') + ' · ' + Math.round(el / 1000) + '/' + Math.round(total / 1000) + '초';
+        setBar(k);
+        txt.textContent = (k < 0.3 ? '여러 출발점에서 동시에 짜는 중' : k < 0.7 ? '이동거리를 줄이는 중' : '구단 간 차이를 고르는 중') + ' · ' + Math.round(el / 1000) + '/' + Math.round(total / 1000) + '초';
         if (el < total) { setTimeout(tick, 250); return; }
-        // 서버 연결 뒤: POST /api/v1/solve → SSE → /r/<id>. 지금은 기본 결과로 이동한다(목업).
         const p = new URLSearchParams({ id: 'default', tol: tolOf(), cd: teams.join(',') });
         location.href = 'r.html?' + p.toString();
       };
       tick();
-    });
+    }
+
+    /** 실제 편성: 프리셋 문제에 조건 2개를 덮어써 서버에 보내고, SSE로 진행을 받다가 끝나면 결과 쪽으로 간다 */
+    function serverSolve(tol, teams) {
+      loadPreset((e0) => {
+        if (e0) { reset('편성 준비 파일을 읽지 못했어요. 새로고침 뒤 다시 해 보세요.'); return; }
+        const problem = window.KBO.Preset.buildProject();
+        problem.settings.distanceToleranceKm = tol;
+        problem.settings.obligationTeams = teams.slice();
+        // 어린이날 이벤트의 구장도 고른 구단의 홈구장으로 맞춘다(서버는 obligationTeams를, 브라우저 채점기는 구장을 본다)
+        const ev = problem.events.find((x) => x.type === 'CHILDREN');
+        if (ev) ev.stadiums = teams.map((n) => (problem.teams.find((t) => t.name === n) || {}).stadium).filter((s, i, a) => s && a.indexOf(s) === i);
+        const timeLimitSec = 10;
+        const options = { timeLimitSec, init: 'SCRATCH', seed: Math.floor(Math.random() * 1e9) };
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/v1/solve', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = () => {
+          let body = null; try { body = JSON.parse(xhr.responseText); } catch (e) { body = null; }
+          if (xhr.status === 429) { reset('이 인터넷 주소에서 이미 편성이 돌고 있어요. 그게 끝난 뒤(10초쯤) 다시 눌러 주세요.'); return; }
+          if (xhr.status === 400) { reset('조건을 받아들이지 못했어요' + (body && body.error ? ': ' + body.error : '.')); return; }
+          if (xhr.status < 200 || xhr.status >= 300 || !body || !body.jobId) { reset('서버가 편성을 받지 못했어요(' + xhr.status + '). 잠시 뒤 다시 해 보세요.'); return; }
+          follow(body.jobId, timeLimitSec);
+        };
+        xhr.onerror = () => reset('서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 해 보세요.');
+        xhr.send(JSON.stringify({ problem, options, mode: 'INITIAL' }));
+      });
+    }
+
+    /** SSE: queued(대기 순번) → status(RUNNING) → best(지금까지 가장 좋은 일정) → done(id) / error */
+    function follow(jobId, timeLimitSec) {
+      if (typeof EventSource === 'undefined') { reset('이 브라우저는 진행 상황을 받을 수 없어요. 다른 브라우저로 해 보세요.'); return; }
+      const es = new EventSource('/api/v1/solve/' + encodeURIComponent(jobId) + '/events');
+      let t0 = null, bestKm = null, finished = false, timer = null;
+      const total = timeLimitSec * 1000;
+      const finish = (message) => { finished = true; es.close(); clearTimeout(timer); if (message !== undefined) reset(message); };
+      const running = () => {
+        if (finished) return;
+        const el = Math.min(total, Date.now() - t0);
+        setBar(el / total);
+        const head = bestKm != null ? '지금까지 가장 좋은 일정: ' + fmtInt(bestKm) + ' km' : (seeds ? '출발점 ' + seeds + '개에서 동시에 짜는 중' : '여러 출발점에서 동시에 짜는 중');
+        txt.textContent = head + ' · ' + Math.round(el / 1000) + '/' + timeLimitSec + '초';
+        timer = setTimeout(running, 250);
+      };
+      const start = () => { if (t0 == null) { t0 = Date.now(); running(); } };
+      es.addEventListener('queued', (e) => {
+        let pos = null; try { pos = JSON.parse(e.data).position; } catch (x) { pos = null; }
+        txt.textContent = '다른 분의 편성이 끝나길 기다리는 중' + (pos ? ' · 대기 ' + pos + '번째' : '');
+      });
+      es.addEventListener('status', start);
+      es.addEventListener('best', (e) => {
+        start();
+        try {
+          const p = JSON.parse(e.data), s = p.score;
+          // 점수의 마지막 소프트 단계가 10구단 총 이동거리(km, 음수)다. 필수 규칙 위반이 남아 있으면 아직 보여 주지 않는다
+          if (s && s.hard && s.hard.every((h) => h === 0) && s.soft && s.soft.length) bestKm = -s.soft[s.soft.length - 1];
+        } catch (x) { /* 무시 */ }
+      });
+      es.addEventListener('done', (e) => {
+        let p = null; try { p = JSON.parse(e.data); } catch (x) { p = null; }
+        if (!p || !p.id) { finish('편성이 중간에 멈췄어요. 다시 눌러 주세요.'); return; }
+        finish();
+        setBar(1);
+        txt.textContent = '다 짰어요. 결과로 이동해요';
+        location.href = '/r/' + encodeURIComponent(p.id);
+      });
+      es.addEventListener('error', (e) => {
+        if (finished) return;
+        if (e && e.data) {
+          let msg = ''; try { msg = JSON.parse(e.data).message || ''; } catch (x) { msg = ''; }
+          finish('편성 중에 문제가 생겼어요' + (msg ? ': ' + msg : '.') + ' 다시 해 보세요.');
+          return;
+        }
+        // 서버가 아무 이벤트 없이 끊었다(재시작·네트워크). 자동 재연결은 쓰지 않는다
+        finish('서버와 연결이 끊겼어요. 다시 눌러 주세요.');
+      });
+    }
+  }
+  /** 「편성 시작」에서 쓸 2025 프리셋(ui/core/preset-2025.js, 약 60KB). 누를 때 한 번만 읽는다 */
+  function loadPreset(cb) {
+    if (window.KBO && window.KBO.Preset) { cb(null); return; }
+    const s = document.createElement('script');
+    s.src = '../core/preset-2025.js';
+    s.onload = () => cb(window.KBO && window.KBO.Preset ? null : 'preset');
+    s.onerror = () => cb('preset');
+    document.head.appendChild(s);
   }
 
   /** 비교 /compare */
@@ -368,6 +483,14 @@
         checkScroll();
         return;
       }
+      // 저장된 결과의 real에는 합계만 있다. 구단별 줄(주말·공휴일 홈 비교에 필요)은 비교 API에서 채운다
+      if (res.real && res.real.teams && res.real.teams.length) { render(res); return; }
+      load(SHOW.api.compare, (e2, cmp) => {
+        if (!e2 && cmp && cmp.real) res.real = Object.assign({}, cmp.real, res.real, { teams: cmp.real.teams });
+        render(res);
+      });
+    });
+    function render(res) {
       const real = res.real || {}, engine = res.metrics;
       const v = view(real, Object.assign({}, engine, { options: res.options, seed: res.seed, elapsedMs: res.elapsedMs, improvementCount: res.improvementCount }));
       bind(v);
@@ -391,6 +514,8 @@
         const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;
         trend.textContent = '주말 홈 경기 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회 — ' + (ew2 > rw2 ? '실제 일정이 더 고릅니다.' : ew2 < rw2 ? '이 결과가 더 고릅니다.' : '같은 수준입니다.');
       }
+      const sl = $('#studio-link');
+      if (sl) sl.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + studioQuery(kb, res.seed) + '#step=2');
       mark('show', 'result-ok');
       const box = $('#replay-box');
       if (box) {
@@ -410,10 +535,20 @@
         } else { host.innerHTML = '<div class="sh-replay-msg">이 결과에는 탐색 과정 기록이 없어요.</div>'; mark('replay', 'none'); }
       }
       checkScroll();
-    });
+    }
     bindShare();
     fixStudioLinks();
   };
+  /** 결과의 조건·시드를 위저드로 넘기는 쿼리. 위저드(app.js applyLinkSettings)가 읽어 settings에 싣는다 */
+  function studioQuery(k, seed) {
+    const p = new URLSearchParams();
+    if (k.distanceToleranceKm != null) p.set('tol', String(k.distanceToleranceKm));
+    if (k.holidayTolerance != null) p.set('hol', String(k.holidayTolerance));
+    if (k.childrenDayHomeTeams && k.childrenDayHomeTeams.length) p.set('cd', k.childrenDayHomeTeams.join(','));
+    if (seed != null) p.set('seed', String(seed));
+    const q = p.toString();
+    return q ? '?' + q : '';
+  }
   /** 손잡이 값 → 일상어. 서버 JobManager.titleOf와 같은 구간 */
   function tolWord(km) { return km <= 150 ? '이동거리 거의 똑같게' : km <= 450 ? '이동거리 비슷하게' : '이동거리 달라도 괜찮게'; }
   function knobsTitle(k) {

@@ -118,7 +118,8 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-progress { margin-top: 12px; }
 .sh-progress-track { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
 .sh-progress-bar { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .25s linear; }
-.sh-progress-txt { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.sh-progress-txt { display: flex; flex-wrap: wrap; gap: 2px 12px; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.sh-try-err { margin: 12px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--warn-bg); color: var(--bad); font-size: 14px; }
 .sh-pc { display: none; margin-top: 14px; font-size: 14px; }
 @media (min-width: 1024px) { .sh-pc { display: block; } }
 

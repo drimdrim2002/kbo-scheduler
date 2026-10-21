@@ -258,6 +258,16 @@
     const ex = app.derived().ex;
     const first = ex.violations[0];
     S.ui.month = first ? KBO.Dates.month(app.derived().slots[first.slot].day) : 4;
+    // 결과 공유 쪽에서 넘어온 조건·시드(?tol=&hol=&cd=&seed=). 가상 위반 표시를 정한 뒤에 실어, 조건 때문에 생긴 위반은 실제 위반으로 보인다
+    const linked = app.applyLinkSettings(location.search);
+    if (linked) {
+      const tolWord = (km) => (km <= 150 ? '이동거리 거의 똑같게' : km <= 450 ? '이동거리 비슷하게' : '이동거리 달라도 괜찮게');
+      const parts = [];
+      if (linked.distanceToleranceKm) parts.push(tolWord(linked.distanceToleranceKm));
+      if (linked.obligationTeams) parts.push('어린이날 홈 ' + linked.obligationTeams.join('·'));
+      if (linked.seed != null) parts.push('시드 ' + linked.seed);
+      setTimeout(() => KBO.UI.toast('공유 결과의 조건을 실었어요: ' + parts.join(' · '), 'info', 6000), 0);
+    }
     app.subscribe(() => S.scheduleRender());
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
