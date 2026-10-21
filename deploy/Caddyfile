@@ -12,7 +12,7 @@
     }
 }
 
-kbo-scheduler.ai, www.kbo-scheduler.ai {
+schedulelab.kr, www.schedulelab.kr {
     encode zstd gzip
     # SSE(/api/v1/solve/{id}/events)는 버퍼링 없이 흘려보낸다
     reverse_proxy 127.0.0.1:8080 {

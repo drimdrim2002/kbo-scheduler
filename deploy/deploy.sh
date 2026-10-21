@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 개발 PC에서 실행: 서버의 저장소를 당겨 다시 빌드하고 서비스를 재시작한다.
-#   HOST=<서버 IP> bash deploy/deploy.sh        (Hetzner 기본: root 로 ssh)
+#   HOST=<서버 IP> bash deploy/deploy.sh        (기본: root 로 ssh)
 #   GCP VM이면: SSH="gcloud compute ssh kbo-scheduler --zone asia-northeast3-a" bash deploy/deploy.sh
 set -euo pipefail
 BRANCH="${BRANCH:-main}"

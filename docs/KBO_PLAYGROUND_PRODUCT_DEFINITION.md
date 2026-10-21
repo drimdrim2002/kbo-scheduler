@@ -11,8 +11,8 @@
 | 사용자 | ① 홍보 글로 들어오는 야구 팬(대부분 휴대폰) ② KBO·구단 관계자, 산업공학 전공자(데스크톱) |
 | 론칭 | 2026-11-03(2주) |
 | 성공 지표 | 론칭 2주 안에 방문 1만, 직접 편성 실행 1천, 공유 링크 클릭 1천, 언론·유튜브·KBO 중 1곳 이상 연락 |
-| 이름·도메인 | kbo-scheduler.ai (KBO 상표 주의: "KBO와 무관한 개인 프로젝트" 명시, KBO 로고 미사용, 예비 도메인 1개 추가 검토) |
-| 호스팅 | Hetzner Cloud CPX32(싱가포르, 4 vCPU·8GB) 1대 + Cloudflare DNS·프록시. GCP 서울은 월 약 ₩19만에 쓸 수 있는 크레딧이 월 ₩1.4만이라 제외(2026-10-21) |
+| 이름·도메인 | schedulelab.kr(가비아 등록, 2026-10-21. 처음 안은 kbo-scheduler.ai) (KBO 상표 주의: "KBO와 무관한 개인 프로젝트" 명시, KBO 로고 미사용, 예비 도메인 1개 추가 검토) |
+| 호스팅 | Akamai Cloud(Linode) 도쿄 Dedicated 4 vCPU·8GB 1대(월 $72) + Cloudflare DNS·프록시. Hetzner·Vultr·DigitalOcean·GCP와 비교해 고름(2026-10-21, 근거는 deploy/README.md 머리말) |
 
 ## 2. 두 개의 문
 

@@ -184,7 +184,7 @@ final class Showcase {
                 new String[] {"총 이동거리", "실제 대비", "구단 간 차이 (실제 " + String.format("%,.0f", realSpread) + "km)"},
                 new String[] {String.format("%,d km", engKm), (pct >= 0 ? "−" : "+") + Math.abs(pct) + "%",
                         String.format("%,.0f km", engSpread)},
-                realKm, engKm, "kbo-scheduler.ai · 같은 입력·같은 채점기로 비교");
+                realKm, engKm, "schedulelab.kr · 같은 입력·같은 채점기로 비교");
         byte[] bytes = OgImage.render(spec);
         store.savePng(id, bytes);
         return Optional.of(bytes);

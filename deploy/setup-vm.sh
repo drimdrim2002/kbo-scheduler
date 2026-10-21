@@ -11,14 +11,24 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y sudo curl git gnupg ca-certificates apt-transport-https fonts-noto-cjk maven debian-keyring debian-archive-keyring
 
-# Java 25 (Eclipse Temurin)
-if ! java -version 2>&1 | grep -q '"25'; then
-  mkdir -p /etc/apt/keyrings
-  curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(. /etc/os-release && echo "$VERSION_CODENAME") main" > /etc/apt/sources.list.d/adoptium.list
-  apt-get update -y
-  apt-get install -y temurin-25-jdk
+# Java 25 JDK. maven 패키지가 JRE(javac 없음)만 끌어올 수 있어(Ubuntu 26.04는 openjdk-25-jre-headless) javac 로 확인한다.
+# 배포판에 openjdk-25-jdk-headless 가 있으면 그것을, 없으면(Debian 12 등) Eclipse Temurin 을 쓴다.
+if ! javac -version 2>&1 | grep -q '^javac 25'; then
+  if apt-cache show openjdk-25-jdk-headless >/dev/null 2>&1; then
+    apt-get install -y openjdk-25-jdk-headless
+  else
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(. /etc/os-release && echo "$VERSION_CODENAME") main" > /etc/apt/sources.list.d/adoptium.list
+    apt-get update -y
+    apt-get install -y temurin-25-jdk
+  fi
 fi
+# java 도 같은 JDK 를 가리키게 한다(maven 이 끌어온 다른 JRE 가 기본이 되지 않도록)
+JDK_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+update-alternatives --set java "$JDK_HOME/bin/java"
+java -version 2>&1 | head -1
+javac -version
 
 # Caddy (공식 저장소)
 if ! command -v caddy >/dev/null; then
@@ -42,8 +52,10 @@ cp "$APP_DIR/deploy/kbo-scheduler.service" /etc/systemd/system/kbo-scheduler.ser
 cp "$APP_DIR/deploy/Caddyfile" /etc/caddy/Caddyfile
 # Cloudflare 대역 신뢰(client_ip_headers)는 Caddy 2.7 이상. 설정이 틀리면 재시작 전에 멈춘다
 caddy version
+mkdir -p /var/log/caddy
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-mkdir -p /var/log/caddy && chown caddy:caddy /var/log/caddy
+# validate 를 root 로 돌리면 로그 파일이 root 소유로 생겨 caddy 사용자가 못 연다
+chown -R caddy:caddy /var/log/caddy
 systemctl daemon-reload
 systemctl enable --now kbo-scheduler
 systemctl restart caddy
