@@ -13,7 +13,8 @@ WorkingDirectory=/opt/kbo-scheduler/app
 Environment=PORT=8080
 Environment=DATA_DIR=/var/lib/kbo-scheduler/results
 Environment=MAX_SECONDS=30
-Environment=JAVA_XMX=8g
+# 시드 4개 30초 편성의 실사용 힙은 1~2GB(2026-10-21 측정). 8GB 서버(Hetzner CPX32)에서 OS·Caddy 몫을 남긴다
+Environment=JAVA_XMX=5g
 ExecStart=/opt/kbo-scheduler/app/deploy/run.sh
 Restart=always
 RestartSec=5

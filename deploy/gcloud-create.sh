@@ -22,4 +22,4 @@ gcloud compute instances describe "$NAME" --zone "$ZONE" >/dev/null 2>&1 \
        --address "$IP" --tags web
 echo "VM $NAME @ $IP ($ZONE, $MACHINE)"
 echo "다음: gcloud compute ssh $NAME --zone $ZONE"
-echo "VM 안에서: sudo REPO_URL=<git 주소> bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/<owner>/optaplanner-practice/main/deploy/setup-vm.sh)\""
+echo "VM 안에서: sudo REPO_URL=<git 주소> bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/drimdrim2002/kbo-scheduler/main/deploy/setup-vm.sh)\""

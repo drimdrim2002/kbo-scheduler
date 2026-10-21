@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VM 안에서 root 로 한 번 실행: Java 25(Temurin)·Maven·git·Caddy 설치, kbo 사용자, 디렉터리, 저장소 clone, 빌드, 서비스 등록.
-#   sudo REPO_URL=https://github.com/<owner>/optaplanner-practice.git bash setup-vm.sh
+#   sudo REPO_URL=https://github.com/drimdrim2002/kbo-scheduler.git bash setup-vm.sh
 set -euo pipefail
 REPO_URL="${REPO_URL:?REPO_URL=<git 주소> 를 주세요}"
 BRANCH="${BRANCH:-main}"
@@ -9,7 +9,7 @@ DATA_DIR=/var/lib/kbo-scheduler/results
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y curl git gnupg ca-certificates apt-transport-https fonts-noto-cjk maven debian-keyring debian-archive-keyring
+apt-get install -y sudo curl git gnupg ca-certificates apt-transport-https fonts-noto-cjk maven debian-keyring debian-archive-keyring
 
 # Java 25 (Eclipse Temurin)
 if ! java -version 2>&1 | grep -q '"25'; then

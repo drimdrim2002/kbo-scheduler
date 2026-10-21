@@ -12,7 +12,7 @@
 | 론칭 | 2026-11-03(2주) |
 | 성공 지표 | 론칭 2주 안에 방문 1만, 직접 편성 실행 1천, 공유 링크 클릭 1천, 언론·유튜브·KBO 중 1곳 이상 연락 |
 | 이름·도메인 | kbo-scheduler.ai (KBO 상표 주의: "KBO와 무관한 개인 프로젝트" 명시, KBO 로고 미사용, 예비 도메인 1개 추가 검토) |
-| 호스팅 | GCP Compute Engine VM 1대(e2-standard-4) + Cloudflare DNS·프록시 |
+| 호스팅 | Hetzner Cloud CPX32(싱가포르, 4 vCPU·8GB) 1대 + Cloudflare DNS·프록시. GCP 서울은 월 약 ₩19만에 쓸 수 있는 크레딧이 월 ₩1.4만이라 제외(2026-10-21) |
 
 ## 2. 두 개의 문
 
