@@ -257,7 +257,7 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 /* ───── ?rv= 첫 화면 대안 (2026-10-22, 고른 뒤 나머지는 지운다) ─────
    html[data-rv]가 없으면 기존 첫 화면(data-rv="0"), 1·2·3이면 그 블록만 보인다. 첫 블록이라 위 선은 없앤다 */
 main [data-rv] { display: none; }
-html:not([data-rv]) main [data-rv="0"], html[data-rv="1"] main [data-rv="1"], html[data-rv="2"] main [data-rv="2"], html[data-rv="3"] main [data-rv="3"] { display: block; }
+html:not([data-rv]) main [data-rv="0"], html[data-rv="0"] main [data-rv="0"], html[data-rv="1"] main [data-rv="1"], html[data-rv="2"] main [data-rv="2"], html[data-rv="3"] main [data-rv="3"] { display: block; }
 .sh-sec[data-rv] { border-top: 0; }
 .sh-h1 b, .sh-h1 [data-n] { font-weight: inherit; }
 .sh-story-h { font-size: 18px; line-height: 1.3; margin: 26px 0 10px; }

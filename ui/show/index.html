@@ -23,7 +23,7 @@
     mark();
   })();
 </script>
-<script>/* ?rv=1|2|3: 첫 화면 대안 비교용(고른 뒤 지운다). CSS가 html[data-rv]로 블록을 고른다 */(function(){var m=/[?&]rv=([0-3])\b/.exec(location.search);if(m)document.documentElement.setAttribute('data-rv',m[1]);var q=/[?&]q=([1-3])\b/.exec(location.search);if(q)document.documentElement.setAttribute('data-q',q[1]);var z=/[?&]viz=([1-3])\b/.exec(location.search);if(z)document.documentElement.setAttribute('data-viz',z[1]);var rt=/[?&]rt=([1-2])\b/.exec(location.search);if(rt)document.documentElement.setAttribute('data-rt',rt[1]);})();</script>
+<script>/* 표준 = rv=1(이야기) + q=2(대사 타이포). ?rv=0은 옛 첫 화면, ?q=0은 대사 없이. 대안 비교용 전환은 고른 뒤 지운다. CSS가 html[data-rv]/[data-q]로 블록을 고른다 */(function(){var m=/[?&]rv=([0-3])\b/.exec(location.search);document.documentElement.setAttribute('data-rv',m?m[1]:'1');var q=/[?&]q=([0-3])\b/.exec(location.search);if(!q||q[1]!=='0')document.documentElement.setAttribute('data-q',q?q[1]:'2');var z=/[?&]viz=([1-3])\b/.exec(location.search);if(z)document.documentElement.setAttribute('data-viz',z[1]);var rt=/[?&]rt=([1-2])\b/.exec(location.search);if(rt)document.documentElement.setAttribute('data-rt',rt[1]);})();</script>
 <link rel="stylesheet" href="../app/common/common.css?v=20261023">
 <link rel="stylesheet" href="../app/replay/replay.css?v=20261023">
 <link rel="stylesheet" href="show.css?v=20261023">
