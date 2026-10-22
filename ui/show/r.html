@@ -24,15 +24,15 @@
     mark();
   })();
 </script>
-<link rel="stylesheet" href="../app/common/common.css?v=20261022">
-<link rel="stylesheet" href="../app/replay/replay.css?v=20261022">
-<link rel="stylesheet" href="show.css?v=20261022">
+<link rel="stylesheet" href="../app/common/common.css?v=20261023">
+<link rel="stylesheet" href="../app/replay/replay.css?v=20261023">
+<link rel="stylesheet" href="show.css?v=20261023">
 </head>
 <body class="sh-body" data-page="r">
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="index.html#try">나도 해보기</a></nav>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="compare.html">비교</a></nav>
   </div>
 </header>
 
@@ -40,7 +40,7 @@
   <section class="sh-sec" id="result-missing" hidden>
     <h1 class="sh-h1">결과를 찾을 수 없어요</h1>
     <p class="sh-lead">링크가 오래됐거나 서버가 바뀌었을 수 있어요. 소개 쪽에서 같은 조건으로 다시 돌려 볼 수 있어요.</p>
-    <div class="sh-cta"><a class="k-btn k-btn-primary" href="index.html#try">나도 해보기</a><a class="k-btn" href="index.html">소개로</a></div>
+    <div class="sh-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 보기</a><a class="k-btn" href="index.html">소개로</a></div>
   </section>
 
   <div id="result-main">
@@ -66,8 +66,8 @@
       <!-- 생각 시간: N초 생각한 결과 + 다음 단계로 다시 해 보기(같은 조건·같은 출발점, show.js thinkBox) -->
       <div class="sh-think-box" id="think-box">
         <p><b><span data-n="engine.seconds">30</span>초 생각한 결과</b><span class="sh-small"> · 출발점 <span data-n="engine.seeds">8</span>개 중 가장 좋은 것 · <span data-n="engine.improvements">117</span>번 개선</span></p>
-        <p class="sh-small" id="think-note">가장 오래(30초) 생각한 결과예요. 다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.</p>
-        <a class="k-btn" id="think-more" href="index.html#try">다른 출발점에서 다시 해 보기</a>
+        <p class="sh-small" id="think-note" hidden>가장 오래(30초) 생각한 결과예요. 다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.</p>
+        <a class="k-btn" id="think-more" href="index.html#try" hidden>다른 출발점에서 다시 해 보기</a>
       </div>
       <div class="sh-card" style="margin-top:12px">
         <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025 1차 일정</span><span><i class="sh-sw-engine"></i>이 결과</span></div>
@@ -110,6 +110,7 @@
           <dt>주말·공휴일 홈 경기</dt><dd data-n="knob.holiday">똑같이 나누기</dd>
           <dt>어린이날(5/5) 홈 구단</dt><dd data-n="knob.cd">두산·키움·한화·NC·롯데</dd>
           <dt>특정 날짜 홈 불가</dt><dd data-n="knob.unavail">없음</dd>
+          <dt>구장 간 거리</dt><dd>카카오맵 도로 거리표 <a class="sh-link" href="compare.html#dist-h">보기 →</a></dd>
           <dt>실행</dt><dd data-n="knob.run">30초 · 시드 8개 동시 · 고른 시드 42</dd>
           <dt>개선 횟수</dt><dd data-n="knob.improve">117번 개선</dd>
         </dl>
@@ -118,7 +119,8 @@
     </section>
 
     <!-- 나도 해보기 · 스튜디오 -->
-    <section class="sh-sec" aria-labelledby="cta-h">
+    <!-- 2026-10-23 숨김: 조건 바꿔 다시 짜기는 소개 폼과 함께 내렸다 -->
+    <section hidden class="sh-sec" aria-labelledby="cta-h">
       <h2 class="sh-h2" id="cta-h">나도 해보기</h2>
       <div class="sh-cta">
         <a class="k-btn k-btn-primary" href="index.html#try">조건을 바꿔 다시 짜기</a>
@@ -137,6 +139,6 @@
     <p><a href="index.html">소개로</a> · <a href="compare.html">실제 vs 엔진</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261022"></script>
+<script src="show.js?v=20261023"></script>
 </body>
 </html>
