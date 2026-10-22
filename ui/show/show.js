@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261023', '../app/replay/replay.js?v=20261023']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261023b', '../app/replay/replay.js?v=20261023b']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -348,8 +348,7 @@
       if (cmp.real.totalKm) SHOW.REAL_KM = cmp.real.totalKm;
       const tb = $('#cmp-total'); if (tb) totalBars(tb, cmp.real, cmp.engine);
       const tt = $('#cmp-teams'); if (tt) teamBars(tt, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
-      heroBars(cmp);
-      storyViz(cmp);
+      scatterViz(cmp);
       mark('show', 'compare-ok');
       checkScroll();
     });
@@ -361,68 +360,6 @@
     fixStudioLinks();
   };
 
-  /**
-   * ?rv=2 첫 화면: 평균 기준 좌우 막대(구단별 시즌 이동거리 − 10구단 평균)를 실제 ↔ 엔진으로 전환한다.
-   * 줄 순서는 실제 긴 순으로 고정해, 엔진으로 바꾸면 막대가 가운데로 모이는 것이 보이게 한다. 눈금은 두 상태 공통(±800km).
-   */
-  const HOME_CITY = { SSG: '인천', 두산: '잠실', LG: '잠실', KT: '수원', 키움: '고척', 한화: '대전', 삼성: '대구', KIA: '광주', NC: '창원', 롯데: '부산' };
-  function heroBars(cmp) {
-    const el = $('#h2-bars'), card = $('#hero2-card'); if (!el || !card) return;
-    const rt = cmp.real.teams || [], et = cmp.engine.teams || [];
-    if (rt.length < 2 || et.length < 2) return;
-    const order = rt.slice().sort((a, b) => b.distanceKm - a.distanceKm).map((t) => t.name);
-    const SCALE = 800;
-    const mean = (ts) => ts.reduce((a, t) => a + t.distanceKm, 0) / ts.length;
-    const sign = (d) => (d < 0 ? '−' : '+') + fmtInt(Math.abs(d)) + 'km';
-    function draw(teams, label) {
-      const m = mean(teams);
-      el.innerHTML = order.map((n) => {
-        const t = findTeam(teams, n); if (!t) return '';
-        const d = t.distanceKm - m, w = Math.min(50, Math.abs(d) / SCALE * 50).toFixed(1);
-        return '<div class="sh-drow"><span class="sh-drow-name">' + esc(n) + '<small>' + esc(HOME_CITY[n] || '') + '</small></span><div class="sh-dtrack"><div class="sh-dbar ' + (d < 0 ? 'neg' : 'pos') + '" style="width:' + w + '%"></div></div><span class="sh-drow-val"><b>' + fmtInt(t.distanceKm) + '</b><small>' + sign(d) + '</small></span></div>';
-      }).join('');
-      el.setAttribute('aria-label', label + ' 구단별 이동거리: ' + order.map((n) => { const t = findTeam(teams, n); return n + ' ' + (t ? fmtInt(t.distanceKm) : '–'); }).join(', ') + 'km');
-      const mm = $('#h2-mean'); if (mm) mm.textContent = '평균 ' + fmtInt(m) + 'km';
-      return m;
-    }
-    // 처음 그릴 때 막대가 0에서 자라는 전환이 보이도록 다음 프레임에 그린다
-    const hi = (ts) => ts.reduce((a, t) => (t.distanceKm > a.distanceKm ? t : a)), lo = (ts) => ts.reduce((a, t) => (t.distanceKm < a.distanceKm ? t : a));
-    const texts = {
-      real: { title: '실제 일정 · 구단별 시즌 이동거리', sub: '평균보다 얼마나 더, 덜 다니나', note: '2025년엔 ' + order.slice(0, 3).join('·') + '가 가장 많이 다녔어요. 제일 긴 ' + hi(rt).name + '와 제일 짧은 ' + lo(rt).name + '의 차이는 <b>' + fmtInt(hi(rt).distanceKm - lo(rt).distanceKm) + 'km</b>. 열 구단 모두 고르게 맞추기는 어려워서, 해마다 손해 보는 구단이 생겨요.' },
-      engine: { title: '엔진이 짠 일정 · 구단별 시즌 이동거리', sub: '같은 규칙으로 ' + ((cmp.engine.options && cmp.engine.options.timeLimitSec) || 30) + '초 동안 찾은 일정', note: '열 구단이 평균 가까이 모여서 손해 보는 구단이 없어요. 제일 긴 ' + hi(et).name + '와 제일 짧은 ' + lo(et).name + '의 차이는 <b>' + fmtInt(hi(et).distanceKm - lo(et).distanceKm) + 'km</b>, 전체 이동거리도 ' + fmtInt(cmp.real.totalKm) + 'km에서 ' + fmtInt(cmp.engine.totalKm) + 'km로 줄어요.' }
-    };
-    function show(kind) {
-      card.classList.toggle('sh-engine-on', kind === 'engine');
-      draw(kind === 'engine' ? et : rt, kind === 'engine' ? '엔진 일정' : '실제 2025 일정');
-      const t = texts[kind]; $('#h2-title').textContent = t.title; $('#h2-sub').textContent = t.sub; $('#h2-note').innerHTML = t.note;
-      $$('[data-h2]', card).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-h2') === kind)));
-    }
-    $$('[data-h2]', card).forEach((b) => b.addEventListener('click', () => show(b.getAttribute('data-h2'))));
-    show('real');
-  }
-
-  /**
-   * rv=1 이야기 구간의 그림 둘: 구단별 시즌 이동거리 점 띠(#h1-km)와 주말·공휴일 홈 경기 점 분포(#h1-hol). 실제 일정 값만 쓴다.
-   * 점 띠는 가까운 점(13px 안)을 한 단 위로 올려 겹치지 않게 한다. 숨은 블록(rv≠1)이면 폭이 0이라 320으로 잰다.
-   */
-  /**
-   * 평균 기준 좌우 막대(구단별 값 − 평균). 눈금은 |최대 편차|을 50%로. 줄 순서는 값이 큰 순.
-   * opts: unit('km'|'회'), fmt(값 표기), city(이름 아래 연고지 표시 여부)
-   */
-  function divBars(el, teams, key, opts) {
-    const o = Object.assign({ unit: '', fmt: fmtInt, city: false }, opts || {});
-    const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); if (!xs.length) return null;
-    const m = xs.reduce((p, q) => p + q, 0) / xs.length;
-    const scale = Math.max(...xs.map((x) => Math.abs(x - m))) || 1;
-    const order = teams.slice().sort((a, b) => b[key] - a[key]);
-    const sign = (d) => (Math.abs(d) < 0.5 && o.unit !== 'km' ? '평균' : (d < 0 ? '−' : '+') + o.fmt(Math.abs(d)) + o.unit);
-    el.innerHTML = order.map((t) => {
-      const d = t[key] - m, w = (Math.abs(d) / scale * 50).toFixed(1);
-      return '<div class="sh-drow"><span class="sh-drow-name">' + esc(t.name) + (o.city ? '<small>' + esc(HOME_CITY[t.name] || '') + '</small>' : '') + '</span><div class="sh-dtrack"><div class="sh-dbar ' + (d < 0 ? 'neg' : 'pos') + '" style="width:' + w + '%"></div></div><span class="sh-drow-val"><b>' + o.fmt(t[key]) + '</b><small>' + sign(d) + '</small></span></div>';
-    }).join('');
-    el.setAttribute('aria-label', (el.getAttribute('aria-label') || '').replace(/:.*$/, '') + ': ' + order.map((t) => t.name + ' ' + o.fmt(t[key])).join(', ') + o.unit + ' (평균 ' + o.fmt(m) + o.unit + ')');
-    return m;
-  }
   const meanBy = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? xs.reduce((p, q) => p + q, 0) / xs.length : null; };
   /**
    * 점 지도(#h1-sc): 가로 = 시즌 이동거리 − 평균, 세로 = 주말·공휴일 홈 − 평균. 구단 하나가 점 하나.
@@ -527,59 +464,6 @@
     $$('[data-sc]').forEach((b) => b.addEventListener('click', () => place(b.getAttribute('data-sc'))));
     place('real');
   }
-  /** viz=3 두 줄 표(#h1-dual): 구단마다 이동거리 편차 막대와 휴일 홈 편차 막대를 나란히 */
-  function dualViz(cmp) {
-    const el = $('#h1-dual'); if (!el) return;
-    const rt = cmp.real.teams || []; if (rt.length < 2) return;
-    const mk = meanBy(rt, 'distanceKm'), mh = meanBy(rt, 'holidayWeight');
-    const sk = Math.max(...rt.map((t) => Math.abs(t.distanceKm - mk))) || 1, sh = Math.max(1, ...rt.map((t) => Math.abs(t.holidayWeight - mh)));
-    const order = rt.slice().sort((a, b) => (b.distanceKm - a.distanceKm));
-    const bar = (d, sc) => '<div class="sh-dtrack"><div class="sh-dbar ' + (d < 0 ? 'neg' : 'pos') + '" style="width:' + (Math.abs(d) / sc * 50).toFixed(1) + '%"></div></div>';
-    const sg = (d, unit, f) => (Math.abs(d) < 0.05 ? '평균' : (d < 0 ? '−' : '+') + f(Math.abs(d)) + unit);
-    el.innerHTML = '<div class="sh-dual-h"><span></span><span>이동거리 (평균 ' + fmtInt(mk) + 'km)</span><span></span><span>휴일 홈 (평균 ' + (Math.round(mh * 10) / 10) + '회)</span><span></span></div>' +
-      order.map((t) => { const dk = t.distanceKm - mk, dh = t.holidayWeight - mh; return '<div class="sh-dual-row"><span class="sh-drow-name">' + esc(t.name) + '</span>' + bar(dk, sk) + '<span class="sh-drow-val"><b>' + fmtInt(t.distanceKm) + '</b><small>' + sg(dk, 'km', fmtInt) + '</small></span>' + bar(dh, sh) + '<span class="sh-drow-val"><b>' + t.holidayWeight + '</b><small>' + sg(dh, '회', (x) => String(Math.round(x * 10) / 10)) + '</small></span></div>'; }).join('');
-  }
-  function storyViz(cmp) {
-    const rt = (cmp.real && cmp.real.teams) || []; if (rt.length < 2) return;
-    scatterViz(cmp);
-    dualViz(cmp);
-    const strip = $('#h1-km');
-    if (strip) {
-      const sorted = rt.slice().sort((a, b) => a.distanceKm - b.distanceKm);
-      const lo = sorted[0].distanceKm, hi = sorted[sorted.length - 1].distanceKm, pad = (hi - lo) * 0.09 || 1;
-      const x = (v) => (v - lo + pad) / (hi - lo + 2 * pad) * 100;
-      const W = strip.clientWidth || 320, lastX = [-99, -99, -99];
-      let html = '<div class="sh-strip-axis"></div>';
-      sorted.forEach((t) => {
-        const px = x(t.distanceKm) / 100 * W; let lv = 0;
-        while (lv < 2 && px - lastX[lv] < 13) lv++;
-        lastX[lv] = px;
-        html += '<span class="sh-strip-dot lv' + lv + '" style="left:' + x(t.distanceKm).toFixed(1) + '%" title="' + esc(t.name + ' ' + fmtInt(t.distanceKm) + 'km') + '"></span>';
-      });
-      const a = sorted[0], b = sorted[sorted.length - 1];
-      html += '<span class="sh-strip-lab min" style="left:' + x(a.distanceKm).toFixed(1) + '%"><b>' + esc(a.name) + '</b>' + fmtInt(a.distanceKm) + 'km</span>';
-      html += '<span class="sh-strip-lab max" style="left:' + x(b.distanceKm).toFixed(1) + '%"><b>' + esc(b.name) + '</b>' + fmtInt(b.distanceKm) + 'km</span>';
-      html += '<span class="sh-strip-range">차이 ' + fmtInt(b.distanceKm - a.distanceKm) + 'km</span>';
-      strip.innerHTML = html;
-      strip.setAttribute('aria-label', '구단별 시즌 이동거리(실제): ' + sorted.map((t) => t.name + ' ' + fmtInt(t.distanceKm)).join(', ') + 'km');
-    }
-    const dots = $('#h1-hol');
-    if (dots) {
-      const vs = rt.map((t) => t.holidayWeight).filter((v) => typeof v === 'number');
-      if (vs.length) {
-        const lo = Math.min(...vs), hi = Math.max(...vs);
-        let html = '';
-        for (let v = lo; v <= hi; v++) {
-          const names = rt.filter((t) => t.holidayWeight === v).map((t) => t.name);
-          html += '<div class="sh-dcol-w"><div class="sh-dcol">' + names.map((n) => '<span class="sh-dteam">' + esc(n) + '</span>').join('') + '</div><b>' + v + '</b></div>';
-        }
-        dots.style.gridTemplateColumns = 'repeat(' + (hi - lo + 1) + ', minmax(0, 1fr))';
-        dots.innerHTML = html;
-        dots.setAttribute('aria-label', '구단별 주말·공휴일 홈 경기 수(실제): ' + rt.map((t) => t.name + ' ' + t.holidayWeight).join(', ') + '회');
-      }
-    }
-  }
-
   /**
    * 롯데 원정길 카카오맵. 「카카오맵으로 보기」를 누를 때만 SDK를 읽는다(autoload=false → kakao.maps.load).
    * 같은 길을 오가는 구간이 겹치지 않게 각 구간을 살짝 휜 곡선(2차 베지어를 24점으로)으로 그리고, 가운데에 번호 표지를 올린다.
