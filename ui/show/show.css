@@ -313,7 +313,7 @@ html:not([data-rv]) main [data-rv="0"], html[data-rv="0"] main [data-rv="0"], ht
 /* ───── &q=1|2|3: 대사 첫 화면 3안 (고른 뒤 하나만 남긴다) ─────
    html[data-q]가 1·2·3이면 그 블록만 보인다. rv=1 안의 작은 인용은 겹치니 숨긴다 */
 main [data-q] { display: none; }
-html[data-q="1"] main [data-q="1"], html[data-q="2"] main [data-q="2"], html[data-q="3"] main [data-q="3"] { display: block; }
+html[data-q="1"] main [data-q="1"], html[data-q="2"] main [data-q="2"], html[data-q="3"] main [data-q="3"], html[data-q="4"] main [data-q="4"], html[data-q="5"] main [data-q="5"] { display: block; }
 html[data-q] .sh-quote { display: none; }
 html[data-q] .sh-sec[data-rv] { border-top: 1px solid var(--line); }
 /* q=1 무대: 짙은 남색 판. 휴대폰은 좌우 끝까지, 넓은 화면은 둥근 판 */
@@ -582,3 +582,22 @@ html[data-rt="1"] .sh-trip2 { display: none; }
 .sh-dist th small { display: block; font-size: 10px; font-weight: 500; color: var(--muted); }
 .sh-dist .sh-dist-c { position: sticky; left: 0; text-align: left; z-index: 1; }
 .sh-dist .sh-dist-diag { color: var(--muted); text-align: center; }
+
+/* ───── q=4 따옴표: 옅은 남색 그러데이션 바탕 + 큰 따옴표 장식(SVG, 글꼴 아님) ───── */
+.sh-q4 { padding: 0 0 30px; border: 0; }
+.sh-q4-in { position: relative; margin: 0 -16px; padding: 44px 20px 26px; background: linear-gradient(180deg, #eef2fa 0%, #f6f7f9 100%); }
+.sh-q4-mark { position: absolute; left: 16px; top: 18px; width: 44px; height: 35px; fill: #0a1e3c; opacity: .14; }
+.sh-q4-key { position: relative; margin: 0; font-size: 27px; line-height: 1.32; font-weight: 800; letter-spacing: -.02em; word-break: keep-all; color: var(--fg); }
+.sh-q4-src { display: flex; align-items: flex-start; gap: 8px; margin: 18px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.sh-q4-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--sh-real); }
+.sh-q4-next { margin: 22px 0 0; font-size: 16px; line-height: 1.5; color: var(--muted); }
+.sh-q4-next b { color: var(--fg); }
+@media (min-width: 768px) { .sh-q4-in { margin: 24px 0 0; padding: 48px 44px 30px; border-radius: 16px; } .sh-q4-mark { left: 28px; top: 20px; width: 56px; height: 45px; } .sh-q4-key { font-size: 36px; } }
+/* ───── q=5 형광펜: 핵심 구절에 주황 하이라이트 ───── */
+.sh-q5 { padding: 40px 0 30px; }
+.sh-q5-ctx { margin: 0 0 10px; font-size: 15px; color: var(--muted); word-break: keep-all; }
+.sh-q5-key { margin: 0; font-size: 27px; line-height: 1.38; font-weight: 800; letter-spacing: -.02em; word-break: keep-all; }
+.sh-q5-key mark { background: linear-gradient(transparent 52%, color-mix(in srgb, var(--sh-real) 28%, transparent) 52%); color: inherit; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.sh-q5-next { margin: 22px 0 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; word-break: keep-all; }
+.sh-q5-next span { width: 28px; height: 28px; border-radius: 50%; background: #0a1e3c; color: #fff; font-size: 14px; display: grid; place-items: center; flex: none; }
+@media (min-width: 768px) { .sh-q5 { padding: 56px 0 40px; } .sh-q5-key { font-size: 36px; } }

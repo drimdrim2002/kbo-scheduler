@@ -23,7 +23,7 @@
     mark();
   })();
 </script>
-<script>/* 표준 = rv=1(이야기) + q=2(대사 타이포). ?rv=0은 옛 첫 화면, ?q=0은 대사 없이. 대안 비교용 전환은 고른 뒤 지운다. CSS가 html[data-rv]/[data-q]로 블록을 고른다 */(function(){var m=/[?&]rv=([0-3])\b/.exec(location.search);document.documentElement.setAttribute('data-rv',m?m[1]:'1');var q=/[?&]q=([0-3])\b/.exec(location.search);if(!q||q[1]!=='0')document.documentElement.setAttribute('data-q',q?q[1]:'2');var z=/[?&]viz=([1-3])\b/.exec(location.search);if(z)document.documentElement.setAttribute('data-viz',z[1]);var rt=/[?&]rt=([1-2])\b/.exec(location.search);if(rt)document.documentElement.setAttribute('data-rt',rt[1]);})();</script>
+<script>/* 표준 = rv=1(이야기) + q=1(대사 무대). ?rv=0은 옛 첫 화면, ?q=0은 대사 없이. 대안 비교용 전환은 고른 뒤 지운다. CSS가 html[data-rv]/[data-q]로 블록을 고른다 */(function(){var m=/[?&]rv=([0-3])\b/.exec(location.search);document.documentElement.setAttribute('data-rv',m?m[1]:'1');var q=/[?&]q=([0-5])\b/.exec(location.search);if(!q||q[1]!=='0')document.documentElement.setAttribute('data-q',q?q[1]:'1');var z=/[?&]viz=([1-3])\b/.exec(location.search);if(z)document.documentElement.setAttribute('data-viz',z[1]);var rt=/[?&]rt=([1-2])\b/.exec(location.search);if(rt)document.documentElement.setAttribute('data-rt',rt[1]);})();</script>
 <link rel="stylesheet" href="../app/common/common.css?v=20261023">
 <link rel="stylesheet" href="../app/replay/replay.css?v=20261023">
 <link rel="stylesheet" href="show.css?v=20261023">
@@ -53,6 +53,22 @@
     <p class="sh-q2-key">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</p>
     <hr class="sh-q2-rule">
     <p class="sh-q2-next">정말 그럴까요? 2025년 KBO 일정을 들여다봤어요.</p>
+  </section>
+  <!-- q=4 따옴표: 옅은 그러데이션 바탕에 큰 따옴표 장식(SVG), 큰 대사, 출처 줄 -->
+  <section class="sh-sec sh-q4" id="hero-q4" data-q="4" aria-label="드라마 스토브리그 대사">
+    <div class="sh-q4-in">
+      <svg class="sh-q4-mark" viewBox="0 0 40 32" aria-hidden="true"><path d="M0 32V19.2C0 8.6 5.3 2.2 16 0l2.4 4.6C12 6.4 8.8 10 8.4 15.2H17V32H0zm23 0V19.2C23 8.6 28.3 2.2 39 0l2.4 4.6C35 6.4 31.8 10 31.4 15.2H40V32H23z"/></svg>
+      <p class="sh-q4-key">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</p>
+      <p class="sh-q4-src"><span class="sh-q4-dot"></span>드라마 「스토브리그」(SBS), 단장 회의 내용 · 수도권에 팀이 몰려 있어 지방 팀은 버스에서 더 오래 보낸다는 말에 이어서</p>
+    </div>
+    <p class="sh-q4-next">정말 그럴까요? <b>2025년 KBO 일정을 들여다봤어요.</b></p>
+  </section>
+  <!-- q=5 형광펜: 핵심 대사에 주황 하이라이트, 작은 남색 점 출처, 아래 화살표 -->
+  <section class="sh-sec sh-q5" id="hero-q5" data-q="5" aria-label="드라마 스토브리그 대사">
+    <p class="sh-kicker">드라마 「스토브리그」(SBS), 단장 회의 내용</p>
+    <p class="sh-q5-ctx">수도권에 팀이 몰려 있어 지방 팀은 버스에서 더 오래 보낸다는 말에 이어서,</p>
+    <p class="sh-q5-key">야구를 못하는 만큼만 지고 싶지, <mark>멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</mark></p>
+    <p class="sh-q5-next"><span>↓</span> 정말 그럴까요? 2025년 KBO 일정을 들여다봤어요.</p>
   </section>
   <section class="sh-sec sh-q3" id="hero-q3" data-q="3" aria-labelledby="hero-q3-h">
     <p class="sh-kicker">드라마 「스토브리그」(SBS), 단장 회의 내용</p>
