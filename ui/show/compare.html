@@ -22,14 +22,14 @@
     mark();
   })();
 </script>
-<link rel="stylesheet" href="../app/common/common.css?v=20261022">
-<link rel="stylesheet" href="show.css?v=20261022">
+<link rel="stylesheet" href="../app/common/common.css?v=20261023">
+<link rel="stylesheet" href="show.css?v=20261023">
 </head>
 <body class="sh-body" data-page="compare">
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html" aria-current="page">비교</a><a href="index.html#try">직접 해보기</a></nav>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html" aria-current="page">비교</a><a href="r.html?id=default">엔진 일정</a></nav>
   </div>
 </header>
 
@@ -94,7 +94,9 @@
   <section class="sh-sec" aria-labelledby="method-h">
     <h2 class="sh-h2" id="method-h">어떻게 쟀나요</h2>
     <div class="sh-card">
-      <ul class="sh-list">
+      <ul class="sh-list" id="method-def">
+        <li><b>이동거리</b> — 구단마다 시리즈를 치른 구장을 날짜 순서대로 이으면서, 앞 구장에서 다음 구장까지의 거리를 더한 값이에요. 홈에서 홈으로 이어지면 0이고, 시즌 처음과 끝은 홈에서 출발·도착해요. 구장 간 거리는 아래 「구장 간 거리표」를 써요.</li>
+        <li><b>주말·공휴일 홈 경기</b> — 토요일·일요일·공휴일(어린이날, 대체공휴일, 현충일, 광복절)에 치르는 홈 경기 수예요. 관중이 가장 많은 날이라 구단마다 고르게 나뉘어야 해요.</li>
         <li><b>같은 채점기</b> — 브라우저의 채점 방식과 엔진(Java)의 채점 방식이 같은 값을 내는 것을 확인하고, 실제 일정과 엔진 일정을 둘 다 그걸로 쟀어요.</li>
         <li><b>같은 입력</b> — 2025 1차 일정의 대진(225시리즈), 날짜 칸(45개), 구장 간 거리표, 어린이날 홈 구단(두산·키움·한화·NC·롯데)을 그대로 썼어요.</li>
         <li><b>꼭 지킬 규칙</b> — 하루 한 경기, 한 구장 하루 한 대진, 잠실 공유, 홈·원정 4연속 금지, 같은 대진 연속 금지, 지정 구장 홈 경기.</li>
@@ -104,15 +106,22 @@
     </div>
   </section>
 
+  <!-- 구장 간 거리표: 엔진 입력(ui/core/preset-2025.js = data/baseball/input_2025.json)의 distanceMatrix를 그대로 표로. 화면에 들어올 때 프리셋을 읽는다 -->
+  <section class="sh-sec" id="dist" aria-labelledby="dist-h">
+    <h2 class="sh-h2" id="dist-h">구장 간 거리표</h2>
+    <p class="sh-lead">엔진이 이동거리를 셀 때 쓰는 표 그대로예요(km). 카카오맵으로 잰 도로 거리라 가는 길과 오는 길이 조금 다른 곳도 있고, 잠실은 두산·LG가 같이 써요.</p>
+    <div class="sh-card"><div class="sh-dist-wrap" id="dist-table"><p class="sh-small" style="margin:0">거리표를 불러오는 중…</p></div></div>
+  </section>
+
   <section class="sh-sec" aria-labelledby="src-h">
     <h2 class="sh-h2" id="src-h">데이터 출처</h2>
     <div class="sh-card">
       <ul class="sh-list">
         <li>실제 일정: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29). 시즌 중 우천·재편성은 반영하지 않았어요.</li>
-        <li>구장 간 거리: 저장소의 구장 간 거리표(10구장 좌표 기준). 실제 버스·항공 이동과는 다를 수 있어요.</li>
+        <li>구장 간 거리: 카카오맵으로 잰 구장 사이 도로 거리(위 「구장 간 거리표」). 실제 버스·항공 이동과는 다를 수 있어요.</li>
         <li>엔진: 오픈소스 OptaPlanner. 코드와 측정 기록은 공개 저장소에 있어요 <span class="sh-placeholder">링크 예정</span>.</li>
       </ul>
-      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="index.html#try">직접 해보기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
+      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 보기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
     </div>
   </section>
 </main>
@@ -123,6 +132,6 @@
     <p><a href="index.html">소개로</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261022"></script>
+<script src="show.js?v=20261023"></script>
 </body>
 </html>

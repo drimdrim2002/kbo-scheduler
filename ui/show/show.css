@@ -93,9 +93,17 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-replay .rp-grid { height: auto; grid-auto-rows: 112px; }
 /* 점수판은 총 이동거리 곡선 하나만. 보여주는 문은 "어떻게 더 나은 일정을 찾아가는지"를 개념으로 보여 주는 곳이라
    슬롯 없는 시리즈·구단 간 이동 횟수 차이 같은 단계와 "시드 42 · 개선 118회" 메타는 뺀다(show.js simpleCaptions가 해설도 맞춘다) */
-.sh-replay .rp-score { flex: none; height: 200px; }
-.sh-replay .rp-levels { grid-template-rows: minmax(0, 1fr); }
-.sh-replay .rp-lv:not(:last-child) { display: none; }
+.sh-replay .rp-score { flex: none; height: 236px; }
+/* 점수판: 고르게 맞추는 지표 3개(이동 횟수·구단별 이동거리·주말·공휴일 홈)는 곡선 위에 칩으로, 10개 팀 전체 이동거리만 곡선. 슬롯 없는 시리즈(0단계)는 숨김.
+   칩 값은 모듈이 갱신하고(.zero = 0) show.js fitBoard가 "맞춤 ✓ / 아직 N"으로 바꾼다 */
+.sh-replay .rp-levels { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px 6px; padding: 6px 10px 0; }
+.sh-replay .rp-lv:not(:last-child) { flex: 0 0 auto; display: flex; flex-direction: row; align-items: center; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.sh-replay .rp-lv[data-l="0"] { display: none !important; } /* 슬롯 없는 시리즈는 처음부터 0이라 뺀다(위 칩 규칙보다 뒤에 둬야 이긴다) */
+.sh-replay .rp-lv:not(:last-child) .rp-lv-h { font-size: 10.5px; gap: 4px; }
+.sh-replay .rp-lv:not(:last-child) .rp-lv-svg, .sh-replay .rp-lv:not(:last-child) .rp-lv-val small { display: none; }
+.sh-replay .rp-lv:not(:last-child) .rp-lv-val b { font-size: 11px; }
+.sh-replay .rp-lv:not(:last-child).zero { border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: var(--ok-bg); }
+.sh-replay .rp-lv:last-child { flex: 1 1 100%; min-height: 0; }
 .sh-replay .rp-score-h .rp-muted { display: none; }
 .sh-replay .rp-cap { height: auto; min-height: 36px; white-space: normal; padding: 8px 12px; font-size: 13px; line-height: 1.4; }
 .sh-replay .rp-ctrl { position: static; height: auto; flex-wrap: wrap; padding: 8px 10px; gap: 6px; box-shadow: none; }
@@ -112,7 +120,7 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
   .sh-replay .rp-card { font-size: 10px; }
   .sh-replay .rp-tight .rp-card span { display: inline; } /* 모듈은 빽빽하면 원정 구단을 숨기는데 여기서는 둘 다 보여 준다 */
   .sh-replay:not(.sh-big) .rp-slot:nth-child(n+13) { display: none; }
-  .sh-replay .rp-score { order: -1; height: 170px; }
+  .sh-replay .rp-score { order: -1; height: 224px; }
 }
 /* 재생기 아래 단추 줄(「크게 보기」): 휴대폰 폭에서만 보인다 */
 .sh-replay-tools { display: none; margin: 8px 0 0; gap: 8px; }
@@ -221,7 +229,7 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-choice3 label { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; }
 .sh-choice3 label small { font-weight: 400; font-size: 12px; color: var(--muted, #4A5A78); }
 /* 생각 시간 3단계: 제목 + 걸리는 시간·결과 한 줄. 휴대폰에서도 문장이 길어 처음부터 세로로 쌓는다 */
-.sh-think { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sh-think { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .sh-think label { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; user-select: none; }
 .sh-think label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
 .sh-think label:has(input:disabled) { opacity: .45; cursor: not-allowed; }
@@ -245,3 +253,332 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
   .sh-choice3 { grid-template-columns: 1fr; }
   .sh-choice3 label { flex-direction: row; align-items: center; justify-content: space-between; }
 }
+
+/* ───── ?rv= 첫 화면 대안 (2026-10-22, 고른 뒤 나머지는 지운다) ─────
+   html[data-rv]가 없으면 기존 첫 화면(data-rv="0"), 1·2·3이면 그 블록만 보인다. 첫 블록이라 위 선은 없앤다 */
+main [data-rv] { display: none; }
+html:not([data-rv]) main [data-rv="0"], html[data-rv="0"] main [data-rv="0"], html[data-rv="1"] main [data-rv="1"], html[data-rv="2"] main [data-rv="2"], html[data-rv="3"] main [data-rv="3"] { display: block; }
+.sh-sec[data-rv] { border-top: 0; }
+.sh-h1 b, .sh-h1 [data-n] { font-weight: inherit; }
+.sh-story-h { font-size: 18px; line-height: 1.3; margin: 26px 0 10px; }
+.sh-msgs li b { font-size: 16px; }
+/* 인용(스토브리그 대사) */
+.sh-quote { margin: 14px 0 0; padding: 12px 14px; border-left: 3px solid var(--sh-real); background: var(--surface); border-radius: 0 8px 8px 0; font-size: 15px; line-height: 1.5; word-break: keep-all; }
+.sh-quote small { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); }
+/* rv=2: 평균 기준 좌우 막대 10줄 + 실제/엔진 전환 */
+.sh-dbars { display: grid; gap: 7px; margin: 12px 0 0; }
+.sh-drow { display: grid; grid-template-columns: 40px minmax(0, 1fr) 70px; align-items: center; gap: 8px; font-size: 12px; }
+.sh-drow-name { font-weight: 700; white-space: nowrap; line-height: 1.15; }
+.sh-drow-name small { display: block; font-weight: 400; font-size: 10px; color: var(--muted); }
+.sh-dtrack { position: relative; height: 16px; background: var(--surface-2); border-radius: 3px; }
+.sh-dtrack::before { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.sh-dbar { position: absolute; top: 0; height: 100%; width: 0; max-width: 50%; background: var(--sh-real); transition: width .6s ease, background-color .4s; }
+.sh-dbar.neg { right: 50%; border-radius: 3px 0 0 3px; }
+.sh-dbar.pos { left: 50%; border-radius: 0 3px 3px 0; }
+.sh-drow-val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.15; }
+.sh-drow-val b { font-size: 13px; }
+.sh-drow-val small { display: block; font-size: 10.5px; color: var(--muted); }
+.sh-hero2.sh-engine-on .sh-dbar { background: var(--sh-engine); }
+.sh-daxis { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0 0 48px; font-size: 11px; color: var(--muted); }
+.sh-daxis span:nth-child(2) { font-weight: 700; color: var(--fg); }
+.sh-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 14px 0 0; }
+.sh-seg button { min-height: 44px; border: 0; background: var(--surface); font: inherit; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.sh-seg button + button { border-left: 1px solid var(--line); }
+.sh-seg button[aria-pressed="true"] { color: #fff; }
+.sh-seg button[data-h2="real"][aria-pressed="true"] { background: var(--sh-real); }
+.sh-seg button[data-h2="engine"][aria-pressed="true"] { background: var(--sh-engine); }
+.sh-h2-note { margin: 10px 0 0; }
+/* rv=3: 구장 점 지도 */
+.sh-map { padding: 12px 12px 10px; }
+.sh-map svg { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; }
+.sh-map text { font-family: inherit; font-size: 11.5px; font-weight: 700; fill: var(--fg); }
+.sh-map-zone { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.sh-map-zone-t { fill: var(--accent) !important; }
+.sh-map-far { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.sh-map-far-t { fill: var(--muted) !important; font-weight: 500 !important; }
+.sh-map-cap circle { fill: #0a1e3c; }
+.sh-map-prov circle { fill: var(--sh-real); }
+.sh-sw-cap { background: #0a1e3c; } .sh-sw-prov { background: var(--sh-real); }
+.sh-map .sh-legend { margin: 10px 0 0; }
+.sh-stats-2 { grid-template-columns: 1fr 1fr; }
+.sh-stats-2 .sh-stat-d { color: var(--fg); }
+@media (min-width: 768px) {
+  .sh-story-h { font-size: 20px; }
+  .sh-drow { grid-template-columns: 56px minmax(0, 1fr) 84px; font-size: 13px; }
+  .sh-drow-name small { font-size: 11px; }
+  .sh-daxis { margin-left: 64px; font-size: 12px; }
+  .sh-map svg { max-width: 400px; }
+}
+
+/* ───── &q=1|2|3: 대사 첫 화면 3안 (고른 뒤 하나만 남긴다) ─────
+   html[data-q]가 1·2·3이면 그 블록만 보인다. rv=1 안의 작은 인용은 겹치니 숨긴다 */
+main [data-q] { display: none; }
+html[data-q="1"] main [data-q="1"], html[data-q="2"] main [data-q="2"], html[data-q="3"] main [data-q="3"] { display: block; }
+html[data-q] .sh-quote { display: none; }
+html[data-q] .sh-sec[data-rv] { border-top: 1px solid var(--line); }
+/* q=1 무대: 짙은 남색 판. 휴대폰은 좌우 끝까지, 넓은 화면은 둥근 판 */
+.sh-q1 { padding: 0; border: 0; }
+.sh-q1-in { position: relative; margin: 0 -16px; padding: 36px 20px 30px; background: #0a1e3c; color: #fff; overflow: hidden; }
+.sh-q1-k { margin: 0 0 18px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: rgba(255, 255, 255, .55); }
+.sh-q1-ctx { margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, .7); word-break: keep-all; }
+.sh-q1-key { margin: 0; font-size: 25px; line-height: 1.35; font-weight: 800; letter-spacing: -.015em; word-break: keep-all; }
+.sh-q1-next { margin: 26px 0 0; font-size: 15px; font-weight: 700; color: #fff; }
+.sh-q1-next span { display: block; margin-top: 2px; font-weight: 500; color: rgba(255, 255, 255, .7); }
+@media (min-width: 768px) {
+  .sh-q1 { padding: 40px 0 0; }
+  .sh-q1-in { margin: 0; padding: 44px 40px 36px; border-radius: 16px; }
+  .sh-q1-key { font-size: 32px; }
+  .sh-q1-ctx { font-size: 16px; }
+}
+/* q=2 타이포: 상자·색 없이 여백과 글자 크기만 */
+.sh-q2 { padding: 40px 0 30px; }
+.sh-q2-k { margin: 0 0 22px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+.sh-q2-ctx { margin: 0 0 10px; font-size: 15px; color: var(--muted); word-break: keep-all; }
+.sh-q2-key { margin: 0; font-size: 27px; line-height: 1.32; font-weight: 800; letter-spacing: -.02em; word-break: keep-all; }
+.sh-q2-rule { width: 40px; height: 3px; border: 0; background: var(--fg); margin: 22px 0 16px; }
+.sh-q2-next { margin: 0; font-size: 16px; font-weight: 700; }
+@media (min-width: 768px) { .sh-q2 { padding: 56px 0 40px; } .sh-q2-key { font-size: 38px; } }
+/* q=3 압축: 대사가 곧 제목. 뒤따르는 블록의 h1은 소제목 크기로 */
+.sh-q3-key { font-weight: 800; }
+html[data-q="3"] main [data-rv] .sh-h1 { font-size: 22px; }
+@media (min-width: 768px) { html[data-q="3"] main [data-rv] .sh-h1 { font-size: 26px; } }
+
+/* ───── 한 결 규칙 (2026-10-22). 위 규칙보다 나중에 와서 이긴다 ─────
+   1) 제목 3단계만: h1 28 / h2 22 / 소제목 17. 본문 15, 작은 글 13, 머리글(kicker) 12 회색.
+   2) 파란색은 누를 수 있는 것(링크·주 버튼·고른 선택지)과 '엔진'에만, 주황은 '실제'에만. 머리글·소제목은 회색/본문색.
+   3) 상자(흰 바탕·1px 선·둥근 12)는 데이터에만: 숫자 묶음·그래프·재생기·폼. 글과 목록은 맨글 + 가는 줄.
+   4) 버튼 2종: 주(파랑 채움)·보조(테두리), 44~48px·둥근 10. 작은 '더 보기'는 글자 링크(.sh-link). */
+.sh-kicker { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+.sh-h1 { font-size: 28px; line-height: 1.25; letter-spacing: -.02em; margin: 0 0 12px; }
+.sh-h2 { font-size: 22px; line-height: 1.3; letter-spacing: -.01em; margin: 0 0 12px; }
+.sh-h3, .sh-story-h, .sh-step h3 { font-size: 17px; line-height: 1.35; font-weight: 800; margin: 24px 0 8px; }
+.sh-step h3 { margin-top: 5px; }
+.sh-sec .sh-lead { font-size: 15px; line-height: 1.6; color: var(--muted); margin: 0 0 16px; }
+.sh-sec[data-rv] .sh-lead, .sh-sec[data-q] .sh-lead, #hero .sh-lead { font-size: 16px; color: var(--fg); }
+.sh-sec { padding: 36px 0; }
+.sh-q2-k { font-size: 12px; letter-spacing: .04em; color: var(--muted); }
+.sh-q2-key { font-size: 28px; letter-spacing: -.02em; }
+/* 글 목록: 맨글 + 가는 줄 */
+.sh-msgs { display: block; }
+.sh-msgs li { display: grid; gap: 3px; padding: 12px 0; border-top: 1px solid var(--line); }
+.sh-msgs li:first-child { border-top: 0; padding-top: 0; }
+.sh-msgs li b { font-size: 16px; font-weight: 800; line-height: 1.4; }
+.sh-msgs li span { font-size: 14px; line-height: 1.5; color: var(--muted); }
+/* 숫자 묶음(메시지 + 실제→엔진): 상자 하나에 줄 3개. 소개·결과 쪽 공통 */
+.sh-stats-msg { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+/* 휴대폰: 메시지 위, 숫자 아래(한 줄). 넓으면 메시지 왼쪽·숫자 오른쪽 */
+.sh-stats-msg .sh-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 13px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; }
+.sh-stats-msg .sh-stat:first-child { border-top: 0; }
+.sh-stats-msg .sh-stat-msg { font-size: 16px; line-height: 1.4; flex: none; }
+.sh-stats-msg .sh-stat-d { margin: 0; font-size: 14px; line-height: 1.45; text-align: left; flex: none; font-variant-numeric: tabular-nums; }
+@media (min-width: 560px) {
+  .sh-stats-msg .sh-stat { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; }
+  .sh-stats-msg .sh-stat-msg { flex: 1 1 50%; }
+  .sh-stats-msg .sh-stat-d { flex: none; text-align: right; }
+}
+/* 버튼 2종 */
+.sh-body .k-btn { min-height: 44px; padding: 0 14px; border-radius: 10px; font-weight: 700; font-size: 15px; }
+.sh-share .k-btn { padding: 0 4px; font-size: 13px; }
+.sh-link { font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.sh-link:hover { text-decoration: underline; }
+.sh-card-foot { justify-content: space-between; }
+.sh-step i { background: var(--surface-2); color: var(--fg); }
+@media (min-width: 768px) {
+  .sh-h1 { font-size: 34px; }
+  .sh-h2 { font-size: 24px; }
+  .sh-q2-key { font-size: 36px; }
+  .sh-sec { padding: 44px 0; }
+  .sh-stats-msg .sh-stat { padding: 15px 0; }
+  .sh-stats-msg .sh-stat-msg { font-size: 17px; }
+}
+
+/* ───── 이야기 구간 그림 요소 (rv=1): 숫자 띠·아이콘 타일·점 띠·점 분포·원정길 ───── */
+.sh-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 18px 0 16px; }
+.sh-fact { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; display: grid; align-content: center; }
+.sh-fact b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sh-fact > span { display: block; margin-top: 5px; font-size: 12px; line-height: 1.3; color: var(--muted); word-break: keep-all; }
+.sh-fact span span, .sh-fact b span { display: inline; font-size: inherit; }
+.sh-why { display: grid; gap: 8px; }
+.sh-why-i { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px; background: var(--surface); border-radius: 12px; }
+.sh-why-i i { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: #0a1e3c; display: grid; place-items: center; }
+.sh-why-i svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sh-why-i b { display: block; font-size: 16px; font-weight: 800; line-height: 1.35; }
+.sh-why-i span { display: block; margin-top: 3px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.sh-viz-note { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+/* 점 띠: 10구단 이동거리를 한 줄 위에 점으로. 가까운 점은 한 단 위로 올린다(show.js storyViz) */
+.sh-strip { position: relative; height: 100px; margin: 4px 0 0; }
+.sh-strip-axis { position: absolute; left: 0; right: 0; top: 54px; height: 2px; background: var(--line); }
+.sh-strip-dot { position: absolute; top: 55px; width: 12px; height: 12px; border-radius: 50%; background: var(--sh-real); border: 2px solid var(--surface); box-sizing: content-box; transform: translate(-50%, -50%); }
+.sh-strip-dot.lv1 { top: 42px; } .sh-strip-dot.lv2 { top: 29px; }
+.sh-strip-lab { position: absolute; top: 66px; font-size: 12px; line-height: 1.25; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sh-strip-lab b { display: block; font-size: 13px; color: var(--fg); }
+.sh-strip-lab.max { transform: translateX(-100%); text-align: right; }
+.sh-strip-range { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); white-space: nowrap; }
+/* 점 분포: 휴일 홈 경기 수(22~28)마다 세로로 구단 이름 칩을 쌓는다 */
+.sh-dots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 10px; align-items: end; }
+.sh-dcol-w { display: grid; gap: 0; }
+.sh-dcol { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; min-height: 104px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+.sh-dcol-w b { display: block; text-align: center; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sh-dteam { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 10.5px; font-weight: 700; padding: 3px 5px; border-radius: 999px; background: color-mix(in srgb, var(--sh-real) 14%, transparent); color: var(--sh-real); white-space: nowrap; }
+/* 원정길: 구장 칩과 화살표(위에 km) */
+.sh-route { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 2px; margin-top: 10px; }
+.sh-route span { font-size: 12px; font-weight: 700; padding: 7px 7px; border-radius: 8px; background: var(--surface-2); white-space: nowrap; }
+.sh-route span.home { background: color-mix(in srgb, var(--sh-real) 14%, transparent); color: var(--sh-real); }
+.sh-route i { flex: 1 1 28px; min-width: 28px; display: grid; justify-items: center; font-style: normal; font-size: 10px; line-height: 1; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sh-route i::after { content: '→'; font-size: 14px; margin-top: 1px; }
+@media (min-width: 768px) {
+  .sh-why { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sh-why-i { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+  .sh-fact b { font-size: 34px; } .sh-fact > span { font-size: 13px; }
+  .sh-dteam { font-size: 12px; } .sh-strip-lab { font-size: 13px; }
+  .sh-route span { font-size: 14px; padding: 8px 12px; } .sh-route i { font-size: 12px; }
+}
+
+/* ───── 7차 (2026-10-22): 글자 사다리 정리, 숫자 띠 2칸, 타일 가운데 정렬, 평균 기준 막대 기본(viz) ─────
+   글자 사다리(역할마다 한 크기): 큰 제목 28 / 블록 제목 22 / 소제목 18 / 구성 요소 제목·타일 제목 16 / 본문 15 / 설명 14 / 작은 글 13 / 축·머리글 12 */
+.sh-story-h { font-size: 18px; }
+.sh-chart-h b { font-size: 16px; }
+.sh-chart-h .sh-viz-note { font-size: 14px; }
+.sh-small { font-size: 12px; }
+.sh-why-i b { font-size: 16px; } .sh-why-i span { font-size: 14px; }
+.sh-msgs li span, .sh-stats-msg .sh-stat-d { font-size: 14px; }
+/* 숫자 띠 2칸: 144경기 · 구단당 평균 이동거리 */
+.sh-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sh-fact b small { font-size: 14px; font-weight: 700; margin-left: 2px; color: var(--muted); }
+/* 타일: 아이콘·글 모두 가운데 */
+.sh-why { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sh-why-i { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 18px 14px; }
+.sh-why-i i { margin: 0 auto; }
+/* 이야기 구간 막대: 연고지 없이 촘촘하게. viz=2면 점 방식(점 띠·점 분포)만 보인다 */
+.sh-dbars-s { gap: 5px; margin-top: 8px; }
+.sh-dbars-s .sh-drow { grid-template-columns: 36px minmax(0, 1fr) 64px; font-size: 13px; }
+.sh-dbars-s .sh-dtrack { height: 14px; }
+.sh-dbars-s .sh-drow-val b { font-size: 13px; } .sh-dbars-s .sh-drow-val small { font-size: 11px; }
+.sh-viz .sh-daxis { margin-left: 44px; }
+main [data-viz] { display: none; }
+html[data-viz="2"] main [data-viz="2"], html[data-viz="3"] main [data-viz="3"] { display: block; }
+html[data-viz="2"] .sh-viz-main, html[data-viz="3"] .sh-viz-main { display: none; }
+@media (max-width: 420px) { .sh-why { grid-template-columns: 1fr; } }
+@media (min-width: 768px) { .sh-story-h { font-size: 20px; } .sh-dbars-s .sh-drow { grid-template-columns: 48px minmax(0, 1fr) 80px; } }
+.sh-fact b { white-space: nowrap; font-size: 26px; }
+.sh-fact > span { font-size: 12px; }
+@media (min-width: 768px) { .sh-fact b { font-size: 32px; } .sh-fact > span { font-size: 13px; } }
+/* 타일은 위 맞춤: 줄 수가 달라도 아이콘·제목 높이가 같다. 숫자 띠 설명은 한 줄 */
+.sh-why-i { align-content: start; }
+.sh-fact > span { white-space: nowrap; }
+
+/* ───── 점 지도(.sh-scatter): 가로 = 이동거리 편차, 세로 = 휴일 홈 편차. show.js scatterViz가 SVG를 그린다 ───── */
+.sh-scatter { margin-top: 8px; }
+.sh-scatter svg { display: block; width: 100%; height: auto; }
+.sh-scatter .sc-q-good { fill: var(--ok-bg); opacity: .7; }
+.sh-scatter .sc-q-bad { fill: var(--warn-bg); opacity: .8; }
+.sh-scatter .sc-axis { stroke: var(--muted); stroke-width: 1; opacity: .6; }
+.sh-scatter .sc-tick { stroke: var(--muted); stroke-width: 1; opacity: .6; }
+.sh-scatter .sc-tick-t { font-size: 9.5px; fill: var(--muted); }
+.sh-scatter .sc-cap { font-size: 10px; fill: var(--muted); font-weight: 600; }
+.sh-scatter .sc-cap.good { fill: var(--ok); } .sh-scatter .sc-cap.bad { fill: var(--warn); }
+.sh-scatter .sc-t { transition: transform .7s cubic-bezier(.2, .7, .2, 1); }
+.sh-scatter .sc-t circle { fill: var(--sh-real); stroke: var(--surface); stroke-width: 2; transition: fill .4s; }
+.sh-scatter.sh-engine-on .sc-t circle { fill: var(--sh-engine); }
+.sh-scatter .sc-t text { font-size: 11px; font-weight: 700; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.sh-seg-s { margin-top: 10px; }
+.sh-seg-s button { min-height: 40px; font-size: 13px; }
+.sh-seg button[data-sc="real"][aria-pressed="true"] { background: var(--sh-real); }
+.sh-seg button[data-sc="engine"][aria-pressed="true"] { background: var(--sh-engine); }
+@media (prefers-reduced-motion: reduce) { .sh-scatter .sc-t { transition: none; } }
+/* viz=3 두 줄 표: 이름 | 이동거리 막대 | 값 | 휴일 홈 막대 | 값 */
+.sh-dual { display: grid; gap: 5px; margin-top: 8px; }
+.sh-dual-row, .sh-dual-h { display: grid; grid-template-columns: 34px minmax(0, 1.5fr) 50px minmax(0, 1fr) 36px; gap: 6px; align-items: center; font-size: 12px; }
+.sh-dual-h { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+.sh-dual-h span:nth-child(2), .sh-dual-h span:nth-child(4) { text-align: center; }
+.sh-dual-row .sh-drow-name { font-size: 12px; }
+.sh-dual-row .sh-dtrack { height: 12px; }
+.sh-dual-row .sh-drow-val { font-size: 11px; line-height: 1.2; }
+.sh-dual-row .sh-drow-val b { font-size: 12px; } .sh-dual-row .sh-drow-val small { font-size: 10px; }
+@media (min-width: 768px) { .sh-dual-row, .sh-dual-h { grid-template-columns: 48px minmax(0, 1.5fr) 70px minmax(0, 1fr) 56px; font-size: 13px; } }
+
+/* 점 지도 읽기 보조: 읽는 법 한 줄, 축 표시, 꼬리표(가장 손해·유리), 우리 팀 칩 */
+.sh-sc-how { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.sh-sc-how b { color: var(--fg); }
+.sh-scatter .sc-ax { font-size: 10px; fill: var(--muted); font-weight: 700; }
+.sh-scatter .sc-tag { font-size: 10px; font-weight: 800; }
+.sh-scatter .sc-tag.bad { fill: var(--warn); } .sh-scatter .sc-tag.good { fill: var(--ok); }
+.sh-scatter .sc-t.is-pick circle { r: 9; stroke: var(--fg); stroke-width: 2.5; }
+.sh-scatter .sc-t.is-pick text { font-size: 13px; }
+.sh-scatter.has-pick .sc-t:not(.is-pick) { opacity: .45; }
+.sh-sc-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.sh-sc-pick-l { font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+.sh-sc-pick button { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--fg); cursor: pointer; }
+.sh-sc-pick button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.sh-sc-say { margin: 8px 0 0; min-height: 1.5em; font-size: 14px; line-height: 1.5; font-weight: 600; }
+.sh-sc-say:empty { display: none; }
+/* 점 지도는 넓은 화면에서 폭을 줄여 가운데에, 원정길 상자는 바로 아래 작은 상자 */
+.sh-viz + .sh-viz-route { margin-top: 10px; }
+@media (min-width: 768px) { .sh-scatter svg { max-width: 480px; margin: 0 auto; } .sh-viz-route .sh-route { justify-content: center; } }
+.sh-sc-note { margin-top: 6px; }
+
+
+/* ───── 롯데 원정길: 기본은 날짜 순 여정(.sh-trip), rt=2는 실제 길 vs 한 번에 도는 길 도식(.sh-trip2) ───── */
+main [data-rt] { display: none; }
+html[data-rt="1"] main [data-rt="1"] { display: block; }
+html[data-rt="1"] .sh-trip2 { display: none; }
+.sh-trip2 { display: grid; }
+.sh-trip-wrap { position: relative; margin-top: 10px; }
+.sh-trip-total { position: absolute; right: 0; top: -2px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); }
+.sh-trip { list-style: none; margin: 0; padding: 0 0 0 22px; position: relative; }
+.sh-trip::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 2px; background: var(--line); }
+.sh-trip li { position: relative; }
+.sh-trip li.home, .sh-trip li.away { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 2px 10px; align-items: baseline; padding: 4px 0; }
+.sh-trip li.home::before, .sh-trip li.away::before { content: ''; position: absolute; left: -20px; top: 9px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--surface); box-sizing: border-box; background: #0a1e3c; }
+.sh-trip li.home::before { background: var(--sh-real); }
+.sh-trip-d { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sh-trip-w { font-size: 15px; font-weight: 800; }
+.sh-trip-w i { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; margin-left: 4px; vertical-align: 2px; background: var(--surface-2); color: var(--fg); }
+.sh-trip li.home .sh-trip-w i { background: color-mix(in srgb, var(--sh-real) 14%, transparent); color: var(--sh-real); }
+.sh-trip-vs { grid-column: 2; font-size: 13px; color: var(--muted); }
+.sh-trip li.leg { padding: 2px 0 2px 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sh-trip li.leg span { display: inline-block; margin-left: 68px; padding-left: 10px; }
+.sh-trip li.leg span::before { content: '↓ '; color: var(--sh-real); font-weight: 700; }
+@media (min-width: 560px) { .sh-trip li.home, .sh-trip li.away { grid-template-columns: 84px auto minmax(0, 1fr); } .sh-trip-vs { grid-column: 3; } .sh-trip li.leg span { margin-left: 84px; } }
+.sh-trip2 { gap: 10px; margin-top: 10px; }
+.sh-trip2-p { border: 1px solid var(--line); border-radius: 10px; padding: 10px 10px 4px; }
+.sh-trip2-p b { display: block; font-size: 14px; margin-bottom: 2px; }
+.sh-trip2 svg { display: block; width: 100%; height: auto; max-width: 320px; margin: 0 auto; }
+.sh-trip2 text { font-family: inherit; font-size: 11px; font-weight: 700; fill: var(--fg); }
+.sh-trip2 .t2-path path { fill: none; stroke: var(--sh-real); stroke-width: 2; marker-end: url(#t2-a); }
+.sh-trip2 .t2-path.alt path { stroke: var(--accent); marker-end: url(#t2-a); }
+.sh-trip2 .t2-badge circle { fill: var(--fg); }
+.sh-trip2 .t2-badge text { fill: var(--bg); font-size: 10px; text-anchor: middle; }
+.sh-trip2 .t2-km text { font-size: 10.5px; fill: var(--muted); font-weight: 600; }
+.sh-trip2 .t2-node circle { fill: #0a1e3c; } .sh-trip2 .t2-node circle.home { fill: var(--sh-real); }
+@media (min-width: 768px) { .sh-trip2 { grid-template-columns: 1fr 1fr; } }
+.sh-trip2 .t2-path.eng path { stroke: var(--sh-engine); marker-end: url(#t2-b); }
+.sh-trip2 .t2-faint circle { fill: var(--line); }
+.sh-trip2 .t2-faint text { fill: var(--muted); font-weight: 600; font-size: 10px; }
+
+/* ───── 카카오맵(롯데 원정길): 탭해서 불러오기. 지도는 끌거나 확대하지 않는 고정 그림 ───── */
+.sh-kmap-tools { display: flex; gap: 8px; margin-top: 10px; }
+.sh-kmap-tools .k-btn { flex: 1 1 0; justify-content: center; }
+.sh-kmap { margin-top: 10px; }
+.sh-kmap-box { height: 400px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); margin-top: 8px; }
+.sh-kmap-msg { padding: 24px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+.km-pin { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; color: var(--fg); white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+.km-pin.home { background: var(--sh-real); border-color: var(--sh-real); color: #fff; }
+.km-pin.faint { opacity: .6; font-weight: 600; padding: 1px 6px; font-size: 10px; }
+.km-badge { width: 20px; height: 20px; border-radius: 50%; background: var(--fg); color: var(--bg); font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.km-badge.eng { background: var(--sh-engine); color: #fff; }
+.km-badge.real { background: var(--sh-real); color: #fff; }
+@media (min-width: 768px) { .sh-kmap-box { height: 460px; } }
+/* 블록 규칙(제목 → 설명 → 그림·상자 → 보조): 점 지도 읽는 법은 상자 밖 설명(.sh-lead) */
+.sh-sec .sh-lead.sh-sc-how { font-size: 15px; color: var(--muted); }
+.sh-lead.sh-sc-how b { color: var(--fg); }
+
+/* 구장 간 거리표(비교 쪽): 가로로 넘기는 표, 첫 열 고정 */
+.sh-dist-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sh-dist { border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 560px; width: 100%; font-variant-numeric: tabular-nums; }
+.sh-dist th, .sh-dist td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.sh-dist th { font-weight: 700; background: var(--surface-2); }
+.sh-dist thead th { text-align: center; }
+.sh-dist th small { display: block; font-size: 10px; font-weight: 500; color: var(--muted); }
+.sh-dist .sh-dist-c { position: sticky; left: 0; text-align: left; z-index: 1; }
+.sh-dist .sh-dist-diag { color: var(--muted); text-align: center; }

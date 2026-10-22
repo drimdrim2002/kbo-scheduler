@@ -23,21 +23,44 @@
     mark();
   })();
 </script>
-<link rel="stylesheet" href="../app/common/common.css?v=20261022">
-<link rel="stylesheet" href="../app/replay/replay.css?v=20261022">
-<link rel="stylesheet" href="show.css?v=20261022">
+<script>/* 표준 = rv=1(이야기) + q=2(대사 타이포). ?rv=0은 옛 첫 화면, ?q=0은 대사 없이. 대안 비교용 전환은 고른 뒤 지운다. CSS가 html[data-rv]/[data-q]로 블록을 고른다 */(function(){var m=/[?&]rv=([0-3])\b/.exec(location.search);document.documentElement.setAttribute('data-rv',m?m[1]:'1');var q=/[?&]q=([0-3])\b/.exec(location.search);if(!q||q[1]!=='0')document.documentElement.setAttribute('data-q',q?q[1]:'2');var z=/[?&]viz=([1-3])\b/.exec(location.search);if(z)document.documentElement.setAttribute('data-viz',z[1]);var rt=/[?&]rt=([1-2])\b/.exec(location.search);if(rt)document.documentElement.setAttribute('data-rt',rt[1]);})();</script>
+<link rel="stylesheet" href="../app/common/common.css?v=20261023">
+<link rel="stylesheet" href="../app/replay/replay.css?v=20261023">
+<link rel="stylesheet" href="show.css?v=20261023">
 </head>
 <body class="sh-body" data-page="index">
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="#try">직접 해보기</a></nav>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="r.html?id=default">엔진 일정</a></nav>
   </div>
 </header>
 
 <main class="sh-wrap">
+  <!-- &q=1|2|3: 드라마 「스토브리그」 대사로 시작하는 첫 화면 3안(고른 뒤 하나만 남긴다). 영상·캡처·링크 없음(저작권, 2026-10-22 결정)
+       q=1 무대: 짙은 남색 판 위 흰 글자  q=2 타이포: 여백과 큰 글자만  q=3 압축: 대사 자체가 제목, 그 아래 바로 본문 -->
+  <section class="sh-sec sh-q1" id="hero-q1" data-q="1" aria-label="드라마 스토브리그 대사">
+    <div class="sh-q1-in">
+      <p class="sh-q1-k">드라마 「스토브리그」(SBS) · 단장 회의 내용</p>
+      <p class="sh-q1-ctx">"서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다."</p>
+      <p class="sh-q1-key">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</p>
+      <p class="sh-q1-next">정말 그럴까요? <span>2025년 KBO 일정을 들여다봤어요 ↓</span></p>
+    </div>
+  </section>
+  <section class="sh-sec sh-q2" id="hero-q2" data-q="2" aria-label="드라마 스토브리그 대사">
+    <p class="sh-kicker">드라마 「스토브리그」(SBS), 단장 회의 내용</p>
+    <p class="sh-q2-ctx">수도권에 팀이 몰려 있어 지방 팀은 버스에서 더 오래 보낸다는 말에 이어서,</p>
+    <p class="sh-q2-key">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</p>
+    <hr class="sh-q2-rule">
+    <p class="sh-q2-next">정말 그럴까요? 2025년 KBO 일정을 들여다봤어요.</p>
+  </section>
+  <section class="sh-sec sh-q3" id="hero-q3" data-q="3" aria-labelledby="hero-q3-h">
+    <p class="sh-kicker">드라마 「스토브리그」(SBS), 단장 회의 내용</p>
+    <h1 class="sh-h1 sh-q3-key" id="hero-q3-h">"야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요."</h1>
+    <p class="sh-lead">수도권에 팀이 몰려 있어 지방 팀은 버스에서 더 오래 보낸다는 말이었어요. 정말 그럴까요? 2025년 KBO 일정을 들여다봤어요.</p>
+  </section>
   <!-- ① 한 문장 + 숫자 3개 (JS 없이도 보이도록 기본 숫자를 박아 두고 fetch 뒤 갱신) -->
-  <section class="sh-sec" id="hero" aria-labelledby="hero-h">
+  <section class="sh-sec" id="hero" data-rv="0" aria-labelledby="hero-h">
     <p class="sh-kicker">실제 2025 KBO 일정 vs 엔진</p>
     <h1 class="sh-h1" id="hero-h">KBO 144경기 일정, 엔진이 <span data-n="engine.seconds">30</span>초 만에 짜면?</h1>
     <p class="sh-lead">같은 대진·같은 규칙으로 돌렸더니 이렇게 달라졌어요.</p>
@@ -55,27 +78,200 @@
         <span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b> <span class="sh-small">(주말 홈 <span data-n="engine.weekend">11~12</span>회)</span></span>
       </div>
     </div>
-    <!-- 첫 화면에서 바로 「직접 해보기」로. 휴대폰에서는 폼까지 세 화면 가까이 내려가야 해서 -->
-    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="#try">직접 해보기 <small>약 15초</small></a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
+    <!-- 첫 화면 버튼: 엔진 결과 페이지 · 비교 -->
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
     <p class="sh-small" style="margin-top:8px">PC 한 대에서 <span data-n="engine.seconds">30</span>초, 시드 <span data-n="engine.seeds">8</span>개를 동시에 돌려 가장 좋은 일정을 골랐어요.</p>
     <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 엔진 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
   </section>
 
-  <!-- ② 비교 카드 -->
-  <section class="sh-sec" id="compare" aria-labelledby="cmp-h">
-    <h2 class="sh-h2" id="cmp-h">실제 일정 vs 엔진 일정</h2>
-    <div class="sh-card">
-      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025 1차 일정</span><span><i class="sh-sw-engine"></i>엔진</span></div>
-      <div class="sh-chart-h"><b>10구단 총 이동거리</b><span class="sh-small">시즌 전체 합계</span></div>
-      <div class="sh-bars" id="cmp-total" role="img" aria-label="10구단 총 이동거리: 실제 72,955km, 엔진 63,312km">
-        <div class="sh-bar-row"><span class="sh-bar-name">실제</span><div class="sh-bar-track"><div class="sh-bar sh-bar-real" style="width:100%"></div></div><span class="sh-bar-val">72,955<small> km</small></span></div>
-        <div class="sh-bar-row"><span class="sh-bar-name">엔진</span><div class="sh-bar-track"><div class="sh-bar sh-bar-engine" style="width:86.8%"></div></div><span class="sh-bar-val">63,312<small> km</small></span></div>
-      </div>
-      <div class="sh-chart-h" style="margin-top:18px"><b>구단별 이동거리</b><span class="sh-small">실제 → 엔진, km</span></div>
-      <div class="sh-teams" id="cmp-teams" role="img" aria-label="구단별 이동거리 막대 (불러오는 중)"></div>
-      <div class="sh-card-foot"><span class="sh-small">같은 채점 방식으로 둘 다 쟀어요.</span><a class="k-btn sh-more" href="compare.html">자세히 보기 →</a></div>
+  <!-- ===== ?rv= 대안 (2026-10-22, 소개 첫 화면에 '문제 배경'을 먼저 두는 안 3개. 고른 뒤 나머지는 지운다) =====
+       rv=1 이야기: 블로그처럼 글로 풀기(왜 → 실제 숫자 → 엔진)   rv=2 숫자 한 장: 실제 구단별 이동거리 막대 + 「엔진이 짜면?」 토글
+       rv=3 지도: 구장 9곳 점 지도(수도권 쏠림) → 숫자 2개 → 엔진.  세 안 모두 끝은 같은 메시지 카드 3장 + 버튼 -->
+
+  <section class="sh-sec sh-story" id="hero-1" data-rv="1" aria-labelledby="hero1-h">
+    <p class="sh-kicker">2025 KBO 일정 들여다보기</p>
+    <h1 class="sh-h1" id="hero1-h">우리 팀 일정, 공평할까요?</h1>
+    <p class="sh-lead">144경기 중 72경기가 원정이라, 10개 팀이 동시에 전국을 돌아요. 이동거리와 주말·공휴일 홈 경기를 열 구단 모두에게 고르게 나누기는 어려워서, 해마다 어떤 구단은 손해를 봐요.</p>
+    <!-- 숫자 띠: 설명 문단의 숫자를 카드로. 블록 규칙 = 제목 → 설명 → 그림·상자 → 보조 -->
+    <div class="sh-facts" role="list" aria-label="한 시즌 기본 숫자">
+      <div class="sh-fact" role="listitem"><b>144<small>경기</small></b><span>구단마다 한 시즌에</span></div>
+      <div class="sh-fact" role="listitem"><b><span data-n="real.meanKm">7,296</span><small>km</small></b><span>구단당 평균 · 서울–부산 <span data-n="real.meanTrips">18</span>번</span></div>
     </div>
+    <blockquote class="sh-quote">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.<small>드라마 「스토브리그」(SBS), 단장 회의 내용. 이 말이 정말인지 궁금해서 찾아본 게 시작이었어요.</small></blockquote>
+    <h2 class="sh-story-h">고르게 나눠야 할 게 두 가지예요</h2>
+    <div class="sh-why">
+      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></i><div><b>이동거리</b><span>구장 사이 거리가 제각각이라, 어떤 원정을 받느냐에 따라 시즌 이동거리가 수백 km씩 달라져요. 고척–인천 25km, 고척–부산 407km.</span></div></div>
+      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="13" y="13" width="4" height="4" rx="1"/></svg></i><div><b>주말·공휴일 홈 경기</b><span>관중이 가장 많은 날이라 구단마다 민감해요. 이것도 열 구단이 고르게 가져야 하죠.</span></div></div>
+    </div>
+    <h2 class="sh-story-h">실제 2025 일정은요</h2>
+    <p class="sh-lead sh-sc-how">점 하나가 구단 하나예요. <b>오른쪽</b>일수록 많이 다니고, <b>아래</b>일수록 휴일 홈 경기가 적어요. 오른쪽 아래가 가장 손해예요. <span id="h1-sc-note">2025년엔 KIA가 가장 많이 다니면서 휴일 홈 경기도 적었고, 두산은 그 반대였어요.</span></p>
+    <div class="sh-card sh-viz">
+      <!-- 기본: 점 지도(가로 이동거리 편차 · 세로 휴일 홈 편차, 구단 하나가 점 하나). viz=3: 두 줄 표, viz=2: 점 띠·점 분포 -->
+      <div class="sh-viz-main">
+        <div class="sh-chart-h"><b>구단별 이동거리와 주말·공휴일 홈 경기</b><span class="sh-small">10구단 평균과 비교</span></div>
+        <div class="sh-scatter" id="h1-sc" role="img" aria-label="구단별 이동거리·주말 공휴일 홈 경기 점 지도"></div>
+        <div class="sh-sc-pick" id="h1-sc-pick" role="group" aria-label="우리 팀 고르기"><span class="sh-sc-pick-l">우리 팀</span></div>
+        <p class="sh-sc-say" id="h1-sc-say" aria-live="polite"></p>
+        <div class="sh-seg sh-seg-s" role="group" aria-label="실제 일정과 엔진 일정 전환">
+          <button type="button" data-sc="real" aria-pressed="true">실제 2025 일정</button>
+          <button type="button" data-sc="engine" aria-pressed="false">엔진이 짜면?</button>
+        </div>
+      </div>
+      <div data-viz="3">
+        <div class="sh-chart-h"><b>구단별 이동거리와 주말·공휴일 홈 경기</b><span class="sh-small">실제 일정 · 10구단 평균과 비교</span></div>
+        <div class="sh-dual" id="h1-dual" role="img" aria-label="구단별 이동거리와 주말·공휴일 홈 경기(실제, 평균 대비)"></div>
+        <p class="sh-viz-note">두산 <span data-n="real.minKm">6,711</span>km부터 KIA <span data-n="real.maxKm">8,084</span>km까지 차이 <span data-n="real.spreadKm">1,373</span>km, 휴일 홈은 LG 22회부터 두산·키움 28회까지예요.</p>
+      </div>
+      <div data-viz="2">
+        <div class="sh-chart-h"><b>구단별 시즌 이동거리</b><span class="sh-small">실제 일정 · km</span></div>
+        <div class="sh-strip" id="h1-km" role="img" aria-label="구단별 시즌 이동거리: 두산 6,711km부터 KIA 8,084km까지"></div>
+        <p class="sh-viz-note">두산 <span data-n="real.minKm">6,711</span>km부터 KIA <span data-n="real.maxKm">8,084</span>km까지, 차이 <span data-n="real.spreadKm">1,373</span>km는 서울–부산을 세 번 넘게 가는 거리예요. 이해엔 KIA·롯데·NC가 가장 많이 다녔어요.</p>
+        <div class="sh-chart-h" style="margin-top:20px"><b>구단별 주말·공휴일 홈 경기</b><span class="sh-small">실제 일정 · 회</span></div>
+        <div class="sh-dots" id="h1-hol" role="img" aria-label="구단별 주말·공휴일 홈 경기 수: LG 22회부터 두산·키움 28회까지"></div>
+        <p class="sh-viz-note">LG 22회부터 두산·키움 28회까지. 똑같이 144경기를 하는데 여섯 경기 차이가 나요.</p>
+      </div>
+    </div>
+    <!-- 롯데 8월 원정길(실제 vs 엔진, 도식·여정·카카오맵): "더 좋은 해를 보여 준 사례"로 간직하되 소개 쪽에서는 숨긴다(2026-10-22 사용자 결정). hidden을 빼면 다시 보인다 -->
+    <div class="sh-card sh-viz sh-viz-route" hidden>
+      <div class="sh-chart-h"><b>롯데의 8월 원정길</b><span class="sh-small">실제 일정 vs 엔진 일정</span></div>
+      <!-- 기본: 실제 길 vs 한 번에 도는 길 도식(사용자가 고름). rt=1: 날짜 순서 여정(실제 2025 일정 data/baseball/input_2025.json에서 확인) -->
+      <div class="sh-trip-wrap" data-rt="1">
+        <span class="sh-trip-total">8/1~8/15 · 1,338km</span>
+        <ol class="sh-trip">
+          <li class="home"><span class="sh-trip-d">7/29</span><span class="sh-trip-w">사직 <i>홈</i></span><span class="sh-trip-vs">vs NC</span></li>
+          <li class="leg"><span>407km</span></li>
+          <li class="away"><span class="sh-trip-d">8/1</span><span class="sh-trip-w">고척 <i>원정</i></span><span class="sh-trip-vs">vs 키움</span></li>
+          <li class="leg"><span>407km</span></li>
+          <li class="home"><span class="sh-trip-d">8/5 · 8/8</span><span class="sh-trip-w">사직 <i>홈</i></span><span class="sh-trip-vs">vs KIA · SSG</span></li>
+          <li class="leg"><span>262km</span></li>
+          <li class="away"><span class="sh-trip-d">8/12</span><span class="sh-trip-w">대전 <i>원정</i></span><span class="sh-trip-vs">vs 한화</span></li>
+          <li class="leg"><span>262km</span></li>
+          <li class="home"><span class="sh-trip-d">8/15</span><span class="sh-trip-w">사직 <i>홈</i></span><span class="sh-trip-vs">vs 삼성</span></li>
+        </ol>
+      </div>
+      <div class="sh-trip2">
+        <!-- 같은 기간(8/1~8/15) 롯데 이동: 실제 일정 vs 엔진 일정(기본 결과, 시드 42). 엔진 쪽 날짜·동선은 fixtures/result-default.json plan에서 확인(8/1·8/5·8/8 사직 홈, 8/12 광주, 8/15 사직; 8/1 직전 창원→사직 57km).
+             자리: 고척 왼쪽 위, 대전 가운데, 광주 왼쪽 아래, 창원 사직 옆, 사직(홈) 오른쪽 아래. 안 들른 구장은 흐리게 -->
+        <div class="sh-trip2-p">
+          <b>실제 일정 · 1,338km</b>
+          <svg viewBox="0 -8 300 165" role="img" aria-label="실제: 사직에서 고척 407km, 다시 사직 407km, 대전 262km, 다시 사직 262km">
+            <defs><marker id="t2-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--sh-real)"/></marker><marker id="t2-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--sh-engine)"/></marker></defs>
+            <g class="t2-faint"><circle cx="75" cy="118" r="5"/><text x="75" y="136" text-anchor="middle">광주</text></g>
+            <g class="t2-path"><path d="M248 114 Q135 -2 58 44"/><path d="M58 46 Q150 165 248 118"/><path d="M248 120 Q205 112 160 88"/><path d="M160 76 Q215 70 248 116"/></g>
+            <g class="t2-badge"><circle cx="144" cy="38" r="9"/><text x="144" y="41.5">1</text><circle cx="151" cy="122" r="9"/><text x="151" y="125.5">2</text><circle cx="204" cy="108" r="9"/><text x="204" y="111.5">3</text><circle cx="209" cy="80" r="9"/><text x="209" y="83.5">4</text></g>
+            <g class="t2-km"><text x="100" y="14" text-anchor="middle">407km ×2</text><text x="192" y="142" text-anchor="middle">262km ×2</text></g>
+            <g class="t2-node"><circle cx="50" cy="38" r="7"/><text x="50" y="22" text-anchor="middle">고척</text><circle cx="150" cy="80" r="7"/><text x="150" y="103" text-anchor="middle">대전</text><circle class="home" cx="255" cy="122" r="8"/><text x="255" y="147" text-anchor="middle">사직 (홈)</text></g>
+          </svg>
+        </div>
+        <div class="sh-trip2-p">
+          <b>엔진 일정 · 567km</b>
+          <svg viewBox="0 -8 300 165" role="img" aria-label="엔진: 창원에서 사직 57km, 사직에서 홈 3연속 뒤 광주 255km, 다시 사직 255km">
+            <g class="t2-faint"><circle cx="50" cy="38" r="5"/><text x="50" y="22" text-anchor="middle">고척</text><circle cx="150" cy="80" r="5"/><text x="150" y="68" text-anchor="middle">대전</text></g>
+            <g class="t2-path eng"><path d="M221 98 L247 116"/><path d="M247 124 Q165 145 83 120"/><path d="M83 114 Q165 95 247 116"/></g>
+            <g class="t2-badge"><circle cx="228" cy="96" r="9"/><text x="228" y="99.5">1</text><circle cx="163" cy="133" r="9"/><text x="163" y="136.5">2</text><circle cx="163" cy="106" r="9"/><text x="163" y="109.5">3</text></g>
+            <g class="t2-km"><text x="252" y="100">57km</text><text x="118" y="152" text-anchor="middle">255km ×2</text></g>
+            <g class="t2-node"><circle cx="215" cy="92" r="7"/><text x="215" y="78" text-anchor="middle">창원</text><circle cx="75" cy="118" r="7"/><text x="75" y="138" text-anchor="middle">광주</text><circle class="home" cx="255" cy="122" r="8"/><text x="255" y="147" text-anchor="middle">사직 (홈)</text></g>
+          </svg>
+        </div>
+      </div>
+      <!-- 카카오맵: 탭할 때만 SDK를 읽는다(외부 스크립트는 이 블록이 유일). 키는 공개 JavaScript 키이고 카카오 콘솔의 도메인 등록으로 보호한다 -->
+      <div class="sh-kmap" id="rt-kmap" hidden>
+        <div class="sh-seg sh-seg-s" role="group" aria-label="지도에서 실제 일정과 엔진 일정 전환"><button type="button" data-km="real" aria-pressed="true">실제 1,338km</button><button type="button" data-km="engine" aria-pressed="false">엔진 567km</button></div>
+        <div class="sh-kmap-box" id="rt-kmap-box" role="img" aria-label="롯데 8월 원정길 지도"></div>
+      </div>
+      <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn" data-kakao-key="dd04ee384353180b67c19cfab63bb763">카카오맵으로 보기</button></div>
+      <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 엔진 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
+    </div>
+    <h2 class="sh-story-h">그래서 엔진으로 다시 짜 봤어요</h2>
+    <p class="sh-small" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 엔진이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 열 구단 모두에게 고른지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">엔진이 돌린 조건 보기 →</a></p>
+    <div class="sh-stats sh-stats-msg">
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 엔진 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 엔진 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
+    </div>
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
+    <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 엔진 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
   </section>
+
+  <section class="sh-sec" id="hero-2" data-rv="2" aria-labelledby="hero2-h">
+    <p class="sh-kicker">실제 2025 KBO 일정</p>
+    <h1 class="sh-h1" id="hero2-h">2025년, 우리 팀은 버스를 얼마나 탔을까요?</h1>
+    <p class="sh-lead">KBO 10구단은 한 시즌에 각각 144경기를 하고, 절반은 남의 구장에서 해요. 그래서 시즌 내내 버스로 전국을 도는데, 그 거리가 구단마다 이만큼 달랐어요.</p>
+    <div class="sh-card sh-hero2" id="hero2-card">
+      <div class="sh-chart-h"><b id="h2-title">실제 일정 · 구단별 시즌 이동거리</b><span class="sh-small" id="h2-sub">평균 7,296km보다 얼마나 더, 덜 다니나</span></div>
+      <div class="sh-dbars" id="h2-bars" role="img" aria-label="실제 2025 일정 구단별 이동거리: KIA 8,084km, 롯데 7,978, NC 7,837, 키움 7,235, 삼성 7,231, 한화 7,220, LG 6,936, KT 6,933, SSG 6,791, 두산 6,711km">
+        <div class="sh-drow"><span class="sh-drow-name">KIA<small>광주</small></span><div class="sh-dtrack"><div class="sh-dbar pos" style="width:49.3%"></div></div><span class="sh-drow-val"><b>8,084</b><small>+788km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">롯데<small>부산</small></span><div class="sh-dtrack"><div class="sh-dbar pos" style="width:42.7%"></div></div><span class="sh-drow-val"><b>7,978</b><small>+683km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">NC<small>창원</small></span><div class="sh-dtrack"><div class="sh-dbar pos" style="width:33.9%"></div></div><span class="sh-drow-val"><b>7,837</b><small>+542km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">키움<small>고척</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:3.8%"></div></div><span class="sh-drow-val"><b>7,235</b><small>−61km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">삼성<small>대구</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:4.1%"></div></div><span class="sh-drow-val"><b>7,231</b><small>−65km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">한화<small>대전</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:4.8%"></div></div><span class="sh-drow-val"><b>7,220</b><small>−76km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">LG<small>잠실</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:22.4%"></div></div><span class="sh-drow-val"><b>6,936</b><small>−359km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">KT<small>수원</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:22.6%"></div></div><span class="sh-drow-val"><b>6,933</b><small>−362km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">SSG<small>인천</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:31.6%"></div></div><span class="sh-drow-val"><b>6,791</b><small>−505km</small></span></div>
+        <div class="sh-drow"><span class="sh-drow-name">두산<small>잠실</small></span><div class="sh-dtrack"><div class="sh-dbar neg" style="width:36.5%"></div></div><span class="sh-drow-val"><b>6,711</b><small>−584km</small></span></div>
+      </div>
+      <div class="sh-daxis" aria-hidden="true"><span>← 평균보다 덜 다님</span><span id="h2-mean">평균 7,296km</span><span>더 다님 →</span></div>
+      <div class="sh-seg" role="group" aria-label="실제 일정과 엔진 일정 전환">
+        <button type="button" data-h2="real" aria-pressed="true">실제 2025 일정</button>
+        <button type="button" data-h2="engine" aria-pressed="false">엔진이 짜면?</button>
+      </div>
+      <p class="sh-small sh-h2-note" id="h2-note">2025년엔 KIA·롯데·NC가 가장 많이 다녔어요. 제일 긴 KIA와 제일 짧은 두산의 차이는 <b>1,373km</b>. 열 구단 모두 고르게 맞추기는 어려워서, 해마다 손해 보는 구단이 생겨요.</p>
+    </div>
+    <p class="sh-small" style="margin-top:10px">관중이 많은 주말·공휴일 홈 경기 수도 LG 22회부터 두산·키움 28회까지 달랐어요. 이 사이트는 실제 일정과 엔진이 같은 규칙으로 다시 짠 일정을 비교하고, 직접 돌려 볼 수 있는 곳이에요.</p>
+    <h2 class="sh-story-h">엔진이 같은 규칙으로 다시 짜면</h2>
+    <div class="sh-stats sh-stats-msg">
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 엔진 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 엔진 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
+    </div>
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
+    <p class="sh-small" style="margin-top:10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 엔진이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29). 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
+  </section>
+
+  <section class="sh-sec" id="hero-3" data-rv="3" aria-labelledby="hero3-h">
+    <p class="sh-kicker">KBO 10구단, 구장 9곳</p>
+    <h1 class="sh-h1" id="hero3-h">열 구단 모두 공평한 일정, 쉽지 않아요</h1>
+    <div class="sh-card sh-map">
+      <svg viewBox="0 0 300 330" role="img" aria-label="구장 9곳 위치: 수도권에 잠실(두산·LG)·고척(키움)·인천(SSG)·수원(KT) 4곳이 몰려 있고, 대전(한화)·대구(삼성)·광주(KIA)·창원(NC)·부산(롯데)은 멀리 떨어져 있다. 부산–고척은 407km">
+        <circle class="sh-map-zone" cx="74" cy="54" r="40"/>
+        <text class="sh-map-zone-t" x="122" y="92">수도권 5구단</text>
+        <line class="sh-map-far" x1="264" y1="299" x2="71" y2="46"/>
+        <text class="sh-map-far-t" x="188" y="150">제일 먼 길 407km</text>
+        <g class="sh-map-cap">
+          <circle cx="56" cy="52" r="5"/><text x="48" y="56" text-anchor="end">SSG</text>
+          <circle cx="71" cy="46" r="5"/><text x="71" y="35" text-anchor="middle">키움</text>
+          <circle cx="89" cy="44" r="5"/><text x="97" y="48">두산·LG</text>
+          <circle cx="84" cy="68" r="5"/><text x="84" y="84" text-anchor="middle">KT</text>
+        </g>
+        <g class="sh-map-prov">
+          <circle cx="121" cy="176" r="5"/><text x="130" y="180">한화 · 대전</text>
+          <circle cx="231" cy="228" r="5"/><text x="240" y="232">삼성 · 대구</text>
+          <circle cx="73" cy="302" r="5"/><text x="82" y="306">KIA · 광주</text>
+          <circle cx="222" cy="296" r="5"/><text x="216" y="286" text-anchor="middle">NC · 창원</text>
+          <circle cx="264" cy="299" r="5"/><text x="262" y="319" text-anchor="middle">롯데 · 부산</text>
+        </g>
+      </svg>
+      <div class="sh-legend"><span><i class="sh-sw sh-sw-cap"></i>수도권 4구장 5구단</span><span><i class="sh-sw sh-sw-prov"></i>그 밖 5구장</span><span class="sh-small">가까운 구장끼리 25km, 먼 구장끼리 407km</span></div>
+    </div>
+    <p class="sh-lead" style="margin-top:14px">10구단 모두 한 시즌 144경기, 절반은 남의 구장에서 버스로 가요. 누가 언제 어디로 가느냐에 따라 시즌 이동거리와 주말·공휴일 홈 경기 수가 갈려서, 해마다 손해 보는 구단이 생겨요.</p>
+    <h2 class="sh-story-h" style="margin-top:4px">2025년 실제 일정에서는</h2>
+    <div class="sh-stats sh-stats-2">
+      <div class="sh-stat"><span class="sh-stat-l">시즌 이동거리, 제일 긴 구단과 짧은 구단 차이</span><span class="sh-stat-v"><span data-n="real.spreadKm">1,373</span><small>km</small></span><span class="sh-stat-d">KIA <span data-n="real.maxKm">8,084</span> vs 두산 <span data-n="real.minKm">6,711</span></span></div>
+      <div class="sh-stat"><span class="sh-stat-l">주말·공휴일 홈 경기 수</span><span class="sh-stat-v"><span data-n="real.holiday">22~28</span><small>회</small></span><span class="sh-stat-d">LG 22 vs 두산·키움 28</span></div>
+    </div>
+    <p class="sh-small" style="margin-top:10px">이 사이트는 실제 일정과 엔진이 같은 규칙으로 다시 짠 일정을 비교하고, 직접 돌려 볼 수 있는 곳이에요.</p>
+    <h2 class="sh-story-h">엔진이 같은 규칙으로 다시 짜면</h2>
+    <div class="sh-stats sh-stats-msg">
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 엔진 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 엔진 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
+    </div>
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
+    <p class="sh-small" style="margin-top:10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 엔진이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29). 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
+  </section>
+
+  <!-- ② 「실제 일정 vs 엔진 일정」 막대 블록은 2026-10-23 지웠다: 총 이동거리는 결과 카드, 구단별은 점 지도 전환과 비교 쪽(compare.html)이 보여 준다 -->
 
   <!-- ③ 탐색 과정 미리보기 -->
   <section class="sh-sec" id="replay" aria-labelledby="replay-h">
@@ -85,7 +281,8 @@
   </section>
 
   <!-- ④ 직접 해보기 -->
-  <section class="sh-sec" id="try" aria-labelledby="try-h">
+  <!-- 「직접 해보기」 폼은 2026-10-23 소개에서 내렸다(사용자: 팬 홍보용으로는 과함, KBO 쪽은 별도 계정으로 2027 입력). 코드는 그대로, hidden만 -->
+  <section class="sh-sec" id="try" aria-labelledby="try-h" hidden>
     <h2 class="sh-h2" id="try-h">직접 해보기</h2>
     <p class="sh-lead">조건 두 가지만 바꿔서 다시 짜 보세요. 결과는 링크로 공유할 수 있어요.</p>
     <form class="sh-card sh-try" id="try-form" novalidate>
@@ -115,11 +312,10 @@
         </div>
         <p class="sh-field-help" id="cd-help">5개 구단이 어린이날 홈에서 경기해요.</p>
       </fieldset>
-      <!-- 생각 시간: AI 챗봇의 '깊게 생각하기'처럼 고른다. 숫자는 docs/STATUS.md 서버 시간별 실측(기본 조건, 5번씩) -->
+      <!-- 생각 시간: AI 챗봇의 '깊게 생각하기'처럼 고른다. 숫자는 docs/STATUS.md 서버 시간별 실측(기본 조건, 5번씩). 3초는 2026-10-23 뺐다(사용자) -->
       <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
         <div class="sh-field-h"><legend style="padding:0">엔진이 얼마나 오래 생각할까요?</legend></div>
         <div class="sh-think" role="radiogroup" aria-describedby="t-help">
-          <label><input type="radio" name="t" value="3"><span><b>빠르게 · 3초</b><small>약 7초 걸려요. 구단 간 이동거리 차이는 이때 이미 맞춰요. 총 이동거리는 실제보다 평균 3% 짧아요.</small></span></label>
           <label><input type="radio" name="t" value="10" checked><span><b>보통 · 10초 <em>기본</em></b><small>약 15초 걸려요. 총 이동거리가 실제보다 평균 6% 짧아요.</small></span></label>
           <label><input type="radio" name="t" value="30"><span><b>꼼꼼하게 · 30초</b><small>약 35초 걸려요. 평균 8%, 잘 풀리면 14%까지 짧아져요.</small></span></label>
         </div>
@@ -186,6 +382,6 @@
     <p><a href="compare.html">실제 vs 엔진 자세히</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a> · 의견 보내기 <span class="sh-placeholder">구글 폼 링크 예정</span></p>
   </div>
 </footer>
-<script src="show.js?v=20261022"></script>
+<script src="show.js?v=20261023"></script>
 </body>
 </html>
