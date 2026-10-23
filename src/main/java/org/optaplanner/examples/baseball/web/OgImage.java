@@ -77,7 +77,7 @@ final class OgImage {
             long max = Math.max(1L, Math.max(spec.realKm(), spec.engineKm()));
             int barX = 60, barW = W - 120 - 220;
             drawBar(g, family, "실제 2025 일정", spec.realKm(), max, barX, 420, barW, GRAY);
-            drawBar(g, family, "엔진 결과", spec.engineKm(), max, barX, 490, barW, BLUE);
+            drawBar(g, family, "매치봇 결과", spec.engineKm(), max, barX, 490, barW, BLUE);
             // 바닥
             g.setFont(new Font(family, Font.PLAIN, 24));
             g.setColor(GRAY);

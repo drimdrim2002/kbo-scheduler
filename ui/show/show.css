@@ -451,3 +451,30 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-dist .sh-dist-c { position: sticky; left: 0; text-align: left; z-index: 1; }
 .sh-dist .sh-dist-diag { color: var(--muted); text-align: center; }
 
+
+/* ───── 매치봇 브랜드 (2026-10-23, matchbot-brand.html v1.0) ─────
+   이름 매치봇. 색: 매치 블루 #3B6CF4(본체·주 버튼·링크) · 딥 블루 #2546A8 · 스크린 #DFE9FF · 민트 #7EF0D0 · 잉크 #1F2430.
+   규칙 2(파랑 = 누르는 것과 '엔진')는 그대로 두고 값만 매치 블루로 바꾼다: 파랑 = 매치봇 = 누르는 것, 주황 = 실제.
+   워드마크 글꼴 Jua(구글 폰트, 못 받으면 기본 글꼴)는 상단 띠 워드마크에만 — 제목은 본문 글꼴 그대로(사용자 결정).
+   본문은 브랜드의 Noto Sans KR 대신 시스템 글꼴 그대로(휴대폰 용량).
+   사용자가 고른 안 = '캐릭터'(대안 ?b=2): 마스코트가 말풍선(.sh-say)으로 등장. 절제(1)·전면(3) 안은 지웠다 */
+:root { --mb-blue: #3b6cf4; --mb-deep: #2546a8; --mb-screen: #dfe9ff; --mb-mint: #7ef0d0; --mb-ink: #1f2430; --sh-engine: var(--mb-blue); }
+body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
+/* 상단 띠: 마스코트 심볼 + 워드마크(Jua) + 회색 사이트 이름(좁으면 숨김) */
+.sh-brand { gap: 7px; }
+.sh-mark { width: 28px; height: 28px; background: none; border-radius: 0; color: inherit; }
+.sh-wm { font-family: 'Jua', var(--font); font-weight: 400; font-size: 21px; line-height: 1; color: var(--mb-blue); letter-spacing: -.01em; padding-top: 2px; }
+.sh-site { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 2px; padding-left: 9px; border-left: 1px solid var(--line); line-height: 1.2; }
+@media (max-width: 479px) { .sh-site { display: none; } }
+.sh-veil span { background: var(--mb-deep); }
+.sh-why-i i { color: var(--mb-deep); }
+.sh-trip2 .t2-node circle { fill: var(--mb-deep); }
+@media (prefers-reduced-motion: no-preference) {
+  .mb-blink { animation: mb-blink 1.4s steps(1) infinite; }
+  @keyframes mb-blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: .25; } 100% { opacity: 1; } }
+}
+/* 말풍선(.sh-say): 마스코트 표정(완료·계산 중·대기) + 스크린색 말풍선. 글은 그대로 두고 생김새만 바뀐다 */
+.sh-say { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: start; margin: 0 0 14px; }
+.sh-say-bot { display: block; width: 44px; height: 44px; }
+.sh-say-msg, .sh-sec .sh-say-msg { margin: 0 !important; background: var(--mb-screen); border-radius: 4px 14px 14px 14px; padding: 10px 14px; color: var(--fg); font-size: 14px; line-height: 1.55; }
+.sh-say-msg .sh-link { color: var(--mb-deep); }

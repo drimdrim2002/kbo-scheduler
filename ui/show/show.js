@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261023b', '../app/replay/replay.js?v=20261023b']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261023d', '../app/replay/replay.js?v=20261023d']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -27,10 +27,10 @@
   SHOW.SEOUL_BUSAN_KM = 400;   // '서울–부산 N번 거리' 비유에 쓰는 어림값(도로 기준 약 400km)
   SHOW.REAL_KM = 72955;         // 실제 2025 1차 일정 총 이동거리. 소개 쪽은 비교 API 값으로 덮어쓴다
   SHOW.TEAMS = ['SSG', '두산', 'LG', 'KT', '키움', '한화', '삼성', 'KIA', 'NC', '롯데'];
-  SHOW.SITE = 'KBO 일정 편성 플레이그라운드';
+  SHOW.SITE = '매치봇'; // 솔루션 이름(2026-10-23 브랜드). 사이트 설명은 상단 띠의 'KBO 일정 플레이그라운드'
   // 구장 좌표(data/baseball/input_2025.json teams). 롯데 원정길 카카오맵에 쓴다
   SHOW.STADIUMS = { SSG: [37.4351, 126.6909, '인천'], 두산: [37.5122, 127.072, '잠실'], LG: [37.5122, 127.072, '잠실'], KT: [37.2998, 127.0097, '수원'], 키움: [37.4983, 126.8671, '고척'], 한화: [36.3172, 127.4292, '대전'], 삼성: [35.8413, 128.6811, '대구'], KIA: [35.1681, 126.8891, '광주'], NC: [35.2226, 128.5823, '창원'], 롯데: [35.1941, 129.0616, '사직'] };
-  // 롯데 8/1~8/15 동선(정적; 실제 일정 input_2025.json, 엔진 기본 결과 result-default.json에서 확인). [출발, 도착, km]
+  // 롯데 8/1~8/15 동선(정적; 실제 일정 input_2025.json, 매치봇 기본 결과 result-default.json에서 확인). [출발, 도착, km]
   SHOW.LOTTE_AUG = {
     real: [['롯데', '키움', 407], ['키움', '롯데', 407], ['롯데', '한화', 262], ['한화', '롯데', 262]],
     engine: [['NC', '롯데', 57], ['롯데', 'KIA', 255], ['KIA', '롯데', 255]]
@@ -82,7 +82,7 @@
   const findTeam = (teams, name) => (teams || []).find((t) => t.name === name);
   const spread = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? Math.max(...xs) - Math.min(...xs) : null; };
 
-  /** 실제·엔진 지표(같은 모양)에서 화면에 쓰는 문자열 묶음을 만든다. */
+  /** 실제·매치봇 지표(같은 모양)에서 화면에 쓰는 문자열 묶음을 만든다. */
   function view(real, engine, extra) {
     const o = extra || {};
     const v = {};
@@ -129,8 +129,8 @@
     const ew = engine.weekendHomeMin != null ? engine.weekendHomeMax - engine.weekendHomeMin : (et.length ? spread(et, 'weekendHome') : null);
     if (rw != null && ew != null) {
       v['diff.weekendCmp'] = ew > rw ? 'real' : (ew < rw ? 'engine' : 'even');
-      v['diff.weekendWord'] = ew > rw ? '실제 일정이 더 고릅니다' : (ew < rw ? '엔진이 더 고릅니다' : '같은 수준입니다');
-      v['diff.weekendTag'] = ew > rw ? '실제가 더 고름' : (ew < rw ? '엔진이 고름' : '같음');
+      v['diff.weekendWord'] = ew > rw ? '실제 일정이 더 고릅니다' : (ew < rw ? '매치봇이 더 고릅니다' : '같은 수준입니다');
+      v['diff.weekendTag'] = ew > rw ? '실제가 더 고름' : (ew < rw ? '매치봇이 고름' : '같음');
     }
     const sec = o.seconds != null ? o.seconds : (engine.options && engine.options.timeLimitSec) || (engine.elapsedMs ? Math.round(engine.elapsedMs / 1000) : null);
     if (sec != null) v['engine.seconds'] = String(sec);
@@ -146,10 +146,10 @@
   function totalBars(el, real, engine) {
     const max = Math.max(real.totalKm, engine.totalKm) || 1;
     const row = (name, val, cls) => '<div class="sh-bar-row"><span class="sh-bar-name">' + name + '</span><div class="sh-bar-track"><div class="sh-bar ' + cls + '" style="width:' + (val / max * 100).toFixed(1) + '%"></div></div><span class="sh-bar-val">' + fmtInt(val) + '<small> km</small></span></div>';
-    el.innerHTML = row('실제', real.totalKm, 'sh-bar-real') + row('엔진', engine.totalKm, 'sh-bar-engine');
-    el.setAttribute('aria-label', '10구단 총 이동거리: 실제 ' + fmtInt(real.totalKm) + 'km, 엔진 ' + fmtInt(engine.totalKm) + 'km');
+    el.innerHTML = row('실제', real.totalKm, 'sh-bar-real') + row('이 결과', engine.totalKm, 'sh-bar-engine');
+    el.setAttribute('aria-label', '10구단 총 이동거리: 실제 ' + fmtInt(real.totalKm) + 'km, 이 결과 ' + fmtInt(engine.totalKm) + 'km');
   }
-  /** 구단별 작은 막대(실제·엔진 2줄 × 10구단) */
+  /** 구단별 작은 막대(실제·매치봇 2줄 × 10구단) */
   function teamBars(el, realTeams, engineTeams, key, opts) {
     const o = Object.assign({ unit: '', fmt: fmtInt, max: null }, opts || {});
     const names = SHOW.TEAMS.filter((n) => findTeam(engineTeams, n) || findTeam(realTeams, n));
@@ -159,11 +159,11 @@
     const bar = (t, cls) => '<div class="sh-bar ' + cls + '" style="width:' + (t ? (t[key] / max * 100).toFixed(1) : 0) + '%"></div>';
     el.innerHTML = names.map((n) => {
       const a = findTeam(realTeams, n), b = findTeam(engineTeams, n);
-      const title = n + ' — 실제 ' + (a ? o.fmt(a[key]) + o.unit : '–') + ', 엔진 ' + (b ? o.fmt(b[key]) + o.unit : '–');
+      const title = n + ' — 실제 ' + (a ? o.fmt(a[key]) + o.unit : '–') + ', 매치봇 ' + (b ? o.fmt(b[key]) + o.unit : '–');
       return '<div class="sh-team" title="' + esc(title) + '"><span class="sh-team-name">' + esc(n) + '</span><div class="sh-team-bars">' + bar(a, 'sh-bar-real') + bar(b, 'sh-bar-engine') + '</div>' +
         '<span class="sh-team-val">' + (a ? o.fmt(a[key]) : '–') + ' → <b>' + (b ? o.fmt(b[key]) : '–') + '</b>' + esc(o.unit) + '</span></div>';
     }).join('');
-    el.setAttribute('aria-label', '구단별 ' + (o.label || key) + ' (실제 → 엔진): ' + names.map((n) => { const a = findTeam(realTeams, n), b = findTeam(engineTeams, n); return n + ' ' + (a ? o.fmt(a[key]) : '–') + ' → ' + (b ? o.fmt(b[key]) : '–'); }).join(', '));
+    el.setAttribute('aria-label', '구단별 ' + (o.label || key) + ' (실제 → 매치봇): ' + names.map((n) => { const a = findTeam(realTeams, n), b = findTeam(engineTeams, n); return n + ' ' + (a ? o.fmt(a[key]) : '–') + ' → ' + (b ? o.fmt(b[key]) : '–'); }).join(', '));
   }
 
   // ───────── 재생기 (ui/app/replay 모듈 재사용, 뷰포트에 들어올 때 로드) ─────────
@@ -363,7 +363,7 @@
   const meanBy = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? xs.reduce((p, q) => p + q, 0) / xs.length : null; };
   /**
    * 점 지도(#h1-sc): 가로 = 시즌 이동거리 − 평균, 세로 = 주말·공휴일 홈 − 평균. 구단 하나가 점 하나.
-   * 오른쪽 아래(더 다니고 휴일 홈 적음)일수록 손해. 「엔진이 짜면?」을 누르면 점이 엔진 값 자리로 움직인다(같은 눈금).
+   * 오른쪽 아래(더 다니고 휴일 홈 적음)일수록 손해. 「매치봇이 짜면?」을 누르면 점이 매치봇 값 자리로 움직인다(같은 눈금).
    */
   function scatterViz(cmp) {
     const box = $('#h1-sc'); if (!box) return;
@@ -423,7 +423,7 @@
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
       const kmW = Math.abs(d.x) < 50 ? '이동거리는 평균 수준이고' : '평균보다 ' + fmtInt(Math.abs(d.x)) + 'km ' + (d.x > 0 ? '더' : '덜') + ' 다니고';
       const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '휴일 홈 경기는 평균만큼이에요.' : '휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
-      say.textContent = (curKind === 'engine' ? '엔진 일정에서 ' : '2025 실제 일정에서 ') + picked + '는 ' + kmW + ', ' + hW;
+      say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + '는 ' + kmW + ', ' + hW;
     }
     function place(kind) {
       const list = D[kind] || D.real, plan = labelPlan(list);
@@ -449,7 +449,7 @@
       curKind = kind;
       box.classList.toggle('sh-engine-on', kind === 'engine');
       applyPick();
-      box.setAttribute('aria-label', (kind === 'engine' ? '엔진 일정' : '실제 2025 일정') + ' 구단별 이동거리·휴일 홈 점 지도: ' + list.map((d) => d.name + ' ' + fmtInt(d.km) + 'km·' + d.hol + '회').join(', '));
+      box.setAttribute('aria-label', (kind === 'engine' ? '매치봇 일정' : '실제 2025 일정') + ' 구단별 이동거리·휴일 홈 점 지도: ' + list.map((d) => d.name + ' ' + fmtInt(d.km) + 'km·' + d.hol + '회').join(', '));
       const note = $('#h1-sc-note');
       if (note) {
         if (kind === 'engine' && D.engine) {
@@ -540,7 +540,7 @@
     const btnLabel = () => '편성 시작 (약 ' + (SHOW.THINK[thinkOf()] || SHOW.THINK[SHOW.THINK_DEFAULT]).wait + '초)';
     const prog = $('#try-progress'), bar = $('#try-bar'), txt = $('#try-txt'), err = $('#try-err'), news = $('#try-news');
     const MAXSEL = 5;
-    // 두산·LG는 잠실을 같이 쓴다: 어린이날 홈 5구단에 둘 중 정확히 하나가 있어야 엔진이 첫 일정을 만든다
+    // 두산·LG는 잠실을 같이 쓴다: 어린이날 홈 5구단에 둘 중 정확히 하나가 있어야 매치봇이 첫 일정을 만든다
     const SHARED = ['두산', 'LG'];
     const mock = $('.sh-mock', form); if (mock) mock.hidden = !isFile;
     // 결과 쪽 「더 오래 다시 해 보기」가 넘긴 조건(?t=&tol=&cd=&seed=)을 미리 골라 둔다. 바로 돌리지는 않는다
@@ -746,7 +746,7 @@
     document.head.appendChild(s);
   }
 
-  /** 비교 쪽 구장 간 거리표: 프리셋(엔진 입력 그대로)의 distanceMatrix를 9구장 표로. 잠실은 두산·LG 한 칸 */
+  /** 비교 쪽 구장 간 거리표: 프리셋(매치봇 입력 그대로)의 distanceMatrix를 9구장 표로. 잠실은 두산·LG 한 칸 */
   function distTable(el) {
     loadPreset((err) => {
       const inp = !err && window.KBO.Preset && window.KBO.Preset.ENGINE_INPUT_2025;

@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- 서버는 /r/<id>를 이 파일로 돌려주므로, 상대 경로가 file://(ui/show/r.html)과 /r/<id> 양쪽에서 같은 곳을 가리키도록 base를 둔다. -->
 <base href="../show/">
-<title>편성 결과 — KBO 일정 편성 플레이그라운드</title>
-<meta name="description" content="조건을 바꿔 엔진이 짠 KBO 일정 결과. 실제 2025 일정과 비교하고 탐색 과정을 재생합니다.">
+<title>편성 결과 — 매치봇</title>
+<meta name="description" content="조건을 바꿔 매치봇이 짠 KBO 일정 결과. 실제 2025 일정과 비교하고 탐색 과정을 재생합니다.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="편성 결과 — KBO 일정 편성 플레이그라운드">
-<meta property="og:description" content="조건을 바꿔 엔진이 짠 KBO 일정. 실제 2025 일정과 비교해 보세요.">
+<meta property="og:title" content="편성 결과 — 매치봇">
+<meta property="og:description" content="조건을 바꿔 매치봇이 짠 KBO 일정. 실제 2025 일정과 비교해 보세요.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>
@@ -24,14 +24,56 @@
     mark();
   })();
 </script>
-<link rel="stylesheet" href="../app/common/common.css?v=20261023b">
-<link rel="stylesheet" href="../app/replay/replay.css?v=20261023b">
-<link rel="stylesheet" href="show.css?v=20261023b">
+<!-- 매치봇 워드마크 글꼴(Jua, 브랜드 가이드). 이 사이트의 외부 요청은 이 글꼴과 탭해서 부르는 카카오맵뿐. 못 받으면 기본 글꼴로 보인다 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="../app/common/common.css?v=20261023d">
+<link rel="stylesheet" href="../app/replay/replay.css?v=20261023d">
+<link rel="stylesheet" href="show.css?v=20261023d">
 </head>
 <body class="sh-body" data-page="r">
+<!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mb-bot-body" viewBox="0 0 100 100">
+      <rect x="47" y="6" width="6" height="14" rx="3" fill="#2546a8"/>
+      <rect x="8" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="84" y="42" width="8" height="22" rx="4" fill="#2546a8"/>
+      <rect x="14" y="20" width="72" height="68" rx="20" fill="#3b6cf4"/>
+      <rect x="22" y="30" width="56" height="42" rx="12" fill="#dfe9ff"/>
+    </symbol>
+    <symbol id="mb-bot" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0"/>
+      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
+      <rect x="35" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="60" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
+      <path d="M42 62 q8 6 16 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".45"/>
+    </symbol>
+    <symbol id="mb-bot-think" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#ffc53d"/>
+      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
+      <rect x="37" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="62" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
+      <path d="M43 63 h14" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" class="mb-blink"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
+    </symbol>
+    <symbol id="mb-bot-done" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#3ccf8e"/>
+      <path d="M32 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M57 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M40 60 q10 10 20 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/>
+    </symbol>
+    <symbol id="mb-bot-sleep" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0" opacity=".4"/>
+      <path d="M33 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/><path d="M58 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="50" cy="63" rx="3.5" ry="4.5" fill="#1f2430"/>
+      <text x="74" y="30" font-family="Jua, sans-serif" font-size="12" fill="#2546a8">z</text><text x="80" y="22" font-family="Jua, sans-serif" font-size="9" fill="#2546a8">z</text>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
+    </symbol>
+  </defs>
+</svg>
 <header class="sh-top">
   <div class="sh-wrap">
-    <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 플레이그라운드</span></a>
     <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="compare.html">비교</a></nav>
   </div>
 </header>
@@ -39,8 +81,8 @@
 <main class="sh-wrap">
   <section class="sh-sec" id="result-missing" hidden>
     <h1 class="sh-h1">결과를 찾을 수 없어요</h1>
-    <p class="sh-lead">링크가 오래됐거나 서버가 바뀌었을 수 있어요. 소개 쪽에서 같은 조건으로 다시 돌려 볼 수 있어요.</p>
-    <div class="sh-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 보기</a><a class="k-btn" href="index.html">소개로</a></div>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-sleep"/></svg><p class="sh-lead sh-say-msg">링크가 오래됐거나 서버가 바뀌었을 수 있어요. 매치봇이 짠 기본 일정을 대신 보여 드릴게요.</p></div>
+    <div class="sh-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 짠 일정 보기</a><a class="k-btn" href="index.html">소개로</a></div>
   </section>
 
   <div id="result-main">
@@ -48,7 +90,7 @@
     <section class="sh-sec" aria-labelledby="r-h">
       <p class="sh-kicker">편성 결과 · <span data-n="result.sub">번호 default</span></p>
       <h1 class="sh-result-title" id="r-h" data-n="result.title">이동거리 비슷하게 · 어린이날 홈 두산·키움·한화·NC·롯데</h1>
-      <p class="sh-result-sub">실제 2025 1차 일정과 같은 대진·같은 규칙으로 엔진이 <span data-n="engine.seconds">30</span>초 만에 짠 일정이에요.</p>
+      <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-result-sub sh-say-msg">실제 2025 1차 일정과 같은 대진·같은 규칙으로 매치봇이 <span data-n="engine.seconds">30</span>초 만에 짠 일정이에요.</p></div>
     <div class="sh-stats sh-stats-msg">
       <div class="sh-stat">
         <span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span>
@@ -124,7 +166,7 @@
       <h2 class="sh-h2" id="cta-h">나도 해보기</h2>
       <div class="sh-cta">
         <a class="k-btn k-btn-primary" href="index.html#try">조건을 바꿔 다시 짜기</a>
-        <a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a>
+        <a class="k-btn" href="compare.html">실제 vs 매치봇 자세히</a>
       </div>
       <!-- 데스크톱: 위저드로 이어서. 조건·시드는 쿼리(?tol=&hol=&cd=&seed=)로 넘긴다(show.js studioQuery) -->
       <p class="sh-pc">PC라면 <a href="../index.html#step=2" data-studio id="studio-link">편성 스튜디오에서 이어서 다듬기</a> — 이 조건과 시드를 그대로 싣고 날짜별 홈 불가, 시리즈 고정 같은 조건을 더할 수 있어요.</p>
@@ -135,10 +177,10 @@
 
 <footer class="sh-foot">
   <div class="sh-wrap">
-    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정, 구장 간 거리표. 엔진: OptaPlanner.</p>
-    <p><a href="index.html">소개로</a> · <a href="compare.html">실제 vs 엔진</a></p>
+    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정, 구장 간 거리표. 매치봇 엔진: OptaPlanner.</p>
+    <p><a href="index.html">소개로</a> · <a href="compare.html">실제 vs 매치봇</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261023b"></script>
+<script src="show.js?v=20261023d"></script>
 </body>
 </html>

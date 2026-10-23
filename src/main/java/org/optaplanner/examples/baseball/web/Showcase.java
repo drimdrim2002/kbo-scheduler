@@ -130,7 +130,7 @@ final class Showcase {
     Optional<JSONObject> compare() {
         return store.load(DEFAULT_ID).map(def -> {
             JSONObject engine = (JSONObject) Json.object(def.get("metrics")).clone();
-            engine.put("label", "엔진 결과");
+            engine.put("label", "매치봇 결과");
             engine.put("id", DEFAULT_ID);
             engine.put("seed", def.get("seed"));
             engine.put("options", def.get("options"));
@@ -179,7 +179,7 @@ final class Showcase {
         JSONObject opts = Json.object(res.get("options"));
         long seconds = opts == null ? 10 : Json.asLong(opts.get("timeLimitSec"), 10);
         OgImage.Spec spec = new OgImage.Spec(
-                DEFAULT_ID.equals(id) ? "KBO 일정, 엔진이 " + seconds + "초 만에 짜면?" : "내가 짠 KBO 2025 일정",
+                DEFAULT_ID.equals(id) ? "KBO 일정, 매치봇이 " + seconds + "초 만에 짜면?" : "내가 짠 KBO 2025 일정",
                 Json.asString(res.get("title"), ""),
                 new String[] {"총 이동거리", "실제 대비", "구단 간 차이 (실제 " + String.format("%,.0f", realSpread) + "km)"},
                 new String[] {String.format("%,d km", engKm), (pct >= 0 ? "−" : "+") + Math.abs(pct) + "%",
