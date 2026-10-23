@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="../app/common/common.css?v=20261023i">
 <link rel="stylesheet" href="../app/replay/replay.css?v=20261023i">
-<link rel="stylesheet" href="show.css?v=20261023i">
+<link rel="stylesheet" href="show.css?v=20261024c">
 </head>
 <body class="sh-body" data-page="index">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -242,26 +242,30 @@
     </div>
   </section>
 
-  <!-- ⑥ 만든 사람. 아바타 maker.png = 사용자 캐리커처(마커 그림)를 종이 배경만 지워 480px로(2026-10-23). 회사명은 넣지 않기로(개인 프로젝트 바닥글과 어긋나서) -->
+  <!-- ⑥ 만든 사람(개발자+서비스 한 카드). 아바타 maker.png = 사용자 캐리커처(마커 그림)를 종이 배경만 지워 480px로(2026-10-23). 회사명은 넣지 않기로(개인 프로젝트 바닥글과 어긋나서) -->
   <section class="sh-sec" id="maker" aria-labelledby="maker-h">
     <h2 class="sh-h2" id="maker-h">만든 사람</h2>
-    <div class="sh-card sh-maker">
-      <div class="sh-avatar sh-avatar-img"><img src="maker.png?v=20261023i" alt="" width="72" height="72"></div>
-      <div>
-        <p class="sh-maker-name">스케줄랩</p>
-        <p class="sh-small" style="margin:0">물류·SCM 쪽 개발자예요. 10년 동안 차량 배차 엔진과 공장 생산계획(FP) 엔진을 만들며 조합최적화 문제를 다뤄 왔어요. 2025 KBO 일정을 들여다보다 같은 방법으로 직접 짜 봤어요.</p>
-        <div class="sh-maker-links">
-          <a href="https://blog.naver.com/drimdrim2002/223739139302" target="_blank" rel="noopener">이전 글: 2025 KBO 일정 톺아보고 개선하기 (네이버 블로그)</a>
-          <a href="mailto:drimdrim2002@naver.com">메일: drimdrim2002@naver.com</a>
+    <!-- 개발자·서비스 두 줄을 한 카드에. everyshift-mark.png = every-shift-mvp/src/assets/brand/main_logo.png 왼쪽 심볼만 잘라 240px로(2026-10-24). 같은 틀(왼쪽 72px 그림 | 오른쪽 제목·본문)로(2026-10-24, 사용자 요청 "하나로 합치고 스케줄랩의 개발자/서비스 식으로") -->
+    <div class="sh-card sh-maker-card">
+      <div class="sh-maker-row">
+        <div class="sh-avatar sh-avatar-img"><img src="maker.png?v=20261023i" alt="" width="72" height="72"></div>
+        <div>
+          <h3 class="sh-maker-h">스케줄랩의 개발자</h3>
+          <p class="sh-small sh-maker-p">물류·SCM 쪽 개발자예요. 10년 동안 차량 배차 엔진과 공장 생산계획(FP) 엔진을 만들며 조합최적화 문제를 다뤄 왔어요. 2025 KBO 일정을 들여다보다 같은 방법으로 직접 짜 봤어요.</p>
+          <div class="sh-maker-links">
+            <a href="https://blog.naver.com/drimdrim2002/223739139302" target="_blank" rel="noopener">이전 글: 2025 KBO 일정 톺아보고 개선하기 (네이버 블로그)</a>
+            <a href="mailto:drimdrim2002@naver.com">메일: drimdrim2002@naver.com</a>
+          </div>
         </div>
       </div>
-    </div>
-    <!-- 에브리시프트 홍보 카드(2026-10-24, 사용자 요청 "만든 사람 밑에 더 강조"). 바닥글 홍보 줄은 비교·결과 쪽에만 남김 -->
-    <div class="sh-card sh-promo">
-      <p class="sh-kicker">스케줄랩의 다른 서비스</p>
-      <h3 class="sh-h3 sh-promo-h">에브리시프트 <span class="sh-promo-en">EveryShift</span></h3>
-      <p class="sh-small sh-promo-p">병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요. 수간호사와 현장 관리자의 노하우를 담아, 근무표 만드는 시간을 90% 넘게 줄입니다.</p>
-      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트 보기 →</a></div>
+      <div class="sh-maker-row sh-promo">
+        <div class="sh-avatar sh-avatar-img sh-avatar-es"><img src="everyshift-mark.png?v=20261024c" alt="" width="72" height="72"></div>
+        <div>
+          <h3 class="sh-maker-h">스케줄랩의 서비스 <span class="sh-promo-en">에브리시프트 · EveryShift</span></h3>
+          <p class="sh-small sh-maker-p">병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요. 수간호사와 현장 관리자의 노하우를 담아, 근무표 만드는 시간을 90% 넘게 줄입니다.</p>
+          <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트 보기 →</a></div>
+        </div>
+      </div>
     </div>
   </section>
 

@@ -160,11 +160,14 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-step i { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-style: normal; font-weight: 800; display: grid; place-items: center; }
 .sh-step h3 { margin: 5px 0 4px; font-size: 16px; }
 .sh-step p { margin: 0; }
-.sh-maker { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; align-items: start; }
+.sh-maker-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; align-items: start; }
+.sh-maker-row + .sh-maker-row { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.sh-maker-h { font-size: 16px; font-weight: 800; line-height: 1.35; margin: 2px 0 4px; }
+.sh-maker-p { margin: 0; }
 .sh-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
 .sh-avatar-img { border: 1px solid var(--line); background: #fff; overflow: hidden; }
 .sh-avatar-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.sh-maker-name { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
+.sh-avatar-es img { object-fit: contain; padding: 10px; box-sizing: border-box; }
 .sh-maker-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; margin-top: 6px; }
 
 /* 공유 */
@@ -204,11 +207,8 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 /* 바닥글 홍보 줄(2026-10-23, 사용자 요청): 만든 사람의 다른 서비스 에브리시프트. 링크만 매치 블루(규칙 2: 파랑 = 누르는 것) */
 .sh-foot-promo { font-size: 13px; color: var(--fg); margin-bottom: 10px; }
 .sh-foot-promo a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
-/* 에브리시프트 홍보 카드(소개 #maker 아래). 상자 안 순서: 머리글 → 제목 → 한 줄 설명 → 버튼 */
-.sh-promo { margin-top: 12px; }
-.sh-promo .sh-promo-h { margin: 0 0 6px; }
-.sh-promo-en { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 4px; }
-.sh-promo .sh-promo-p { margin: 0; }
+/* 에브리시프트 줄(#maker 카드 둘째 줄). 왼쪽은 에브리시프트 심볼(아바타와 같은 72px 원) */
+.sh-promo-en { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 6px; white-space: nowrap; }
 .sh-promo .sh-card-foot { margin-top: 12px; }
 
 /* 가로 폭 */
