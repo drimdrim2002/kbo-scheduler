@@ -434,16 +434,18 @@ public final class BaseballWebServer {
 
     /**
      * 304로 답해도 되는가. If-None-Match가 있으면 그것만 본다(RFC 7232: 있으면 If-Modified-Since는 무시).
-     * 목록·약한 표시(W/)·*를 받아들인다. If-Modified-Since는 초 단위로 비교한다(헤더에 ms가 없다).
+     * 목록·약한 표시(W/)·*를 받아들인다. 앞의 Caddy가 압축하면서 ETag 뒤에 {@code -gzip}·{@code -zstd}를 붙여 내보내므로
+     * ({@code "abc-1f"} → {@code "abc-1f-gzip"}), 그 꼬리가 붙은 태그도 같은 파일로 본다. If-Modified-Since는 초 단위로 비교한다(헤더에 ms가 없다).
      */
     static boolean notModified(String ifNoneMatch, String etag, String ifModifiedSince, long mtimeMillis) {
         if (ifNoneMatch != null && !ifNoneMatch.isBlank()) {
+            String base = etag.endsWith("\"") ? etag.substring(0, etag.length() - 1) : etag; // 닫는 따옴표 뗀 것
             for (String tag : ifNoneMatch.split(",")) {
                 String t = tag.trim();
                 if (t.startsWith("W/")) {
                     t = t.substring(2);
                 }
-                if ("*".equals(t) || t.equals(etag)) {
+                if ("*".equals(t) || t.equals(etag) || (t.startsWith(base + "-") && t.endsWith("\""))) {
                     return true;
                 }
             }
