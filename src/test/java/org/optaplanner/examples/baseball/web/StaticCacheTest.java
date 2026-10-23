@@ -28,6 +28,12 @@ class StaticCacheTest {
         assertThat(BaseballWebServer.notModified("\"other\", " + tag, tag, null, 1700000000000L)).isTrue();
         assertThat(BaseballWebServer.notModified("*", tag, null, 1700000000000L)).isTrue();
         assertThat(BaseballWebServer.notModified("\"other\"", tag, null, 1700000000000L)).isFalse();
+        // Caddy encode가 붙인 압축 꼬리(-gzip·-zstd·-br)는 같은 파일
+        String gz = tag.substring(0, tag.length() - 1) + "-gzip\"";
+        assertThat(BaseballWebServer.notModified(gz, tag, null, 1700000000000L)).isTrue();
+        assertThat(BaseballWebServer.notModified("W/" + tag.substring(0, tag.length() - 1) + "-zstd\"", tag, null, 1700000000000L)).isTrue();
+        // 다른 파일(크기만 다름)은 꼬리 규칙에 안 걸린다
+        assertThat(BaseballWebServer.notModified(BaseballWebServer.etag(1700000000000L, 1001), BaseballWebServer.etag(1700000000000L, 100), null, 1700000000000L)).isFalse();
         // If-None-Match가 있으면 If-Modified-Since가 맞아도 무시한다
         assertThat(BaseballWebServer.notModified("\"other\"", tag, "Wed, 15 Nov 2023 00:00:00 GMT", 1600000000000L)).isFalse();
     }
