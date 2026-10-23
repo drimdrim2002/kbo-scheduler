@@ -93,7 +93,8 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-replay .rp-grid { height: auto; grid-auto-rows: 112px; }
 /* 점수판은 총 이동거리 곡선 하나만. 보여주는 문은 "어떻게 더 나은 일정을 찾아가는지"를 개념으로 보여 주는 곳이라
    슬롯 없는 시리즈·구단 간 이동 횟수 차이 같은 단계와 "시드 42 · 개선 118회" 메타는 뺀다(show.js simpleCaptions가 해설도 맞춘다) */
-.sh-replay .rp-score { flex: none; height: 236px; }
+.sh-replay .rp-score { flex: none; height: auto; } /* 고정 높이면 칩이 두 줄로 접힐 때 곡선 SVG(기본 150px)가 축 밑으로 넘쳐 잘렸다(사용자 휴대폰 지적 2026-10-23) → 내용만큼 */
+.sh-replay .rp-lv:last-child .rp-lv-svg { flex: none; height: 130px; } /* 곡선 높이를 CSS로 정해 모듈 drawCharts가 그 크기로 그린다 */
 /* 점수판: 고르게 맞추는 지표 3개(이동 횟수·구단별 이동거리·주말·공휴일 홈)는 곡선 위에 칩으로, 10개 팀 전체 이동거리만 곡선. 슬롯 없는 시리즈(0단계)는 숨김.
    칩 값은 모듈이 갱신하고(.zero = 0) show.js fitBoard가 "맞춤 ✓ / 아직 N"으로 바꾼다 */
 .sh-replay .rp-levels { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px 6px; padding: 6px 10px 0; }
@@ -120,7 +121,8 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
   .sh-replay .rp-card { font-size: 10px; }
   .sh-replay .rp-tight .rp-card span { display: inline; } /* 모듈은 빽빽하면 원정 구단을 숨기는데 여기서는 둘 다 보여 준다 */
   .sh-replay:not(.sh-big) .rp-slot:nth-child(n+13) { display: none; }
-  .sh-replay .rp-score { order: -1; height: 224px; }
+  .sh-replay .rp-score { order: -1; }
+  .sh-replay .rp-lv:last-child .rp-lv-svg { height: 110px; }
 }
 /* 재생기 아래 단추 줄(「크게 보기」): 휴대폰 폭에서만 보인다 */
 .sh-replay-tools { display: none; margin: 8px 0 0; gap: 8px; }
@@ -158,8 +160,10 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-step i { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-style: normal; font-weight: 800; display: grid; place-items: center; }
 .sh-step h3 { margin: 5px 0 4px; font-size: 16px; }
 .sh-step p { margin: 0; }
-.sh-maker { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: start; }
-.sh-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--surface-2); border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+.sh-maker { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; align-items: start; }
+.sh-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+.sh-avatar-img { border: 1px solid var(--line); background: #fff; overflow: hidden; }
+.sh-avatar-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sh-maker-name { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
 .sh-maker-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; margin-top: 6px; }
 
@@ -197,6 +201,15 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-foot { padding: 24px 0 48px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
 .sh-foot a { color: inherit; }
 .sh-foot p { margin: 0 0 6px; }
+/* 바닥글 홍보 줄(2026-10-23, 사용자 요청): 만든 사람의 다른 서비스 에브리시프트. 링크만 매치 블루(규칙 2: 파랑 = 누르는 것) */
+.sh-foot-promo { font-size: 13px; color: var(--fg); margin-bottom: 10px; }
+.sh-foot-promo a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+/* 에브리시프트 홍보 카드(소개 #maker 아래). 상자 안 순서: 머리글 → 제목 → 한 줄 설명 → 버튼 */
+.sh-promo { margin-top: 12px; }
+.sh-promo .sh-promo-h { margin: 0 0 6px; }
+.sh-promo-en { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.sh-promo .sh-promo-p { margin: 0; }
+.sh-promo .sh-card-foot { margin-top: 12px; }
 
 /* 가로 폭 */
 @media (min-width: 768px) {
@@ -478,3 +491,10 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-say-bot { display: block; width: 44px; height: 44px; }
 .sh-say-msg, .sh-sec .sh-say-msg { margin: 0 !important; background: var(--mb-screen); border-radius: 4px 14px 14px 14px; padding: 10px 14px; color: var(--fg); font-size: 14px; line-height: 1.55; }
 .sh-say-msg .sh-link { color: var(--mb-deep); }
+
+/* ── 재생기 설명 보강 (2026-10-23, 사용자: "전혀 이해가 안 간다" → 대안 3개 중 '설명 보강' 선택; 일정판 없는 안·비교 쪽 이동 안은 지웠다) ──
+   말풍선 = 개념, .sh-rp-how = 읽는 법(상자 밖 설명 자리, 블록 규칙 5) */
+.sh-rp-how { margin: -4px 0 12px; }
+.sh-rp-how b { color: var(--fg); margin-right: 4px; }
+.sh-replay .rp-cap { display: block; } /* 해설이 길어지면(줄어든 거리 추가) flex 안의 굵은 머리말이 세로로 쪼개져서 */
+.sh-replay .rp-cap b { margin-right: 4px; }

@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261023d', '../app/replay/replay.js?v=20261023d']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261023i', '../app/replay/replay.js?v=20261023i']; // ?v=: 서버가 정적 파일에 max-age를 길게 주어, 배포 뒤 옛 CSS·JS가 새 HTML과 섞이지 않게 바꿀 때마다 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -230,7 +230,7 @@
     m.captions = m.states.map((st, i) => {
       if (i === 0) return '시작 상태' + (km(st) ? ' · 10개 팀 전체 이동거리 ' + km(st) : '');
       const prev = m.states[i - 1], a = km(prev), b = km(st);
-      const dist = a && b ? (a === b ? '전체 이동거리 ' + b + ' 그대로' : '전체 이동거리 ' + a + ' → ' + b) : '';
+      const dist = a && b ? (a === b ? '전체 이동거리 ' + b + ' 그대로' : '전체 이동거리 ' + a + ' → ' + b + ' (' + (prev.soft[4] > st.soft[4] ? '−' : '+') + fmtInt(Math.abs(prev.soft[4] - st.soft[4])) + ')') : ''; // 가끔 일부러 나빠지는 수는 +
       const names = [];
       for (const idx of st.changed) { const t = m.teams[m.series[idx].home]; const nm = t ? t.name : String(m.series[idx].home); if (names.indexOf(nm) < 0) names.push(nm); }
       const who = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
@@ -251,7 +251,7 @@
     const uc = p.updateCursor.bind(p);
     p.updateCursor = () => {
       uc();
-      $$('.rp-lv:not(:last-child) .rp-lv-val b', box).forEach((b) => { const n = Number(String(b.textContent).replace(/[^\d.-]/g, '')); b.textContent = n === 0 ? '맞춤 ✓' : '아직 ' + fmtInt(Math.abs(n)); });
+      $$('.rp-lv:not(:last-child) .rp-lv-val b', box).forEach((b) => { const n = Number(String(b.textContent).replace(/[^\d.-]/g, '')); b.textContent = n === 0 ? '맞춤 ✓' : '맞추는 중'; }); // 숫자(어긋난 정도의 합)는 팬에게 뜻이 없어 글로만
     };
     p.updateCursor();
     const slots = $$('.rp-slot', box);
