@@ -10,6 +10,11 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
@@ -339,9 +344,22 @@ public final class BaseballWebServer {
         }
         String name = file.getFileName().toString();
         String ext = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
-        ex.getResponseHeaders().set("Content-Type", MIME.getOrDefault(ext, "application/octet-stream"));
-        ex.getResponseHeaders().set("Cache-Control", "no-cache");
         long size = Files.size(file);
+        long mtime = Files.getLastModifiedTime(file).toMillis();
+        String etag = etag(mtime, size);
+        Headers h = ex.getResponseHeaders();
+        h.set("Content-Type", MIME.getOrDefault(ext, "application/octet-stream"));
+        // no-cache = 브라우저가 매번 재검증. ETag·Last-Modified가 있으면 안 바뀐 파일은 304(본문 없음)로 끝난다.
+        // Cloudflare는 Browser Cache TTL "Respect Existing Headers"(2026-10-24 설정)라 이 헤더를 그대로 전달한다.
+        h.set("Cache-Control", "no-cache");
+        h.set("ETag", etag);
+        h.set("Last-Modified", httpDate(mtime));
+        if (notModified(ex.getRequestHeaders().getFirst("If-None-Match"), etag,
+                ex.getRequestHeaders().getFirst("If-Modified-Since"), mtime)) {
+            ex.sendResponseHeaders(304, -1);
+            ex.close();
+            return;
+        }
         if ("HEAD".equals(ex.getRequestMethod())) {
             ex.sendResponseHeaders(200, -1);
             return;
@@ -400,6 +418,46 @@ public final class BaseballWebServer {
             return realIp.trim();
         }
         return remote.getHostAddress();
+    }
+
+    // ───────────── 정적 파일 캐시 검증 (ETag = 수정 시각 + 크기) ─────────────
+
+    /** 강한 ETag: 같은 파일은 수정 시각(ms)과 크기가 같으면 내용도 같다고 본다(배포는 git pull이라 바뀌면 둘 중 하나는 달라진다). */
+    static String etag(long mtimeMillis, long size) {
+        return "\"" + Long.toHexString(mtimeMillis) + "-" + Long.toHexString(size) + "\"";
+    }
+
+    /** RFC 7231 날짜(GMT). */
+    static String httpDate(long millis) {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC));
+    }
+
+    /**
+     * 304로 답해도 되는가. If-None-Match가 있으면 그것만 본다(RFC 7232: 있으면 If-Modified-Since는 무시).
+     * 목록·약한 표시(W/)·*를 받아들인다. If-Modified-Since는 초 단위로 비교한다(헤더에 ms가 없다).
+     */
+    static boolean notModified(String ifNoneMatch, String etag, String ifModifiedSince, long mtimeMillis) {
+        if (ifNoneMatch != null && !ifNoneMatch.isBlank()) {
+            for (String tag : ifNoneMatch.split(",")) {
+                String t = tag.trim();
+                if (t.startsWith("W/")) {
+                    t = t.substring(2);
+                }
+                if ("*".equals(t) || t.equals(etag)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (ifModifiedSince != null && !ifModifiedSince.isBlank()) {
+            try {
+                long since = ZonedDateTime.parse(ifModifiedSince.trim(), DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli();
+                return mtimeMillis / 1000 <= since / 1000;
+            } catch (DateTimeParseException e) {
+                return false;
+            }
+        }
+        return false;
     }
 
 }
