@@ -31,7 +31,7 @@ sudo REPO_URL=https://github.com/drimdrim2002/kbo-scheduler.git bash -c "$(curl 
 1. Cloudflare에 사이트 추가(Free) → 가져온 DNS 레코드 중 가비아 기본값(파킹 등)은 지운다 → Cloudflare가 주는 네임서버 2개를 가비아(My가비아 → 도메인 관리 → 네임서버 설정)에 1·2차로 넣고 나머지 칸은 비운다. 가비아에서 DNSSEC를 켰다면 먼저 끈다. 반영은 수 분~수 시간, 끝나면 Cloudflare가 "Active" 메일을 보낸다.
 2. DNS: `A schedulelab.kr → <서버 IP>`, `A www → <서버 IP>`. **처음에는 DNS only(회색 구름)**로 두고 서버에서 `systemctl start caddy` → Caddy가 Let's Encrypt 인증서를 받는다(`journalctl -u caddy`에 "certificate obtained successfully" 두 번). 그다음 둘 다 **Proxied(주황 구름)**로 바꾼다. 처음부터 주황이면 Full (strict)에서 서버 인증서가 아직 없어 525/526이 난다.
 3. SSL/TLS: 모드 **Full (strict)**. 인증서 갱신은 Caddy가 HTTP-01(80 포트)로 알아서 한다.
-4. Caching: 기본값. SSE(`/api/v1/solve/*/events`)와 API는 Cloudflare가 캐시하지 않는다. OG 이미지는 서버가 `Cache-Control: public, max-age=86400`을 주므로 캐시된다.
+4. Caching → Configuration → **Browser Cache TTL = Respect Existing Headers**(2026-10-24). 기본값 4시간이면 서버의 `no-cache`를 덮어 CSS·JS가 4시간 캐시된다. 서버는 정적 파일에 `no-cache` + ETag(수정 시각+크기)·Last-Modified를 주고 `If-None-Match`면 304로 답하므로, 배포 뒤 브라우저는 바뀐 파일만 다시 받는다(HTML의 `?v=` 올리기는 이제 필수가 아니다). SSE(`/api/v1/solve/*/events`)와 API는 Cloudflare가 캐시하지 않는다. OG 이미지는 서버가 `Cache-Control: public, max-age=86400`을 주므로 캐시된다.
 5. Web Analytics(무료, 쿠키 배너 불필요): 사이트 추가 → 스니펫을 `ui/show/index.html`에 넣는다.
 6. 확인: `https://schedulelab.kr/api/v1/info`, `https://schedulelab.kr/og/default.png`.
 7. 방문자 주소 확인(IP당 동시 1작업): Caddy가 Cloudflare 대역에서 온 요청만 `CF-Connecting-IP`를 방문자 주소로 받아 `X-Real-IP`로 넘기고, 서버는 루프백에서 온 `X-Real-IP`만 믿는다(`deploy/Caddyfile` 맨 위 대역 목록). 휴대폰(LTE)과 PC(Wi-Fi)에서 동시에 「편성 시작」 → 둘 다 진행(하나는 "대기 1번째")이면 정상. 같은 기기에서 두 번 → 두 번째만 429 안내.
