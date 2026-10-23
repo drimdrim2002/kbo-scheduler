@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KBO 144경기 일정, 엔진이 30초 만에 짜면? — KBO 일정 편성 플레이그라운드</title>
-<meta name="description" content="실제 2025 KBO 일정과 같은 조건으로 엔진이 짠 일정을 비교합니다. 총 이동거리 13% 절감, 구단 간 차이 60% 축소, 주말 홈 수는 같은 수준. 직접 조건을 바꿔 돌려 보고 링크로 공유하세요.">
+<title>매치봇 — KBO 144경기 일정, 30초 만에 짜면?</title>
+<meta name="description" content="실제 2025 KBO 일정과 같은 조건으로 매치봇이 짠 일정을 비교합니다. 총 이동거리 13% 절감, 구단 간 차이 60% 축소, 주말 홈 수는 같은 수준. 직접 조건을 바꿔 돌려 보고 링크로 공유하세요.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="KBO 144경기 일정, 엔진이 30초 만에 짜면?">
+<meta property="og:title" content="KBO 144경기 일정, 매치봇이 30초 만에 짜면?">
 <meta property="og:description" content="같은 조건, 30초 만에 이동거리 13% 절감·구단 간 차이 60% 축소. 탐색 과정을 재생해 보고 직접 돌려 보세요.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -23,15 +23,57 @@
     mark();
   })();
 </script>
-<link rel="stylesheet" href="../app/common/common.css?v=20261023b">
-<link rel="stylesheet" href="../app/replay/replay.css?v=20261023b">
-<link rel="stylesheet" href="show.css?v=20261023b">
+<!-- 매치봇 워드마크 글꼴(Jua, 브랜드 가이드). 이 사이트의 외부 요청은 이 글꼴과 탭해서 부르는 카카오맵뿐. 못 받으면 기본 글꼴로 보인다 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="../app/common/common.css?v=20261023i">
+<link rel="stylesheet" href="../app/replay/replay.css?v=20261023i">
+<link rel="stylesheet" href="show.css?v=20261023i">
 </head>
 <body class="sh-body" data-page="index">
+<!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mb-bot-body" viewBox="0 0 100 100">
+      <rect x="47" y="6" width="6" height="14" rx="3" fill="#2546a8"/>
+      <rect x="8" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="84" y="42" width="8" height="22" rx="4" fill="#2546a8"/>
+      <rect x="14" y="20" width="72" height="68" rx="20" fill="#3b6cf4"/>
+      <rect x="22" y="30" width="56" height="42" rx="12" fill="#dfe9ff"/>
+    </symbol>
+    <symbol id="mb-bot" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0"/>
+      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
+      <rect x="35" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="60" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
+      <path d="M42 62 q8 6 16 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".45"/>
+    </symbol>
+    <symbol id="mb-bot-think" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#ffc53d"/>
+      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
+      <rect x="37" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="62" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
+      <path d="M43 63 h14" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" class="mb-blink"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
+    </symbol>
+    <symbol id="mb-bot-done" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#3ccf8e"/>
+      <path d="M32 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M57 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M40 60 q10 10 20 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/>
+    </symbol>
+    <symbol id="mb-bot-sleep" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0" opacity=".4"/>
+      <path d="M33 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/><path d="M58 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="50" cy="63" rx="3.5" ry="4.5" fill="#1f2430"/>
+      <text x="74" y="30" font-family="Jua, sans-serif" font-size="12" fill="#2546a8">z</text><text x="80" y="22" font-family="Jua, sans-serif" font-size="9" fill="#2546a8">z</text>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
+    </symbol>
+  </defs>
+</svg>
 <header class="sh-top">
   <div class="sh-wrap">
-    <a class="sh-brand" href="index.html" aria-label="KBO 일정 편성 플레이그라운드 홈"><span class="sh-mark" aria-hidden="true">KBO</span>일정 편성 플레이그라운드</a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="r.html?id=default">엔진 일정</a></nav>
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 플레이그라운드</span></a>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="r.html?id=default">매치봇 일정</a></nav>
   </div>
 </header>
 
@@ -47,7 +89,7 @@
   </section>
 
 
-  <!-- ① 첫 화면: 문제 배경(대사 → 공평할까요? → 두 가지 → 2025 실제 점 지도) → 엔진 결과 -->
+  <!-- ① 첫 화면: 문제 배경(대사 → 공평할까요? → 두 가지 → 2025 실제 점 지도) → 매치봇 결과 -->
   <section class="sh-sec sh-story" id="hero" aria-labelledby="hero-h">
     <p class="sh-kicker">2025 KBO 일정 들여다보기</p>
     <h1 class="sh-h1" id="hero-h">우리 팀 일정, 공평할까요?</h1>
@@ -71,17 +113,17 @@
         <div class="sh-scatter" id="h1-sc" role="img" aria-label="구단별 이동거리·주말 공휴일 홈 경기 점 지도"></div>
         <div class="sh-sc-pick" id="h1-sc-pick" role="group" aria-label="우리 팀 고르기"><span class="sh-sc-pick-l">우리 팀</span></div>
         <p class="sh-sc-say" id="h1-sc-say" aria-live="polite"></p>
-        <div class="sh-seg sh-seg-s" role="group" aria-label="실제 일정과 엔진 일정 전환">
+        <div class="sh-seg sh-seg-s" role="group" aria-label="실제 일정과 매치봇 일정 전환">
           <button type="button" data-sc="real" aria-pressed="true">실제 2025 일정</button>
-          <button type="button" data-sc="engine" aria-pressed="false">엔진이 짜면?</button>
+          <button type="button" data-sc="engine" aria-pressed="false">매치봇이 짜면?</button>
         </div>
       </div>
     </div>
-    <!-- 롯데 8월 원정길(실제 vs 엔진, 도식·여정·카카오맵): "더 좋은 해를 보여 준 사례"로 간직하되 소개 쪽에서는 숨긴다(2026-10-22 사용자 결정). hidden을 빼면 다시 보인다 -->
+    <!-- 롯데 8월 원정길(실제 vs 매치봇, 도식·여정·카카오맵): "더 좋은 해를 보여 준 사례"로 간직하되 소개 쪽에서는 숨긴다(2026-10-22 사용자 결정). hidden을 빼면 다시 보인다 -->
     <div class="sh-card sh-viz sh-viz-route" hidden>
-      <div class="sh-chart-h"><b>롯데의 8월 원정길</b><span class="sh-small">실제 일정 vs 엔진 일정</span></div>
+      <div class="sh-chart-h"><b>롯데의 8월 원정길</b><span class="sh-small">실제 일정 vs 매치봇 일정</span></div>
       <div class="sh-trip2">
-        <!-- 같은 기간(8/1~8/15) 롯데 이동: 실제 일정 vs 엔진 일정(기본 결과, 시드 42). 엔진 쪽 날짜·동선은 fixtures/result-default.json plan에서 확인(8/1·8/5·8/8 사직 홈, 8/12 광주, 8/15 사직; 8/1 직전 창원→사직 57km).
+        <!-- 같은 기간(8/1~8/15) 롯데 이동: 실제 일정 vs 매치봇 일정(기본 결과, 시드 42). 매치봇 쪽 날짜·동선은 fixtures/result-default.json plan에서 확인(8/1·8/5·8/8 사직 홈, 8/12 광주, 8/15 사직; 8/1 직전 창원→사직 57km).
              자리: 고척 왼쪽 위, 대전 가운데, 광주 왼쪽 아래, 창원 사직 옆, 사직(홈) 오른쪽 아래. 안 들른 구장은 흐리게 -->
         <div class="sh-trip2-p">
           <b>실제 일정 · 1,338km</b>
@@ -95,8 +137,8 @@
           </svg>
         </div>
         <div class="sh-trip2-p">
-          <b>엔진 일정 · 567km</b>
-          <svg viewBox="0 -8 300 165" role="img" aria-label="엔진: 창원에서 사직 57km, 사직에서 홈 3연속 뒤 광주 255km, 다시 사직 255km">
+          <b>매치봇 일정 · 567km</b>
+          <svg viewBox="0 -8 300 165" role="img" aria-label="매치봇: 창원에서 사직 57km, 사직에서 홈 3연속 뒤 광주 255km, 다시 사직 255km">
             <g class="t2-faint"><circle cx="50" cy="38" r="5"/><text x="50" y="22" text-anchor="middle">고척</text><circle cx="150" cy="80" r="5"/><text x="150" y="68" text-anchor="middle">대전</text></g>
             <g class="t2-path eng"><path d="M221 98 L247 116"/><path d="M247 124 Q165 145 83 120"/><path d="M83 114 Q165 95 247 116"/></g>
             <g class="t2-badge"><circle cx="228" cy="96" r="9"/><text x="228" y="99.5">1</text><circle cx="163" cy="133" r="9"/><text x="163" y="136.5">2</text><circle cx="163" cy="106" r="9"/><text x="163" y="109.5">3</text></g>
@@ -107,31 +149,32 @@
       </div>
       <!-- 카카오맵: 탭할 때만 SDK를 읽는다(외부 스크립트는 이 블록이 유일). 키는 공개 JavaScript 키이고 카카오 콘솔의 도메인 등록으로 보호한다 -->
       <div class="sh-kmap" id="rt-kmap" hidden>
-        <div class="sh-seg sh-seg-s" role="group" aria-label="지도에서 실제 일정과 엔진 일정 전환"><button type="button" data-km="real" aria-pressed="true">실제 1,338km</button><button type="button" data-km="engine" aria-pressed="false">엔진 567km</button></div>
+        <div class="sh-seg sh-seg-s" role="group" aria-label="지도에서 실제 일정과 매치봇 일정 전환"><button type="button" data-km="real" aria-pressed="true">실제 1,338km</button><button type="button" data-km="engine" aria-pressed="false">매치봇 567km</button></div>
         <div class="sh-kmap-box" id="rt-kmap-box" role="img" aria-label="롯데 8월 원정길 지도"></div>
       </div>
       <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn" data-kakao-key="dd04ee384353180b67c19cfab63bb763">카카오맵으로 보기</button></div>
-      <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 엔진 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
+      <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 매치봇 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
     </div>
-    <h2 class="sh-story-h">그래서 엔진으로 다시 짜 봤어요</h2>
-    <p class="sh-small" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 엔진이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 열 구단 모두에게 고른지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">엔진이 돌린 조건 보기 →</a></p>
+    <h2 class="sh-story-h">그래서 매치봇이 다시 짜 봤어요</h2>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 매치봇이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 열 구단 모두에게 고른지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">매치봇이 받은 조건 보기 →</a></p></div>
     <div class="sh-stats sh-stats-msg">
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 엔진 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 엔진 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 엔진 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 매치봇 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 매치봇 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 매치봇 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
     </div>
-    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">엔진이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 엔진 자세히</a></div>
-    <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 엔진 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 매치봇 자세히</a></div>
+    <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 매치봇 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
   </section>
 
 
 
-  <!-- ② 「실제 일정 vs 엔진 일정」 막대 블록은 2026-10-23 지웠다: 총 이동거리는 결과 카드, 구단별은 점 지도 전환과 비교 쪽(compare.html)이 보여 준다 -->
+  <!-- ② 「실제 일정 vs 매치봇 일정」 막대 블록은 2026-10-23 지웠다: 총 이동거리는 결과 카드, 구단별은 점 지도 전환과 비교 쪽(compare.html)이 보여 준다 -->
 
   <!-- ③ 탐색 과정 미리보기 -->
   <section class="sh-sec" id="replay" aria-labelledby="replay-h">
-    <h2 class="sh-h2" id="replay-h">엔진은 이렇게 고쳐 나가요</h2>
-    <p class="sh-lead">카드 1장이 3연전 한 묶음, 색은 홈 구단이에요. 카드가 옮겨질 때마다 아래 곡선이 내려갑니다. 15초 미리보기 뒤 탭하면 처음부터 전체 재생해요.</p>
+    <h2 class="sh-h2" id="replay-h">매치봇은 이렇게 고쳐 나가요</h2>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-think"/></svg><p class="sh-lead sh-say-msg">저는 대충 맞는 일정에서 시작해요. 3연전 카드 몇 장의 날짜를 바꿔 보고, 이동거리가 줄면 남기고 아니면 되돌려요. 이걸 1초에 수천 번 되풀이한 40초를 그대로 보여 드릴게요.</p></div>
+    <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 팀 전체 이동거리예요. 내려갈수록 좋아요. 일정판의 카드 1장은 3연전 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 그 수를 설명해요.</p>
     <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">화면에 들어오면 탐색 과정을 불러와요.</div></div></div>
   </section>
 
@@ -169,7 +212,7 @@
       </fieldset>
       <!-- 생각 시간: AI 챗봇의 '깊게 생각하기'처럼 고른다. 숫자는 docs/STATUS.md 서버 시간별 실측(기본 조건, 5번씩). 3초는 2026-10-23 뺐다(사용자) -->
       <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
-        <div class="sh-field-h"><legend style="padding:0">엔진이 얼마나 오래 생각할까요?</legend></div>
+        <div class="sh-field-h"><legend style="padding:0">매치봇이 얼마나 오래 생각할까요?</legend></div>
         <div class="sh-think" role="radiogroup" aria-describedby="t-help">
           <label><input type="radio" name="t" value="10" checked><span><b>보통 · 10초 <em>기본</em></b><small>약 15초 걸려요. 총 이동거리가 실제보다 평균 6% 짧아요.</small></span></label>
           <label><input type="radio" name="t" value="30"><span><b>꼼꼼하게 · 30초</b><small>약 35초 걸려요. 평균 8%, 잘 풀리면 14%까지 짧아져요.</small></span></label>
@@ -194,24 +237,31 @@
     <h2 class="sh-h2" id="how-h">어떻게 하는 건가요?</h2>
     <div class="sh-steps">
       <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 짜기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 경우의 수는 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈이나 원정이 4연속으로 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 휴일 경기 수를 고르게 하는 것. 엔진은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 1초에 수천 번</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 한 시리즈를 다른 날짜로 옮기는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 엔진은 오픈소스 OptaPlanner를 써요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈이나 원정이 4연속으로 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 휴일 경기 수를 고르게 하는 것. 매치봇은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 1초에 수천 번</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 한 시리즈를 다른 날짜로 옮기는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 매치봇의 엔진은 오픈소스 OptaPlanner예요.</p></div></div>
     </div>
   </section>
 
-  <!-- ⑥ 만든 사람 (내용은 사용자가 채운다) -->
+  <!-- ⑥ 만든 사람. 아바타 maker.png = 사용자 캐리커처(마커 그림)를 종이 배경만 지워 480px로(2026-10-23). 회사명은 넣지 않기로(개인 프로젝트 바닥글과 어긋나서) -->
   <section class="sh-sec" id="maker" aria-labelledby="maker-h">
     <h2 class="sh-h2" id="maker-h">만든 사람</h2>
     <div class="sh-card sh-maker">
-      <div class="sh-avatar" aria-hidden="true">사진</div>
+      <div class="sh-avatar sh-avatar-img"><img src="maker.png?v=20261023i" alt="" width="72" height="72"></div>
       <div>
-        <p class="sh-maker-name">이름 <span class="sh-placeholder">작성 예정</span></p>
-        <p class="sh-small" style="margin:0">한 줄 소개 자리입니다. 산업공학·최적화를 하는 사람이라는 것, 왜 이걸 만들었는지 한 줄. <span class="sh-placeholder">작성 예정</span></p>
+        <p class="sh-maker-name">스케줄랩</p>
+        <p class="sh-small" style="margin:0">물류·SCM 쪽 개발자예요. 10년 동안 차량 배차 엔진과 공장 생산계획(FP) 엔진을 만들며 조합최적화 문제를 다뤄 왔어요. 2025 KBO 일정을 들여다보다 같은 방법으로 직접 짜 봤어요.</p>
         <div class="sh-maker-links">
-          <a href="#" aria-label="이전 글 (링크 작성 예정)">이전 글: 2025 일정 비교 글 <span class="sh-placeholder">링크 예정</span></a>
-          <a href="#" aria-label="메일 (주소 작성 예정)">메일 <span class="sh-placeholder">주소 예정</span></a>
+          <a href="https://blog.naver.com/drimdrim2002/223739139302" target="_blank" rel="noopener">이전 글: 2025 KBO 일정 톺아보고 개선하기 (네이버 블로그)</a>
+          <a href="mailto:drimdrim2002@naver.com">메일: drimdrim2002@naver.com</a>
         </div>
       </div>
+    </div>
+    <!-- 에브리시프트 홍보 카드(2026-10-24, 사용자 요청 "만든 사람 밑에 더 강조"). 바닥글 홍보 줄은 비교·결과 쪽에만 남김 -->
+    <div class="sh-card sh-promo">
+      <p class="sh-kicker">스케줄랩의 다른 서비스</p>
+      <h3 class="sh-h3 sh-promo-h">에브리시프트 <span class="sh-promo-en">EveryShift</span></h3>
+      <p class="sh-small sh-promo-p">병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요. 수간호사와 현장 관리자의 노하우를 담아, 근무표 만드는 시간을 90% 넘게 줄입니다.</p>
+      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트 보기 →</a></div>
     </div>
   </section>
 
@@ -233,10 +283,10 @@
 
 <footer class="sh-foot">
   <div class="sh-wrap">
-    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 45슬롯 225시리즈)과 구장 간 거리표. 엔진: OptaPlanner.</p>
-    <p><a href="compare.html">실제 vs 엔진 자세히</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a> · 의견 보내기 <span class="sh-placeholder">구글 폼 링크 예정</span></p>
+    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 45슬롯 225시리즈)과 구장 간 거리표. 매치봇 엔진: OptaPlanner.</p>
+    <p><a href="compare.html">실제 vs 매치봇 자세히</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a> · 의견 보내기 <span class="sh-placeholder">구글 폼 링크 예정</span></p>
   </div>
 </footer>
-<script src="show.js?v=20261023b"></script>
+<script src="show.js?v=20261023i"></script>
 </body>
 </html>
