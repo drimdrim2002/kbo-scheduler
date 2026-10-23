@@ -168,7 +168,13 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-avatar-img { border: 1px solid var(--line); background: #fff; overflow: hidden; }
 .sh-avatar-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sh-avatar-es img { object-fit: contain; padding: 10px; box-sizing: border-box; }
-.sh-maker-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; margin-top: 6px; }
+.sh-maker-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+/* 알약 칩 링크. 메일은 테두리만, 에브리시프트는 연파랑 바탕(규칙 2: 파랑 = 누르는 것) */
+.sh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 600; text-decoration: none; line-height: 1.2; transition: border-color .15s, background .15s, color .15s; }
+.sh-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.sh-chip svg { width: 14px; height: 14px; flex: none; }
+.sh-chip-accent { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.sh-chip-accent:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 
 /* 공유 */
 .sh-share { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
@@ -209,7 +215,6 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-foot-promo a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 /* 에브리시프트 줄(#maker 카드 둘째 줄). 왼쪽은 에브리시프트 심볼(아바타와 같은 72px 원) */
 .sh-promo-en { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 6px; white-space: nowrap; }
-.sh-promo .sh-card-foot { margin-top: 12px; }
 
 /* 가로 폭 */
 @media (min-width: 768px) {
