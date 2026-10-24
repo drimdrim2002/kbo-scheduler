@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261023i', '../app/replay/replay.js?v=20261023i']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261024n', '../app/replay/replay.js?v=20261024n']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -301,22 +301,51 @@
       ta.remove(); return ok;
     }
   }
-  function shareUrl() { return location.href.replace(/[?&]replay=now/, '').replace(/#.*$/, ''); }
+  SHOW.PUBLIC = 'https://schedulelab.kr'; // 공유 링크는 보는 곳(localhost·휴대폰 IP)과 상관없이 공개 주소로(2026-10-24)
+  /** 공유할 공개 주소: 소개 / · 비교 /compare · 결과 /r/<id>. 서버 경로 규칙(BaseballWebServer.resolveStatic)과 같다. */
+  function shareUrl() {
+    const page = document.body.getAttribute('data-page');
+    if (page === 'index') return SHOW.PUBLIC + '/';
+    if (page === 'compare') return SHOW.PUBLIC + '/compare';
+    if (page === 'r') { const id = query.get('id'); if (id) return SHOW.PUBLIC + '/r/' + encodeURIComponent(id); }
+    return location.href.replace(/[?&]replay=now/, '').replace(/#.*$/, '');
+  }
   function shareText() { return document.title; }
+  function shareDesc() { const m = document.querySelector('meta[property="og:description"]'); return m ? m.getAttribute('content') : ''; }
+  SHOW.KAKAO_KEY = 'dd04ee384353180b67c19cfab63bb763'; // JavaScript 키(카카오맵과 같은 앱, 도메인 제한이 보호). 카카오톡 공유 카드에 쓴다
+  /** 카카오톡 공유: 누를 때만 SDK를 읽고(이 사이트의 외부 요청은 Jua·카카오맵·이 SDK 셋) 제목·설명·OG 이미지 카드를 보낸다. 실패하면 cb(false) → 공유 창·링크 복사로 대체 */
+  function kakaoShare(url, title, desc, cb) {
+    const send = () => {
+      try {
+        const K = window.Kakao;
+        if (!K.isInitialized()) K.init(SHOW.KAKAO_KEY);
+        const id = document.body.getAttribute('data-page') === 'r' ? (query.get('id') || 'default') : 'default';
+        K.Share.sendDefault({ objectType: 'feed', content: { title, description: desc, imageUrl: SHOW.PUBLIC + '/og/' + id + '.png', link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: '보러 가기', link: { mobileWebUrl: url, webUrl: url } }] });
+        cb(true);
+      } catch (e) { cb(false); }
+    };
+    if (window.Kakao && window.Kakao.Share) { send(); return; }
+    const sc = document.createElement('script');
+    sc.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js';
+    sc.onload = send; sc.onerror = () => cb(false);
+    document.head.appendChild(sc);
+  }
   SHOW.share = function (kind) {
     const url = shareUrl(), text = shareText();
     if (kind === 'copy') { copyText(url, (ok) => toast(ok ? '링크를 복사했어요' : '복사가 막혀 있어요. 주소창의 주소를 직접 복사해 주세요')); return; }
     if (kind === 'x') { window.open('https://x.com/intent/post?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url), '_blank', 'noopener'); return; }
     if (kind === 'threads') { window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(text + ' ' + url), '_blank', 'noopener'); return; }
     if (kind === 'kakao') {
-      // 카카오 SDK 없이: 모바일 공유 시트가 있으면 그것(카카오톡 선택 가능), 없으면 링크 복사로 대체.
-      if (navigator.share) { navigator.share({ title: text, url }).catch(() => { /* 취소 */ }); return; }
-      copyText(url, (ok) => toast(ok ? '링크를 복사했어요. 카카오톡 대화창에 붙여 넣어 보내세요' : '복사가 막혀 있어요. 주소를 직접 복사해 카카오톡에 붙여 넣어 주세요'));
+      // 1) 카카오 SDK 공유(제목·설명·이미지 카드) 2) 안 되면 휴대폰 공유 창 3) 그것도 없으면 링크 복사
+      kakaoShare(url, text, shareDesc(), (ok) => {
+        if (ok) return;
+        if (navigator.share) { navigator.share({ title: text, url }).catch(() => { /* 취소 */ }); return; }
+        copyText(url, (ok2) => toast(ok2 ? '링크를 복사했어요. 카카오톡 대화창에 붙여 넣어 보내세요' : '복사가 막혀 있어요. 주소를 직접 복사해 카카오톡에 붙여 넣어 주세요'));
+      });
     }
   };
   function bindShare() {
     $$('[data-share]').forEach((b) => b.addEventListener('click', () => SHOW.share(b.getAttribute('data-share'))));
-    const u = $('.sh-share-url'); if (u) u.textContent = shareUrl();
   }
   /** 위저드 링크: file://이면 ../index.html, 서버면 /studio/ (해시는 유지) */
   function fixStudioLinks() {

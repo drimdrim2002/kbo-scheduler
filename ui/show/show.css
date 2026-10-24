@@ -160,33 +160,33 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-step i { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-style: normal; font-weight: 800; display: grid; place-items: center; }
 .sh-step h3 { margin: 5px 0 4px; font-size: 16px; }
 .sh-step p { margin: 0; }
-.sh-maker-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }
-.sh-maker-side { display: grid; justify-items: center; gap: 10px; }
-/* 좁은 폭: 칩을 그림 아래가 아니라 글 아래로(왼쪽 열이 칩 너비만큼 넓어져 글이 좁아지는 걸 막음) */
-@media (max-width: 559px) {
-  .sh-maker-side { display: contents; }
-  .sh-maker-row { grid-template-columns: 72px minmax(0, 1fr); grid-template-areas: "img text" "img chip"; row-gap: 10px; }
-  .sh-maker-row .sh-avatar { grid-area: img; }
-  .sh-maker-row .sh-chip { grid-area: chip; justify-self: start; }
-  .sh-maker-row > div:last-child { grid-area: text; }
-}
-.sh-maker-row + .sh-maker-row { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
-.sh-maker-h { font-size: 16px; font-weight: 800; line-height: 1.35; margin: 2px 0 4px; }
+/* 만든 사람 카드 한 줄 = 그림(72px 고정) | [제목 + 칩 한 줄] → 본문 (2026-10-24). 칩을 제목 옆에 두어 아래 빈 줄이 없고, 두 줄의 본문 시작선이 같다 */
+.sh-maker-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 16px; align-items: start; }
+.sh-maker-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 6px; min-height: 28px; }
+.sh-maker-row + .sh-maker-row { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sh-maker-h { font-size: 16px; font-weight: 800; line-height: 1.35; margin: 0; }
 .sh-maker-p { margin: 0; }
 .sh-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 11px; }
 .sh-avatar-img { border: 1px solid var(--line); background: #fff; overflow: hidden; }
 .sh-avatar-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sh-avatar-es img { object-fit: contain; padding: 10px; box-sizing: border-box; }
 /* 알약 칩 링크. 두 줄 다 같은 테두리 칩, hover 때만 파랑(규칙 2: 파랑 = 누르는 것) */
-.sh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 600; text-decoration: none; line-height: 1.2; transition: border-color .15s, background .15s, color .15s; }
+.sh-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 600; text-decoration: none; line-height: 1.2; transition: border-color .15s, background .15s, color .15s; }
 .sh-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .sh-chip svg { width: 14px; height: 14px; flex: none; }
 
 /* 공유 */
-.sh-share { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.sh-share .k-btn { justify-content: center; min-height: 44px; padding: 6px 4px; font-size: 13px; font-weight: 600; }
-.sh-share .k-btn svg { width: 16px; height: 16px; flex: none; }
-.sh-share-url { margin-top: 10px; font-size: 12px; color: var(--muted); word-break: break-all; }
+/* 공유: 둥근 로고 아이콘 + 아래 작은 이름(2026-10-24, 다른 사이트들의 공통 패턴). 상자 없음(규칙 3: 상자는 데이터에만). 서드파티 로고는 그 브랜드 색을 쓴다 */
+.sh-share { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; list-style: none; margin: 0; padding: 2px 0 0; } /* 가운데 정렬(사용자, 2026-10-24) */
+.sh-share-btn { display: grid; justify-items: center; gap: 7px; background: none; border: 0; padding: 4px; margin: 0; cursor: pointer; font: inherit; color: var(--fg); border-radius: 12px; }
+.sh-share-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; transition: transform .15s, box-shadow .15s; }
+.sh-share-ic svg { width: 26px; height: 26px; display: block; }
+.sh-share-kakao { background: #fee500; color: #191919; }
+.sh-share-x, .sh-share-threads { background: #0f1115; color: #fff; }
+.sh-share-copy { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
+.sh-share-btn:hover .sh-share-ic, .sh-share-btn:focus-visible .sh-share-ic { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(10, 30, 60, .14); }
+.sh-share-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sh-share-lb { font-size: 12px; color: var(--muted); line-height: 1.2; }
 .sh-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
 .sh-toast.on { opacity: 1; }
 
@@ -236,7 +236,6 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
   .sh-table { font-size: 14px; }
   .sh-table small { font-size: 12.5px; }
   .sh-result-title { font-size: 26px; }
-  .sh-share .k-btn { font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .sh-bar, .sh-progress-bar, .sh-toast { transition: none; } }
 
@@ -336,7 +335,6 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 }
 /* 버튼 2종 */
 .sh-body .k-btn { min-height: 44px; padding: 0 14px; border-radius: 10px; font-weight: 700; font-size: 15px; }
-.sh-share .k-btn { padding: 0 4px; font-size: 13px; }
 .sh-link { font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap; }
 .sh-link:hover { text-decoration: underline; }
 .sh-card-foot { justify-content: space-between; }
