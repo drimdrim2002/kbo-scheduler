@@ -40,7 +40,6 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-note { background: var(--info-bg); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
 .sh-honest { background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
 .sh-honest b { color: var(--warn); }
-.sh-placeholder { display: inline-block; border: 1px dashed var(--warn); background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 700; vertical-align: 1px; }
 .sh-list { padding-left: 20px; margin: 0; }
 .sh-list li { margin: 4px 0; }
 .sh-small { font-size: 13px; color: var(--muted); }
