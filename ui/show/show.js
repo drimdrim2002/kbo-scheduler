@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261024n', '../app/replay/replay.js?v=20261024n']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261024p', '../app/replay/replay.js?v=20261024p']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -79,6 +79,8 @@
     const f = fmt || ((v) => String(v));
     return lo === hi ? f(lo) : f(lo) + '~' + f(hi);
   }
+  /** 조사 고르기: 이름 끝 글자에 받침이 있으면 withB, 없으면 noB. 영문 구단명(SSG·LG·KT·KIA·NC)은 읽을 때 모두 받침 없이 끝난다(지·지·티·에이·씨) */
+  const josa = (name, withB, noB) => { const c = String(name).charCodeAt(String(name).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0 ? withB : noB; };
   const findTeam = (teams, name) => (teams || []).find((t) => t.name === name);
   const spread = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? Math.max(...xs) - Math.min(...xs) : null; };
 
@@ -114,7 +116,7 @@
     const rm = real.meanDistanceKm != null ? real.meanDistanceKm : meanOf(rt);
     if (rm != null) { v['real.meanKm'] = fmtInt(rm); v['real.meanTrips'] = String(Math.round(rm / SHOW.SEOUL_BUSAN_KM)); }
     v['msg.total'] = pct == null ? '이동거리를 비교해요' : pct > 0 ? '이동거리를 ' + pct + '% 줄였어요' : pct === 0 ? '이동거리는 같아요' : '이동거리가 ' + (-pct) + '% 늘었어요';
-    v['msg.fair'] = ratio == null ? '구단별 이동거리를 비교해요' : ratio < 0.6 ? '구단별 이동거리가 훨씬 공정해졌어요' : ratio < 0.9 ? '구단별 이동거리가 더 공정해졌어요' : ratio <= 1.1 ? '구단별 이동거리는 비슷하게 공정해요' : '구단별 이동거리는 실제가 더 공정해요';
+    v['msg.fair'] = ratio == null ? '구단별 이동거리를 비교해요' : ratio < 0.6 ? '구단별 이동거리 차이가 훨씬 줄었어요' : ratio < 0.9 ? '구단별 이동거리 차이가 줄었어요' : ratio <= 1.1 ? '구단별 이동거리 차이는 비슷해요' : '구단별 이동거리 차이는 실제가 더 작아요';
     v['diff.spreadTag'] = ratio == null ? '' : ratio < 0.6 ? '훨씬 공정' : ratio < 0.9 ? '더 공정' : ratio <= 1.1 ? '비슷' : '실제가 공정';
     const hs = (teams) => spread(teams, 'holidayWeight');
     const rh = rt.length ? hs(rt) : null, eh = et.length ? hs(et) : null;
@@ -146,8 +148,8 @@
   function totalBars(el, real, engine) {
     const max = Math.max(real.totalKm, engine.totalKm) || 1;
     const row = (name, val, cls) => '<div class="sh-bar-row"><span class="sh-bar-name">' + name + '</span><div class="sh-bar-track"><div class="sh-bar ' + cls + '" style="width:' + (val / max * 100).toFixed(1) + '%"></div></div><span class="sh-bar-val">' + fmtInt(val) + '<small> km</small></span></div>';
-    el.innerHTML = row('실제', real.totalKm, 'sh-bar-real') + row('이 결과', engine.totalKm, 'sh-bar-engine');
-    el.setAttribute('aria-label', '10구단 총 이동거리: 실제 ' + fmtInt(real.totalKm) + 'km, 이 결과 ' + fmtInt(engine.totalKm) + 'km');
+    el.innerHTML = row('KBO', real.totalKm, 'sh-bar-real') + row('매치봇', engine.totalKm, 'sh-bar-engine');
+    el.setAttribute('aria-label', '10구단 총 이동거리: KBO ' + fmtInt(real.totalKm) + 'km, 매치봇 ' + fmtInt(engine.totalKm) + 'km');
   }
   /** 구단별 작은 막대(실제·매치봇 2줄 × 10구단) */
   function teamBars(el, realTeams, engineTeams, key, opts) {
@@ -234,7 +236,10 @@
       const names = [];
       for (const idx of st.changed) { const t = m.teams[m.series[idx].home]; const nm = t ? t.name : String(m.series[idx].home); if (names.indexOf(nm) < 0) names.push(nm); }
       const who = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
-      return i + '번째 개선 · ' + RM.moveWord(m, prev, m.events[i - 1].changes) + (dist ? ' · ' + dist : '') + (who ? ' · ' + who : '');
+      // 총 이동거리가 늘어도 위쪽 단계(홈 경기·구단별 이동거리·이동 횟수)가 좋아지면 개선으로 친다. 그 까닭을 붙여 "개선인데 +"가 어색하게 읽히지 않게 한다
+      let why = '';
+      if (prev.soft && st.soft && st.soft[4] > prev.soft[4]) why = st.soft[3] < prev.soft[3] ? '대신 주말·공휴일 홈 경기가 더 고르게 됐어요' : st.soft[2] < prev.soft[2] ? '대신 구단별 이동거리 차이가 줄었어요' : st.soft[1] < prev.soft[1] ? '대신 구단별 이동 횟수가 더 고르게 됐어요' : '';
+      return i + '번째 개선 · ' + RM.moveWord(m, prev, m.events[i - 1].changes) + (dist ? ' · ' + dist : '') + (why ? ' · ' + why : '') + (who ? ' · ' + who : '');
     });
     p.update();
   }
@@ -243,15 +248,17 @@
    * 놓인 카드는 같이 숨긴다. 모듈의 place()는 보이지 않는 칸의 자리를 0으로 재서 카드를 왼쪽 위에 겹쳐 놓기 때문이다.
    */
   // 점수판 지표 이름(팬 말). 마지막은 곡선, 나머지는 칩(show.css)
-  const LEVEL_NAMES = { 1: '이동 횟수 고르기', 2: '구단별 이동거리 고르기', 3: '주말·공휴일 홈 고르기', 4: '10개 팀 전체 이동 거리' };
+  const LEVEL_NAMES = { 1: '이동 횟수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
   function fitBoard(box, p) {
     simpleCaptions(p);
+    const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/슬롯 (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "슬롯 45개"
+    const sh = $('.rp-score-h b', box); if (sh) sh.textContent = '이동거리 곡선'; // 모듈 기본은 "점수 곡선"
     $$('.rp-lv', box).forEach((el) => { const nm = el.querySelector('.rp-lv-name'), l = Number(el.getAttribute('data-l')); if (nm && LEVEL_NAMES[l]) nm.textContent = LEVEL_NAMES[l]; });
-    // 칩 값: 0이면 "맞춤 ✓", 아니면 "아직 N"
+    // 칩 값: 0이면 "다 맞췄어요 ✓", 아니면 "아직 N"
     const uc = p.updateCursor.bind(p);
     p.updateCursor = () => {
       uc();
-      $$('.rp-lv:not(:last-child) .rp-lv-val b', box).forEach((b) => { const n = Number(String(b.textContent).replace(/[^\d.-]/g, '')); b.textContent = n === 0 ? '맞춤 ✓' : '맞추는 중'; }); // 숫자(어긋난 정도의 합)는 팬에게 뜻이 없어 글로만
+      $$('.rp-lv:not(:last-child) .rp-lv-val b', box).forEach((b) => { const n = Number(String(b.textContent).replace(/[^\d.-]/g, '')); b.textContent = n === 0 ? '다 맞췄어요 ✓' : '맞추는 중'; }); // 숫자(어긋난 정도의 합)는 팬에게 뜻이 없어 글로만
     };
     p.updateCursor();
     const slots = $$('.rp-slot', box);
@@ -392,7 +399,7 @@
   const meanBy = (teams, key) => { const xs = teams.map((t) => t[key]).filter((x) => typeof x === 'number'); return xs.length ? xs.reduce((p, q) => p + q, 0) / xs.length : null; };
   /**
    * 점 지도(#h1-sc): 가로 = 시즌 이동거리 − 평균, 세로 = 주말·공휴일 홈 − 평균. 구단 하나가 점 하나.
-   * 오른쪽 아래(더 다니고 휴일 홈 적음)일수록 손해. 「매치봇이 짜면?」을 누르면 점이 매치봇 값 자리로 움직인다(같은 눈금).
+   * 오른쪽 아래(더 다니고 휴일 홈 적음)일수록 손해. 「매치봇이 만들면?」을 누르면 점이 매치봇 값 자리로 움직인다(같은 눈금).
    */
   function scatterViz(cmp) {
     const box = $('#h1-sc'); if (!box) return;
@@ -410,10 +417,10 @@
     svg += '<rect class="sc-q-bad" x="' + cx + '" y="' + cy + '" width="' + (W - R - cx) + '" height="' + (H - B - cy) + '" rx="8"/>';
     svg += '<line class="sc-axis" x1="' + L + '" y1="' + cy + '" x2="' + (W - R) + '" y2="' + cy + '"/><line class="sc-axis" x1="' + cx + '" y1="' + T + '" x2="' + cx + '" y2="' + (H - B) + '"/>';
     for (let v = tickX; v < xm; v += tickX) { [-v, v].forEach((u) => { svg += '<line class="sc-tick" x1="' + X(u) + '" y1="' + (cy - 4) + '" x2="' + X(u) + '" y2="' + (cy + 4) + '"/><text class="sc-tick-t" x="' + X(u) + '" y="' + (H - B - 5) + '" text-anchor="middle">' + (u > 0 ? '+' : '−') + fmtInt(Math.abs(u)) + 'km</text>'; }); }
-    for (let v = tickY; v < ym; v += tickY) { [-v, v].forEach((u) => { svg += '<line class="sc-tick" x1="' + (cx - 4) + '" y1="' + Y(u) + '" x2="' + (cx + 4) + '" y2="' + Y(u) + '"/><text class="sc-tick-t" x="' + (L + 3) + '" y="' + (Y(u) + 3.5) + '">' + (u > 0 ? '+' : '−') + Math.abs(u) + '회</text>'; }); }
+    for (let v = tickY; v < ym; v += tickY) { [-v, v].forEach((u) => { svg += '<line class="sc-tick" x1="' + (cx - 4) + '" y1="' + Y(u) + '" x2="' + (cx + 4) + '" y2="' + Y(u) + '"/><text class="sc-tick-t" x="' + (L + 3) + '" y="' + (Y(u) + 3.5) + '">' + (u > 0 ? '+' : '−') + Math.abs(u) + '경기</text>'; }); }
     // 축 표시는 축 끝에 바로: 가로 축 양끝(덜/더 다님), 세로 축 위아래(휴일 홈 많음/적음). 모서리에는 유리·손해만
     svg += '<text class="sc-ax" x="' + (L + 2) + '" y="' + (cy - 6) + '">← 덜 다님</text><text class="sc-ax" x="' + (W - R - 2) + '" y="' + (cy - 6) + '" text-anchor="end">더 다님 →</text>';
-    svg += '<text class="sc-ax" x="' + (cx + 6) + '" y="' + (T + 10) + '">↑ 휴일 홈 많음</text><text class="sc-ax" x="' + (cx + 6) + '" y="' + (H - B - 4) + '">↓ 휴일 홈 적음</text>';
+    svg += '<text class="sc-ax" x="' + (cx + 6) + '" y="' + (T + 10) + '">↑ 주말·공휴일 홈 많음</text><text class="sc-ax" x="' + (cx + 6) + '" y="' + (H - B - 19) + '">↓ 주말·공휴일 홈 적음</text>';
     svg += '<text class="sc-cap good" x="' + (L + 6) + '" y="' + (T + 14) + '">유리</text>';
     svg += '<text class="sc-cap bad" x="' + (W - R - 6) + '" y="' + (H - B - 6) + '" text-anchor="end">손해</text>';
     svg += '<g id="h1-sc-pts"></g></svg>';
@@ -451,8 +458,8 @@
       if (!picked) { say.textContent = ''; return; }
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
       const kmW = Math.abs(d.x) < 50 ? '이동거리는 평균 수준이고' : '평균보다 ' + fmtInt(Math.abs(d.x)) + 'km ' + (d.x > 0 ? '더' : '덜') + ' 다니고';
-      const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '휴일 홈 경기는 평균만큼이에요.' : '휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
-      say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + '는 ' + kmW + ', ' + hW;
+      const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '주말·공휴일 홈 경기는 평균만큼이에요.' : '주말·공휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
+      say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW;
     }
     function place(kind) {
       const list = D[kind] || D.real, plan = labelPlan(list);
@@ -462,7 +469,7 @@
         el.style.transform = 'translate(' + X(d.x).toFixed(1) + 'px,' + Y(d.y).toFixed(1) + 'px)';
         const lp = plan[n] || { x: 10, y: 4, anchor: 'start' }, tx = el.querySelector('text');
         tx.setAttribute('x', lp.x); tx.setAttribute('y', lp.y); tx.setAttribute('text-anchor', lp.anchor); tx.textContent = n;
-        el.querySelector('circle').innerHTML = '<title>' + esc(n + ' · 이동거리 ' + fmtInt(d.km) + 'km(' + (d.x >= 0 ? '+' : '−') + fmtInt(Math.abs(d.x)) + ') · 휴일 홈 ' + d.hol + '회(' + (d.y >= 0 ? '+' : '−') + Math.abs(Math.round(d.y * 10) / 10) + ')') + '</title>';
+        el.querySelector('circle').innerHTML = '<title>' + esc(n + ' · 이동거리 ' + fmtInt(d.km) + 'km(' + (d.x >= 0 ? '+' : '−') + fmtInt(Math.abs(d.x)) + ') · 주말·공휴일 홈 ' + d.hol + '경기(' + (d.y >= 0 ? '+' : '−') + Math.abs(Math.round(d.y * 10) / 10) + ')') + '</title>';
       });
       // 꼬리표: 실제 일정에서 가장 손해·유리한 구단에만
       const score = (d) => d.x / xm - d.y / ym;
@@ -478,14 +485,15 @@
       curKind = kind;
       box.classList.toggle('sh-engine-on', kind === 'engine');
       applyPick();
-      box.setAttribute('aria-label', (kind === 'engine' ? '매치봇 일정' : '실제 2025 일정') + ' 구단별 이동거리·휴일 홈 점 지도: ' + list.map((d) => d.name + ' ' + fmtInt(d.km) + 'km·' + d.hol + '회').join(', '));
+      box.setAttribute('aria-label', (kind === 'engine' ? '매치봇 일정' : '실제 2025 일정') + ' 구단별 이동거리·휴일 홈 점 지도: ' + list.map((d) => d.name + ' ' + fmtInt(d.km) + 'km·' + d.hol + '경기').join(', '));
       const note = $('#h1-sc-note');
       if (note) {
         if (kind === 'engine' && D.engine) {
           const ks = D.engine.map((d) => d.km), hs = D.engine.map((d) => d.hol);
-          note.textContent = '열 구단이 가운데로 모여요. 이동거리 차이는 ' + fmtInt(Math.max(...ks) - Math.min(...ks)) + 'km, 휴일 홈은 ' + (Math.max(...hs) === Math.min(...hs) ? '모두 ' + hs[0] + '회' : Math.min(...hs) + '~' + Math.max(...hs) + '회') + '예요.';
+          const rks = D.real.map((d) => d.km);
+          note.textContent = '열 개 구단이 가운데로 모여요. 가장 많이 다닌 구단과 적게 다닌 구단의 차이는 ' + fmtInt(Math.max(...ks) - Math.min(...ks)) + 'km(실제 ' + fmtInt(Math.max(...rks) - Math.min(...rks)) + 'km), 주말·공휴일 홈 경기는 ' + (Math.max(...hs) === Math.min(...hs) ? '모두 ' + hs[0] + '경기' : Math.min(...hs) + '~' + Math.max(...hs) + '경기') + '예요.';
         } else {
-          note.textContent = '2025년엔 ' + worst.name + '가 가장 많이 다니면서 휴일 홈 경기도 적었고, ' + best.name + '은 그 반대였어요.';
+          note.textContent = '2025년엔 ' + worst.name + josa(worst.name, '이', '가') + ' 가장 많이 다니면서 주말·공휴일 홈 경기도 적어서 가장 손해였고, ' + best.name + josa(best.name, '은', '는') + ' 그 반대였어요.';
         }
       }
       $$('[data-sc]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-sc') === kind)));
@@ -667,7 +675,7 @@
       const tick = () => {
         const el = Math.min(total, Date.now() - t0), k = el / total;
         setBar(k);
-        txt.textContent = (k < 0.3 ? '여러 출발점에서 동시에 짜는 중' : k < 0.7 ? '이동거리를 줄이는 중' : '구단 간 차이를 고르는 중') + ' · ' + Math.round(el / 1000) + '/' + Math.round(total / 1000) + '초';
+        txt.textContent = (k < 0.3 ? '여러 출발점에서 동시에 만드는 중' : k < 0.7 ? '이동거리를 줄이는 중' : '구단 간 차이를 고르는 중') + ' · ' + Math.round(el / 1000) + '/' + Math.round(total / 1000) + '초';
         if (el < total) { setTimeout(tick, 250); return; }
         const p = new URLSearchParams({ id: 'default', tol: tolOf(), cd: teams.join(',') });
         location.href = 'r.html?' + p.toString();
@@ -716,7 +724,7 @@
         if (finished) return;
         const el = Date.now() - t0;
         setBar(Math.min(0.97, el / total));
-        const head = bestKm != null ? '지금까지 가장 좋은 일정: ' + fmtInt(bestKm) + ' km' : (seeds ? '출발점 ' + seeds + '개에서 동시에 짜는 중' : '여러 출발점에서 동시에 짜는 중');
+        const head = bestKm != null ? '지금까지 가장 좋은 일정: ' + fmtInt(bestKm) + ' km' : (seeds ? '출발점 ' + seeds + '개에서 동시에 만드는 중' : '여러 출발점에서 동시에 만드는 중');
         txt.textContent = head + ' · ' + (el < limit ? Math.floor(el / 1000) + '/' + timeLimitSec + '초 생각' : '거의 다 됐어요');
         sayNext();
         timer = setTimeout(running, 250);
@@ -842,7 +850,7 @@
       bind(v);
       const title = knobsTitle(res.knobs) || res.title || '편성 결과';
       // 머리글은 제목(조건)을 되풀이하지 않고 결과 번호만 단다
-      bind({ 'result.title': title, 'result.sub': '번호 ' + id, 'result.id': id });
+      bind({ 'result.title': title, 'result.sub': id === 'default' ? '기본 결과' : '번호 ' + id, 'result.id': id });
       const kb = res.knobs || {};
       bind({
         'knob.tol': kb.distanceToleranceKm != null ? tolWord(kb.distanceToleranceKm) + ' (±' + fmtInt(kb.distanceToleranceKm) + 'km)' : '–',
@@ -853,13 +861,13 @@
         'knob.improve': res.improvementCount != null ? fmtInt(res.improvementCount) + '번 개선' : '–'
       });
       document.title = title + ' — ' + SHOW.SITE;
-      const ogd = '총 이동거리 ' + fmtInt(engine.totalKm) + 'km (실제 ' + fmtInt(real.totalKm) + 'km, ' + v['diff.totalKmPct'] + '% ' + v['diff.totalKmWord'] + ') · 구단 간 차이 ' + fmtInt(engine.spreadKm) + 'km (실제 ' + fmtInt(real.spreadKm) + 'km)';
+      const ogd = (v.pct == null ? '이동거리를 비교해요' : v.pct > 0 ? '이동거리 ' + v.pct + '% 줄었어요' : v.pct === 0 ? '이동거리는 같아요' : '이동거리 ' + (-v.pct) + '% 늘었어요') + ' · ' + fmtInt(engine.totalKm) + 'km (실제 ' + fmtInt(real.totalKm) + 'km) · 구단별 이동거리 차이 ' + fmtInt(engine.spreadKm) + 'km (실제 ' + fmtInt(real.spreadKm) + 'km)';
       setMeta('og:title', title + ' — ' + SHOW.SITE); setMeta('og:description', ogd); setMeta('description', ogd);
       const tb = $('#cmp-total'); if (tb) totalBars(tb, real, engine);
       const trend = $('#weekend-note');
       if (trend && real.weekendHomeMin != null) {
         const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;
-        trend.textContent = '주말 홈 경기 수: 실제 ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '회, 이 결과 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '회 — ' + (ew2 > rw2 ? '실제 일정이 더 고릅니다.' : ew2 < rw2 ? '이 결과가 더 고릅니다.' : '같은 수준입니다.');
+        trend.textContent = '홈에서 치르는 주말 3연전: KBO ' + real.weekendHomeMin + '~' + real.weekendHomeMax + '번, 매치봇 ' + engine.weekendHomeMin + '~' + engine.weekendHomeMax + '번 — ' + (ew2 > rw2 ? 'KBO 일정이 더 고르게 나뉘었어요.' : ew2 < rw2 ? '매치봇이 더 고르게 나눴어요.' : '같은 수준이에요.');
       }
       const sl = $('#studio-link');
       if (sl) sl.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + studioQuery(kb, res.seed) + '#step=2');
@@ -915,7 +923,7 @@
       more.textContent = '더 오래(' + SHOW.THINK[next].word + ' ' + next + '초) 다시 해 보기';
     } else {
       p.set('t', String(steps[steps.length - 1]));
-      note.textContent = sec != null ? '가장 오래(' + sec + '초) 생각한 결과예요. 다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.' : '다른 출발점에서 다시 짜면 결과가 달라질 수 있어요.';
+      note.textContent = sec != null ? '가장 오래(' + sec + '초) 생각한 결과예요. 다른 출발점에서 다시 만들면 결과가 달라질 수 있어요.' : '다른 출발점에서 다시 만들면 결과가 달라질 수 있어요.';
       more.textContent = '다른 출발점에서 다시 해 보기';
     }
     more.setAttribute('href', 'index.html?' + p.toString() + '#try');
