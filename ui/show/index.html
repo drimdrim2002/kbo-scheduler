@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>매치봇 — KBO 144경기 일정, 30초 만에 짜면?</title>
-<meta name="description" content="실제 2025 KBO 일정과 같은 조건으로 매치봇이 짠 일정을 비교합니다. 총 이동거리 13% 절감, 구단 간 차이 60% 축소, 주말 홈 수는 같은 수준. 직접 조건을 바꿔 돌려 보고 링크로 공유하세요.">
+<title>매치봇 — KBO 144경기 일정을 다시 만든다면?</title>
+<meta name="description" content="2025 KBO 일정을 같은 규칙으로 매치봇이 다시 만들었어요. 이동거리는 13% 줄고, 구단별 이동거리 차이는 60% 줄었어요. 만드는 과정도 직접 볼 수 있어요.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="KBO 144경기 일정, 매치봇이 30초 만에 짜면?">
-<meta property="og:description" content="같은 조건, 30초 만에 이동거리 13% 절감·구단 간 차이 60% 축소. 탐색 과정을 재생해 보고 직접 돌려 보세요.">
+<meta property="og:title" content="KBO 144경기 일정, 매치봇이 다시 만든다면?">
+<meta property="og:description" content="같은 규칙으로 다시 만든 일정이에요. 이동거리 13% 감소, 구단별 이동거리 차이 60% 감소. 만드는 과정을 재생해 보세요.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>
@@ -26,9 +26,9 @@
 <!-- 매치봇 워드마크 글꼴(Jua, 브랜드 가이드). 이 사이트의 외부 요청은 이 글꼴과 탭해서 부르는 카카오맵뿐. 못 받으면 기본 글꼴로 보인다 -->
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
-<link rel="stylesheet" href="../app/common/common.css?v=20261024n">
-<link rel="stylesheet" href="../app/replay/replay.css?v=20261024n">
-<link rel="stylesheet" href="show.css?v=20261024h">
+<link rel="stylesheet" href="../app/common/common.css?v=20261024p">
+<link rel="stylesheet" href="../app/replay/replay.css?v=20261024p">
+<link rel="stylesheet" href="show.css?v=20261024p">
 </head>
 <body class="sh-body" data-page="index">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -72,8 +72,8 @@
 </svg>
 <header class="sh-top">
   <div class="sh-wrap">
-    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 플레이그라운드</span></a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html">비교</a><a href="r.html?id=default">매치봇 일정</a></nav>
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 개선 제안</span></a>
+    <nav class="sh-nav sh-nav-pc" aria-label="PC 메뉴"><a href="../index.html" data-studio>편성 스튜디오</a></nav>
   </div>
 </header>
 
@@ -91,21 +91,21 @@
 
   <!-- ① 첫 화면: 문제 배경(대사 → 공평할까요? → 두 가지 → 2025 실제 점 지도) → 매치봇 결과 -->
   <section class="sh-sec sh-story" id="hero" aria-labelledby="hero-h">
-    <p class="sh-kicker">2025 KBO 일정 들여다보기</p>
+    <p class="sh-kicker">2025 KBO 일정</p>
     <h1 class="sh-h1" id="hero-h">우리 팀 일정, 공평할까요?</h1>
-    <p class="sh-lead">144경기 중 72경기가 원정이라, 10개 팀이 동시에 전국을 돌아요. 이동거리와 주말·공휴일 홈 경기를 열 구단 모두에게 고르게 나누기는 어려워서, 해마다 어떤 구단은 손해를 봐요.</p>
+    <p class="sh-lead">144경기 중 72경기가 원정이라, 열 개 구단이 동시에 전국을 돌아요. 이동거리와 주말·공휴일 홈 경기를 똑같이 나누기는 어려워서, 어떤 구단은 손해를 봐요.</p>
     <!-- 숫자 띠: 설명 문단의 숫자를 카드로. 블록 규칙 = 제목 → 설명 → 그림·상자 → 보조 -->
     <div class="sh-facts" role="list" aria-label="한 시즌 기본 숫자">
       <div class="sh-fact" role="listitem"><b>144<small>경기</small></b><span>구단마다 한 시즌에</span></div>
-      <div class="sh-fact" role="listitem"><b><span data-n="real.meanKm">7,296</span><small>km</small></b><span>구단당 평균 · 서울–부산 <span data-n="real.meanTrips">18</span>번</span></div>
+      <div class="sh-fact" role="listitem"><b><span data-n="real.meanKm">7,296</span><small>km</small></b><span>구단이 시즌 동안 이동하는 평균 거리</span></div>
     </div>
     <h2 class="sh-story-h">고르게 나눠야 할 게 두 가지예요</h2>
     <div class="sh-why">
-      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></i><div><b>이동거리</b><span>구장 사이 거리가 제각각이라, 어떤 원정을 받느냐에 따라 시즌 이동거리가 수백 km씩 달라져요. 고척–인천 25km, 고척–부산 407km.</span></div></div>
-      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="13" y="13" width="4" height="4" rx="1"/></svg></i><div><b>주말·공휴일 홈 경기</b><span>관중이 가장 많은 날이라 구단마다 민감해요. 이것도 열 구단이 고르게 가져야 하죠.</span></div></div>
+      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></i><div><b>이동거리</b><span>어떻게 일정을 만드느냐에 따라 이동거리가 구단마다 크게 달라져요.</span></div></div>
+      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="13" y="13" width="4" height="4" rx="1"/></svg></i><div><b>주말·공휴일 홈 경기</b><span>주말 및 공휴일은 관중이 가장 많이 오는 날이라 구단에게 중요해요.</span></div></div>
     </div>
     <h2 class="sh-story-h">실제 2025 일정은요</h2>
-    <p class="sh-lead sh-sc-how">점 하나가 구단 하나예요. <b>오른쪽</b>일수록 많이 다니고, <b>아래</b>일수록 휴일 홈 경기가 적어요. 오른쪽 아래가 가장 손해예요. <span id="h1-sc-note">2025년엔 KIA가 가장 많이 다니면서 휴일 홈 경기도 적었고, 두산은 그 반대였어요.</span></p>
+    <p class="sh-lead sh-sc-how">점 하나가 구단 하나예요. <b>오른쪽</b>일수록 많이 다니고, <b>아래</b>일수록 주말·공휴일 홈 경기가 적어요. 오른쪽 아래가 가장 손해예요. <span id="h1-sc-note">2025년엔 KIA가 가장 많이 다니면서 주말·공휴일 홈 경기도 적어서 가장 손해였고, 두산은 그 반대였어요.</span></p>
     <div class="sh-card sh-viz">
       <!-- 점 지도: 가로 이동거리 편차 · 세로 휴일 홈 편차, 구단 하나가 점 하나 -->
       <div class="sh-viz-main">
@@ -115,7 +115,7 @@
         <p class="sh-sc-say" id="h1-sc-say" aria-live="polite"></p>
         <div class="sh-seg sh-seg-s" role="group" aria-label="실제 일정과 매치봇 일정 전환">
           <button type="button" data-sc="real" aria-pressed="true">실제 2025 일정</button>
-          <button type="button" data-sc="engine" aria-pressed="false">매치봇이 짜면?</button>
+          <button type="button" data-sc="engine" aria-pressed="false">매치봇이 만들면?</button>
         </div>
       </div>
     </div>
@@ -155,15 +155,16 @@
       <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn" data-kakao-key="dd04ee384353180b67c19cfab63bb763">카카오맵으로 보기</button></div>
       <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 매치봇 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
     </div>
-    <h2 class="sh-story-h">그래서 매치봇이 다시 짜 봤어요</h2>
-    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·원정 4연속 금지)으로 매치봇이 <span data-n="engine.seconds">30</span>초 동안 찾은 일정이에요. 열 구단 모두에게 고른지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">매치봇이 받은 조건 보기 →</a></p></div>
+    <h2 class="sh-story-h">그래서 매치봇이 다시 만들어 봤어요</h2>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·홈/원정 시리즈 4번 연속 금지)으로 매치봇이 찾은 일정이에요. 출발점 <span data-n="engine.seeds">8</span>개로 돌려 가장 좋았던 결과예요. 열 개 구단에게 얼마나 공평한지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">매치봇이 받은 조건 보기 →</a></p></div>
     <div class="sh-stats sh-stats-msg">
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">실제 <b><span data-n="real.totalKm">72,955</span>km</b> → 매치봇 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</span><span class="sh-stat-d">실제 <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 매치봇 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
-      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">실제 <b><span data-n="real.holiday">22~28</span></b> → 매치봇 <b><span data-n="engine.holidayText">모두 25</span></b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.total">이동거리를 13% 줄였어요</span><span class="sh-stat-d">KBO <b><span data-n="real.totalKm">72,955</span>km</b> → 매치봇 <b><span data-n="engine.totalKm">63,312</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.fair">구단별 이동거리 차이가 훨씬 줄었어요</span><span class="sh-stat-d">KBO <b><span data-n="real.rangeKm">6,711~8,084</span>km</b> → 매치봇 <b><span data-n="engine.rangeKm">6,078~6,632</span>km</b></span></div>
+      <div class="sh-stat"><span class="sh-stat-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</span><span class="sh-stat-d">KBO <b><span data-n="real.holiday">22~28</span>경기</b> → 매치봇 <b><span data-n="engine.holidayText">모두 25</span>경기</b></span></div>
     </div>
-    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 짠 일정 자세히</a><a class="k-btn" href="compare.html">실제 vs 매치봇 자세히</a></div>
-    <p class="sh-small" style="margin-top:10px">실제 = KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 매치봇 = 같은 규칙·같은 채점 방식으로 짠 일정. 이 사이트는 KBO와 무관한 개인 프로젝트입니다.</p>
+    <p class="sh-small sh-stat-how" style="margin:10px 0 0"><b>숫자 읽는 법</b> 이동거리는 열 개 구단이 한 시즌 동안 원정을 다니며 이동한 거리를 모두 더한 값이에요. 구단별 이동거리 차이는 가장 적게 다닌 구단과 가장 많이 다닌 구단이 얼마나 벌어지는지예요. 주말·공휴일 홈 경기는 관중이 가장 많이 오는 날에 홈구장에서 치르는 경기 수예요.</p>
+    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇 일정 자세히 보기</a><a class="k-btn" href="compare.html">실제와 나란히 비교</a></div>
+    <p class="sh-small" style="margin-top:10px">KBO = KBO가 발표한 2025 정규시즌 1차 일정(3/22~8/29, 225시리즈). 매치봇 = 같은 규칙·같은 계산 방식으로 만든 일정.</p>
   </section>
 
 
@@ -173,8 +174,8 @@
   <!-- ③ 탐색 과정 미리보기 -->
   <section class="sh-sec" id="replay" aria-labelledby="replay-h">
     <h2 class="sh-h2" id="replay-h">매치봇은 이렇게 고쳐 나가요</h2>
-    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-think"/></svg><p class="sh-lead sh-say-msg">저는 대충 맞는 일정에서 시작해요. 3연전 카드 몇 장의 날짜를 바꿔 보고, 이동거리가 줄면 남기고 아니면 되돌려요. 이걸 1초에 수천 번 되풀이한 40초를 그대로 보여 드릴게요.</p></div>
-    <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 팀 전체 이동거리예요. 내려갈수록 좋아요. 일정판의 카드 1장은 3연전 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 그 수를 설명해요.</p>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-think"/></svg><p class="sh-lead sh-say-msg">저는 일단 일정을 대충 맞춰 봐요. 그리고 나름의 기술로 카드 몇 장을 바꿔 보면서 이동거리를 줄여 봐요. 이렇게 찾아낸 개선만 모아서 40초로 보여 드릴게요.</p></div>
+    <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 팀 전체 이동거리예요. 내려갈수록 좋아요. 카드 1장은 시리즈(3연전) 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 방금 바뀐 내용을 설명해요.</p>
     <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">화면에 들어오면 탐색 과정을 불러와요.</div></div></div>
   </section>
 
@@ -182,7 +183,7 @@
   <!-- 「직접 해보기」 폼은 2026-10-23 소개에서 내렸다(사용자: 팬 홍보용으로는 과함, KBO 쪽은 별도 계정으로 2027 입력). 코드는 그대로, hidden만 -->
   <section class="sh-sec" id="try" aria-labelledby="try-h" hidden>
     <h2 class="sh-h2" id="try-h">직접 해보기</h2>
-    <p class="sh-lead">조건 두 가지만 바꿔서 다시 짜 보세요. 결과는 링크로 공유할 수 있어요.</p>
+    <p class="sh-lead">조건 두 가지만 바꿔서 다시 만들어 보세요. 결과는 링크로 공유할 수 있어요.</p>
     <form class="sh-card sh-try" id="try-form" novalidate>
       <span class="sh-mock" title="서버 연결 전: 고른 시간만큼 기다린 뒤 기본 결과로 이동합니다">목업</span>
       <fieldset class="sh-field" style="border:0;padding:0;margin:0 0 20px">
@@ -236,9 +237,9 @@
   <section class="sh-sec" id="how" aria-labelledby="how-h">
     <h2 class="sh-h2" id="how-h">어떻게 하는 건가요?</h2>
     <div class="sh-steps">
-      <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 짜기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 경우의 수는 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈이나 원정이 4연속으로 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 휴일 경기 수를 고르게 하는 것. 매치봇은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 1초에 수천 번</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 한 시리즈를 다른 날짜로 옮기는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 매치봇의 엔진은 오픈소스 OptaPlanner예요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 만들기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 방법은 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈 시리즈나 원정 시리즈가 4번 연속 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 주말·공휴일 홈 경기 수를 고르게 하는 것. 매치봇은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 쉬지 않고</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 날짜 두 칸의 시리즈를 통째로 바꾸는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 매치봇의 엔진은 오픈소스 OptaPlanner예요.</p></div></div>
     </div>
   </section>
 
@@ -280,10 +281,9 @@
 
 <footer class="sh-foot">
   <div class="sh-wrap">
-    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다. 데이터: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29, 45슬롯 225시리즈)과 구장 간 거리표. 매치봇 엔진: OptaPlanner.</p>
-    <p><a href="compare.html">실제 vs 매치봇 자세히</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
+    <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
   </div>
 </footer>
-<script src="show.js?v=20261024n"></script>
+<script src="show.js?v=20261024p"></script>
 </body>
 </html>

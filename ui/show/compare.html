@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>실제 2025 일정 vs 매치봇 — 매치봇</title>
-<meta name="description" content="KBO 발표 2025 정규시즌 1차 일정과 같은 조건으로 매치봇이 짠 일정을 같은 채점 방식으로 비교합니다. 총 이동거리·구단 간 차이·이동 횟수·휴일 가중치·주말 홈·원정 연속.">
+<meta name="description" content="KBO 발표 2025 정규시즌 1차 일정과 같은 조건으로 매치봇이 만든 일정을 같은 채점 방식으로 비교합니다. 총 이동거리·구단 간 차이·이동 횟수·휴일 가중치·주말 홈·원정 연속.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="실제 2025 KBO 일정 vs 매치봇: 같은 조건, 같은 채점 방식">
 <meta property="og:description" content="총 이동거리 72,955 → 63,312km, 구단 간 차이 1,373 → 554km. 주말 홈 수는 같은 수준(11~12회).">
@@ -25,8 +25,8 @@
 <!-- 매치봇 워드마크 글꼴(Jua, 브랜드 가이드). 이 사이트의 외부 요청은 이 글꼴과 탭해서 부르는 카카오맵뿐. 못 받으면 기본 글꼴로 보인다 -->
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
-<link rel="stylesheet" href="../app/common/common.css?v=20261024n">
-<link rel="stylesheet" href="show.css?v=20261024n">
+<link rel="stylesheet" href="../app/common/common.css?v=20261024p">
+<link rel="stylesheet" href="show.css?v=20261024p">
 </head>
 <body class="sh-body" data-page="compare">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -70,7 +70,7 @@
 </svg>
 <header class="sh-top">
   <div class="sh-wrap">
-    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 플레이그라운드</span></a>
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 개선 제안</span></a>
     <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html" aria-current="page">비교</a><a href="r.html?id=default">매치봇 일정</a></nav>
   </div>
 </header>
@@ -84,7 +84,7 @@
     <div class="sh-card sh-summary">
       <ul class="sh-msgs">
         <li><b data-n="msg.total">이동거리를 13% 줄였어요</b><span>실제 <span data-n="real.totalKm">72,955</span>km → 매치봇 <span data-n="engine.totalKm">63,312</span>km</span></li>
-        <li><b data-n="msg.fair">구단별 이동거리가 훨씬 공정해졌어요</b><span>실제 <span data-n="real.rangeKm">6,711~8,084</span>km → 매치봇 <span data-n="engine.rangeKm">6,078~6,632</span>km</span></li>
+        <li><b data-n="msg.fair">구단별 이동거리 차이가 훨씬 줄었어요</b><span>실제 <span data-n="real.rangeKm">6,711~8,084</span>km → 매치봇 <span data-n="engine.rangeKm">6,078~6,632</span>km</span></li>
         <li><b data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</b><span>실제 <span data-n="real.holiday">22~28</span> → 매치봇 <span data-n="engine.holidayText">모두 25</span></span></li>
       </ul>
     </div>
@@ -162,7 +162,7 @@
         <li>구장 간 거리: 카카오맵으로 잰 구장 사이 도로 거리(위 「구장 간 거리표」). 실제 버스·항공 이동과는 다를 수 있어요.</li>
         <li>매치봇 엔진: 오픈소스 OptaPlanner.</li>
       </ul>
-      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 짠 일정 보기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
+      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 만든 일정 보기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
     </div>
   </section>
 </main>
@@ -170,10 +170,10 @@
 <footer class="sh-foot">
   <div class="sh-wrap">
     <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요 →</p>
-    <p>이 사이트는 KBO와 무관한 개인 프로젝트이며 KBO 로고를 쓰지 않습니다.</p>
+    <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
     <p><a href="index.html">소개로</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261024n"></script>
+<script src="show.js?v=20261024p"></script>
 </body>
 </html>

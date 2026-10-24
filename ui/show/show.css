@@ -23,6 +23,9 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-nav { margin-left: auto; display: flex; gap: 2px; flex: none; }
 .sh-nav a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; color: var(--muted); font-size: 14px; padding: 0 10px; border-radius: 6px; white-space: nowrap; }
 .sh-nav a:hover, .sh-nav a[aria-current] { color: var(--fg); background: var(--surface-2); }
+/* 편성 스튜디오는 PC에서만 쓸 수 있어 휴대폰·태블릿 폭에서는 숨긴다(.sh-pc와 같은 1024px) */
+.sh-nav-pc { display: none; }
+@media (min-width: 1024px) { .sh-nav-pc { display: flex; } }
 
 /* 블록 */
 .sh-sec { padding: 32px 0; border-top: 1px solid var(--line); scroll-margin-top: 56px; }
