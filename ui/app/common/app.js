@@ -181,7 +181,8 @@
       if (!patch.name) { UI.toast('구단명은 비울 수 없습니다.', 'warn'); return false; }
       if (patch.name !== old.name && st.teams.some((t) => t.name === patch.name)) { UI.toast('이미 있는 구단명입니다.', 'warn'); return false; }
     }
-    const locationChanged = ['stadium', 'latitude', 'longitude'].some((k) => patch[k] != null && patch[k] !== old[k]);
+    // 거리를 다시 추정하는 것은 위치(위도·경도)가 바뀔 때만 — 구장 이름만 바꾸면 직접 적은 거리를 그대로 둔다
+    const locationChanged = ['latitude', 'longitude'].some((k) => patch[k] != null && Number(patch[k]) !== old[k]);
     return this.commit('구단 수정: ' + old.name, (s) => {
       const t = s.teams[i];
       const oldName = t.name;

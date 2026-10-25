@@ -115,7 +115,6 @@
       const kakao = r.source === 'KAKAO' && !r.note;
       Object.assign(f, { busy: false, src: kakao ? '카카오 장소 검색' : '기본 구장 목록' + (app().kakaoKey ? '(카카오 검색을 쓰지 못함)' : ''), results: r.results.slice(0, 6) });
       if (f.results.length === 1) pickStadium(i, 0);
-      else if (!f.results.length && q !== t.stadium) app().updateTeam(i, { stadium: q }); // 이름만 저장하고 위도·경도는 직접 적는다
       S.render();
       return f;
     });
@@ -159,27 +158,32 @@
       if (t.latitude !== f.done.lat || t.longitude !== f.done.lon) return ''; // 실행 취소 등으로 위치가 달라졌다
       return '<div class="gs-find ok">' + icon('check') + ' 「' + esc(f.done.name) + '」' + (f.done.address ? '(' + esc(f.done.address) + ')' : '') + (f.src === '지도에서 직접 찍음' ? ' ' + f.done.lat.toFixed(4) + ', ' + f.done.lon.toFixed(4) : '') + (f.done.same ? ' — 이미 이 위치입니다.' : ' 위치로 위도·경도를 채웠습니다. 이 구단의 거리는 직선거리로 다시 추정했습니다.') + '<span class="gs-find-src">찾은 곳: ' + esc(f.src) + (f.done.same ? '' : ' · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다') + '</span></div>';
     }
-    if (!f.results || !f.results.length) return '<div class="gs-find warn">' + icon('warn') + ' 「' + esc(f.q) + '」을(를) 찾지 못했습니다 — 위도·경도를 직접 적어 주세요.<span class="gs-find-src">찾아본 곳: ' + esc(f.src) + '</span></div>';
+    if (!f.results || !f.results.length) return '<div class="gs-find warn">' + icon('warn') + ' 「' + esc(f.q) + '」을(를) 찾지 못했습니다 — ' + (app().kakao && app().kakaoKey ? '다른 이름(예: 「○○야구장」)으로 다시 찾거나 「지도에서 찍기」로 자리를 골라 주세요.' : '다른 이름으로 다시 찾아 주세요. 기본 구장 목록에 없는 구장은 설정 › 카카오 지도 키를 넣으면 카카오 장소 검색과 지도에서 찍기로 찾을 수 있습니다.') + '<span class="gs-find-src">찾아본 곳: ' + esc(f.src) + ' · 구장 이름은 아직 바꾸지 않았습니다</span></div>';
     return '<div class="gs-find">「' + esc(f.q) + '」 검색 결과 ' + f.results.length + '곳 — 맞는 곳을 누르면 위도·경도를 채웁니다. 오른쪽 지도의 파란 번호 표시를 눌러도 됩니다.<div class="gs-cands" role="listbox" aria-label="구장 검색 결과">' +
       f.results.map((x, k) => '<button class="gs-cand" data-act="g1-find-pick" data-row="' + i + '" data-k="' + k + '" role="option"><b><span class="gs-cand-no">' + (k + 1) + '</span>' + esc(x.name) + '</b><small>' + esc((x.address ? x.address + ' · ' : '') + Number(x.latitude).toFixed(4) + ', ' + Number(x.longitude).toFixed(4)) + '</small></button>').join('') +
       '</div><span class="gs-find-src">찾아본 곳: ' + esc(f.src) + ' <button class="lnk" data-act="g1-find-close">닫기</button></span></div>';
   }
   function teamEditor() {
     const st = app().state, i = S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1;
-    if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표나 지도에서 구단을 누르면 여기서 구단명·구장·위도·경도를 고칩니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
+    if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표나 지도에서 구단을 누르면 여기서 구단명·구장을 고치고, 구장 위치와 다른 구장까지 거리를 봅니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
     const t = st.teams[i], f = findState(i);
     const kakaoMap = !!(app().kakao && app().kakaoKey), picking = kakaoMap && S.ui.mapPick && S.ui.mapPick.row === i;
     const inp = (k, label, v, ph) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm" data-in="team-field" data-row="' + i + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="' + esc(t.name + ' ' + label) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></label>';
+    // 위도·경도는 직접 고치지 않는다: 구장 칸 Enter(장소 검색)·지도에서 찍기로만 바뀐다
+    const ro = (label, v) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm ro" data-ro="1" value="' + esc(v) + '" readonly tabindex="-1" aria-label="' + esc(t.name + ' ' + label + '(구장을 찾으면 채워짐)') + '" title="구장 칸에서 Enter로 찾' + (kakaoMap ? '거나 「지도에서 찍기」로 고르' : '') + '면 채워집니다"></label>';
     const stdV = f && !f.done ? f.q : t.stadium; // 고르는 중이면 적은 이름 그대로
     const others = st.teams.filter((x) => x.name !== t.name).map((x) => { const d = app().distanceOf(t.name, x.name) || {}; return { n: x.name, d: d.distance, est: !!d.estimated }; }).sort((a, b) => a.d - b.d);
+    const dist = (o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v">' + (o.est ? '<span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : '') +
+      '<input class="input xs mono gs-km" data-in="team-dist" data-from="' + esc(t.name) + '" data-to="' + esc(o.n) + '" value="' + (o.d == null ? '' : Number(o.d).toFixed(1)) + '" inputmode="decimal" aria-label="' + esc(t.name + ' → ' + o.n + ' 거리(km)') + '"></span></div>';
     return '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
-      '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + inp('latitude', '위도', t.latitude.toFixed(4)) + inp('longitude', '경도', t.longitude.toFixed(4)) + '</div></div>' +
+      '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + ro('위도', t.latitude.toFixed(4)) + ro('경도', t.longitude.toFixed(4)) + '</div></div>' +
       (kakaoMap ? (picking
         ? '<div class="gs-find pick">' + icon('move') + ' 오른쪽 지도에서 새 구장 자리를 누르세요. 누른 곳의 위도·경도로 채웁니다. <button class="btn xs" data-act="g1-map-pick-off">취소</button></div>'
         : '<div class="gs-mappick"><button class="btn xs" data-act="g1-map-pick" data-row="' + i + '">' + icon('move') + '지도에서 찍기</button><span>카카오 지도에서 자리를 눌러 위도·경도를 넣습니다</span></div>') : '') +
       (picking ? '' : findBox(i, t)) +
-      '<div class="gs-hint">구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 위도·경도를 찾아 채웁니다. 다른 칸은 적고 Enter를 누르면 바로 반영됩니다. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
-      '<div class="gs-sub">다른 구장까지 거리 <small>km</small></div>' + others.map((o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v mono">' + fmt.km(o.d) + (o.est ? ' <span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : '') + '</span></div>').join('');
+      '<div class="gs-hint">위도·경도는 직접 고치지 않습니다. 구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 찾아 채우고' + (kakaoMap ? ', 「지도에서 찍기」로도 고를 수 있습니다' : '') + '. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
+      '<div class="gs-sub">다른 구장까지 거리 <small>km · 고치면 반대 방향도 함께</small></div>' + others.map(dist).join('') +
+      '<div class="gs-hint">「추정」은 직선거리 × 도로계수로 계산한 값입니다. 실제 도로거리를 알면 숫자를 고치고 Enter를 누릅니다.</div>';
   }
   const EXTRA = {
     teams: () => teamEditor(),
@@ -379,15 +383,23 @@
       // 구단 고치기: 표에서 구단을 누르면 카드에 칸 4개, 구장·위도를 바꾸면 거리가 추정값으로
       const li = st().teams.findIndex((t) => t.name === 'LG');
       click('.pane.main [data-act="team-sel"][data-row="' + li + '"]'); flush();
-      ok('단계별: 표에서 LG를 누르면 카드에 구단명·구장·위도·경도 칸과 거리 9줄', qa('.gs-card .gs-team input[data-in="team-field"]').length === 4 && qa('.gs-card .gs-dist').length === 9);
+      ok('단계별: 표에서 LG를 누르면 카드에 구단명·구장 칸(고칠 수 있음) · 위도·경도(읽기만) · 거리 칸 9개', qa('.gs-card .gs-team input[data-in="team-field"]').length === 2 && qa('.gs-card .gs-team input[data-ro][readonly]').length === 2 && !q('.gs-card input[data-k="latitude"]') && qa('.gs-card .gs-dist input[data-in="team-dist"]').length === 9);
       const putT = (k, v) => { const i = q('.gs-card input[data-in="team-field"][data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
       const est0 = st().distanceMatrix.filter((d) => d.estimated).length;
-      putT('stadium', '고척스카이돔(임시)'); putT('latitude', '37.4982');
-      const moved = st().teams[li].stadium === '고척스카이돔(임시)' && st().teams[li].latitude === 37.4982 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && qa('.gs-card .gs-dist .tag').length === 9 && /추정 거리 18개/.test(card0().textContent);
-      putT('latitude', '위도?');
-      const rejected = st().teams[li].latitude === 37.4982;
-      app().undo(); app().undo(); flush();
-      ok('단계별: 구장·위도 바꾸기 → 반영 · LG 거리 18개 추정 · 잘못된 숫자는 거부 · 실행 취소로 복귀', moved && rejected && st().teams[li].latitude !== 37.4982 && st().distanceMatrix.filter((d) => d.estimated).length === est0 && !q('.gs-card .gs-dist .tag'), 'moved ' + moved + ' · rejected ' + rejected + ' · est ' + st().distanceMatrix.filter((d) => d.estimated).length);
+      // 구장 이름만 바꾸면 거리는 그대로(직접 적은 거리를 지우지 않음)
+      putT('stadium', '고척스카이돔(임시)');
+      const renamed = st().teams[li].stadium === '고척스카이돔(임시)' && st().distanceMatrix.filter((d) => d.estimated).length === est0;
+      app().undo(); flush();
+      // 거리 칸: LG → KT 를 31.5로 → 양쪽 방향 31.5 · 추정 아님, 잘못된 값은 거부
+      const kmIn = () => q('.gs-card input[data-in="team-dist"][data-to="KT"]');
+      const putKm = (v) => { const i = kmIn(); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      const ktKm0 = app().distanceOf('LG', 'KT').distance;
+      putKm('31.5');
+      const kmSet = app().distanceOf('LG', 'KT').distance === 31.5 && app().distanceOf('KT', 'LG').distance === 31.5 && !app().distanceOf('LG', 'KT').estimated && kmIn().value === '31.5';
+      putKm('먼 거리');
+      const kmRejected = app().distanceOf('LG', 'KT').distance === 31.5;
+      app().undo(); flush();
+      ok('단계별: 구장 이름만 바꾸면 거리 그대로 · 거리 칸 LG→KT 31.5 → 양쪽 방향 · 잘못된 값 거부 · 실행 취소로 복귀', renamed && kmSet && kmRejected && app().distanceOf('LG', 'KT').distance === ktKm0 && app().distanceOf('KT', 'LG').distance === ktKm0 && st().teams[li].stadium !== '고척스카이돔(임시)', 'renamed ' + renamed + ' · kmSet ' + kmSet + ' · rejected ' + kmRejected);
       // 구장 지도: 키가 없으면 내장 지도(구장 10개, 고른 구단 강조) + 설정 안내 한 줄, 지도에서 구단을 눌러 고르기
       const mk = () => qa('#teamMapHost .tm-map svg.kmap .kmap-marker');
       ok('단계별: 구장 지도 — 키 없음 → 내장 지도 · 표시 10개 · 고른 LG 강조 · 「설정 › 카카오 지도 키」 안내 · 개발 글줄 없음', mk().length === 10 && qa('#teamMapHost .kmap-active').length === 1 && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(li) && /설정 › 카카오 지도 키를 넣으면 카카오 지도로 보입니다/.test(q('.tm-foot').textContent) && !!q('.tm-foot [data-act="open-settings"]') && !q('#teamMapHost .k-map-caption') && q('.tm-mapblk').getBoundingClientRect().width >= q('.tm-left').getBoundingClientRect().width * 0.5, 'markers ' + mk().length + ' · map ' + Math.round(q('.tm-mapblk').getBoundingClientRect().width) + ' · table ' + Math.round(q('.tm-left').getBoundingClientRect().width));
@@ -410,7 +422,7 @@
       const us = () => app().store.undoStack, top0 = us()[us().length - 1];
       await findT('고척');
       const oneUndo = us()[us().length - 2] === top0; // 새 항목이 딱 하나(실행 취소 개수 상한에서도 맞도록 맨 위 항목으로 본다)
-      const one = st().teams[li].stadium === '고척' && Math.abs(st().teams[li].latitude - 37.498293) < 1e-5 && Math.abs(st().teams[li].longitude - 126.867137) < 1e-5 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && !!q('.gs-card .gs-find.ok') && /고척돔야구장/.test(q('.gs-card .gs-find').textContent) && /기본 구장 목록/.test(q('.gs-card .gs-find').textContent) && q('.gs-card input[data-k="latitude"]').value === '37.4983';
+      const one = st().teams[li].stadium === '고척' && Math.abs(st().teams[li].latitude - 37.498293) < 1e-5 && Math.abs(st().teams[li].longitude - 126.867137) < 1e-5 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && !!q('.gs-card .gs-find.ok') && /고척돔야구장/.test(q('.gs-card .gs-find').textContent) && /기본 구장 목록/.test(q('.gs-card .gs-find').textContent) && q('.gs-card .gs-team input[data-ro]').value === '37.4983';
       app().undo(); flush();
       ok('단계별: 구장 칸에 「고척」 + Enter(한글 조합 중 Enter는 건너뜀) → 고척돔야구장 위도·경도를 채움 · 이름은 적은 그대로 · LG 거리 18개 추정 · 실행 취소 한 번으로 복귀', imeSkip && oneUndo && one && back() && !q('.gs-card .gs-find.ok'), 'ime ' + imeSkip + ' · oneUndo ' + oneUndo + ' · one ' + one + ' · back ' + back());
       await findT('대전');
@@ -425,10 +437,10 @@
       const mapPicked = st().teams[li].stadium === '마산' && st().teams[li].latitude === 35.222564 && !q('#teamMapHost .kmap-marker[data-id^="c"]') && /창원NC파크/.test(q('.gs-card .gs-find.ok').textContent);
       app().undo(); flush();
       ok('단계별: 「마산」 + Enter → 결과 2곳이 지도에도 파란 번호로 · 지도의 1번을 누르면 채움 · 키가 없으면 「지도에서 찍기」 없음 · 실행 취소로 복귀', onMap && mapPicked && back(), 'onMap ' + onMap + ' · mapPicked ' + mapPicked + ' · back ' + back());
+      const topN = us()[us().length - 1];
       await findT('없는구장이름');
-      const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 위도·경도를 직접 적어 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === '없는구장이름' && st().teams[li].latitude === lg0.latitude;
-      app().undo(); flush();
-      ok('단계별: 없는 이름 + Enter → 「찾지 못했습니다 — 위도·경도를 직접 적어 주세요」 · 이름만 저장 · 실행 취소로 복귀', none && back(), 'none ' + none + ' · back ' + back());
+      const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '없는구장이름' && us()[us().length - 1] === topN;
+      ok('단계별: 없는 이름 + Enter → 「찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요」 · 아무것도 바꾸지 않음(실행 취소 항목 없음)', none && back(), 'none ' + none + ' · back ' + back());
       S.ui.teamFind = null;
       click('.footer [data-act="g1-next"]'); flush();
       ok('단계별: 다음 → 2 시즌 기본 설정 · 날짜 칸 3개 비어 있음 · 「아직」', G.i === I('season') && S.ui.tab === 'season' && card0().getAttribute('data-status') === 'todo' && qa('.form-grid input[data-k]').length === 3 && Array.from(qa('.form-grid input[data-k]')).every((i) => i.value === '') && !!q('.gs-how'));

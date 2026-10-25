@@ -811,6 +811,16 @@
     S.ui.edit = { sheet: key, row, col, value: el.value, error: null, fix: null, _focused: true };
     commitEdit(false);
   };
+  /** 카드의 「다른 구장까지 거리」 칸: 고치면 반대 방향도 같은 값(직접 적은 값 = 추정 아님) */
+  S.inputs['team-dist'] = (el) => {
+    if (locked()) return;
+    const from = el.dataset.from, to = el.dataset.to, raw = el.value.trim().replace(/km$/i, '').trim();
+    const v = Number(raw);
+    if (!raw || !Number.isFinite(v) || v < 0 || v > 2000) { el.classList.add('err'); S.toast('거리는 km 숫자로 적습니다(예: 31.5).', 'bad'); return; }
+    const d = app().distanceOf(from, to);
+    if (d && !d.estimated && Math.round(v * 10) / 10 === d.distance) return; // 바뀐 것 없음
+    if (app().setDistance(from, to, v, true)) S.toast(from + ' ↔ ' + to + ' 거리를 ' + (Math.round(v * 10) / 10) + 'km로 바꿨습니다(양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 4000);
+  };
   S.inputs['team-field'] = (el) => {
     if (locked()) return;
     const i = +el.dataset.row, k = el.dataset.k;
