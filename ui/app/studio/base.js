@@ -255,6 +255,61 @@
     return p;
   };
 
+  // ───────── 처음부터 입력하기(초기화) · 2025 예시 데이터 ─────────
+  // 비우는 것: 시즌 날짜·공휴일·휴식일 경기·휴식기·연전 기간·시리즈·특별 경기·경기 기록·중간 저장.
+  // 남기는 것: 구단과 구장 위치·구장 간 거리(KBO 10구단은 거의 바뀌지 않고, 구단이 없으면 시리즈를 만들 수도 채점할 수도 없다),
+  //            맞대결 경기 수·홈/원정 나눔·휴식 요일(월요일)·허용 범위 같은 규칙 값.
+  S.BLANK_NAME = '새 시즌 (직접 입력)';
+  S.emptyProject = function () {
+    const p = KBO.Preset.buildProject();
+    p.meta.name = S.BLANK_NAME;
+    p.meta.blank = true;
+    Object.assign(p.settings, { seasonStart: '', initialEnd: '', seasonEnd: '', holidays: [], restExceptions: [], blackouts: [], referenceDate: '' });
+    p.events = []; p.calendar = []; p.matches = []; p.plan = []; p.games = []; p.snapshots = [];
+    p.reschedule = JSON.parse(JSON.stringify(KBO.Preset.DEFAULT_RESCHEDULE));
+    return p;
+  };
+  /** 지금 데이터가 「처음부터 입력하기」로 비운 상태인가 (예시 데이터를 다시 불러오면 false) */
+  S.isBlank = () => !!(S.app && S.app.state.meta && S.app.state.meta.blank);
+  /** 시즌 연도: 개막일이 있으면 그 연도, 없으면 2025 */
+  S.seasonYear = function () {
+    const s = S.app && S.app.state.settings.seasonStart;
+    const m = /^(\d{4})-/.exec(s || '');
+    return m ? +m[1] : 2025;
+  };
+  const SWAP_KEYS = ['teams', 'distanceMatrix', 'settings', 'events', 'calendar', 'matches', 'plan', 'games', 'reschedule'];
+  function swapProject(next, label) {
+    const app = S.app;
+    if (!app.guard()) return false;
+    const ok = app.commit(label, (s) => {
+      for (const k of SWAP_KEYS) s[k] = next[k];
+      s.meta = Object.assign({}, s.meta, { name: next.meta.name, blank: !!next.meta.blank, updatedAt: new Date().toISOString() });
+      s.snapshots = next.snapshots || [];
+    }, ['all']);
+    if (!ok) return false;
+    S.ui.cell = null; S.ui.edit = null; S.ui.sel = null; S.ui.vizChanged = null; S.ui.lastImport = null; S.ui.exported = false; S.ui.preflightSel = null;
+    return true;
+  }
+  /** 처음부터 입력하기: 표를 모두 비운다(실행 취소 가능). 시즌 기본 설정 화면으로 간다. */
+  S.resetAll = function (opts) {
+    const o = opts || {};
+    if (!swapProject(S.emptyProject(), '처음부터 입력하기(초기화)')) return false;
+    S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단과 거리는 그대로 · ' + S.fmt.clock(new Date()) });
+    if (!o.quiet) S.toast('표를 모두 비웠습니다. 시즌 기본 설정부터 차례로 적어 주세요. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
+    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null });
+    if (!o.quiet && S.guideOnReset) S.guideOnReset(); // 안내 방식이 빈 상태 안내를 연다
+    return true;
+  };
+  /** 2025 예시 데이터 다시 불러오기(시연용 위반·경기 기록 포함) */
+  S.loadExample = function (opts) {
+    const o = opts || {};
+    if (!swapProject(S.seedProject(), '2025 예시 데이터 다시 불러오기')) return false;
+    S.importHistory.push({ kind: 'preset', source: '2025 실제 일정 (기본 제공)', detail: '다시 불러옴 · ' + S.fmt.clock(new Date()) });
+    if (!o.quiet) S.toast('2025 실제 일정을 다시 불러왔습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'slots', modal: null, menu: null, drawer: null });
+    return true;
+  };
+
   /** 시드 직후 위반의 서명 → 가상 표시 */
   S.virtualSigs = new Set();
   S.vsig = (v) => v.code + '|' + v.slot + '|' + (v.matches || []).slice().sort((a, b) => a - b).join(',');

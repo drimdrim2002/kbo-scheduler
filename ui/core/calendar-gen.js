@@ -319,11 +319,55 @@
         });
       }
     }
+    balanceSharedStadiums(teams, matches, lengths, G, H, pairMatrix, warnings);
     // 인덱스를 슬롯 순서로 재정렬해 사람이 읽기 쉽게 한다(엔진 동작과 무관)
     const idx = matches.map((m, i) => i).sort((x, y) => plan[x] - plan[y] || x - y);
     const sortedMatches = idx.map((i, k) => Object.assign({}, matches[i], { index: k }));
     const sortedPlan = idx.map((i) => plan[i]);
     return { matches: sortedMatches, plan: sortedPlan, errors, warnings, pairMatrix };
+  }
+
+  /**
+   * 같이 쓰는 구장(잠실 두산·LG) 자리 맞추기.
+   * 한 구장은 한 연전 기간에 홈 시리즈를 하나만 열 수 있으므로, 같은 구장 구단들의 홈 k연전 수 합이 k연전 기간 수를 넘으면 편성할 수 없다.
+   * 넘치는 만큼 그 구단이 다수 홈(H경기)인 맞대결의 k연전 하나를 홈·원정 바꾼다. k = 2H − G(15·9이면 3연전)일 때만 H:G−H 나눔이 그대로 유지된다.
+   */
+  function balanceSharedStadiums(teams, matches, lengths, G, H, pairMatrix, warnings) {
+    const idxOf = new Map(teams.map((t, i) => [t.name, i]));
+    const groups = new Map();
+    teams.forEach((t, i) => { if (!groups.has(t.stadium)) groups.set(t.stadium, []); groups.get(t.stadium).push(i); });
+    const shared = Array.from(groups.values()).filter((g) => g.length > 1);
+    if (!shared.length) return;
+    const slotCount = {};
+    for (const l of lengths) slotCount[l] = (slotCount[l] || 0) + 1;
+    const groupOf = new Map();
+    shared.forEach((g, gi) => g.forEach((t) => groupOf.set(t, gi)));
+    const homeCount = (g, k) => matches.filter((m) => g.includes(idxOf.get(m.home)) && m.consecutive === k).length;
+    const homeSeries = (t) => matches.filter((m) => idxOf.get(m.home) === t).length;
+    for (const g of shared) {
+      for (const k of Object.keys(slotCount).map(Number)) {
+        let over = homeCount(g, k) - slotCount[k];
+        if (over <= 0) continue;
+        if (k !== 2 * H - G) { warnings.push(teams[g[0]].stadium + ' 구장 홈 ' + k + '연전이 ' + k + '연전 기간 수보다 ' + over + '개 많습니다. 홈·원정을 직접 바꾸거나 연전 기간을 조정하세요.'); continue; }
+        while (over > 0) {
+          let best = null, bestScore = Infinity;
+          for (const m of matches) {
+            const h = idxOf.get(m.home), a = idxOf.get(m.away);
+            if (!g.includes(h) || g.includes(a) || m.consecutive !== k) continue;
+            if (pairMatrix[h][a] !== H) continue; // 홈 구단이 이 맞대결의 다수 홈일 때만 바꿔야 H:G−H 나눔이 유지된다
+            const ag = groupOf.get(a);
+            if (ag != null && homeCount(shared[ag], k) + 1 > slotCount[k]) continue; // 상대도 같이 쓰는 구장이면 그쪽이 넘치지 않을 때만
+            const score = homeSeries(a) * 100 + pairMatrix[a][h]; // 홈 시리즈가 적은 상대에게 홈을 넘겨 고르게
+            if (score < bestScore) { bestScore = score; best = m; }
+          }
+          if (!best) { warnings.push(teams[g[0]].stadium + ' 구장 홈 ' + k + '연전 ' + over + '개를 자동으로 줄이지 못했습니다. 홈·원정을 직접 바꾸세요.'); break; }
+          const h = idxOf.get(best.home), a = idxOf.get(best.away);
+          best.home = teams[a].name; best.away = teams[h].name;
+          pairMatrix[h][a] -= k; pairMatrix[a][h] += k;
+          over--;
+        }
+      }
+    }
   }
 
   /** 연전 분포 {2:5, 3:215, 4:5} */

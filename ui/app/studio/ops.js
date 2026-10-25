@@ -48,6 +48,7 @@
     const dm = byDate();
     const date = u.opsDate && dm.has(u.opsDate) ? u.opsDate : Array.from(dm.keys())[0];
     u.opsDate = date;
+    if (!date) return S.paneHead('경기 기록', '날짜를 골라 그날 경기를 한 번에 처리합니다.') + '<div class="pane-body"><div class="empty"><b>아직 경기가 없습니다</b>① 데이터 준비에서 연전 기간과 시리즈를 만들고 ② 자동 편성을 돌리면 경기일이 여기에 나옵니다.</div></div>';
     const list = dm.get(date) || [];
     const ds = dayState(list, ref);
     const st = app().state;

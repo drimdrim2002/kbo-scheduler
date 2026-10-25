@@ -1091,3 +1091,14 @@ svg.mc text { font-family: var(--font); }
 /* ① 입력 안내 층: 화면 위에 떠 있는 안내(말풍선·번호 점 등)를 담는다. 층 자체는 클릭을 막지 않는다 */
 .guide-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; }
 .guide-layer:empty { display: none; }
+
+/* 빈 표 안내 · 처음부터 입력하기 */
+.sheet tr.empty-row td { padding: 0; height: auto; white-space: normal; overflow: visible; border-right: 0; border-bottom: 0; }
+.sheet tr.empty-row:hover td { background: transparent; }
+.sheet-empty { padding: 28px 16px 22px; max-width: 560px; margin: 0 auto; line-height: 1.55; word-break: keep-all; }
+.sheet-empty b { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--fs); margin-bottom: 6px; }
+.sheet-empty .acts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.input.empty::placeholder { color: var(--text-3); }
+.btn.reset-btn { color: var(--text-2); }
+.reset-modal .props dt { white-space: nowrap; }
+.rb-empty { padding: 14px 10px; }

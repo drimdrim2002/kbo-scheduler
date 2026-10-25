@@ -21,6 +21,8 @@
   V.ribbon = function (o) {
     const set = o.settings;
     const s0 = Dates.dayNum(set.seasonStart), s1 = Dates.dayNum(set.initialEnd);
+    if (!Number.isFinite(s0) || !Number.isFinite(s1) || s1 < s0) return '<div class="empty rb-empty"><b>시즌 달력을 아직 그릴 수 없습니다</b>시즌 기본 설정에서 개막일과 1차 편성 종료일을 먼저 적어 주세요.</div>';
+    const year = String(set.seasonStart).slice(0, 4);
     const hol = new Map((set.holidays || []).map((h) => [Dates.dayNum(h.date), h.name]));
     const blk = new Map();
     for (const b of set.blackouts || []) for (let d = Dates.dayNum(b.start); d <= Dates.dayNum(b.end); d++) blk.set(d, b.label || '경기 없는 기간');
@@ -38,7 +40,7 @@
     for (let mo = m0; mo <= m1; mo++) {
       s += '<div class="rb-row"><span class="rb-m">' + mo + '월</span>';
       for (let day = 1; day <= 31; day++) {
-        const iso = '2025-' + String(mo).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        const iso = year + '-' + String(mo).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         const n = Dates.dayNum(iso);
         if (Dates.month(n) !== mo) { s += '<span class="rd none"></span>'; continue; }
         let cls = 'rd';

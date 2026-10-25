@@ -85,12 +85,13 @@
     const st = app().state, set = st.settings, c = D();
     const h = CalendarGen.lengthHistogram(st.calendar);
     const games = st.matches.reduce((a, m) => a + m.consecutive, 0);
-    const days = Dates.dayNum(set.initialEnd) - Dates.dayNum(set.seasonStart) + 1;
+    const blankDates = !set.seasonStart || !set.initialEnd;
+    const days = blankDates ? 0 : Dates.dayNum(set.initialEnd) - Dates.dayNum(set.seasonStart) + 1;
     const shared = app().sharedStadiums();
     const kv = (k, v, s2) => '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div><div class="s" title="' + esc(s2) + '">' + esc(s2) + '</div></div>';
     return '<div class="kv-row">' +
       kv('구단', st.teams.length, '같이 쓰는 구장 ' + shared.size + ' (잠실)') +
-      kv('1차 편성 기간', fmt.short(set.seasonStart) + '~' + fmt.short(set.initialEnd), days + '일 · 휴식 월요일') +
+      kv('1차 편성 기간', blankDates ? '<span class="muted">미입력</span>' : fmt.short(set.seasonStart) + '~' + fmt.short(set.initialEnd), blankDates ? '개막일·종료일을 ①에서 적으세요' : days + '일 · 휴식 ' + (set.restWeekdays.length ? set.restWeekdays.map((w) => Dates.WEEKDAY_KO[w] + '요일').join('·') : '없음')) +
       kv('연전 기간', st.calendar.length, '2·3·4연전 ' + (h[2] || 0) + '·' + (h[3] || 0) + '·' + (h[4] || 0)) +
       kv('휴식기', set.blackouts.length, set.blackouts.map((b) => fmt.short(b.start) + (b.end !== b.start ? '~' + fmt.short(b.end) : '')).join(', ')) +
       kv('특별 경기', st.events.length, '대진 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 ' + st.events.filter((e) => e.mode === 'STADIUM').length) +

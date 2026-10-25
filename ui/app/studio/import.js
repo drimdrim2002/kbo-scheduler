@@ -99,7 +99,9 @@
       for (let i = 0; i < Math.min(gen.length, cur.length); i++) if (gen[i].datetime !== cur[i].datetime || gen[i].consecutive !== cur[i].consecutive || gen[i].weekend !== cur[i].weekend || gen[i].holiday !== cur[i].holiday) chg++;
       const h = CalendarGen.lengthHistogram(gen);
       S.ui.imp = { kind, source: '규칙대로 만든 안' + (S.dev() ? ' (§5.2.1)' : ''), meta: '개막 ' + fmt.date(app().state.settings.seasonStart) + ' · 휴식 요일·휴식일 경기·휴식기 적용 · ' + [2, 3, 4].map((k) => k + '연전 ' + (h[k] || 0)).join(' · '),
-        sheets: [{ key: 'slots', name: N.slots, src: N.slots, rows: gen.length, add: Math.max(0, gen.length - cur.length), chg, del: Math.max(0, cur.length - gen.length), resetsPlan: chg + Math.abs(gen.length - cur.length) > 0, errors: [], warnings: chg ? [] : [{ loc: N.slots + ' · 전체', why: '지금 ' + N.slots + ' ' + cur.length + '개와 날짜·연전 수·휴일 등급이 모두 같습니다.', fix: null }], checked: true }], sel: 'slots', confirm: false };
+        sheets: [{ key: 'slots', name: N.slots, src: N.slots, rows: gen.length, add: Math.max(0, gen.length - cur.length), chg, del: Math.max(0, cur.length - gen.length), resetsPlan: app().state.matches.length > 0 && chg + Math.abs(gen.length - cur.length) > 0,
+          errors: gen.length ? [] : [{ loc: N.slots + ' · 전체', why: '만들 연전 기간이 없습니다. 시즌 기본 설정에서 개막일과 1차 편성 종료일을 적어 주세요.', fix: null }],
+          warnings: (chg || gen.length !== cur.length || !gen.length) ? [] : [{ loc: N.slots + ' · 전체', why: '지금 ' + N.slots + ' ' + cur.length + '개와 날짜·연전 수·휴일 등급이 모두 같습니다.', fix: null }], checked: gen.length > 0 }], sel: 'slots', confirm: false };
     } else if (kind === 'draft-series') {
       const g = app().generateSeriesPreview();
       const key = (m) => m.home + '|' + m.away + '|' + m.consecutive;
@@ -107,7 +109,7 @@
       let add = 0; for (const m of g.matches) { const k = key(m); if (cur.get(k)) cur.set(k, cur.get(k) - 1); else add++; }
       const del = Array.from(cur.values()).reduce((a, b) => a + b, 0);
       S.ui.imp = { kind, source: '맞대결 규칙대로 만든 시리즈' + (S.dev() ? ' (FR-S7)' : ''), meta: '맞대결 ' + app().state.settings.initialGamesPerPair + '경기 · 홈 ' + app().state.settings.homeGamesMajor + ' / 원정 ' + (app().state.settings.initialGamesPerPair - app().state.settings.homeGamesMajor) + ' · 연전 분포 = ' + N.slots + ' 분포',
-        sheets: [{ key: 'series', name: N.series, src: N.series, rows: g.matches.length, add, chg: 0, del, resetsPlan: true, errors: g.errors.map((e) => ({ loc: N.series + ' · 자동 채우기', why: e })), warnings: g.warnings.map((w) => ({ loc: N.series + ' · 자동 채우기', why: w })), checked: !g.errors.length }], sel: 'series', confirm: false };
+        sheets: [{ key: 'series', name: N.series, src: N.series, rows: g.matches.length, add, chg: 0, del, resetsPlan: app().state.matches.length > 0, errors: g.errors.map((e) => ({ loc: N.series + ' · 자동 채우기', why: e })), warnings: g.warnings.map((w) => ({ loc: N.series + ' · 자동 채우기', why: w })), checked: !g.errors.length }], sel: 'series', confirm: false };
     }
   }
 
@@ -183,7 +185,7 @@
     const time = fmt.clock(new Date());
     const needReset = checked.some((x) => x.resetsPlan);
     if (needReset && !imp.confirm) return;
-    app().saveSnapshot('가져오기 전 — ' + time);
+    if (app().state.matches.length) app().saveSnapshot('가져오기 전 — ' + time); // 시리즈가 없으면 남길 일정도 없다
     const names = checked.map((x) => x.name), keys = checked.map((x) => x.key);
     if (imp.kind === 'draft-slots') app().regenerateSlots();
     else if (imp.kind === 'draft-series') app().regenerateSeries();

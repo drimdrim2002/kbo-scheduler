@@ -25,6 +25,7 @@
       const errs = S.draftErrors ? S.draftErrors() : 0;
       const sum = '연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length;
       if (errs) return { kind: 'warn', text: '칸 오류 ' + errs, summary: sum, next: '칸 오류 ' + errs };
+      if (!st.calendar.length || !st.matches.length) return { kind: 'todo', text: '작성 중', summary: sum, next: !st.calendar.length ? '연전 기간 없음' : '시리즈 없음' };
       return { kind: 'ok', text: '완료', summary: sum, next: '입력 완료' };
     }
     if (n === 2) {
@@ -156,8 +157,31 @@
         (S.dev() ? '<button role="menuitem" data-act="export" data-kind="project">' + icon('db') + '프로젝트 JSON</button>' +
         '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' : '') +
         (S.feature('D4') ? '<button role="menuitem" data-act="export" data-kind="csv">' + icon('table') + '일정표 CSV</button>' : '') +
+        '<div class="msep"></div><div class="mh">데이터 바꾸기</div>' +
+        '<button role="menuitem" data-act="reset-ask" data-kind="blank">' + icon('plus') + '처음부터 입력하기(초기화)…</button>' +
+        '<button role="menuitem" data-act="reset-ask" data-kind="example">' + icon('db') + '2025 예시 데이터 다시 불러오기…</button>' +
       '</div>';
     }
+  };
+
+  // ───────── 처음부터 입력하기 · 예시 데이터 확인 창 ─────────
+  S.modals.reset = function () {
+    const st = S.app.state, kind = S.ui.resetKind || 'blank';
+    const cnt = (n, unit) => '<b>' + n + '</b>' + unit;
+    const now = '연전 기간 ' + cnt(st.calendar.length, '개') + ' · 시리즈 ' + cnt(st.matches.length, '개') + ' · 특별 경기 ' + cnt(st.events.length, '개') + ' · 공휴일 ' + cnt(st.settings.holidays.length, '일') + ' · 휴식일 경기 ' + cnt(st.settings.restExceptions.length, '일') + ' · 휴식기 ' + cnt(st.settings.blackouts.length, '개');
+    const blank = kind === 'blank';
+    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '">' +
+      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
+      '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">' +
+      (blank
+        ? '<p class="small" style="margin:0">지금 들어 있는 표를 모두 비우고, 빈 상태에서 시즌 정보를 처음부터 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 연전 기간·시리즈 같은 큰 표는 단추로 만듭니다.</p>' +
+          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 공휴일 · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 특별 경기 · 경기 기록 · 중간 저장</dd>' +
+          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단과 거리」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
+          '<dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>'
+        : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
+          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
+      '<div class="confirm-box">' + icon('info') + '<span>실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div>' +
+      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 기본 설정 화면에서 시작합니다.' : '불러온 뒤에는 연전 기간 화면에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
   };
 
   // ───────── 렌더 루프 ─────────
@@ -224,7 +248,9 @@
     'toggle-insp': () => { S.go({ inspOff: !S.ui.inspOff }); },
     'undo': () => { S.app.undo(); },
     'redo': () => { S.app.redo(); },
-    'export': (el) => S.doExport(el.dataset.kind)
+    'export': (el) => S.doExport(el.dataset.kind),
+    'reset-ask': (el) => { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 데이터를 바꿀 수 없습니다. 먼저 중지하세요.', 'warn'); return; } S.ui.resetKind = el.dataset.kind || 'blank'; S.go({ modal: 'reset', menu: null }); },
+    'reset-go': (el) => { if (el.dataset.kind === 'example') S.loadExample(); else S.resetAll(); }
   });
 
   S.doExport = function (kind) {
@@ -284,6 +310,8 @@
     if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
   };
   S.demos = {};
+  /** 점검용 주소 demo=blank: 처음부터 입력하기 상태로 시작한다(빈 표 화면 점검). 주소의 단계·화면은 그대로 둔다 */
+  S.demos.blank = function () { S.resetAll({ quiet: true, stay: true }); };
 
   /** 사전 점검 링크 등에서 입력 위치로 이동 */
   S.navTarget = function (target) {
