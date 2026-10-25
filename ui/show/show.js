@@ -172,6 +172,41 @@
     v['why.fanGap'] = fmtInt(Math.round((W.weekendFans - W.weekdayFans) / 100) * 100);
     return v;
   }
+  // ───────── 궁금한 점(Q&A) ─────────
+  // 소개·비교 쪽이 같은 질문·답을 쓴다(한 곳). 개념 셋이 먼저, 그다음 자주 받는 질문. {DIST}는 쪽마다 거리표 주소로 바뀐다.
+  // 숫자는 data-n으로 채운다(그리기가 bind보다 먼저라 fetch 뒤 값으로 덮인다). 정의는 ScoreFormulas.TeamRouteAccumulator와 같다
+  SHOW.QA = [
+    ['이동 일수가 뭐예요?', '구단이 다른 구장으로 옮겨 간 날의 수예요. 시리즈를 치른 구장을 날짜 순서대로 이어서, 구장이 바뀔 때마다 하루로 세요. 홈에서 원정, 원정에서 다른 원정, 원정에서 홈 모두 같아요. 두산과 LG는 잠실을 같이 써서 서로 오가도 세지 않아요. 2025년 1차 일정에서는 구단마다 <span data-n="real.moves">32~38</span>일이었어요.'],
+    ['이동거리는 어떻게 쟀어요?', '같은 순서로 앞 구장에서 다음 구장까지의 도로 거리(카카오맵)를 더했어요. 홈에서 홈으로 이어지면 0이에요. 첫 시리즈 구장에서 세기 시작하고, 시즌 앞뒤로 연고지를 오가는 거리는 넣지 않았어요. <a class="sh-link" href="{DIST}">구장 간 거리표 →</a>'],
+    ['주말·공휴일 홈 경기는 어떻게 셌어요?', '토·일요일과 어린이날 연휴·현충일·광복절에 홈에서 치른 경기 수예요. 비로 취소된 경기는 빼지 않은, 발표된 일정 그대로예요. 이런 날엔 평일(화~목)보다 한 경기에 관중이 <span data-n="why.fanGap">5,200</span>명쯤 더 와서 구단 수입과 바로 이어져요.'],
+    ['이동이 많으면 경기에 지나요?', '그렇다고 말할 근거는 아직 찾지 못했어요. 한국은 시차가 없고, 가장 먼 이동도 버스로 5시간쯤이에요. 다만 이동이 잦으면 쉬고 훈련할 시간이 줄어요. 그래서 매치봇은 "이기게 해 준다"가 아니라 "구단이 고를 수 없는 조건을 고르게 나누자"는 쪽이에요.'],
+    ['몇억 원이면 큰 차이인가요?', '2025년 열 개 구단 입장 수입은 모두 2,049억 원, 구단마다 평균 200억 원쯤이라 1~2% 정도예요. 크지 않을 수 있지만, 일정만 고르게 만들면 아무 비용 없이 없앨 수 있는 차이예요.'],
+    ['매치봇은 어떤 규칙으로 만들었어요?', '실제 1차 일정과 같은 대진(225시리즈)·날짜 칸(45개)·거리표·어린이날 홈 구단(두산·키움·한화·NC·롯데)을 그대로 썼어요. 꼭 지킨 규칙은 하루 한 경기, 잠실 공유, 홈·원정 4연속 금지, 같은 대진 연속 금지, 지정 구장 홈 경기예요. 그 안에서 이동 일수 → 구단별 이동거리 → 주말·공휴일 홈 경기를 차례로 고르게 하고, 마지막으로 총 이동거리를 줄였어요. 실제 일정과 매치봇 일정은 같은 채점 방식으로 쟀어요.'],
+    ['KBO는 일정을 어떻게 만들어요?', 'KBO는 2015년까지 손으로 만들다가, 그 뒤로는 프로그램으로 일정을 만들어요. 그렇게 구단 간 이동거리 차이를 2017년 4,034km에서 2021년 1,293km까지 줄였어요(스포츠춘추, 2022). 다만 실제 일정은 매치봇이 모르는 조건까지 맞춰야 해요. 구장 대관·공사, 방송사가 원하는 중계 대진, 지역 행사, 전년 성적에 따른 개막 홈 배정, 우천 예비일 같은 것들이에요. 그래서 매치봇 결과는 "같은 조건이라면 이만큼 더 줄일 수 있다"로 읽어 주세요.'],
+    ['1차 일정이 뭐예요?', 'KBO는 2024년 12월에 8월 31일까지의 경기(구단마다 135경기)를 먼저 발표하고, 나머지 9경기는 비로 취소된 경기와 함께 8월에 따로 발표했어요. 여기서는 먼저 발표한 1차 일정만 견줬어요.'],
+    ['\'출발점 8개\'가 뭐예요?', '매치봇은 대충 맞는 일정 하나에서 출발해 고쳐 나가요. 어디서 출발하느냐에 따라 결과가 조금씩 달라서, 서로 다른 출발점 8개로 동시에 돌려 가장 좋은 결과를 골랐어요.']
+  ];
+  // 소개 말풍선 답 끝에 붙는 숫자와 근거 쪽 이어 보기 링크(2026-10-25 확정, 따로 버튼을 두지 않는다). SHOW.QA와 같은 순서, null이면 없음
+  SHOW.QA_MORE = [['구단별 이동 일수 막대 보기', 'compare.html#chart-h'], null, ['구단별 주말·공휴일 홈 경기 막대 보기', 'compare.html#chart-h'], ['숫자와 근거 전체 보기', 'compare.html'],
+    ['관중·입장 수입 출처 보기', 'compare.html#src-h'], ['표로 보기', 'compare.html#num-h'], ['궁금한 점 모두 보기', 'compare.html#qa-h'], ['데이터 출처 보기', 'compare.html#src-h'], ['탐색 과정 보기', '#replay']];
+  /** [data-qa] 자리에 질문·답을 그린다. data-qa="list" = 펼침 목록, "ask" = 질문 칩 + 매치봇 말풍선(1인칭으로 바꿔 말한다) */
+  function renderQa() {
+    const dist = document.body.getAttribute('data-page') === 'compare' ? '#dist-h' : 'compare.html#dist-h';
+    const me = (a) => a.replace(/매치봇 결과는/g, '제 결과는').replace(/매치봇이 모르는/g, '제가 모르는').replace(/매치봇은/g, '저는');
+    $$('[data-qa]').forEach((box) => {
+      const qa = SHOW.QA.map(([q, a]) => [q, a.replace('{DIST}', dist)]);
+      if (box.getAttribute('data-qa') === 'ask') {
+        const qs = $('.sh-ask-q', box), ans = $('.sh-ask-a', box); if (!qs || !ans) return;
+        qs.innerHTML = qa.map(([q], i) => '<button type="button" data-ask="' + i + '" aria-pressed="false">' + esc(q) + '</button>').join('');
+        const show = (i) => { $$('[data-ask]', qs).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-ask') === String(i)))); const mo = SHOW.QA_MORE[i]; ans.innerHTML = '<b>' + esc(qa[i][0]) + '</b><br>' + me(qa[i][1]) + (mo ? '<a class="sh-link sh-ask-next" href="' + mo[1] + '">' + esc(mo[0]) + ' →</a>' : ''); };
+        $$('[data-ask]', qs).forEach((b) => b.addEventListener('click', () => show(+b.getAttribute('data-ask'))));
+        show(0);
+      } else {
+        box.insertAdjacentHTML('beforeend', qa.map(([q, a]) => '<details><summary>' + esc(q) + '</summary><p>' + a + '</p></details>').join(''));
+      }
+    });
+  }
+
   /** 기준 세 가지 카드: [data-bar=키] 자리에 가장 적은~많은 구단 막대를 그린다. 눈금 = 구단 평균, 양 끝 = 구단 이름과 값 */
   function whyBars(teams) {
     $$('[data-bar]').forEach((el) => {
@@ -454,6 +489,7 @@
 
   /** 소개 / */
   pages.index = function () {
+    renderQa();
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
       const v = view(cmp.real, cmp.engine);
@@ -881,6 +917,7 @@
 
   /** 비교 /compare */
   pages.compare = function () {
+    renderQa();
     const dt = $('#dist-table'); if (dt) whenVisible(dt, () => distTable(dt));
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
@@ -895,8 +932,9 @@
         const realCell = $('#weekend-real-cell'), engCell = $('#weekend-engine-cell');
         if (realCell && engCell) (vv['diff.weekendCmp'] === 'real' ? realCell : engCell).appendChild(tag);
       }
+      const mv = $('#chart-moves'); if (mv) teamBars(mv, cmp.real.teams, cmp.engine.teams, 'moves', { unit: '일', label: '이동 일수' });
       const d = $('#chart-dist'); if (d) teamBars(d, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
-      const w = $('#chart-weekend'); if (w) teamBars(w, cmp.real.teams, cmp.engine.teams, 'weekendHome', { unit: '회', label: '주말 홈 시리즈 수', max: Math.max(14, ...cmp.real.teams.map((t) => t.weekendHome), ...cmp.engine.teams.map((t) => t.weekendHome)) });
+      const w = $('#chart-weekend'); if (w) teamBars(w, cmp.real.teams, cmp.engine.teams, 'holidayWeight', { unit: '경기', label: '주말·공휴일 홈 경기' });
       if (cmp.range) bind({ 'range.from': cmp.range.from, 'range.to': cmp.range.to, 'range.slots': String(cmp.range.slots), 'range.series': String(cmp.range.series) });
       mark('show', 'compare-ok');
       checkScroll();
@@ -944,6 +982,7 @@
       const ogd = (v.pct == null ? '이동거리를 비교해요' : v.pct > 0 ? '이동거리 ' + v.pct + '% 줄었어요' : v.pct === 0 ? '이동거리는 같아요' : '이동거리 ' + (-v.pct) + '% 늘었어요') + ' · ' + fmtInt(engine.totalKm) + 'km (실제 ' + fmtInt(real.totalKm) + 'km) · 구단별 이동거리 차이 ' + fmtInt(engine.spreadKm) + 'km (실제 ' + fmtInt(real.spreadKm) + 'km)';
       setMeta('og:title', title + ' — ' + SHOW.SITE); setMeta('og:description', ogd); setMeta('description', ogd);
       const tb = $('#cmp-total'); if (tb) totalBars(tb, real, engine);
+      resBars(real, engine);
       const trend = $('#weekend-note');
       if (trend && real.weekendHomeMin != null) {
         const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;

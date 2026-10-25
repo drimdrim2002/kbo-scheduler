@@ -553,3 +553,21 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-res-key .r, .sh-res-key .e { font-weight: 700; }
 .sh-res-key .r::before, .sh-res-key .e::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; background: var(--sh-real); }
 .sh-res-key .e::before { background: var(--sh-engine); }
+/* ── 궁금한 점(Q&A, 소개·숫자와 근거 공통): 맨글 + 가는 줄, 누르면 펼침 ── */
+.sh-faq details { border-top: 1px solid var(--line); }
+.sh-faq details:last-of-type { border-bottom: 1px solid var(--line); }
+.sh-faq summary { list-style: none; cursor: pointer; padding: 14px 28px 14px 0; font-size: 16px; font-weight: 800; line-height: 1.4; position: relative; }
+.sh-faq summary::-webkit-details-marker { display: none; }
+.sh-faq summary::after { content: '+'; position: absolute; right: 4px; top: 12px; font-size: 20px; font-weight: 400; color: var(--muted); }
+.sh-faq details[open] summary::after { content: '−'; }
+.sh-faq details p { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+/* 숫자와 근거 쪽 바로가기 칩 */
+.sh-jump { display: flex; flex-wrap: wrap; gap: 6px; }
+.sh-jump a { min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--accent); font-size: 14px; font-weight: 700; text-decoration: none; }
+/* 매치봇에게 묻기: 질문 칩(고른 것 = 파랑) + 말풍선 답 */
+.sh-ask-q { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.sh-ask-q button { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--fg); cursor: pointer; }
+.sh-ask-q button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sh-ask-a b { display: inline-block; margin-bottom: 4px; }
+/* 답 끝 이어 보기(숫자와 근거 쪽) */
+.sh-ask-next { display: block; margin-top: 8px; }

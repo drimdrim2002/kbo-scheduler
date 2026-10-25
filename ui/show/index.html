@@ -154,7 +154,7 @@
       <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 매치봇 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
     </div>
     <h2 class="sh-story-h" id="res-h">그래서 매치봇이 다시 만들어 봤어요</h2>
-    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·홈/원정 시리즈 4번 연속 금지)으로 매치봇이 찾은 일정이에요. 출발점 <span data-n="engine.seeds">8</span>개로 돌려 가장 좋았던 결과예요. 열 개 구단에게 얼마나 공평한지 실제와 견줘 보세요. <a class="sh-link" href="r.html?id=default#knob-h">매치봇이 받은 조건 보기 →</a></p></div>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·홈/원정 시리즈 4번 연속 금지)으로 매치봇이 찾은 일정이에요. 출발점 <span data-n="engine.seeds">8</span>개로 돌려 가장 좋았던 결과예요. 열 개 구단에게 얼마나 공평한지 실제와 견줘 보세요. <a class="sh-link" href="compare.html#qa-h">매치봇이 받은 조건 보기 →</a></p></div>
     <!-- 결과 비교(2026-10-25 확정): 같은 눈금 위에 KBO(주황)·매치봇(파랑) 구단 범위 막대. 점 = 구단, 막대가 짧을수록 고르다. 총 이동거리는 길이 막대 -->
     <div class="sh-card sh-res sh-res-b">
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.moves">구단별 이동 일수 차이가 줄었어요</b><div class="sh-res-bars" data-rbar="moves" role="img"></div></div>
@@ -163,9 +163,13 @@
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.total">이동거리를 13% 줄였어요</b><div class="sh-res-bars" data-rbar="total" role="img"></div></div>
       <p class="sh-res-key"><span class="r">KBO 실제</span><span class="e">매치봇</span> 점 하나가 구단 하나예요</p>
     </div>
-    <p class="sh-small sh-stat-how" style="margin:10px 0 0"><b>숫자 읽는 법</b> 이동거리는 열 개 구단이 1차 일정 동안 원정을 다니며 이동한 거리를 모두 더한 값이에요. 구단별 이동거리 차이는 가장 적게 다닌 구단과 가장 많이 다닌 구단이 얼마나 벌어지는지예요. 이동 일수는 구단이 다른 구장으로 옮겨 간 날의 수예요. 주말·공휴일 홈 경기는 관중이 가장 많이 오는 날에 홈구장에서 치르는 경기 수예요.</p>
-    <div class="sh-hero-cta"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇 일정 자세히 보기</a><a class="k-btn" href="compare.html">실제와 나란히 비교</a></div>
-    <p class="sh-small" style="margin-top:10px">KBO = KBO가 2024년 12월에 발표한 2025 정규시즌 1차 일정(3/22~8/31, 구단마다 135경기). 나머지 9경기는 비로 취소된 경기와 함께 8월에 따로 발표돼서 빼고 견줬어요. 매치봇 = 같은 규칙·같은 계산 방식으로 만든 일정.</p>
+    <p class="sh-small" style="margin:10px 0 0">KBO = KBO가 2024년 12월에 발표한 2025 정규시즌 1차 일정(3/22~8/31, 구단마다 135경기). 나머지 9경기는 비로 취소된 경기와 함께 8월에 따로 발표돼서 빼고 견줬어요. 매치봇 = 같은 규칙·같은 계산 방식으로 만든 일정.</p>
+    <!-- 매치봇에게 묻기(2026-10-25 확정): 질문 칩 + 매치봇 말풍선. 답 끝에 숫자와 근거 쪽 이어 보기 링크(SHOW.QA_MORE)가 붙어 따로 버튼을 두지 않는다. 질문·답은 show.js SHOW.QA(숫자와 근거 쪽과 같음), 답은 1인칭으로 바꿔 말한다 -->
+    <div class="sh-ask" data-qa="ask">
+      <h2 class="sh-story-h">이 숫자, 어떻게 나왔는지 물어보세요</h2>
+      <div class="sh-ask-q" role="group" aria-label="질문 고르기"></div>
+      <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><div class="sh-say-msg sh-ask-a" aria-live="polite"></div></div>
+    </div>
   </section>
 
 
