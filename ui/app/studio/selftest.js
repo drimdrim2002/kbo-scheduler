@@ -255,6 +255,9 @@
     ok('A6 끄면 이동 경로 탭 제거', !document.querySelector('[data-tab="route"]') && S.ui.ops === 'games');
     S.resetFeatures(); S.go({ ops: null, step: 1 });
 
+    // 19a. ① 입력 안내 (안내 방식마다 자기 점검을 S.guideUI.selftest로 낸다)
+    if (S.guideUI && S.guideUI.selftest) { S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null }); await S.guideUI.selftest({ ok, click, flush, wait }); if (S.guideUI.close) S.guideUI.close(); }
+
     // 20. 일반 모드 금지어 검사 (모든 단계·시즌 운영·설정·모달·메뉴, 선택 기능 모두 켬)
     for (const f of S.FEATURES) if (!f.must) S.features[f.id] = true;
     const BAD = [/\b(hard|soft)\b/i, /hard\//i, /H0-/, /\bH1\b/, /\bS[0-4]\b/, /\bR[HS]-\d/, /BendableLongScore/, /\[-?\d+\/-?\d+\]/,
@@ -293,6 +296,7 @@
     const un = (S.app.state.reschedule.units || [])[0]; if (un) at({ ops: 'reschedule', opsUnit: un.id }, '재편성 묶음');
     at({ ops: 'route', team: 'KIA', routePos: 20.5 }, '시즌 운영 이동 경로');
     for (const t of ['features', 'scoring', 'data']) at({ ops: null, step: 1, tab: 'slots' }, '설정 ' + t, () => { S.ui.drawer = 'settings'; S.ui.setTab = t; });
+    if (S.guideUI && S.guideUI.screens) { for (const g of S.guideUI.screens()) at(Object.assign({ ops: null, step: 1 }, g.patch || {}), '입력 안내 ' + g.where, g.fn); if (S.guideUI.close) S.guideUI.close(); }
     ok('일반 모드 금지어 없음 (' + screens + '개 화면)', leaks.length === 0, leaks.slice(0, 12).join(' / '));
     // 검사기 자체 확인: 개발자 모드에서는 같은 검사가 코드·원점수를 잡아야 한다
     S.devOverride = true; leaks.length = 0;

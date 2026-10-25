@@ -702,7 +702,7 @@ svg.kc text { font-family: var(--font); }
 
 @media print {
   html, body { height: auto; overflow: visible; display: block; background: #fff; }
-  .topbar, .stepper, .footer, .pane.list, .pane.insp, .insp-rail, .toolbar, .pane-head, .opsbar, #overlay, .band { display: none !important; }
+  .topbar, .stepper, .footer, .pane.list, .pane.insp, .insp-rail, .toolbar, .pane-head, .opsbar, #overlay, #guide, .band { display: none !important; }
   .workspace, .stepview, .body { display: block; }
   .pane-body { overflow: visible; }
   .paper { border: 0; margin: 0; width: auto; }
@@ -1087,3 +1087,7 @@ svg.mc text { font-family: var(--font); }
 .replay-host { min-height: 0; display: flex; flex-direction: column; }
 .replay-host > .rp { flex: 1; min-height: 0; }
 .res-row .st.plain.info { color: var(--blue); }
+
+/* ① 입력 안내 층: 화면 위에 떠 있는 안내(말풍선·번호 점 등)를 담는다. 층 자체는 클릭을 막지 않는다 */
+.guide-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; }
+.guide-layer:empty { display: none; }

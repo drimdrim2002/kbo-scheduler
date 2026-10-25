@@ -318,6 +318,7 @@
     if (o.set) u.setTab = o.set;
     u.inspOff = o.insp === '0';
     u.demo = o.demo || null;
+    u.guideReq = o.guide != null ? o.guide : null; // 입력 안내 열기(guide=1·단계 번호) / 자동 시작 끄기(guide=0). 한 번 읽고 지운다
   };
 
   // ───────── 스크롤 점검 (NFR-W4, AC-P2) ─────────

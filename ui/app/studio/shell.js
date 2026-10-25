@@ -179,6 +179,7 @@
     for (const fn of after) { try { fn(); } catch (e) { console.error(e); } }
     if (!u.ops && S.steps[u.step].after) S.steps[u.step].after();
     if (u.ops && S.ops.after) S.ops.after();
+    if (S.guideAfter) S.guideAfter();
     S.writeHash();
     S.checkScroll();
   };
@@ -218,6 +219,7 @@
       S.ui.menu = S.ui.menu === el.dataset.menu ? null : el.dataset.menu;
       els.overlay.innerHTML = renderOverlay();
       els.top.innerHTML = renderTop();
+      if (S.guideAfter) S.guideAfter();
     },
     'toggle-insp': () => { S.go({ inspOff: !S.ui.inspOff }); },
     'undo': () => { S.app.undo(); },
@@ -246,6 +248,7 @@
     els.overlay = document.getElementById('overlay');
     const q = new URLSearchParams(location.search);
     S.debugScroll = q.get('debug') === 'scroll';
+    S.selftestMode = q.get('selftest') === '1';
     if (q.get('fresh') === '1') { S.ls.del(S.KEY + 'features'); }
     S.loadFeatures();
     const app = S.app = new KBO.App({ appId: 'wizard-final', appName: '편성 스튜디오' });
@@ -311,6 +314,7 @@
       if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button' && e.target.dataset && e.target.dataset.act && e.target.tagName.toLowerCase() !== 'button') {
         e.preventDefault(); const fn = S.actions[e.target.dataset.act]; if (fn) fn(e.target, e); return;
       }
+      if (S.guideOnKey && S.guideOnKey(e) === true) return;
       if (S.onKey && S.onKey(e) === true) return;
       const tag = (e.target.tagName || '').toLowerCase();
       const typing = tag === 'input' || tag === 'textarea' || tag === 'select';

@@ -208,6 +208,7 @@
       '<span class="sep" style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>' +
       '<button class="btn sm" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식</button>' +
       '<button class="btn sm" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기</button>' +
+      (S.guideButton ? S.guideButton() : '') +
       '<span class="last">' + (li
         ? S.stat('ok', '적용됨') + '<span>' + esc(li.source) + ' · ' + esc(li.sheets) + ' · ' + esc(li.time) + '</span>' + (li.kind === 'gsheet' ? '<button class="btn xs" data-act="import-gsheet-reload">' + icon('redo') + '다시 불러오기</button>' : '')
         : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>') + S.mock() + '</span>' +
@@ -340,7 +341,7 @@
     }
     s += '</div><div class="small muted" style="margin-top:8px">9~10월은 재편성 기간입니다(시즌 운영 메뉴).</div></div></div>';
     const sub = (k, title, lines) => '<div class="blk"><div class="blk-head">' + icon('sheet') + esc(title) + '<span class="r"><span class="muted small">' + lines.length + '개</span><button class="btn xs" data-act="d-tab" data-tab="' + k + '">표 열기' + icon('right') + '</button></span></div><div class="blk-body small" style="padding:6px 10px;display:flex;flex-direction:column;gap:2px">' + (lines.length ? lines.slice(0, 4).map((x) => '<div>' + x + '</div>').join('') + (lines.length > 4 ? '<div class="muted">외 ' + (lines.length - 4) + '개</div>' : '') : '<span class="muted">없음</span>') + '</div></div>';
-    s += '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">' +
+    s += '<div class="season-subs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">' +
       sub('holidays', SHEETS.holidays.label, set.holidays.map((h) => '<span class="mono">' + esc(fmt.date(h.date)) + '</span> ' + esc(h.name))) +
       sub('restex', SHEETS.restex.label, set.restExceptions.map((d) => '<span class="mono">' + esc(fmt.date(d)) + '</span> 휴식 요일이지만 경기')) +
       sub('blackouts', SHEETS.blackouts.label, set.blackouts.map((b) => '<span class="mono">' + esc(fmt.date(b.start) + (b.end !== b.start ? ' ~ ' + fmt.date(b.end) : '')) + '</span> ' + esc(b.label || ''))) + '</div>';
