@@ -408,10 +408,24 @@
   const TM = { el: null, w: null, app: null };
   const TEAM_BOX = { lonMin: 125.9, lonMax: 129.8, latMin: 34.6, latMax: 38.0 }; // 내장 지도: 제주를 빼고 구장이 있는 곳만(지도가 덜 길쭉해 넓게 보인다)
   const running = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
+  const selTeam = () => (S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1);
+  const kakaoOn = () => !!(app().kakao && app().kakaoKey);
+  /** 구장 칸 Enter로 찾은 곳이 여럿이면 지도에도 번호로 보인다(guide-steps.js의 S.ui.teamFind) */
+  const findCands = () => { const f = S.ui.teamFind; return f && f.row === selTeam() && f.results && f.results.length ? f.results : null; };
+  /** 「지도에서 찍기」 중인 구단(카카오 지도일 때만) */
+  const mapPicking = () => { const p = S.ui.mapPick; return p && p.row === selTeam() && kakaoOn() ? p : null; };
   function teamMarkers() {
-    const u = S.ui, sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
-    const drag = S.feature('T4') && !running();
-    return app().state.teams.map((t, i) => ({ id: i, lat: Number(t.latitude), lon: Number(t.longitude), color: t.color, label: t.name, title: t.stadium, size: i === sel ? 7 : 5, active: i === sel, draggable: drag }));
+    const sel = selTeam();
+    const drag = S.feature('T4') && !running() && !mapPicking();
+    const out = app().state.teams.map((t, i) => ({ id: i, lat: Number(t.latitude), lon: Number(t.longitude), color: t.color, label: t.name, title: t.stadium, size: i === sel ? 7 : 5, active: i === sel, draggable: drag }));
+    (findCands() || []).forEach((x, k) => out.push({ id: 'c' + k, lat: Number(x.latitude), lon: Number(x.longitude), color: '#1F5FD6', shape: 'square', size: 6, label: (k + 1) + ' ' + x.name, title: '누르면 이 위치로 채웁니다', cls: 'cand' }));
+    return out;
+  }
+  function teamFocus() {
+    const c = findCands(), f = S.ui.teamFind;
+    if (!c) return { key: 'all', points: app().state.teams.map((t) => ({ lat: Number(t.latitude), lon: Number(t.longitude) })) };
+    const t = app().state.teams[f.row];
+    return { key: 'find:' + f.row + ':' + f.q, points: c.map((x) => ({ lat: Number(x.latitude), lon: Number(x.longitude) })).concat(t ? [{ lat: t.latitude, lon: t.longitude }] : []) };
   }
   function mountTeamMap() {
     const host = document.getElementById('teamMapHost');
@@ -424,7 +438,13 @@
       TM.w = KBO.UI.mapWidget(TM.el, app(), {
         get width() { return S.wide ? 520 : 400; }, // 넓은 화면에서 이름표가 너무 커지지 않게
         box: TEAM_BOX, spread: 10, grid: false, caption: false, fit: true, title: '구장 위치', tags: ['teams', 'map'], markers: teamMarkers,
-        onMarkerClick: (id) => { S.ui.cell = { sheet: 'teams', row: +id, col: 'name' }; S.render(); },
+        focus: teamFocus, cursor: () => (mapPicking() ? 'crosshair' : ''),
+        onMarkerClick: (id) => {
+          if (String(id).charAt(0) === 'c') { if (S.teamFindPick) S.teamFindPick(+String(id).slice(1)); return; }
+          if (mapPicking()) return; // 찍는 중에는 다른 구단으로 바꾸지 않는다
+          S.ui.cell = { sheet: 'teams', row: +id, col: 'name' }; S.ui.teamFind = null; S.render();
+        },
+        onMapClick: (lat, lon) => { const p = mapPicking(); if (p && S.teamMapPicked) S.teamMapPicked(p.row, lat, lon); },
         onDragEnd: (id, lat, lon) => { if (!locked() && app().updateTeam(+id, { latitude: lat, longitude: lon })) S.toast('구장 위치를 옮겼습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000); }
       });
       return;
@@ -437,8 +457,9 @@
     const a = app();
     const drag = S.feature('T4') ? ' 구장 표시를 끌어 위치를 옮길 수 있습니다.' + (S.dev() ? ' <span class="tag ref">FR-T4</span>' : '') : '';
     let s;
-    if (!a.kakaoKey) s = icon('info') + '<span><button class="lnk" data-act="open-settings" data-set="data">설정 › 카카오 지도 키</button>를 넣으면 카카오 지도로 보입니다.' + drag + '</span>';
-    else if (a.kakao) s = icon('map') + '<span>카카오 지도 · 표시를 누르면 그 구단을 고릅니다.' + drag + '</span>';
+    if (!a.kakaoKey) s = icon('info') + '<span>' + (findCands() ? '파란 번호 표시를 누르면 그 위치로 채웁니다. ' : '') + '<button class="lnk" data-act="open-settings" data-set="data">설정 › 카카오 지도 키</button>를 넣으면 카카오 지도로 보입니다.' + drag + '</span>';
+    else if (a.kakao && mapPicking()) s = icon('move') + '<span><b>지도에서 새 구장 자리를 누르세요.</b> 누른 곳의 위도·경도로 채웁니다. 그만두려면 카드의 「취소」나 Esc.</span>';
+    else if (a.kakao) s = icon('map') + '<span>카카오 지도 · ' + (findCands() ? '파란 번호 표시를 누르면 그 위치로 채웁니다.' : '표시를 누르면 그 구단을 고릅니다.') + drag + '</span>';
     else if (a.kakaoError) s = icon('warn') + '<span>카카오 지도를 열지 못해 기본 지도로 보입니다. 설정 › 카카오 지도 키와, 이 사이트 주소를 카카오에 등록했는지 확인해 주세요.' + (S.dev() ? ' (' + esc(a.kakaoError) + ')' : '') + '</span>';
     else s = icon('map') + '<span>카카오 지도를 불러오는 중입니다…</span>';
     return '<div class="pane-foot small tm-foot' + (a.kakaoKey && a.kakaoError ? ' warn' : '') + '"' + (S.feature('T4') ? ' data-feature="T4"' : '') + '>' + s + '</div>';
@@ -767,7 +788,7 @@
       S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — ' + fmt.date(date) + '이 휴식 요일이면 「휴식일 경기」에 넣고 연전 기간을 다시 만드세요.'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
-    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.render(); },
+    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.ui.mapPick = null; S.render(); },
     'rest-wd': (el) => {
       if (locked()) return;
       const w = +el.dataset.wd;

@@ -25,7 +25,9 @@
     this.engineConfig = this._loadEngineConfig();
     this.engine = Engine.createEngine(this.engineConfig);
     this._probeServer();
-    this.kakaoKey = LS.get(KAKAO_KEY) || '';
+    this.kakaoKeyLocal = LS.get(KAKAO_KEY) || ''; // 설정에 직접 넣은 키(이 브라우저)
+    this.kakaoKeyEnv = ''; // 설정 파일(ui/config.local.json ← .env·서버 환경 파일)의 키
+    this.kakaoKey = this.kakaoKeyLocal;
     this.kakao = null;
     this.kakaoError = null;
     this._cache = { version: -1 };
@@ -251,11 +253,26 @@
 
   // ───────────── 지도 검색 (FR-T2, T3) ─────────────
   App.prototype.setKakaoKey = function (key) {
-    this.kakaoKey = String(key || '').trim();
-    if (this.kakaoKey) LS.set(KAKAO_KEY, this.kakaoKey); else LS.remove(KAKAO_KEY);
+    this.kakaoKeyLocal = String(key || '').trim();
+    if (this.kakaoKeyLocal) LS.set(KAKAO_KEY, this.kakaoKeyLocal); else LS.remove(KAKAO_KEY);
+    this.kakaoKey = this.kakaoKeyLocal || this.kakaoKeyEnv; // 비우면 설정 파일의 키로 돌아간다
     this.kakao = null; this.kakaoError = null;
     this.emitUI(['map']);
     if (this.kakaoKey) this.ensureKakao();
+  };
+  /**
+   * 설정 파일(ui/config.local.json, scripts/ui-config.sh 가 .env·서버 환경 파일로 만든다)의 카카오 키를 읽는다.
+   * 파일이 없거나(커밋하지 않음) file:// 이면 조용히 넘어간다. 설정에 직접 넣은 키가 있으면 그 키가 먼저다.
+   */
+  App.prototype.loadLocalConfig = function (url) {
+    if (typeof fetch !== 'function' || (window.location && window.location.protocol === 'file:')) return Promise.resolve(null);
+    return fetch(url || 'config.local.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((cfg) => {
+      const key = cfg && typeof cfg.kakaoKey === 'string' ? cfg.kakaoKey.trim() : '';
+      if (!key || key === this.kakaoKeyEnv) return cfg;
+      this.kakaoKeyEnv = key;
+      if (!this.kakaoKeyLocal) { this.kakaoKey = key; this.kakao = null; this.kakaoError = null; this.emitUI(['map']); this.ensureKakao(); }
+      return cfg;
+    });
   };
   App.prototype.ensureKakao = function () {
     if (!this.kakaoKey) return Promise.resolve(null);

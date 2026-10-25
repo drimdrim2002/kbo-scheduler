@@ -9,3 +9,7 @@ data/baseball/unsolved/*.xlsx
 # 편성 결과 디스크 캐시(공유 링크). 기본 결과만 저장소에 둔다
 data/results/*
 !data/results/default.json
+
+# 비밀 값·만든 설정(카카오 지도 키 등). 예시는 .env.example
+.env
+ui/config.local.json

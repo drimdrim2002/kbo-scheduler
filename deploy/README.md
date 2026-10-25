@@ -36,6 +36,14 @@ sudo REPO_URL=https://github.com/drimdrim2002/kbo-scheduler.git bash -c "$(curl 
 6. 확인: `https://schedulelab.kr/api/v1/info`, `https://schedulelab.kr/og/default.png`.
 7. 방문자 주소 확인(IP당 동시 1작업): Caddy가 Cloudflare 대역에서 온 요청만 `CF-Connecting-IP`를 방문자 주소로 받아 `X-Real-IP`로 넘기고, 서버는 루프백에서 온 `X-Real-IP`만 믿는다(`deploy/Caddyfile` 맨 위 대역 목록). 휴대폰(LTE)과 PC(Wi-Fi)에서 동시에 「편성 시작」 → 둘 다 진행(하나는 "대기 1번째")이면 정상. 같은 기기에서 두 번 → 두 번째만 429 안내.
 
+## 3-1. 카카오 지도 키 (편성 스튜디오 ① 구단 정보의 지도·장소 검색)
+키는 저장소에 넣지 않는다(저장소가 공개). 카카오 JavaScript 키는 방문자 브라우저가 받아야 하는 키라 화면에서 볼 수 있다 — 막는 것은 카카오 콘솔의 **Web 플랫폼 사이트 도메인** 등록이다(`https://schedulelab.kr`, `https://www.schedulelab.kr`, 개발용 `http://localhost:8093`).
+1. https://developers.kakao.com → 내 애플리케이션 → 앱 키 → **JavaScript 키** 복사, 플랫폼 → Web에 위 도메인 등록, 카카오맵 사용 설정 켬.
+2. 서버: `sudo install -d -m 755 /etc/kbo-scheduler && echo 'KAKAO_JS_KEY=<키>' | sudo tee /etc/kbo-scheduler/env && sudo chmod 644 /etc/kbo-scheduler/env`
+3. `HOST=<서버 IP> bash deploy/deploy.sh` — `deploy/build.sh`가 `scripts/ui-config.sh`로 `ui/config.local.json`을 만든다(커밋하지 않는 파일). 키를 바꾸면 다시 배포하거나 서버에서 `sudo -u kbo bash scripts/ui-config.sh`.
+4. 개발 PC: 저장소 맨 위에 `.env`(예시 `.env.example`)를 만들고 `KAKAO_JS_KEY=<키>` → `bash scripts/ui-config.sh`. 파일이 없으면 화면은 기본 지도다. 화면 설정 › 카카오 지도 키에 직접 넣은 키가 있으면 그 키가 먼저다.
+5. GitHub에는 키를 두지 않는다. 지금 배포는 서버가 저장소를 받아 빌드하는 방식이라 GitHub Secrets를 읽을 곳이 없다. 배포를 GitHub Actions로 바꾸면 Secret `KAKAO_JS_KEY`를 `KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }} bash scripts/ui-config.sh`로 넘기면 된다(스크립트가 환경 변수를 먼저 본다).
+
 ## 4. 갱신 배포 (개발 PC)
 ```bash
 HOST=<서버 IP> bash deploy/deploy.sh

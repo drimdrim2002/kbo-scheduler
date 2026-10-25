@@ -130,29 +130,54 @@
     if (t.stadium === f.q && t.latitude === lat && t.longitude === lon) { f.done.same = true; return true; }
     return app().updateTeam(i, { stadium: f.q, latitude: lat, longitude: lon });
   }
+  /** 지도의 파란 번호 표시를 눌렀을 때(step-data.js 지도가 부른다) */
+  S.teamFindPick = function (k) { const f = S.ui.teamFind; if (!f || S.locked()) return; pickStadium(f.row, k); S.render(); };
+  /** 「지도에서 찍기」: 카카오 지도에서 누른 곳의 위도·경도로 채우고, 그 자리의 주소를 카카오 주소 변환으로 찾아 보여 준다 */
+  S.teamMapPicked = function (i, lat, lon) {
+    const t = app().state.teams[i];
+    if (!t || S.locked()) return;
+    lat = Math.round(lat * 1e6) / 1e6; lon = Math.round(lon * 1e6) / 1e6;
+    S.ui.mapPick = null;
+    const f = S.ui.teamFind = { row: i, q: t.stadium, src: '지도에서 직접 찍음', done: { name: '지도에서 찍은 곳', address: '', lat, lon } };
+    app().updateTeam(i, { latitude: lat, longitude: lon });
+    S.render();
+    const k = app().kakao;
+    if (!k || !k.maps.services || !k.maps.services.Geocoder) return;
+    try {
+      new k.maps.services.Geocoder().coord2Address(lon, lat, (res, status) => {
+        if (status !== k.maps.services.Status.OK || !res || !res[0] || S.ui.teamFind !== f) return;
+        f.done.address = (res[0].road_address && res[0].road_address.address_name) || (res[0].address && res[0].address.address_name) || '';
+        S.render();
+      });
+    } catch (e) { /* 주소는 없어도 된다 */ }
+  };
   function findBox(i, t) {
     const f = findState(i);
     if (!f) return '';
     if (f.busy) return '<div class="gs-find">' + icon('search') + ' 「' + esc(f.q) + '」 위치를 찾는 중입니다…</div>';
     if (f.done) {
       if (t.latitude !== f.done.lat || t.longitude !== f.done.lon) return ''; // 실행 취소 등으로 위치가 달라졌다
-      return '<div class="gs-find ok">' + icon('check') + ' 「' + esc(f.done.name) + '」' + (f.done.address ? '(' + esc(f.done.address) + ')' : '') + (f.done.same ? ' — 이미 이 위치입니다.' : ' 위치로 위도·경도를 채웠습니다. 이 구단의 거리는 직선거리로 다시 추정했습니다.') + '<span class="gs-find-src">찾은 곳: ' + esc(f.src) + (f.done.same ? '' : ' · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다') + '</span></div>';
+      return '<div class="gs-find ok">' + icon('check') + ' 「' + esc(f.done.name) + '」' + (f.done.address ? '(' + esc(f.done.address) + ')' : '') + (f.src === '지도에서 직접 찍음' ? ' ' + f.done.lat.toFixed(4) + ', ' + f.done.lon.toFixed(4) : '') + (f.done.same ? ' — 이미 이 위치입니다.' : ' 위치로 위도·경도를 채웠습니다. 이 구단의 거리는 직선거리로 다시 추정했습니다.') + '<span class="gs-find-src">찾은 곳: ' + esc(f.src) + (f.done.same ? '' : ' · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다') + '</span></div>';
     }
     if (!f.results || !f.results.length) return '<div class="gs-find warn">' + icon('warn') + ' 「' + esc(f.q) + '」을(를) 찾지 못했습니다 — 위도·경도를 직접 적어 주세요.<span class="gs-find-src">찾아본 곳: ' + esc(f.src) + '</span></div>';
-    return '<div class="gs-find">「' + esc(f.q) + '」 검색 결과 ' + f.results.length + '곳 — 맞는 곳을 누르면 위도·경도를 채웁니다.<div class="gs-cands" role="listbox" aria-label="구장 검색 결과">' +
-      f.results.map((x, k) => '<button class="gs-cand" data-act="g1-find-pick" data-row="' + i + '" data-k="' + k + '" role="option"><b>' + esc(x.name) + '</b><small>' + esc((x.address ? x.address + ' · ' : '') + Number(x.latitude).toFixed(4) + ', ' + Number(x.longitude).toFixed(4)) + '</small></button>').join('') +
+    return '<div class="gs-find">「' + esc(f.q) + '」 검색 결과 ' + f.results.length + '곳 — 맞는 곳을 누르면 위도·경도를 채웁니다. 오른쪽 지도의 파란 번호 표시를 눌러도 됩니다.<div class="gs-cands" role="listbox" aria-label="구장 검색 결과">' +
+      f.results.map((x, k) => '<button class="gs-cand" data-act="g1-find-pick" data-row="' + i + '" data-k="' + k + '" role="option"><b><span class="gs-cand-no">' + (k + 1) + '</span>' + esc(x.name) + '</b><small>' + esc((x.address ? x.address + ' · ' : '') + Number(x.latitude).toFixed(4) + ', ' + Number(x.longitude).toFixed(4)) + '</small></button>').join('') +
       '</div><span class="gs-find-src">찾아본 곳: ' + esc(f.src) + ' <button class="lnk" data-act="g1-find-close">닫기</button></span></div>';
   }
   function teamEditor() {
     const st = app().state, i = S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1;
     if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표나 지도에서 구단을 누르면 여기서 구단명·구장·위도·경도를 고칩니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
     const t = st.teams[i], f = findState(i);
+    const kakaoMap = !!(app().kakao && app().kakaoKey), picking = kakaoMap && S.ui.mapPick && S.ui.mapPick.row === i;
     const inp = (k, label, v, ph) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm" data-in="team-field" data-row="' + i + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="' + esc(t.name + ' ' + label) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></label>';
     const stdV = f && !f.done ? f.q : t.stadium; // 고르는 중이면 적은 이름 그대로
     const others = st.teams.filter((x) => x.name !== t.name).map((x) => { const d = app().distanceOf(t.name, x.name) || {}; return { n: x.name, d: d.distance, est: !!d.estimated }; }).sort((a, b) => a.d - b.d);
     return '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
       '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + inp('latitude', '위도', t.latitude.toFixed(4)) + inp('longitude', '경도', t.longitude.toFixed(4)) + '</div></div>' +
-      findBox(i, t) +
+      (kakaoMap ? (picking
+        ? '<div class="gs-find pick">' + icon('move') + ' 오른쪽 지도에서 새 구장 자리를 누르세요. 누른 곳의 위도·경도로 채웁니다. <button class="btn xs" data-act="g1-map-pick-off">취소</button></div>'
+        : '<div class="gs-mappick"><button class="btn xs" data-act="g1-map-pick" data-row="' + i + '">' + icon('move') + '지도에서 찍기</button><span>카카오 지도에서 자리를 눌러 위도·경도를 넣습니다</span></div>') : '') +
+      (picking ? '' : findBox(i, t)) +
       '<div class="gs-hint">구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 위도·경도를 찾아 채웁니다. 다른 칸은 적고 Enter를 누르면 바로 반영됩니다. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
       '<div class="gs-sub">다른 구장까지 거리 <small>km</small></div>' + others.map((o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v mono">' + fmt.km(o.d) + (o.est ? ' <span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : '') + '</span></div>').join('');
   }
@@ -285,6 +310,7 @@
     after() { /* 띠 위에 그릴 것 없음 */ },
     onKey(e) {
       if (S.ui.step !== 1 || !stepwise() || S.guideBlocked()) return false;
+      if (e.key === 'Escape' && S.ui.mapPick) { S.ui.mapPick = null; S.render(); return true; }
       // 카드의 구장 칸: Enter = 구장 위치 찾기(이름 저장과 위치 채우기를 한 번에 → 실행 취소 한 번)
       // 한글 입력 중(마지막 글자 조합 중)의 Enter는 조합을 끝내는 키라 건너뛴다 — 맥 Chrome은 조합 Enter 뒤에 보통 Enter를 한 번 더 보낸다
       if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
@@ -393,6 +419,12 @@
       const picked = st().teams[li].stadium === '대전' && st().teams[li].latitude === 36.3166 && !q('.gs-card .gs-cand') && /대전한화생명볼파크/.test(q('.gs-card .gs-find.ok').textContent);
       app().undo(); flush();
       ok('단계별: 「대전」 + Enter → 결과 2곳을 카드에 · 고르면 채움 · 실행 취소 한 번으로 복귀', many && picked && back(), 'many ' + many + ' · picked ' + picked + ' · back ' + back());
+      await findT('마산');
+      const onMap = qa('#teamMapHost .kmap-marker[data-id^="c"]').length === 2 && /파란 번호 표시/.test(q('.tm-foot').textContent) && /1창원NC파크/.test(q('.gs-card .gs-cand').textContent.replace(/\s+/g, '')) && !q('.gs-card [data-act="g1-map-pick"]');
+      q('#teamMapHost .kmap-marker[data-id="c0"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); flush();
+      const mapPicked = st().teams[li].stadium === '마산' && st().teams[li].latitude === 35.222564 && !q('#teamMapHost .kmap-marker[data-id^="c"]') && /창원NC파크/.test(q('.gs-card .gs-find.ok').textContent);
+      app().undo(); flush();
+      ok('단계별: 「마산」 + Enter → 결과 2곳이 지도에도 파란 번호로 · 지도의 1번을 누르면 채움 · 키가 없으면 「지도에서 찍기」 없음 · 실행 취소로 복귀', onMap && mapPicked && back(), 'onMap ' + onMap + ' · mapPicked ' + mapPicked + ' · back ' + back());
       await findT('없는구장이름');
       const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 위도·경도를 직접 적어 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === '없는구장이름' && st().teams[li].latitude === lg0.latitude;
       app().undo(); flush();
@@ -490,6 +522,8 @@
     'g1-ask': () => { G.mode = null; G.justReset = false; S.go({ step: 1, ops: null, modal: null, drawer: null, cell: null, edit: null }); },
     'g1-find-pick': (el) => { if (S.locked()) return; pickStadium(+el.dataset.row, +el.dataset.k); S.render(); },
     'g1-find-close': () => { S.ui.teamFind = null; S.render(); },
+    'g1-map-pick': (el) => { if (S.locked()) return; S.ui.mapPick = { row: +el.dataset.row }; S.ui.teamFind = null; S.render(); },
+    'g1-map-pick-off': () => { S.ui.mapPick = null; S.render(); },
     'g1-go': (el) => { G.justReset = false; show(+el.dataset.i); },
     'g1-next': () => { G.justReset = false; if (G.i < N()) show(G.i + 1); else S.go({ step: 2, ops: null, sel: null, edit: null }); },
     'g1-off': () => { store.set({ off: true, seen: true }); setMode('all'); S.go({ step: 1, ops: null, tab: S.ui.tab && S.ui.tab !== 'next' ? S.ui.tab : 'slots' }); S.toast('단계별 안내를 껐습니다. ①에 들어오면 바로 모든 표가 보입니다. 띠의 「단계별 안내 켜기」로 다시 켭니다.', 'info', 6000); },

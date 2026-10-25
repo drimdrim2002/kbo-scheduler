@@ -1189,6 +1189,11 @@ svg.mc text { font-family: var(--font); }
 .gs-cand { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); text-align: left; cursor: pointer; font: inherit; color: var(--text); }
 .gs-cand:hover, .gs-cand:focus-visible { border-color: var(--blue); background: var(--blue-weak); }
 .gs-cand small { color: var(--text-3); font-size: var(--fs-xs); }
+.gs-cand-no { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; margin-right: 6px; border-radius: 3px; background: #1F5FD6; color: #fff; font-size: 11px; font-weight: 700; }
+.gs-find.pick { border-color: var(--blue); background: var(--blue-weak); color: var(--text); }
+.gs-mappick { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-xs); color: var(--text-3); }
+.gs-mappick .btn { flex: none; }
+.k-kakao-label.cand { --tc: #1F5FD6; border-radius: 3px; }
 
 /* ① 구단 정보: 왼쪽 구단 표(+접힌 거리표) · 오른쪽 구장 지도(남은 높이를 모두) */
 .pane-body.tm-body { display: flex; flex-direction: column; }

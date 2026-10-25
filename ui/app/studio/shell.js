@@ -301,6 +301,7 @@
       setTimeout(() => KBO.UI.toast('공유 결과의 조건을 실었어요: ' + parts.join(' · '), 'info', 6000), 0);
     }
     app.subscribe(() => S.scheduleRender());
+    app.loadLocalConfig(); // 카카오 지도 키(.env → ui/config.local.json). 없으면 기본 지도
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
     window.addEventListener('hashchange', () => { S.applyRoute(S.parseHash()); S.render(); });
