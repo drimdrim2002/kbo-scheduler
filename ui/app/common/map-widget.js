@@ -12,7 +12,7 @@
    * opts: { markers: () => [...], lines: () => [...], onDragEnd(id, lat, lon), onMarkerClick(id),
    *         width, allowKakao, tags, caption(false면 아래 글줄 없음), extraClass, fit(Kakao: 처음에 마커가 모두 보이게), spread, title, box(SVG: 보이는 범위) }
    * 마커의 active는 SVG·Kakao 모두 강조한다(Kakao: 이름표에 on, 위로). mk.cls는 Kakao 이름표에 붙일 class.
-   * Kakao 전용: focus() → { key, points:[{lat,lon}] } — key가 바뀔 때마다 그 점들이 보이게 범위를 맞춘다.
+   * Kakao 전용: focus() → { key, points:[{lat,lon}] } | null — key가 바뀔 때마다 그 점들이 보이게 범위를 맞춘다(null이면 범위 그대로).
    *             onMapClick(lat, lon) — 지도 빈 곳을 눌렀을 때 · cursor() → 'crosshair' 등(없으면 기본).
    */
   function mapWidget(el, app, opts) {
@@ -21,7 +21,7 @@
     let kakaoObjs = [];
     let focusKey = null;
     let drag = null;
-    const fitTo = (kakao, pts) => { const b = new kakao.maps.LatLngBounds(); for (const p of pts) b.extend(new kakao.maps.LatLng(p.lat, p.lon)); kakaoMap.setBounds(b); };
+    const fitTo = (kakao, pts) => { const b = new kakao.maps.LatLngBounds(); for (const p of pts) b.extend(new kakao.maps.LatLng(p.lat, p.lon)); kakaoMap.setBounds(b, 56, 40, 28, 40); }; // 위쪽은 이름표 높이만큼 더 띄운다
 
     function renderSvg(body) {
       const r = MapKit.render({ width: opts.width || 420, markers: opts.markers(), lines: opts.lines ? opts.lines() : [], labels: opts.labels !== false, extraClass: opts.extraClass, maxWidth: opts.maxWidth || 9999, grid: opts.grid, spread: opts.spread, title: opts.title, box: opts.box });
@@ -39,11 +39,12 @@
         kakaoMap.__host = body;
         if (opts.fit && markers.length) fitTo(kakao, markers);
         if (opts.onMapClick) kakao.maps.event.addListener(kakaoMap, 'click', (e) => opts.onMapClick(e.latLng.getLat(), e.latLng.getLng()));
-        focusKey = null;
+        focusKey = opts.focus ? ((opts.focus() || {}).key || '') : ''; // 처음 범위는 fit이 맞춘다
       } else if (kakaoMap.relayout) kakaoMap.relayout(); // 다른 자리로 옮겨 붙였거나 크기가 바뀌었을 때
       if (opts.focus) {
         const f = opts.focus();
-        if (f && f.key !== focusKey) { if (focusKey !== null && f.points && f.points.length) fitTo(kakao, f.points); focusKey = f.key; }
+        if (!f) focusKey = ''; // 맞출 것이 없으면 지금 범위 그대로(같은 검색을 다시 하면 다시 맞춘다)
+        else if (f.key !== focusKey) { if (f.points && f.points.length) fitTo(kakao, f.points); focusKey = f.key; }
       }
       if (kakaoMap.setCursor) kakaoMap.setCursor(opts.cursor ? opts.cursor() || '' : '');
       for (const o of kakaoObjs) o.setMap(null);

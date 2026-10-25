@@ -423,7 +423,7 @@
   }
   function teamFocus() {
     const c = findCands(), f = S.ui.teamFind;
-    if (!c) return { key: 'all', points: app().state.teams.map((t) => ({ lat: Number(t.latitude), lon: Number(t.longitude) })) };
+    if (!c) return null; // 검색 결과가 없으면 지금 보는 범위를 그대로 둔다(지도에서 찍기 중 확대한 화면 유지)
     const t = app().state.teams[f.row];
     return { key: 'find:' + f.row + ':' + f.q, points: c.map((x) => ({ lat: Number(x.latitude), lon: Number(x.longitude) })).concat(t ? [{ lat: t.latitude, lon: t.longitude }] : []) };
   }
