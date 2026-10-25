@@ -11,26 +11,26 @@
   const D = () => S.app.derived();
   const ORDER = { block: 0, warn: 1, pass: 2 };
   const KIND = { pass: 'ok', warn: 'warn', block: 'block' };
-  const LBL = { pass: '통과', warn: '경고', block: '차단' };
-  const TARGET_LABEL = { teams: '① 구단과 거리', distance: '① 구단과 거리', slots: '① 슬롯', series: '① 시리즈', events: '① 이벤트', result: '③ 결과·수정', season: '① 시즌 골격' };
+  const LBL = { pass: '통과', warn: '확인 필요', block: '진행 불가' };
+  const TARGET_LABEL = { teams: '① 구단과 거리', distance: '① 구단과 거리', slots: '① 연전 기간', series: '① 시리즈', events: '① 특별 경기', result: '③ 결과·수정', season: '① 시즌 기본 설정' };
   // 규칙 설명. 개발자 모드는 코드가 들어간 원문, 일반 모드는 쉬운 문장
   const EXPLAIN = {
-    'teams-even': '구단 수가 홀수면 매 슬롯 한 구단이 쉬어야 해서 H0-a(출전 구단 수)를 만족할 수 없습니다.',
-    shared: '같은 구장명을 쓰는 구단은 공유 구장으로 봅니다. 한 슬롯에 둘 다 홈이면 H0-b 위반입니다.',
+    'teams-even': '구단 수가 홀수면 연전 기간마다 한 구단이 쉬어야 해서 H0-a(출전 구단 수)를 만족할 수 없습니다.',
+    shared: '같은 구장명을 쓰는 구단은 같이 쓰는 구장으로 봅니다. 한 연전 기간에 둘 다 홈이면 H0-b 위반입니다.',
     distance: '이동거리(S2, S4) 계산에 N×(N−1)개 거리가 모두 필요합니다.',
-    slots: '슬롯은 ① 슬롯 시트에서 가져옵니다. 규칙으로 만든 초안과 다르면 경고합니다.',
-    pairs: '구단쌍마다 1차 편성 경기 수가 같아야 공정합니다(기본 15경기).',
-    events: '같은 슬롯에서 한 구단이 두 대진에 나오거나, 구장 지정과 대진 지정이 부딪히면 차단합니다.',
-    pins: '고정 시리즈가 연전 수가 다른 슬롯에 있으면 H0-d 위반이 남습니다.',
-    cap: 'k연전마다 「k연전 시리즈 수 ≤ k연전 슬롯 수 × (구단 수 / 2)」를 검사합니다. 부족하면 미배정(S0)이나 슬롯 과밀이 불가피해 차단하고, 남으면 빈 자리는 추가 휴식이라 경고만 합니다.'
+    slots: '연전 기간은 ① 연전 기간 표에서 가져옵니다. 규칙대로 만든 안과 다르면 알려 드립니다.',
+    pairs: '맞대결마다 1차 편성 경기 수가 같아야 공정합니다(기본 15경기).',
+    events: '같은 연전 기간에 한 구단이 두 대진에 나오거나, 구장 지정과 대진 지정이 부딪히면 진행할 수 없습니다.',
+    pins: '고정 시리즈가 연전 수가 다른 연전 기간에 있으면 H0-d 위반이 남습니다.',
+    cap: 'k연전마다 「k연전 시리즈 수 ≤ k연전 기간 수 × (구단 수 / 2)」를 검사합니다. 부족하면 일정 미정(S0)이나 기간 과밀이 불가피해 진행할 수 없고, 남으면 빈 자리는 추가 휴식이라 확인 필요로만 알립니다.'
   };
   const EXPLAIN_PLAIN = {
-    'teams-even': '구단 수가 홀수면 매 슬롯 한 구단이 쉬어야 해서, 모든 구단이 슬롯마다 한 경기씩 치른다는 규칙을 지킬 수 없습니다.',
-    shared: '같은 구장명을 쓰는 구단은 공유 구장으로 봅니다. 한 슬롯에 두 구단이 모두 홈이면 「한 구장에 두 경기」 위반입니다.',
+    'teams-even': '구단 수가 홀수면 연전 기간마다 한 구단이 쉬어야 해서, 모든 구단이 연전 기간마다 한 경기씩 치른다는 규칙을 지킬 수 없습니다.',
+    shared: '같은 구장명을 쓰는 구단은 같이 쓰는 구장으로 봅니다. 한 연전 기간에 두 구단이 모두 홈이면 「한 구장에 두 경기」 위반입니다.',
     distance: '구단 이동거리를 계산하려면 모든 구단 사이의 거리가 필요합니다.',
     slots: EXPLAIN.slots, pairs: EXPLAIN.pairs, events: EXPLAIN.events,
-    pins: '고정한 시리즈가 연전 수가 다른 슬롯에 있으면 「연전 수 불일치」 위반이 남습니다.',
-    cap: '2·3·4연전마다 「시리즈 수 ≤ 슬롯 수 × (구단 수 / 2)」인지 봅니다. 시리즈가 더 많으면 놓을 자리가 없어 차단하고, 자리가 남으면 그만큼 쉬는 날이 늘 뿐이라 경고만 합니다.'
+    pins: '고정한 시리즈가 연전 수가 다른 연전 기간에 있으면 「연전 수 불일치」 위반이 남습니다.',
+    cap: '2·3·4연전마다 시리즈 수가 「연전 기간 수 × 한 기간에 열리는 시리즈 수(구단 수 ÷ 2)」를 넘지 않는지 봅니다. 넘으면 놓을 자리가 없어 진행할 수 없고, 자리가 남으면 그만큼 쉬는 날이 늘 뿐이라 확인 필요로만 알립니다.'
   };
   const explain = (k) => (S.dev() ? EXPLAIN[k] : EXPLAIN_PLAIN[k]) || '';
   // 실행 시간 프리셋 (W17) → solver.timeLimitSec
@@ -55,7 +55,7 @@
     return { v: chosen, forced: false, chosen };
   };
   S.INIT_MODES = [
-    { v: 'KEEP', name: '지금 일정 다듬기', sub: '현재 배정에서 출발해 위반과 부담을 줄입니다', when: '지금 일정이 거의 맞고 몇 곳만 고칠 때' },
+    { v: 'KEEP', name: '지금 일정 다듬기', sub: '지금 일정에서 출발해 위반과 부담을 줄입니다', when: '지금 일정이 거의 맞고 몇 곳만 고칠 때' },
     { v: 'SCRATCH', name: '처음부터 새로 짜기', sub: '고정한 경기만 두고 나머지를 새로 배치합니다', when: '입력을 크게 바꿨거나 새 시즌일 때' }
   ];
 
@@ -67,8 +67,8 @@
   function renderList() {
     const pf = app().preflight();
     const u = S.ui;
-    let s = '<div class="pane-head"><span class="pane-title">사전 점검</span><span class="pane-desc">엔진 실행 전 구조 점검</span></div><div class="pane-body" data-sk="p-list">';
-    s += '<div style="display:flex;gap:6px;padding:10px 12px 2px">' + S.stat('ok', '통과 ' + pf.counts.pass) + S.stat('warn', '경고 ' + pf.counts.warn) + S.stat('block', '차단 ' + pf.counts.block) + '</div>';
+    let s = '<div class="pane-head"><span class="pane-title">사전 점검</span><span class="pane-desc">자동 편성 전에 입력이 맞는지 봅니다</span></div><div class="pane-body" data-sk="p-list">';
+    s += '<div style="display:flex;gap:6px;padding:10px 12px 2px">' + S.stat('ok', '통과 ' + pf.counts.pass) + S.stat('warn', '확인 필요 ' + pf.counts.warn) + S.stat('block', '진행 불가 ' + pf.counts.block) + '</div>';
     for (const g of ['block', 'warn', 'pass']) {
       const list = items().filter((x) => x.status === g);
       if (!list.length) continue;
@@ -89,13 +89,13 @@
     const shared = app().sharedStadiums();
     const kv = (k, v, s2) => '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div><div class="s" title="' + esc(s2) + '">' + esc(s2) + '</div></div>';
     return '<div class="kv-row">' +
-      kv('구단', st.teams.length, '공유 구장 ' + shared.size + ' (잠실)') +
+      kv('구단', st.teams.length, '같이 쓰는 구장 ' + shared.size + ' (잠실)') +
       kv('1차 편성 기간', fmt.short(set.seasonStart) + '~' + fmt.short(set.initialEnd), days + '일 · 휴식 월요일') +
-      kv('슬롯', st.calendar.length, '2·3·4연전 ' + (h[2] || 0) + '·' + (h[3] || 0) + '·' + (h[4] || 0)) +
-      kv('경기 없는 기간', set.blackouts.length, set.blackouts.map((b) => fmt.short(b.start) + (b.end !== b.start ? '~' + fmt.short(b.end) : '')).join(', ')) +
-      kv('이벤트', st.events.length, '대진 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 ' + st.events.filter((e) => e.mode === 'STADIUM').length) +
+      kv('연전 기간', st.calendar.length, '2·3·4연전 ' + (h[2] || 0) + '·' + (h[3] || 0) + '·' + (h[4] || 0)) +
+      kv('휴식기', set.blackouts.length, set.blackouts.map((b) => fmt.short(b.start) + (b.end !== b.start ? '~' + fmt.short(b.end) : '')).join(', ')) +
+      kv('특별 경기', st.events.length, '대진 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 ' + st.events.filter((e) => e.mode === 'STADIUM').length) +
       kv('시리즈', st.matches.length, games + '경기') +
-      kv('구단쌍', '45', set.initialGamesPerPair + '경기씩') +
+      kv('맞대결', st.teams.length * (st.teams.length - 1) / 2, set.initialGamesPerPair + '경기씩') +
       kv('고정', st.matches.filter((m) => m.pinned).length, '개막전 대진 지정') + '</div>';
   }
 
@@ -221,7 +221,7 @@
       if (r.queue != null) return '서버 대기 중 — 앞에 ' + Math.max(0, r.queue - 1) + '건';
       const last = r.history[r.history.length - 1];
       const cnt = last ? Math.max(n, Math.round(-last.hard)) : n;
-      return r.status === 'PAUSED' ? '일시정지 — 화면 갱신만 멈춥니다' : (last ? '더 나은 일정을 찾는 중 · ' + S.termPlain('hardViol') + ' ' + cnt + '건' : '엔진 시작 중 · 첫 개선 해를 기다립니다');
+      return r.status === 'PAUSED' ? '일시정지 — 화면 갱신만 멈춥니다' : (last ? '더 나은 일정을 찾는 중 · ' + S.termPlain('hardViol') + ' ' + cnt + '건' : '자동 편성 시작 중 · 첫 결과를 기다립니다');
     }
     if (S.lastRun) return '끝났습니다(' + S.lastRun.reason + ') · ' + (n ? S.termPlain('hardViol') + ' ' + n + '건 남음' : '편성 가능');
     return '대기 중 — 「편성 시작」을 누르세요';
@@ -236,9 +236,9 @@
     const row = (kind, text, act) => '<div class="res-row">' + S.statIcon(kind) + '<span class="grow">' + text + '</span>' + (act || '') + '</div>';
     return '<div class="blk"><div class="blk-head">' + icon('check') + '지난 실행 결과<span class="r small muted">' + esc(S.lastRun.when) + ' · ' + S.lastRun.count + '회째 · ' + esc(fmt.time(S.lastRun.elapsed)) + '</span></div><div class="blk-body res-list">' +
       row(n ? 'block' : 'ok', n ? '<b>' + esc(S.termPlain('hardViol')) + ' ' + n + '건</b> — ' + esc(Array.from(new Set(ex.violations.map((v) => S.ruleName(v.code)))).join(', ')) : esc(S.termPlain('hardViol')) + ' 없음 — 편성 가능', n ? '<button class="btn sm" data-act="go-step" data-step="3">' + icon('right') + '③ 결과·수정에서 고치기</button>' : '') +
-      row(c.pool.length ? 'warn' : 'ok', c.pool.length ? '미배정 시리즈 ' + c.pool.length + '개' : '모든 시리즈가 슬롯에 놓였습니다') +
+      row(c.pool.length ? 'warn' : 'ok', c.pool.length ? '일정 미정 시리즈 ' + c.pool.length + '개' : '모든 시리즈가 연전 기간에 들어갔습니다') +
       row(over.length ? 'warn' : 'ok', over.length ? '이동거리가 허용 범위(평균 ±300km)를 넘는 구단 ' + over.length + '개 — ' + esc(over.map((t) => t.name).join(', ')) : '모든 구단 이동거리가 허용 범위 안', '<button class="btn sm" data-act="q-view" data-qv="metrics">' + icon('right') + '④ 지표에서 보기</button>') +
-      (S.lastRun.trace ? row('info', '서버 엔진이 더 나은 일정을 찾아간 순서 — 개선 ' + (S.lastRun.trace.events || []).length + '회를 20~40초로 늘려 재생합니다', '<button class="btn sm" data-act="open-replay">' + icon('play') + '탐색 과정 보기</button>') : '') +
+      (S.lastRun.trace ? row('info', '자동 편성이 더 나은 일정을 찾아간 순서 — 개선 ' + (S.lastRun.trace.events || []).length + '회를 20~40초로 늘려 재생합니다', '<button class="btn sm" data-act="open-replay">' + icon('play') + '편성 과정 다시 보기</button>') : '') +
       '</div></div>';
   }
 
@@ -252,8 +252,8 @@
     const rest = app().engineConfig.kind === 'REST';
     const info = (app().engineConfig && app().engineConfig.info) || {};
     const engineTag = rest
-      ? '<span class="tag ok" title="' + esc(app().engine.label) + '">서버 엔진 · OptaPlanner 멀티스타트' + (info.defaultSeeds ? ' ' + info.defaultSeeds + '시드' : '') + '</span>'
-      : '<span class="tag ref" title="서버가 없어 브라우저 안 로컬서치를 씁니다">브라우저 시뮬레이션 엔진 — 품질 보장 없음</span>';
+      ? (S.dev() ? '<span class="tag ok" title="' + esc(app().engine.label) + '">서버 엔진 · OptaPlanner 멀티스타트' + (info.defaultSeeds ? ' ' + info.defaultSeeds + '시드' : '') + '</span>' : '<span class="tag ok">자동 편성</span>')
+      : (S.dev() ? '<span class="tag ref" title="서버가 없어 브라우저 안 로컬서치를 씁니다">브라우저 시뮬레이션 엔진 — 품질 보장 없음</span>' : '<span class="tag ref" title="편성 서버에 연결되지 않아 이 브라우저에서 간단히 돌립니다">자동 편성(간이) — 결과 품질 보장 없음</span>');
     let s = S.paneHead('검토·실행', '입력을 한눈에 확인하고, 사전 점검을 통과하면 편성을 시작합니다.', '');
     s += '<div class="pane-body pad" data-sk="p-main" style="display:flex;flex-direction:column;gap:12px">';
     s += '<div><div class="label" style="padding:0 0 6px">입력 요약</div>' + summary() + '</div>';
@@ -262,13 +262,13 @@
     // 실행 중에는 진행 막대·경과 시간·상태 문장만 보여 준다(W17)
     if (!running) s += S.reviewSimpleOptions(sv, running);
     else s += '<div class="keep-line">' + icon('clock') + '<span>' + esc((S.TIME_PRESETS.find((p) => p.sec === sv.timeLimitSec) || { name: '직접 지정' }).name) + ' ' + esc(fmt.time(r.limit)) + ' · ' + esc((S.INIT_MODES.find((m) => m.v === (sv.init === 'SCRATCH' ? 'SCRATCH' : 'KEEP')) || {}).name || '') + '</span><span class="muted small">끝나면 ③ 결과·수정으로 갑니다. 그동안 ① 데이터 준비는 잠깁니다.</span></div>';
-    if (blocked) s += '<div class="confirm-box" style="border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad)">' + icon('block') + '차단 ' + pf.counts.block + '건 — 왼쪽 목록의 차단 항목을 먼저 고치세요. <button class="btn xs" data-act="p-goto" data-target="' + esc(pf.items.find((x) => x.status === 'block').target) + '">입력 위치로 이동</button></div>';
+    if (blocked) s += '<div class="confirm-box" style="border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad)">' + icon('block') + '진행 불가 ' + pf.counts.block + '건 — 왼쪽 목록의 진행 불가 항목을 먼저 고치세요. <button class="btn xs" data-act="p-goto" data-target="' + esc(pf.items.find((x) => x.status === 'block').target) + '">입력 위치로 이동</button></div>';
     s += '<div class="run-line"><div class="run-prog"><div class="progress" role="progressbar" aria-label="편성 진행" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>' +
       '<div class="run-meta"><span class="run-status" aria-live="polite">' + (running ? '<span class="eng-dot' + (r.status === 'PAUSED' ? ' pause' : '') + '"></span>' : S.lastRun ? icon('check') : icon('clock')) + esc(statusLine(r, running)) + '</span><span class="mono small">' + pct + '% · 경과 ' + fmt.time(running ? r.elapsed : S.lastRun ? S.lastRun.elapsed : 0) + ' / ' + fmt.time(running ? r.limit : limit) + '</span></div></div>' +
       '<span class="run-btns">' +
       (running
         ? (r.status === 'PAUSED' ? '<button class="btn" data-act="run-resume">' + icon('play') + '재개</button>' : '<button class="btn" data-act="run-pause">' + icon('pause') + '일시정지</button>') + '<button class="btn danger" data-act="run-stop">' + icon('stop') + '중지</button>'
-        : '<button class="btn primary lg go" data-act="run-start"' + (blocked ? ' disabled title="사전 점검 차단 항목이 있습니다"' : '') + '>' + icon('play') + '편성 시작</button>') +
+        : '<button class="btn primary lg go" data-act="run-start"' + (blocked ? ' disabled title="사전 점검에 진행 불가 항목이 있습니다"' : '') + '>' + icon('play') + '편성 시작</button>') +
       '</span></div>';
     s += '</div></div>';
     s += S.reviewDevOptions(sv, running, r);
@@ -292,9 +292,9 @@
       const k = +it.id.slice(4);
       const st = app().state;
       const sh = CalendarGen.lengthHistogram(st.calendar), mh = CalendarGen.lengthHistogram(st.matches);
-      s += '<div class="insp-sec"><h4>계산</h4><dl class="props"><dt>' + k + '연전 시리즈</dt><dd class="mono">' + (mh[k] || 0) + '</dd><dt>' + k + '연전 슬롯</dt><dd class="mono">' + (sh[k] || 0) + '</dd><dt>슬롯당 수용</dt><dd class="mono">' + (st.teams.length >> 1) + '</dd><dt>수용 합계</dt><dd class="mono">' + (sh[k] || 0) * (st.teams.length >> 1) + '</dd></dl></div>';
+      s += '<div class="insp-sec"><h4>계산</h4><dl class="props"><dt>' + k + '연전 시리즈</dt><dd class="mono">' + (mh[k] || 0) + '</dd><dt>' + k + '연전 기간</dt><dd class="mono">' + (sh[k] || 0) + '</dd><dt>기간당 자리</dt><dd class="mono">' + (st.teams.length >> 1) + '</dd><dt>자리 합계</dt><dd class="mono">' + (sh[k] || 0) * (st.teams.length >> 1) + '</dd></dl></div>';
     }
-    s += '<div class="insp-sec"><h4>입력 위치</h4><button class="btn sm" data-act="p-goto" data-target="' + esc(it.target) + '">' + icon('right') + esc(TARGET_LABEL[it.target] || it.target) + '(으)로 이동</button></div>';
+    s += '<div class="insp-sec"><h4>입력 위치</h4><button class="btn sm" data-act="p-goto" data-target="' + esc(it.target) + '">' + icon('right') + esc(TARGET_LABEL[it.target] || it.target) + ' 열기</button></div>';
     return { title: '점검 상세', html: s };
   }
 
@@ -329,7 +329,7 @@
    */
   S.startRun = function () {
     if (S.run && S.run.status !== 'DONE') return;
-    if (!app().preflight().ok) { S.toast('사전 점검 차단 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
+    if (!app().preflight().ok) { S.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
     const sv = app().state.settings.solver;
     const limit = S.runLimitMs(sv);
     const eff = S.effectiveInit(sv);
@@ -402,9 +402,9 @@
   S.modals.replay = function () {
     const tr = S.lastRun && S.lastRun.trace;
     S.afterRender(() => S.mountReplay(tr || null));
-    return '<div class="modal replay-modal" role="dialog" aria-label="탐색 과정 재생"><div class="modal-head"><h3>' + icon('play') + ' 탐색 과정 재생</h3>' +
-      '<span class="muted small">서버 엔진이 더 나은 일정을 찾아간 순서를 20~40초로 늘려 재생합니다. 카드 1장 = 시리즈 1개, 색은 홈 구단.</span>' +
-      (tr ? '' : '<span class="tag ref">샘플 트레이스</span>') +
+    return '<div class="modal replay-modal" role="dialog" aria-label="편성 과정 다시 보기"><div class="modal-head"><h3>' + icon('play') + ' 편성 과정 다시 보기</h3>' +
+      '<span class="muted small">자동 편성이 더 나은 일정을 찾아간 순서를 20~40초로 늘려 보여 줍니다. 카드 1장 = 시리즈 1개, 색은 홈 구단.</span>' +
+      (tr ? '' : '<span class="tag ref">' + (S.dev() ? '샘플 트레이스' : '예시 기록') + '</span>') +
       '<button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" title="닫기">' + icon('x') + '</button></div>' +
       '<div class="modal-body"><div id="replayHost" class="replay-host"></div></div></div>';
   };
@@ -416,16 +416,16 @@
       if (!S.replayPlayer || S.replayPlayer.trace !== tr) {
         if (S.replayPlayer) S.replayPlayer.destroy();
         try { S.replayPlayer = KBO.Replay.open(tr, { embedded: true, autoplay: !S.quiet }); }
-        catch (e) { host.innerHTML = '<div class="empty">트레이스를 재생할 수 없습니다 — ' + esc(e.message) + '</div>'; return; }
+        catch (e) { host.innerHTML = '<div class="empty">편성 기록을 재생할 수 없습니다 — ' + esc(e.message) + '</div>'; return; }
       }
       if (S.replayPlayer.el.parentNode !== host) host.innerHTML = ''; // '불러오는 중' 안내 제거
       S.replayPlayer.attach(host);
     };
     if (trace) { start(trace); return; }
     if (S.sampleTrace) { start(S.sampleTrace); return; }
-    host.innerHTML = '<div class="empty">샘플 트레이스를 불러오는 중…</div>';
+    host.innerHTML = '<div class="empty">예시 기록을 불러오는 중…</div>';
     KBO.Replay.load('core/trace-sample.json', (err, tr) => {
-      if (err) { if (S.ui.modal === 'replay' && document.getElementById('replayHost')) document.getElementById('replayHost').innerHTML = '<div class="empty">샘플 트레이스를 불러올 수 없습니다 (' + esc(err) + '). 편성 서버로 열면 됩니다.</div>'; return; }
+      if (err) { if (S.ui.modal === 'replay' && document.getElementById('replayHost')) document.getElementById('replayHost').innerHTML = '<div class="empty">예시 기록을 불러올 수 없습니다 (' + esc(err) + '). 편성 서버로 열면 됩니다.</div>'; return; }
       S.sampleTrace = tr;
       if (S.ui.modal === 'replay') start(tr);
     });

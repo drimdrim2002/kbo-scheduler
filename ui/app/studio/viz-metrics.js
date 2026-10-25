@@ -47,13 +47,13 @@
       const y = top + i * rowH;
       const w = Math.max(1, x(it.value) - x(lo));
       const sel = o.sel === it.name;
-      s += '<g class="mc-item' + (sel ? ' sel' : '') + (it.over ? ' over' : '') + '" data-act="q-team" data-team="' + esc(it.name) + '" role="button" tabindex="0" aria-label="' + esc(it.name + ' 총 이동거리 ' + f(it.value) + 'km' + (it.over ? ', 허용오차 초과' : '')) + '">';
+      s += '<g class="mc-item' + (sel ? ' sel' : '') + (it.over ? ' over' : '') + '" data-act="q-team" data-team="' + esc(it.name) + '" role="button" tabindex="0" aria-label="' + esc(it.name + ' 총 이동거리 ' + f(it.value) + 'km' + (it.over ? ', 허용 범위 밖' : '')) + '">';
       if (sel) s += '<rect class="mc-selrow" x="0" y="' + y + '" width="' + W + '" height="' + rowH + '"/>';
       s += '<rect class="mc-hit" x="0" y="' + y + '" width="' + W + '" height="' + rowH + '"/>';
       s += '<text class="mc-label" x="' + (left - 6) + '" y="' + (y + rowH / 2 + 4) + '" text-anchor="end">' + esc(it.name) + '</text>';
       s += '<rect x="' + x(lo).toFixed(1) + '" y="' + (y + 3) + '" width="' + w.toFixed(1) + '" height="' + (rowH - 6) + '" rx="1.5" fill="' + (it.over ? 'url(#' + pid + ')' : sel ? '#0A1E3C' : '#7E9FDB') + '"' + (it.over ? ' stroke="#B3261E" stroke-width="1"' : '') + '/>';
       s += '<text class="mc-val' + (it.over ? ' over' : '') + '" x="' + (x(lo) + w + 5).toFixed(1) + '" y="' + (y + rowH / 2 + 4) + '">' + esc(f(it.value)) + (it.over ? ' ▲' : '') + '</text>';
-      s += '<title>' + esc(it.name + ' ' + f(it.value) + 'km · 평균 대비 ' + fmt.signed1(it.value - o.mean) + (it.over ? ' · 허용오차 초과' : '')) + '</title></g>';
+      s += '<title>' + esc(it.name + ' ' + f(it.value) + 'km · 평균 대비 ' + fmt.signed1(it.value - o.mean) + (it.over ? ' · 허용 범위 밖' : '')) + '</title></g>';
     });
     s += '<line class="mc-mean" x1="' + x(o.mean).toFixed(1) + '" x2="' + x(o.mean).toFixed(1) + '" y1="' + (top - 6) + '" y2="' + (yb + 2) + '"/>';
     s += '<text class="mc-mean-lbl" x="' + (x(o.mean) - 3).toFixed(1) + '" y="' + (top - 7) + '" text-anchor="end">평균 ' + esc(f(o.mean)) + '</text>';
@@ -70,7 +70,7 @@
     const bare = !!o.bare;
     const W = o.width || 420, rowH = o.rowH || 66, left = bare ? 14 : 96, right = 14;
     const H = o.rows.length * rowH;
-    let s = '<svg class="mc" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.title || '이동 횟수 · 휴일 가중치 · 주말 홈') + '">';
+    let s = '<svg class="mc" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.title || '이동 횟수 · 휴일 경기 점수 · 주말 홈') + '">';
     o.rows.forEach((row, ri) => {
       const top = ri * rowH, cy = bare ? top + Math.round((rowH - 14) * 0.52) : top + rowH * 0.5;
       const f = row.fmt || ((v) => fmt.num1(v));
@@ -96,7 +96,7 @@
       s += '<line class="mc-mean" x1="' + x(row.mean).toFixed(1) + '" x2="' + x(row.mean).toFixed(1) + '" y1="' + (bare ? top + 16 : cy - 13) + '" y2="' + (bare ? top + rowH - 16 : cy + 13) + '"/>';
       if (bare) {
         const mx = x(row.mean), anchor = mx > W - 70 ? 'end' : mx < 70 ? 'start' : 'middle';
-        s += '<text class="mc-mean-lbl" x="' + mx.toFixed(1) + '" y="' + (top + 11) + '" text-anchor="' + anchor + '">평균 ' + esc(f(row.mean)) + ' · 띠 ±' + row.tol + '</text>';
+        s += '<text class="mc-mean-lbl" x="' + mx.toFixed(1) + '" y="' + (top + 11) + '" text-anchor="' + anchor + '">평균 ' + esc(f(row.mean)) + ' · 범위 ±' + row.tol + '</text>';
       }
       const used = [];
       row.items.slice().sort((a, b) => a.value - b.value).forEach((it) => {
@@ -107,14 +107,14 @@
         const up = lane % 2 === 0;
         const ly = up ? cy - 12 - Math.floor(lane / 2) * 10 : cy + 20 + Math.floor(lane / 2) * 10;
         const sel = o.sel === it.name;
-        s += '<g class="mc-item' + (sel ? ' sel' : '') + (it.over ? ' over' : '') + '" data-act="q-team" data-team="' + esc(it.name) + '" role="button" tabindex="0" aria-label="' + esc(row.title + ' ' + it.name + ' ' + f(it.value) + (it.over ? ', 허용오차 초과' : '')) + '">';
+        s += '<g class="mc-item' + (sel ? ' sel' : '') + (it.over ? ' over' : '') + '" data-act="q-team" data-team="' + esc(it.name) + '" role="button" tabindex="0" aria-label="' + esc(row.title + ' ' + it.name + ' ' + f(it.value) + (it.over ? ', 허용 범위 밖' : '')) + '">';
         s += '<circle class="mc-hit" cx="' + px.toFixed(1) + '" cy="' + cy + '" r="9"/>';
         if (sel) s += '<circle cx="' + px.toFixed(1) + '" cy="' + cy + '" r="7.5" fill="none" stroke="#0A1E3C" stroke-width="2"/>';
         s += it.over
           ? '<path d="M' + px.toFixed(1) + ' ' + (cy - 5.5) + 'L' + (px + 5.2).toFixed(1) + ' ' + (cy + 4) + 'L' + (px - 5.2).toFixed(1) + ' ' + (cy + 4) + 'Z" fill="#B3261E" stroke="#fff" stroke-width="1"/>'
           : '<circle cx="' + px.toFixed(1) + '" cy="' + cy + '" r="4" fill="' + (sel ? '#0A1E3C' : '#1F5FD6') + '" stroke="#fff" stroke-width="1.2"/>';
         s += '<text class="mc-dot-lbl' + (it.over ? ' over' : '') + (sel ? ' sel' : '') + '" x="' + px.toFixed(1) + '" y="' + ly + '" text-anchor="middle">' + esc(it.name) + (it.over ? '▲' : '') + '</text>';
-        s += '<title>' + esc(it.name + ' ' + row.title + ' ' + f(it.value) + ' · 평균 대비 ' + fmt.signed1(it.value - row.mean) + (it.over ? ' · 허용오차 초과' : '')) + '</title></g>';
+        s += '<title>' + esc(it.name + ' ' + row.title + ' ' + f(it.value) + ' · 평균 대비 ' + fmt.signed1(it.value - row.mean) + (it.over ? ' · 허용 범위 밖' : '')) + '</title></g>';
       });
       if (ri < o.rows.length - 1) s += '<line class="mc-grid" x1="0" x2="' + W + '" y1="' + (top + rowH) + '" y2="' + (top + rowH) + '"/>';
     });

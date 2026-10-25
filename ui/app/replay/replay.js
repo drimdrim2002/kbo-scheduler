@@ -12,6 +12,8 @@
   const M = KBO.ReplayModel;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmtInt = M.fmtInt;
+  /** 스튜디오 개발자 모드일 때만 시드 등 엔진 표기를 보인다(단독 replay.html은 늘 보인다). */
+  const dev = () => !!(window.Studio && window.Studio.dev && window.Studio.dev());
   const fmtClock = (ms) => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const fmtDate = (iso) => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
@@ -40,7 +42,7 @@
     this.el = document.createElement('div');
     this.el.className = 'rp' + (this.o.embedded ? ' rp-embedded' : '');
     this.el.tabIndex = 0;
-    this.el.setAttribute('aria-label', '탐색 과정 재생기');
+    this.el.setAttribute('aria-label', '편성 과정 다시 보기');
     this.el.innerHTML = this.html();
     this.q = (s) => this.el.querySelector(s);
     this.buildCards();
@@ -53,7 +55,7 @@
   Player.prototype.html = function () {
     const m = this.model;
     const lastMs = m.n ? m.states[m.n].elapsedMs : 0;
-    const meta = (m.seed != null ? '시드 ' + esc(m.seed) + ' · ' : '') + '개선 ' + m.n + '회 · 실제 ' + (lastMs / 1000).toFixed(1) + '초 → 재생 ' + Math.round(m.durationMs / 1000) + '초';
+    const meta = (m.seed != null && (!this.o.embedded || dev()) ? '시드 ' + esc(m.seed) + ' · ' : '') + m.n + '번 나아짐 · 실제 ' + (lastMs / 1000).toFixed(1) + '초 → ' + Math.round(m.durationMs / 1000) + '초로 늘려 보기';
     const legend = m.teams.map((t) => '<span class="rp-chip"><i style="background:' + m.teamColor(t.index) + '"></i>' + esc(t.name) + '</span>').join('');
     const slots = m.slots.map((s, i) => '<div class="rp-slot' + (s.weekend ? ' wk' : '') + '" data-s="' + i + '" title="' + esc(s.start) + '"><div class="rp-slot-h"><span>' + esc(fmtDate(s.start)) + '</span><span class="rp-g">' + s.games + '연전</span></div></div>').join('');
     const levels = m.states[0].soft.map((_, l) => {
@@ -63,22 +65,22 @@
     const dur = Math.round(m.durationMs / 1000);
     const axis = [0, 0.25, 0.5, 0.75, 1].map((k) => '<span>' + Math.round(dur * k) + '초</span>').join('');
     return (this.o.embedded ? '' :
-      '<header class="rp-top"><div class="rp-brand"><span class="rp-mark">KBO</span><b>탐색 과정 재생</b></div><span class="rp-meta">' + meta + '</span>' +
+      '<header class="rp-top"><div class="rp-brand"><span class="rp-mark">KBO</span><b>편성 과정 다시 보기</b></div><span class="rp-meta">' + meta + '</span>' +
       '<a class="rp-link" href="index.html">편성 스튜디오로</a></header>') +
       '<div class="rp-main">' +
-      '<section class="rp-board-wrap"><div class="rp-board-h"><b>일정판</b><span class="rp-muted">슬롯 ' + m.slots.length + '개 · 카드 1장 = 시리즈 1개, 색은 홈 구단</span><span class="rp-pool" hidden></span><span class="rp-legend">' + legend + '</span></div>' +
+      '<section class="rp-board-wrap"><div class="rp-board-h"><b>편성 보드</b><span class="rp-muted">연전 기간 ' + m.slots.length + '개 · 카드 1장 = 시리즈 1개, 색은 홈 구단</span><span class="rp-pool" hidden></span><span class="rp-legend">' + legend + '</span></div>' +
       '<div class="rp-board"><div class="rp-grid">' + slots + '</div><div class="rp-cards"></div></div></section>' +
-      '<aside class="rp-score"><div class="rp-score-h"><b>점수 곡선</b><span class="rp-muted">' + (this.o.embedded ? meta : '재생 시간에 따른 공정성·이동 부담') + '</span></div><div class="rp-levels">' + levels + '</div><div class="rp-axis">' + axis + '</div></aside>' +
+      '<aside class="rp-score"><div class="rp-score-h"><b>점수 변화</b><span class="rp-muted">' + (this.o.embedded ? meta : '재생 시간에 따른 공정성·이동 부담') + '</span></div><div class="rp-levels">' + levels + '</div><div class="rp-axis">' + axis + '</div></aside>' +
       '</div>' +
       '<div class="rp-cap" aria-live="polite"></div>' +
       '<div class="rp-ctrl">' +
       '<button class="rp-btn" data-rp="first" title="처음으로">' + icon('first') + '</button>' +
-      '<button class="rp-btn" data-rp="back" title="한 스텝 뒤">' + icon('back') + '</button>' +
+      '<button class="rp-btn" data-rp="back" title="한 단계 뒤">' + icon('back') + '</button>' +
       '<button class="rp-btn rp-play" data-rp="toggle" aria-label="재생">' + icon('play') + '<span>재생</span></button>' +
-      '<button class="rp-btn" data-rp="fwd" title="한 스텝 앞">' + icon('fwd') + '</button>' +
+      '<button class="rp-btn" data-rp="fwd" title="한 단계 앞">' + icon('fwd') + '</button>' +
       '<span class="rp-spd" role="group" aria-label="재생 속도">' + SPEEDS.map((v) => '<button class="rp-btn' + (v === this.speed ? ' on' : '') + '" data-rp="speed" data-v="' + v + '" aria-pressed="' + (v === this.speed) + '">' + v + '×</button>').join('') + '</span>' +
       '<input type="range" class="rp-range" min="0" max="' + m.durationMs + '" step="50" value="0" aria-label="재생 위치">' +
-      '<span class="rp-time"><b class="rp-now">0:00</b> / ' + fmtClock(m.durationMs) + ' · 개선 <b class="rp-ev">0</b>/' + m.n + '</span>' +
+      '<span class="rp-time"><b class="rp-now">0:00</b> / ' + fmtClock(m.durationMs) + ' · 나아짐 <b class="rp-ev">0</b>/' + m.n + '</span>' +
       '</div>';
   };
 
@@ -134,10 +136,10 @@
       card.hidden = false;
       card.style.width = g.w + 'px'; card.style.height = this.cardH + 'px';
       card.style.transform = 'translate(' + g.x + 'px,' + (g.y + row * (this.cardH + this.gap)) + 'px)';
-      card.title = this.model.slots[a].start + ' 슬롯';
+      card.title = fmtDate(this.model.slots[a].start) + ' 연전 기간';
     }
     const pe = this.q('.rp-pool');
-    pe.hidden = !pool; pe.textContent = pool ? '미배정 ' + pool + '개' : '';
+    pe.hidden = !pool; pe.textContent = pool ? '일정 미정 ' + pool + '개' : '';
   };
 
   Player.prototype.applyState = function (i, animate) {

@@ -20,7 +20,7 @@
 
   /** 소프트 단계 일반 용어(인덱스 순). 점수는 음수(감점)이므로 화면에는 절댓값을 쓴다. */
   const LEVELS = [
-    { key: 'unassigned', label: '슬롯 없는 시리즈', unit: '개' },
+    { key: 'unassigned', label: '일정 미정 시리즈', unit: '개' },
     { key: 'moveDev', label: '구단 간 이동 횟수 차이', unit: '' },
     { key: 'distDev', label: '구단 간 이동거리 차이', unit: '' },
     { key: 'holidayDev', label: '주말·공휴일 홈 경기 차이', unit: '' },
@@ -42,7 +42,7 @@
     const teams = trace.teams.map((t, i) => ({ index: t.index == null ? i : t.index, name: String(t.name == null ? i : t.name), stadium: t.stadium || '' }));
     const slots = trace.slots.map((s, i) => ({ id: s.id == null ? i : s.id, start: s.start || '', games: s.games || 0, weekend: !!s.weekend, holiday: s.holiday || 0 }));
     const series = trace.series.map((m, i) => ({ id: m.id == null ? i : m.id, home: m.home, away: m.away, games: m.games || 0, slot: m.slot == null ? (m.initialSlot == null ? -1 : m.initialSlot) : m.slot }));
-    for (const e of events) { check(e && e.score && Array.isArray(e.score.soft), '이벤트 점수가 없습니다'); check(Array.isArray(e.changes), '이벤트 changes가 없습니다'); }
+    for (const e of events) { check(e && e.score && Array.isArray(e.score.soft), '개선 기록에 점수가 없습니다'); check(Array.isArray(e.changes), '개선 기록에 changes가 없습니다'); }
     return { seed: trace.seed, initialScore: trace.initialScore || null, teams, slots, series, events };
   }
 
@@ -100,7 +100,7 @@
     const km = (s) => (s.soft && s.soft.length >= 5 ? fmtInt(s.soft[4]) + 'km' : null);
     if (i === 0) {
       const k = st.soft.length ? km(st) : null;
-      return '시작 상태 · 초기 배정 ' + model.series.filter((m) => m.slot >= 0).length + '개 시리즈' + (k ? ' · 총 이동거리 ' + k : '');
+      return '시작 상태 · 처음 놓인 시리즈 ' + model.series.filter((m) => m.slot >= 0).length + '개' + (k ? ' · 총 이동거리 ' + k : '');
     }
     const prev = model.states[i - 1];
     const ev = model.events[i - 1];

@@ -160,7 +160,7 @@
     // 17. 가져오기 미리보기 시각화
     click('.band [data-act="import-xlsx"]'); flush();
     const mxOk = !!document.querySelector('.imp-viz[data-viz="matrix"] svg .vz-cell.chg');
-    click('.itable tr[data-name="슬롯"]'); flush();
+    click('.itable tr[data-name="slots"]'); flush();
     const rbOk = document.querySelectorAll('.imp-viz[data-viz="ribbon"] .rd.chg').length > 0;
     ok('가져오기 미리보기 시각화 (시리즈 행렬·슬롯 띠)', mxOk && rbOk, 'matrix ' + mxOk + ' · ribbon ' + rbOk);
     click('[data-act="close-modal"]'); flush();
@@ -189,7 +189,7 @@
       const v4 = c4 && +c4.getAttribute('data-v') === Math.max(...wk) - Math.min(...wk);
       ok('요약 카드 값 (평균·초과·최대 편차·주말 홈 편차)', v1 && v2 && v3 && v4, '평균 ' + (c1 && c1.getAttribute('data-v')) + ' · 초과 ' + (c2 && c2.getAttribute('data-v')) + ' · 편차 ' + (c3 && c3.getAttribute('data-team')) + ' ' + (c3 && c3.getAttribute('data-v')) + ' · 주말 ' + (c4 && c4.getAttribute('data-v')));
       const sum = document.querySelector('.q-band-sum');
-      ok('구단 선택 없음 → 접힌 띠에 한 줄 요약', !!sum && getComputedStyle(sum).display !== 'none' && /허용 범위 넘은 칸/.test(sum.textContent) && !document.querySelector('.q-band-sel'));
+      ok('구단 선택 없음 → 접힌 띠에 한 줄 요약', !!sum && getComputedStyle(sum).display !== 'none' && /범위 밖 칸/.test(sum.textContent) && !document.querySelector('.q-band-sel'));
       c3.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush();
       ok('가장 큰 편차 카드 키보드(Enter) 선택', S.ui.team === big.name);
       S.go({ team: null });
@@ -257,7 +257,9 @@
 
     // 20. 일반 모드 금지어 검사 (모든 단계·시즌 운영·설정·모달·메뉴, 선택 기능 모두 켬)
     for (const f of S.FEATURES) if (!f.must) S.features[f.id] = true;
-    const BAD = [/\b(hard|soft)\b/i, /hard\//i, /H0-/, /\bH1\b/, /\bS[0-4]\b/, /\bR[HS]-\d/, /BendableLongScore/, /\[-?\d+\/-?\d+\]/];
+    const BAD = [/\b(hard|soft)\b/i, /hard\//i, /H0-/, /\bH1\b/, /\bS[0-4]\b/, /\bR[HS]-\d/, /BendableLongScore/, /\[-?\d+\/-?\d+\]/,
+      // 2026-10 용어 정리: 개발자 말투와 예전 용어 (예전 시트 이름 안내 문구 「예전 이름(슬롯·…)」은 허용)
+      /(?<!예전 이름\(|예전 이름 「|예전 시트 이름\()슬롯/, /인스펙터/, /스냅샷/, /프리셋/, /목업/, /구단쌍/, /UI ?입력|UI에서/, /휴일 ?가중치/, /시즌 띠/, /허용오차/, /위저드/, /§/, /\bFR-/, /\bMUST\b/, /미배정/, /\bDH\b/, /Δ/, /골격/, /(?<![·「])휴식예외일/, /(?<![·「])경기없는기간/, /머리글/, /미배정 풀|풀로/, /핀 고정|\(핀\)/, /OptaPlanner|멀티스타트|localStorage|\bREST\b|\bSSE\b|\bMock\b|meta\.features|gviz/, /[가-힣A-Z]{2,3} @ [가-힣A-Z]{2,3}/];
     const leaks = [];
     const scan = (where) => {
       const parts = [document.body.textContent];
@@ -269,7 +271,7 @@
     const at = (patch, where, fn) => { S.go(Object.assign({ modal: null, drawer: null, menu: null }, patch)); if (fn) fn(); flush(); scan(where); screens++; };
     for (const t of ['season', 'slots', 'series', 'holidays', 'restex', 'blackouts', 'events', 'teams']) at({ step: 1, ops: null, tab: t, cell: { sheet: t, row: 2, col: (S.SHEETS[t] && S.SHEETS[t].cols.find((c) => !c.ro) || { key: 'name' }).key } }, '① ' + t);
     at({ step: 1, tab: 'series' }, '① 한 건 편집', () => S.demos.edit()); S.ui.edit = null; S.app.undo();
-    for (const k of ['xlsx', 'draft-slots', 'draft-series']) at({ step: 1, tab: 'slots' }, '가져오기 ' + k, () => { S.openImport(k); for (const sh of S.ui.imp.sheets) { S.ui.imp.sel = sh.name; flush(); scan('가져오기 ' + k + ' ' + sh.name); } });
+    for (const k of ['xlsx', 'draft-slots', 'draft-series']) at({ step: 1, tab: 'slots' }, '가져오기 ' + k, () => { S.openImport(k); for (const sh of S.ui.imp.sheets) { S.ui.imp.sel = sh.key; flush(); scan('가져오기 ' + k + ' ' + sh.name); } });
     at({ step: 1 }, '구글 시트', () => { S.ui.modal = 'gsheet'; });
     at({ step: 2 }, '②');
     at({ step: 2 }, '② 차단', () => { S.demos.block(); }); S.app.undo();
@@ -291,7 +293,7 @@
     const un = (S.app.state.reschedule.units || [])[0]; if (un) at({ ops: 'reschedule', opsUnit: un.id }, '재편성 묶음');
     at({ ops: 'route', team: 'KIA', routePos: 20.5 }, '시즌 운영 이동 경로');
     for (const t of ['features', 'scoring', 'data']) at({ ops: null, step: 1, tab: 'slots' }, '설정 ' + t, () => { S.ui.drawer = 'settings'; S.ui.setTab = t; });
-    ok('일반 모드 금지어 없음 (' + screens + '개 화면)', leaks.length === 0, leaks.slice(0, 4).join(' / '));
+    ok('일반 모드 금지어 없음 (' + screens + '개 화면)', leaks.length === 0, leaks.slice(0, 12).join(' / '));
     // 검사기 자체 확인: 개발자 모드에서는 같은 검사가 코드·원점수를 잡아야 한다
     S.devOverride = true; leaks.length = 0;
     at({ step: 3, sel: null, view: 'calendar' }, '개발자 ③');
