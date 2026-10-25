@@ -476,6 +476,12 @@
         const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
         return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
+    if (app().roadApi) {
+      const dm = st.distanceMatrix.filter((d) => d.from !== d.to);
+      const nRoad = dm.filter((d) => d.source === 'ROAD').length / 2, nEst = dm.filter((d) => d.estimated).length / 2;
+      s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 10구장 사이 45쌍의 도로거리를 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + (st.teams.length * (st.teams.length - 1) / 2) + '쌍)</button>') +
+        '<span class="muted small">도로 ' + Math.floor(nRoad) + '쌍 · 추정 ' + Math.floor(nEst) + '쌍</span></div>';
+    }
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
@@ -788,6 +794,7 @@
       S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — ' + fmt.date(date) + '이 휴식 요일이면 「휴식일 경기」에 넣고 연전 기간을 다시 만드세요.'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
+    'road-all': () => { if (locked()) return; app().fetchRoadDistances(null).then(S.roadToast); },
     'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.ui.mapPick = null; S.render(); },
     'rest-wd': (el) => {
       if (locked()) return;

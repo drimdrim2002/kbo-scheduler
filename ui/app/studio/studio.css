@@ -1182,6 +1182,11 @@ svg.mc text { font-family: var(--font); }
 .gs-line.gs-dist { min-height: 24px; padding: 2px 0; }
 .gs-line.gs-dist .tm { flex: 0 1 auto; }
 .gs-line.gs-dist .gs-v { display: flex; align-items: center; justify-content: flex-end; gap: 6px; overflow: visible; }
+.tag.road { color: #0B5E3B; background: #E3F6EC; border: 1px solid #A8DCC0; }
+.gs-sub-row { display: flex; align-items: center; gap: 6px; }
+.gs-sub-row .btn, .gs-sub-row .gs-road-busy { margin-left: auto; }
+.gs-road-busy { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--blue); font-weight: 600; letter-spacing: 0; }
+.tm-road { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gs-km { width: 76px; text-align: right; height: 24px; }
 .gs-km.err { border-color: var(--bad); background: #FFF6F5; }
 .gs-form .input.ro { background: var(--surface-2); color: var(--text-2); border-style: dashed; cursor: default; }

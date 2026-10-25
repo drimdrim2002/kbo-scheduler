@@ -15,6 +15,8 @@ Environment=DATA_DIR=/var/lib/kbo-scheduler/results
 Environment=MAX_SECONDS=30
 # 시드 4개 30초 편성의 실사용 힙은 1~2GB(2026-10-21 측정). 8GB 서버(Akamai Dedicated 8GB)에서 OS·Caddy 몫을 남긴다
 Environment=JAVA_XMX=5g
+# 비밀 값(KAKAO_REST_KEY: 도로거리 자동 계산, KAKAO_JS_KEY: 지도). 없어도 뜬다(-). root:kbo 640
+EnvironmentFile=-/etc/kbo-scheduler/env
 ExecStart=/opt/kbo-scheduler/app/deploy/run.sh
 Restart=always
 RestartSec=5

@@ -250,7 +250,7 @@
     project.snapshots = project.snapshots || [];
     project.reschedule = Object.assign(clone(preset.DEFAULT_RESCHEDULE), project.reschedule || {});
     project.teams = (project.teams || []).map((t, i) => Object.assign({ color: (preset.TEAM_COLORS[t.name] || '#555555') }, t, { index: i }));
-    project.distanceMatrix = (project.distanceMatrix || []).map((d) => ({ from: d.from, to: d.to, distance: Number(d.distance), estimated: !!d.estimated }));
+    project.distanceMatrix = (project.distanceMatrix || []).map((d) => Object.assign({ from: d.from, to: d.to, distance: Number(d.distance), estimated: !!d.estimated }, d.source === 'ROAD' ? { source: 'ROAD' } : {}));
     project.calendar = (project.calendar || []).map((c, i) => ({ index: i, datetime: c.datetime, consecutive: c.consecutive | 0, weekend: c.weekend | 0, holiday: c.holiday | 0 }));
     project.matches = (project.matches || []).map((m, i) => { const o = { index: i, home: m.home, away: m.away, consecutive: m.consecutive | 0, pinned: !!m.pinned }; if (m.eventId) o.eventId = m.eventId; return o; });
     const M = project.matches.length;

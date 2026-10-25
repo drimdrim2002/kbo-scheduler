@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=ui/config.local.json
 # .env.example 은 커밋되는 파일 — 키가 들어 있으면 막는다(키는 .env 에)
-if grep -q '^[[:space:]]*KAKAO_JS_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9]' .env.example 2>/dev/null; then
+if grep -Eq '^[[:space:]]*KAKAO_(JS|REST)_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9]' .env.example 2>/dev/null; then
   echo "ui-config: .env.example 에 키 값이 있습니다. 이 파일은 커밋됩니다 — 키는 .env 로 옮기고 .env.example 은 'KAKAO_JS_KEY=' 로 비워 두세요." >&2
   exit 1
 fi

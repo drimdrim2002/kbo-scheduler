@@ -220,6 +220,12 @@
   };
   S.go = function (patch) { Object.assign(S.ui, patch); S.ui.menu = null; S.render(); };
   S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(S.plain(m), k, ms); };
+  /** 도로거리 받기 결과 알림(구단 정보 카드·표 아래 단추) */
+  S.roadToast = (r) => {
+    if (r.ok) S.toast('도로거리 ' + r.ok + '쌍을 받았습니다(카카오모빌리티 길찾기, 양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (r.failed) S.toast(r.failed + '쌍은 받지 못해 지금 값을 그대로 둡니다 — ' + r.error, 'warn', 7000);
+    if (!r.ok && !r.failed) S.toast('받을 거리가 없습니다.', 'info');
+  };
 
   /** 선택 항목을 보이게 스크롤 */
   S.revealSelected = function (sel, container) {
@@ -302,6 +308,7 @@
     }
     app.subscribe(() => S.scheduleRender());
     app.loadLocalConfig(); // 카카오 지도 키(.env → ui/config.local.json). 없으면 기본 지도
+    app.probeRoad(); // 편성 서버의 도로거리 계산(카카오모빌리티 길찾기 중계)이 되는지
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
     window.addEventListener('hashchange', () => { S.applyRoute(S.parseHash()); S.render(); });
