@@ -48,3 +48,14 @@ b-metrics|step=4&qv=metrics&demo=blank
 b-a3|step=4&qv=a3&demo=blank
 b-export|step=4&qv=export&demo=blank
 b-ops|ops=games&demo=blank
+g-follow-choice|step=1&tab=slots&guide=1
+g-follow-season|step=1&tab=season&guide=3
+g-follow-slots|step=1&tab=slots&guide=5
+g-follow-next|step=1&tab=slots&guide=9
+g-follow-b-choice|step=1&tab=season&demo=blank&guide=1
+g-follow-b-season|step=1&tab=season&demo=blank&guide=3
+g-follow-b-dates|step=1&tab=holidays&demo=blank&guide=4
+g-follow-b-slots|step=1&tab=slots&demo=blank&guide=5
+g-follow-b-series|step=1&tab=series&demo=blank&guide=6
+g-follow-b-events|step=1&tab=events&demo=blank&guide=7
+g-follow-b-next|step=1&tab=teams&demo=blank&guide=9

@@ -1102,3 +1102,58 @@ svg.mc text { font-family: var(--font); }
 .btn.reset-btn { color: var(--text-2); }
 .reset-modal .props dt { white-space: nowrap; }
 .rb-empty { padding: 14px 10px; }
+
+/* 입력 안내 — 따라 하기: 펼친 동안 왼쪽 목록 자리를 넓혀 그 자리에 안내 카드를 붙인다 */
+body.gf-dock { --list-w: 352px; }
+@media (min-width: 1800px) { body.gf-dock { --list-w: 420px; } }
+.gf-card { position: fixed; pointer-events: auto; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 4px 0 18px rgba(10, 30, 60, .10); word-break: keep-all; }
+.gf-head { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); background: var(--navy); color: #fff; }
+.gf-head .btn.ghost { color: var(--navy-text); }
+.gf-head .btn.ghost:hover { background: var(--navy-3); color: #fff; }
+.gf-kicker { font-size: var(--fs-s); font-weight: 700; letter-spacing: .2px; margin-right: auto; white-space: nowrap; }
+.gf-steps { flex: none; display: flex; gap: 4px; padding: 8px 14px 0; }
+.gf-steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.gf-steps i.done { background: var(--ok-line); }
+.gf-steps i.on { background: var(--blue); }
+.gf-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 10px 14px 12px; }
+.gf-body h3 { margin: 2px 0 6px; font-size: var(--fs-l); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gf-why { margin: 0 0 8px; color: var(--text-2); font-size: var(--fs-s); line-height: 1.55; }
+.gf-how { display: flex; gap: 6px; align-items: flex-start; padding: 7px 9px; margin-bottom: 8px; border-radius: var(--r); background: var(--blue-weak); border: 1px solid var(--blue-line); color: var(--text); font-size: var(--fs-s); line-height: 1.5; }
+.gf-how > .i { flex: none; color: var(--blue); margin-top: 2px; }
+.gf-key { border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+.gf-key-row { display: flex; gap: 10px; padding: 8px 10px; font-size: var(--fs-s); line-height: 1.45; border-bottom: 1px solid var(--line); }
+.gf-key-row:last-child { border-bottom: 0; }
+.gf-key-row b { flex: none; width: 92px; color: var(--navy); }
+.gf-key-row span { color: var(--text-2); }
+.gf-line { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: var(--fs-s); }
+.gf-line .gf-k { font-weight: 600; min-width: 0; flex: 0 1 auto; }
+.gf-line .gf-k small { display: block; font-weight: 400; color: var(--text-3); font-size: var(--fs-xs); }
+.gf-line .gf-v { flex: 1; min-width: 0; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.gf-sub { margin: 10px 0 2px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); letter-spacing: .4px; }
+.gf-sub small { font-weight: 400; letter-spacing: 0; margin-left: 4px; }
+.gf-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.gf-row:empty { display: none; }
+.gf-hint { margin-top: 8px; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.5; }
+.gf-note { display: flex; gap: 6px; align-items: flex-start; padding: 6px 8px; margin-bottom: 8px; border-radius: var(--r); font-size: var(--fs-s); }
+.gf-note.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-line); }
+.gf-status { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding: 5px 8px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface-2); font-size: var(--fs-s); color: var(--text-2); }
+.gf-status span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gf-status.todo { border-color: var(--blue-line); background: var(--blue-weak); }
+.gf-status.warn { border-color: var(--warn-line); background: var(--warn-bg); color: #5C3700; }
+.gf-now { display: flex; gap: 6px; align-items: center; margin-top: 8px; padding: 5px 8px; border-radius: var(--r); border: 1px dashed var(--blue-line); font-size: var(--fs-s); color: var(--text-2); }
+.gf-now span { flex: 1; min-width: 0; }
+.gf-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gf-more { margin-top: 12px; font-size: var(--fs-s); color: var(--text-2); }
+.gf-more summary { cursor: pointer; font-weight: 600; color: var(--blue); }
+.gf-more ul { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; line-height: 1.5; }
+.gf-foot { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); background: var(--surface-2); }
+.gf-sp { flex: 1; }
+.gf-pick { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); }
+.gf-pick:hover { border-color: var(--blue-line); background: var(--blue-weak); }
+.gf-pick.rec { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.gf-pick > .i:first-child { width: 20px; height: 20px; color: var(--blue); flex: none; }
+.gf-pick > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gf-pick small { color: var(--text-3); font-size: var(--fs-xs); }
+.gf-pill { position: fixed; left: 10px; bottom: calc(var(--foot-h) + 10px); pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font-size: var(--fs-s); font-weight: 600; box-shadow: 0 6px 18px rgba(10, 30, 60, .2); max-width: 360px; }
+.gf-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.gf-open { color: var(--blue); border-color: var(--blue-line); background: var(--blue-weak); font-weight: 600; }

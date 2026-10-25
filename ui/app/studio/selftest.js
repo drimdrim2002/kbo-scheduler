@@ -341,6 +341,7 @@
       ok('데이터 메뉴 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       ok('2025 예시 데이터 다시 불러오기 → 시연용 위반 3·중간 저장 1', !S.isBlank() && hard() === 3 && st().snapshots.length === 1 && st().games.length > 0 && S.ui.tab === 'slots');
+      if (S.guideUI && S.guideUI.close) S.guideUI.close(); // 초기화 뒤 자동으로 열린 입력 안내를 닫는다(19a는 닫힌 상태에서 시작)
     }
 
     // 19a. ① 입력 안내 (안내 방식마다 자기 점검을 S.guideUI.selftest로 낸다)
