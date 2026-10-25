@@ -624,3 +624,9 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-sl-at b { color: var(--fg); font-weight: 700; margin-left: 6px; }
 .sh-sl-foot { font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 8px; }
 .sh-sl-foot span:not(:first-child) { padding-left: 8px; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+/* ── 점 지도 아래 문장·일정표 길(2026-10-25) ── */
+.sh-body .sh-sc-say { margin: 16px 0 0; } /* .sh-body p(0,1,1)가 이겨 원래 8px 위 여백이 0이었다 */
+/* 우리 팀 일정표로 가는 길: 카드 맨 아래 가는 줄 위, 왼쪽 설명 · 오른쪽 링크 */
+.sh-body .sh-sc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.sh-body .sh-sc-foot[hidden] { display: none; }

@@ -570,6 +570,12 @@
       $$('.sc-t', g).forEach((el) => el.classList.toggle('is-pick', el.getAttribute('data-t') === picked));
       if (pick) $$('[data-pick]', pick).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-pick') === picked)));
       if (picked) saveTeam(picked, true); // 소개 주소는 그대로 두고 고른 구단만 기억한다(숫자와 근거 쪽 일정표가 이어 받는다)
+      // 우리 팀 일정표(숫자와 근거 쪽)로 가는 길: 카드 맨 아래 가는 줄 위 한 줄(2026-10-25, 문장 아래 링크·버튼 안 중 골랐다)
+      const foot = $('#h1-sc-foot'), href = picked ? 'compare.html?t=' + encodeURIComponent(picked) + '#sched-h' : '';
+      if (foot) {
+        foot.hidden = !picked;
+        foot.innerHTML = !picked ? '' : '<span>' + esc(picked) + '의 날짜·상대·구장</span><a class="sh-link" href="' + esc(href) + '">경기 일정 보기 →</a>';
+      }
       if (!say) return;
       if (!picked) { say.textContent = ''; return; }
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
@@ -577,8 +583,6 @@
       const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '주말·공휴일 홈 경기는 평균만큼이에요.' : '주말·공휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
       const mvW = d.mv != null ? ' 이동 일수는 ' + d.mv + '일이에요(10구단 ' + Math.min(...list.map((o) => o.mv)) + '~' + Math.max(...list.map((o) => o.mv)) + '일).' : '';
       say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW + mvW;
-      // 우리 팀 일정표(숫자와 근거 쪽)로 가는 길
-      say.insertAdjacentHTML('beforeend', ' <a class="sh-link" href="compare.html?t=' + encodeURIComponent(picked) + '#sched-h">' + esc(picked) + ' 일정표 보기 →</a>');
     }
     function place(kind) {
       const list = D[kind] || D.real, plan = labelPlan(list);
