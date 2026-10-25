@@ -411,7 +411,7 @@
     s += '<div class="blk"><table class="sheet"><colgroup><col style="width:44px"><col style="width:110px"><col><col style="width:86px"><col style="width:86px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
         const sh = Array.from(shared.keys()).includes(t.stadium);
-        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + esc(t.stadium) + (sh ? ' <span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono">' + t.latitude.toFixed(4) + '</td><td class="num mono">' + t.longitude.toFixed(4) + '</td></tr>';
+        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + esc(t.stadium) + (sh ? ' <span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     const markers = st.teams.map((t, i) => ({ id: t.name, lat: t.latitude, lon: t.longitude, x: 0, y: 0, color: t.color, label: t.name, size: i === sel ? 7 : 5, active: i === sel }));
     let mapSvg = '';
@@ -758,6 +758,13 @@
     if (locked()) return;
     const i = +el.dataset.row, k = el.dataset.k;
     if (!el.value.trim()) return;
+    if (k === 'latitude' || k === 'longitude') {
+      const v = Number(el.value.trim());
+      const okRange = Number.isFinite(v) && (k === 'latitude' ? v >= -90 && v <= 90 : v >= -180 && v <= 180);
+      if (!okRange) { el.classList.add('err'); S.toast((k === 'latitude' ? '위도' : '경도') + '는 숫자로 적습니다(예: ' + (k === 'latitude' ? '37.5122' : '127.0719') + ').', 'bad'); return; }
+      if (app().updateTeam(i, { [k]: v })) S.toast('구장 위치를 바꿨습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
+      return;
+    }
     app().updateTeam(i, { [k]: el.value.trim() });
   };
 

@@ -3,7 +3,7 @@
  * ①에 들어오면 먼저 묻는다: 「데이터를 새로 입력할게요」 / 「기존 데이터를 볼게요」. 그 밖의 것은 보이지 않는다.
  *  - 새로 입력: 표를 비우고(실행 취소 가능) 1단계부터. 한 화면에 그 단계의 표(또는 입력 칸)·짧은 설명·그 단계의 단추·「다음」만 보인다.
  *  - 기존 데이터 보기: 지금 데이터로 같은 순서의 1단계부터. 입력 대신 「이 표에 무엇이 들어 있는지 · 바꿀 거면 어디서」를 보여 준다.
- * 단계 순서는 S.GUIDE_TASKS(guide-base.js) 9개. 상단 스테퍼의 ①은 그대로 두고, ① 안에서 작은 단계로 넘긴다(위쪽 띠에 「3 / 9」, 아래 「다음」).
+ * 단계 순서는 S.GUIDE_TASKS(guide-base.js) 9개: 구단과 거리(구장이 바뀌었는지 먼저 확인) → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음. 상단 스테퍼의 ①은 그대로 두고, ① 안에서 작은 단계로 넘긴다(위쪽 띠에 「3 / 9」, 아래 「다음」).
  * 전문가용: 「모든 표 보기」(지금까지의 ① 전체 화면: 가져오기 띠·왼콍 목록·오른쪽 자세히)로 언제든 갈 수 있고, 단계별 안내는 「안내 끄기」로 끌 수 있다(저장 S.ls).
  * 주소: #step=1&g=ask | g=new&gs=3 | g=view&gs=3 | g=all. 예전 주소 #step=1&tab=… 는 그대로 그 표(모든 표 보기)를 연다.
  */
@@ -96,7 +96,20 @@
     const off = S.guidePairOff();
     return line('맞대결 경기 수', '모두 ' + st.settings.initialGamesPerPair + '경기여야 함', off ? S.stat('warn', off + '곳 다름') : S.stat('ok', '맞음'));
   }
+  /** 구단과 거리 단계: 표에서 고른 구단의 구단명·구장·위도·경도를 카드에서 고친다 */
+  function teamEditor() {
+    const st = app().state, i = S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1;
+    if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표에서 구단을 누르면 여기서 구단명·구장·위도·경도를 고칩니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
+    const t = st.teams[i];
+    const inp = (k, label, v) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm" data-in="team-field" data-row="' + i + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="' + esc(t.name + ' ' + label) + '"></label>';
+    const others = st.teams.filter((x) => x.name !== t.name).map((x) => { const d = app().distanceOf(t.name, x.name) || {}; return { n: x.name, d: d.distance, est: !!d.estimated }; }).sort((a, b) => a.d - b.d);
+    return '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
+      '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장', t.stadium) + '</div><div class="gs-form-row">' + inp('latitude', '위도', t.latitude.toFixed(4)) + inp('longitude', '경도', t.longitude.toFixed(4)) + '</div></div>' +
+      '<div class="gs-hint">적고 Enter를 누르면 바로 반영됩니다. 위도·경도를 바꾸면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
+      '<div class="gs-sub">다른 구장까지 거리 <small>km</small></div>' + others.map((o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v mono">' + fmt.km(o.d) + (o.est ? ' <span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : '') + '</span></div>').join('');
+  }
   const EXTRA = {
+    teams: () => teamEditor(),
     season: () => gameDaysLine(),
     blackouts: () => gameDaysLine(),
     slots: () => { const st = app().state; return st.calendar.length ? '<div class="gs-sub">연전 수 맞추기 <small>연전 기간마다 ' + (st.teams.length >> 1) + '시리즈</small></div>' + balanceLines() + (st.matches.length ? '' : '<div class="gs-hint">시리즈를 아직 안 만들었으면 「여유」로 보이는 게 정상입니다. 다음 단계에서 시리즈를 만들면 모두 「맞음」이 됩니다.</div>') : gameDaysLine(); },
@@ -253,70 +266,86 @@
       const noExtras = () => !q('.band') && !q('.pane.list') && !q('.pane.insp') && !q('.insp-rail');
       // 주소 글자: 자가 점검은 렌더가 많아 브라우저가 history.replaceState를 잠시 막을 수 있으므로 location.hash 대신 적을 값을 본다
       const hashOf = () => { const o = { step: 1, tab: S.ui.tab }; S.g1Hash(o); return Object.keys(o).map((k) => k + '=' + o[k]).join('&'); };
+      const I = (id) => indexOf(id);
       // 0. 주소에 표가 적혀 있으면 모든 표 보기(기존 주소 호환)
       ok('단계별: 주소 #step=1&tab=… 는 지금까지의 ① 전체 화면(모든 표 보기)', G.mode === 'all' && !!q('.band') && !!q('.pane.list') && !!q('.band [data-act="g1-steps"]'));
+      ok('단계별: 순서 = 구단과 거리 → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음', tasks().map((t) => t.id).join(',') === 'teams,season,holidays,restex,blackouts,slots,series,events,next');
       // 1. 처음 방문: 묻는 화면 — 두 선택만
       store.reset(); G.mode = undefined; G.i = 1; S.go({ step: 1 });
       ok('단계별: 처음 방문 → 「어떻게 시작할까요?」 두 선택(새로 입력 / 기존 데이터 보기), 그 밖의 것은 없음', G.mode === null && qa('.gs-pick').length === 2 && !!q('.gs-pick[data-v="new"]') && !!q('.gs-pick[data-v="view"]') && noExtras() && !q('.gs-card') && /g=ask/.test(hashOf()) && /어떻게 시작할지/.test(q('.step[data-step="1"] .step-sum').textContent), 'mode ' + G.mode + ' · picks ' + qa('.gs-pick').length + ' · extras ' + !noExtras() + ' · hash ' + hashOf() + ' · sum ' + q('.step[data-step="1"] .step-sum').textContent);
-      // 2. 기존 데이터 보기 → 1 / 9 시즌 기본 설정 (예시 데이터 값 그대로)
+      // 2. 기존 데이터 보기 → 1 / 9 구단과 거리 → 2 시즌 기본 설정(예시 데이터 값 그대로)
       click('.gs-pick[data-v="view"]'); flush();
-      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 시즌 기본 설정 · 2025 값 그대로 · 들어 있는 것/바꾸려면', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'season' && card0().getAttribute('data-page') === 'season' && !!q('.gs-view') && !!q('.gs-edit') && /개막 3\/22\(토\)/.test(card0().textContent) && q('.form-grid input[data-k="seasonStart"]').value === fmt.date('2025-03-22') && noExtras() && !q('.season-subs') && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
-      ok('단계별: 보기 모드에는 자동 채우기 단추가 카드에 없음 · 위 띠 ' + N() + '칸 · 하단 「다음: 공휴일」', !q('.gs-card .gs-acts') && qa('.gs-steps li').length === N() && /다음: 공휴일/.test(q('.footer .btn.primary').textContent) && /1 \/ 9/.test(q('.gs-pos').textContent));
+      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 구단과 거리 · 10구단 · 들어 있는 것/바꾸려면 · 표 안내', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'teams' && card0().getAttribute('data-page') === 'teams' && !!q('.gs-view') && !!q('.gs-edit') && /10구단/.test(card0().textContent) && /구장이 바뀌었는지/.test(document.body.textContent) && !q('.gs-team') && noExtras() && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
+      click('.footer [data-act="g1-next"]'); flush();
+      ok('단계별: 다음 → 2 시즌 기본 설정 · 2025 값 그대로 · 요약 상자 없음 · 「다음: 공휴일」', G.i === I('season') && S.ui.tab === 'season' && /개막 3\/22\(토\)/.test(card0().textContent) && q('.form-grid input[data-k="seasonStart"]').value === fmt.date('2025-03-22') && !q('.season-subs') && !q('.gs-card .gs-acts') && qa('.gs-steps li').length === N() && /다음: 공휴일/.test(q('.footer .btn.primary').textContent) && /2 \/ 9/.test(q('.gs-pos').textContent));
       const order = [];
-      for (let k = 1; k < N(); k++) { click('.footer [data-act="g1-next"]'); flush(); order.push(S.ui.tab || 'next'); }
-      ok('단계별: 「다음」 ' + (N() - 1) + '번 → 공휴일·휴식일 경기·휴식기·연전 기간·시리즈·특별 경기·구단과 거리·정리 순서', order.join(',') === 'holidays,restex,blackouts,slots,series,events,teams,teams' && G.i === N() && !!q('.gs-sum') && qa('.gs-sum tbody tr').length === N() - 1 && /다음: 검토·실행/.test(q('.footer .btn.primary').textContent), order.join(','));
-      ok('단계별: 보기 모드 정리 표 — 모두 「문제 없음」', qa('.gs-sum tbody tr .st.ok').length === N() - 1);
+      for (let k = I('season'); k < N(); k++) { click('.footer [data-act="g1-next"]'); flush(); order.push(S.ui.tab); }
+      ok('단계별: 「다음」으로 공휴일·휴식일 경기·휴식기·연전 기간·시리즈·특별 경기·정리 순서', order.join(',') === 'holidays,restex,blackouts,slots,series,events,events' && G.i === N() && !!q('.gs-sum') && qa('.gs-sum tbody tr').length === N() - 1 && /다음: 검토·실행/.test(q('.footer .btn.primary').textContent), order.join(','));
+      ok('단계별: 보기 모드 정리 표 — 모두 「문제 없음」, 첫 줄이 구단과 거리', qa('.gs-sum tbody tr .st.ok').length === N() - 1 && /구단과 거리/.test(q('.gs-sum tbody tr').textContent));
       // 3. 모든 표 보기 ↔ 단계별로 보기(기억한 단계)
       click('.gs-strip [data-act="g1-all"]'); flush();
-      ok('단계별: 「모든 표 보기」 → 띠·목록·자세히가 있는 전체 화면, 표는 구단과 거리', G.mode === 'all' && !!q('.band') && !!q('.pane.list') && S.ui.tab === 'teams' && !q('.gs-card') && /tab=teams/.test(hashOf()) && !/g=/.test(hashOf()), 'mode ' + G.mode + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
+      ok('단계별: 「모든 표 보기」 → 띠·목록·자세히가 있는 전체 화면, 표는 특별 경기', G.mode === 'all' && !!q('.band') && !!q('.pane.list') && S.ui.tab === 'events' && !q('.gs-card') && /tab=events/.test(hashOf()) && !/g=/.test(hashOf()), 'mode ' + G.mode + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
       click('.band [data-act="g1-steps"]'); flush();
       ok('단계별: 띠 「단계별로 보기」 → 기억한 단계(' + N() + ' / ' + N() + ')로', G.mode === 'view' && G.i === N() && !!q('.gs-sum'));
-      // 4. 처음 질문으로 → 새로 입력 → 표 비움(확인 창 없이, 실행 취소 가능) → 1단계
+      // 4. 처음 질문으로 → 새로 입력 → 표 비움(확인 창 없이, 실행 취소 가능) → 1 구단과 거리
       click('.gs-strip [data-act="g1-ask"]'); flush();
       ok('단계별: 「처음 질문으로」 → 두 선택 + 「이어서 할게요」', G.mode === null && qa('.gs-pick').length === 2 && !!q('[data-act="g1-resume"]') && /이어서/.test(q('[data-act="g1-resume"]').textContent));
       click('.gs-pick[data-v="new"]'); flush();
-      ok('단계별: 「데이터를 새로 입력할게요」 → 확인 창 없이 표를 비우고 1 / ' + N() + ' 시즌 기본 설정 · 날짜 칸 3개 비어 있음 · 비웠다는 안내', G.mode === 'new' && G.i === 1 && S.isBlank() && !S.ui.modal && S.ui.tab === 'season' && card0().getAttribute('data-status') === 'todo' && qa('.form-grid input[data-k]').length === 3 && Array.from(qa('.form-grid input[data-k]')).every((i) => i.value === '') && /비웠습니다/.test(card0().textContent) && !!q('.gs-how') && noExtras());
+      ok('단계별: 「데이터를 새로 입력할게요」 → 확인 창 없이 표를 비우고 1 / ' + N() + ' 구단과 거리(남아 있음) · 비웠다는 안내 · 어떻게', G.mode === 'new' && G.i === 1 && S.isBlank() && !S.ui.modal && S.ui.tab === 'teams' && st().teams.length === 10 && /비웠습니다/.test(card0().textContent) && !!q('.gs-how') && noExtras());
       app().undo(); flush();
       const undone = !S.isBlank() && st().calendar.length === 45 && G.mode === 'new';
       app().redo(); flush();
       ok('단계별: 새로 입력의 비움은 실행 취소·다시 실행이 됨', undone && S.isBlank());
+      // 구단 고치기: 표에서 구단을 누르면 카드에 칸 4개, 구장·위도를 바꾸면 거리가 추정값으로
+      const li = st().teams.findIndex((t) => t.name === 'LG');
+      click('.pane.main [data-act="team-sel"][data-row="' + li + '"]'); flush();
+      ok('단계별: 표에서 LG를 누르면 카드에 구단명·구장·위도·경도 칸과 거리 9줄', qa('.gs-card .gs-team input[data-in="team-field"]').length === 4 && qa('.gs-card .gs-dist').length === 9);
+      const putT = (k, v) => { const i = q('.gs-card input[data-in="team-field"][data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      const est0 = st().distanceMatrix.filter((d) => d.estimated).length;
+      putT('stadium', '고척스카이돔(임시)'); putT('latitude', '37.4982');
+      const moved = st().teams[li].stadium === '고척스카이돔(임시)' && st().teams[li].latitude === 37.4982 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && qa('.gs-card .gs-dist .tag').length === 9 && /추정 거리 18개/.test(card0().textContent);
+      putT('latitude', '위도?');
+      const rejected = st().teams[li].latitude === 37.4982;
+      app().undo(); app().undo(); flush();
+      ok('단계별: 구장·위도 바꾸기 → 반영 · LG 거리 18개 추정 · 잘못된 숫자는 거부 · 실행 취소로 복귀', moved && rejected && st().teams[li].latitude !== 37.4982 && st().distanceMatrix.filter((d) => d.estimated).length === est0 && !q('.gs-card .gs-dist .tag'), 'moved ' + moved + ' · rejected ' + rejected + ' · est ' + st().distanceMatrix.filter((d) => d.estimated).length);
+      click('.footer [data-act="g1-next"]'); flush();
+      ok('단계별: 다음 → 2 시즌 기본 설정 · 날짜 칸 3개 비어 있음 · 「아직」', G.i === I('season') && S.ui.tab === 'season' && card0().getAttribute('data-status') === 'todo' && qa('.form-grid input[data-k]').length === 3 && Array.from(qa('.form-grid input[data-k]')).every((i) => i.value === '') && !!q('.gs-how'));
       const put = (k, v) => { const i = q('.form-grid input[data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
       put('seasonStart', '2025-03-22'); put('initialEnd', '8/31'); put('seasonEnd', '2025-10-31');
       ok('단계별: 날짜 3개 입력 → 카드에 경기일 합 140 / 135 「5일 많음」', st().settings.initialEnd === '2025-08-31' && /140일 \/ 필요 135일/.test(card0().textContent) && /5일 많음/.test(card0().textContent) && card0().getAttribute('data-status') === 'warn');
       click('.footer [data-act="g1-next"]'); flush();
-      ok('단계별: 다음 → 2 공휴일 · 빈 표 · 카드에 「법정 공휴일 채우기」만', G.i === 2 && S.ui.tab === 'holidays' && !!q('.sheet-empty') && qa('.gs-card .gs-acts .btn').length === 1 && !!q('.gs-card .gs-acts [data-act="fill-holidays"]') && !q('.toolbar [data-act="fill-holidays"]'));
+      ok('단계별: 다음 → 3 공휴일 · 빈 표 · 카드에 「법정 공휴일 채우기」만', G.i === I('holidays') && S.ui.tab === 'holidays' && !!q('.sheet-empty') && qa('.gs-card .gs-acts .btn').length === 1 && !!q('.gs-card .gs-acts [data-act="fill-holidays"]') && !q('.toolbar [data-act="fill-holidays"]'));
       click('.gs-card .gs-acts [data-act="fill-holidays"]'); flush();
-      ok('단계별: 법정 공휴일 채우기 → 10일 · 같은 단계 · 「됨」', st().settings.holidays.length === 10 && G.i === 2 && card0().getAttribute('data-status') === 'ok');
+      ok('단계별: 법정 공휴일 채우기 → 10일 · 같은 단계 · 「됨」', st().settings.holidays.length === 10 && G.i === I('holidays') && card0().getAttribute('data-status') === 'ok');
       click('.footer [data-act="g1-next"]'); flush();
-      ok('단계별: 3 휴식일 경기 — 표 하나·첫 줄 추가', G.i === 3 && S.ui.tab === 'restex' && !!q('.sheet-empty [data-act="row-ins"]') && !q('.gs-card .gs-acts'));
+      ok('단계별: 4 휴식일 경기 — 표 하나·첫 줄 추가', G.i === I('restex') && S.ui.tab === 'restex' && !!q('.sheet-empty [data-act="row-ins"]') && !q('.gs-card .gs-acts'));
       click('.sheet-empty [data-act="row-ins"]'); flush(); enter('restex', 0, 'date', '5/5');
       click('.footer [data-act="g1-next"]'); flush();
-      ok('단계별: 4 휴식기 — 경기일 합 안내(5일 많음 → 휴식기로 빼기)', G.i === 4 && S.ui.tab === 'blackouts' && /휴식기로 6일을 빼세요/.test(card0().textContent), card0().textContent.slice(0, 160));
+      ok('단계별: 5 휴식기 — 경기일 합 안내(6일 많음 → 휴식기로 빼기)', G.i === I('blackouts') && S.ui.tab === 'blackouts' && /휴식기로 6일을 빼세요/.test(card0().textContent), card0().textContent.slice(0, 160));
       click('.sheet-empty [data-act="row-ins"]'); flush(); enter('blackouts', 0, 'start', '5/8'); enter('blackouts', 0, 'end', '5/8'); enter('blackouts', 0, 'name', '어린이날 3연전 뒤 휴식');
       S.ui.cell = null; flush(); click('.toolbar [data-act="row-ins"][data-pos="below"]'); flush(); enter('blackouts', 1, 'start', '7/11'); enter('blackouts', 1, 'end', '7/16'); enter('blackouts', 1, 'name', '올스타 브레이크');
       ok('단계별: 휴식기 2개 → 경기일 합 135 / 135 맞음 · 「됨」', st().settings.blackouts.length === 2 && /135일 \/ 필요 135일/.test(card0().textContent) && card0().getAttribute('data-status') === 'ok');
       click('.footer [data-act="g1-next"]'); flush();
-      ok('단계별: 5 연전 기간 · 「아직」 · 카드의 「규칙대로 자동 채우기」', G.i === 5 && S.ui.tab === 'slots' && card0().getAttribute('data-status') === 'todo' && !!q('.gs-card .gs-acts [data-act="draft-slots"]'));
+      ok('단계별: 6 연전 기간 · 「아직」 · 카드의 「규칙대로 자동 채우기」', G.i === I('slots') && S.ui.tab === 'slots' && card0().getAttribute('data-status') === 'todo' && !!q('.gs-card .gs-acts [data-act="draft-slots"]'));
       click('.gs-card .gs-acts [data-act="draft-slots"]'); flush();
       const previewOpen = S.ui.modal === 'import' && S.ui.imp && S.ui.imp.kind === 'draft-slots';
       click('.modal [data-act="imp-apply"]'); flush();
-      ok('단계별: 자동 채우기 → 미리보기 → 적용 → 45개 · 같은 단계 「됨」 · 연전 수 「여유」 안내', previewOpen && !S.ui.modal && st().calendar.length === 45 && G.i === 5 && card0().getAttribute('data-status') === 'ok' && /여유/.test(card0().textContent));
+      ok('단계별: 자동 채우기 → 미리보기 → 적용 → 45개 · 같은 단계 「됨」 · 연전 수 「여유」 안내', previewOpen && !S.ui.modal && st().calendar.length === 45 && G.i === I('slots') && card0().getAttribute('data-status') === 'ok' && /여유/.test(card0().textContent));
       click('.footer [data-act="g1-next"]'); flush();
       click('.gs-card .gs-acts [data-act="draft-series"]'); flush();
       click('.modal [data-act="imp-apply"]'); flush();
-      ok('단계별: 6 시리즈 → 자동 채우기 → 225개 · 맞대결 경기 수·연전 수 모두 「맞음」', G.i === 6 && st().matches.length === 225 && card0().getAttribute('data-status') === 'ok' && (card0().textContent.match(/맞음/g) || []).length >= 4);
+      ok('단계별: 7 시리즈 → 자동 채우기 → 225개 · 맞대결 경기 수·연전 수 모두 「맞음」', G.i === I('series') && st().matches.length === 225 && card0().getAttribute('data-status') === 'ok' && (card0().textContent.match(/맞음/g) || []).length >= 4);
       click('.footer [data-act="g1-next"]'); flush();
       click('.gs-card .gs-acts [data-act="add-opening"]'); flush();
       click('.gs-card .gs-acts [data-act="add-children"]'); flush();
-      ok('단계별: 7 특별 경기 → 개막전 5·어린이날 1 · 「됨」', G.i === 7 && S.ui.tab === 'events' && st().events.length === 6 && card0().getAttribute('data-status') === 'ok');
-      click('.footer [data-act="g1-next"]'); flush();
-      ok('단계별: 8 구단과 거리(그대로) · 구단 10', G.i === 8 && S.ui.tab === 'teams' && /10구단/.test(card0().textContent));
+      ok('단계별: 8 특별 경기 → 개막전 5·어린이날 1 · 「됨」', G.i === I('events') && S.ui.tab === 'events' && st().events.length === 6 && card0().getAttribute('data-status') === 'ok');
       click('.footer [data-act="g1-next"]'); flush();
       ok('단계별: 9 정리 — 8단계 모두 「문제 없음」 · 「다음: 검토·실행」 · 사전 점검 진행 불가 0', G.i === N() && qa('.gs-sum tbody tr .st.ok').length === N() - 1 && !!q('.gs-next-foot [data-act="go-step"][data-step="2"]') && app().preflight().counts.block === 0);
-      // 모든 단계가 화면 안 · 페이지 스크롤 0 (새로 입력·기존 보기 둘 다)
+      // 모든 단계가 화면 안 · 페이지 스크롤 0 (새로 입력·기존 보기 둘 다, 구단 고른 채로도)
       const bad = [];
       for (const m of ['new', 'view']) for (let k = 1; k <= N(); k++) {
         G.mode = m; show(k);
+        if (k === 1) { S.ui.cell = { sheet: 'teams', row: 0, col: 'name' }; flush(); }
         const c = card0(), r = c && c.getBoundingClientRect(), sc = S.checkScroll();
         if (!r || r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.bottom > window.innerHeight || !sc.ok || !noExtras() || !q('.pane.main') || qa('.gs-steps li.on').length !== 1) bad.push(m + k + (sc.ok ? '' : ':scroll'));
       }
@@ -328,7 +357,7 @@
       click('.step[data-step="1"]'); flush();
       ok('단계별: ①로 돌아오면 하던 단계(' + N() + ' / ' + N() + ') 그대로', G.mode === 'new' && G.i === N() && !!q('.gs-sum'));
       S.navTarget('slots'); flush();
-      ok('단계별: 사전 점검 「입력 위치로」 → 그 표의 단계(5 연전 기간)', G.mode === 'new' && G.i === 5 && S.ui.tab === 'slots' && !!card0());
+      ok('단계별: 사전 점검 「입력 위치로」 → 그 표의 단계(6 연전 기간)', G.mode === 'new' && G.i === I('slots') && S.ui.tab === 'slots' && !!card0());
       // 6. 안내 끄기 → 모든 표 보기 · 저장 · 띠 「단계별 안내 켜기」 · 처음 방문처럼 열어도 묻지 않음
       click('.gs-strip [data-act="g1-off"]'); flush();
       let savedOff = null; try { savedOff = JSON.parse(localStorage.getItem(S.KEY + 'guide-steps')).off; } catch (e) { savedOff = null; }
@@ -341,9 +370,9 @@
       ok('단계별: 빈 상태에서는 「2025 예시 데이터를 볼게요」', /2025 예시 데이터/.test(q('.gs-pick[data-v="view"]').textContent) && /비어 있고/.test(q('.gs-ask-now').textContent));
       click('.gs-pick[data-v="view"]'); flush();
       ok('단계별: → 2025 예시 데이터를 불러와 기존 데이터 보기 1단계', G.mode === 'view' && G.i === 1 && !S.isBlank() && st().calendar.length === 45);
-      // 8. 주소 g=new&gs=3 · guide=1(예전 키) → 묻는 화면
+      // 8. 주소 g=new&gs=3 · guide=1(예전 키) → 묻는 화면 · tab= → 모든 표 보기
       S.g1Route({ g: 'new', gs: '3' }); S.render();
-      ok('단계별: 주소 g=new&gs=3 → 새로 입력 3 / ' + N() + ' 휴식일 경기', G.mode === 'new' && G.i === 3 && S.ui.tab === 'restex');
+      ok('단계별: 주소 g=new&gs=3 → 새로 입력 3 / ' + N() + ' 공휴일', G.mode === 'new' && G.i === 3 && S.ui.tab === 'holidays');
       S.g1Route({ guide: '1' }); S.render();
       ok('단계별: 예전 주소 guide=1 → 묻는 화면', G.mode === null && qa('.gs-pick').length === 2);
       S.g1Route({ tab: 'series', step: '1' }); S.ui.tab = 'series'; S.render();
