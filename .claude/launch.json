@@ -4,8 +4,26 @@
     {
       "name": "kbo-server",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["scripts/run-server.sh", "--port", "8080", "--ui", "ui"],
+      "runtimeArgs": [
+        "scripts/run-server.sh",
+        "--port",
+        "8080",
+        "--ui",
+        "ui"
+      ],
       "port": 8080
+    },
+    {
+      "name": "ui-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8091",
+        "--directory",
+        "ui"
+      ],
+      "port": 8091
     }
   ]
 }

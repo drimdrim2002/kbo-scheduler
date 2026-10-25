@@ -72,8 +72,8 @@
     }
     if (opts.band) {
       const y1 = y(Math.min(opts.band.hi, t.hi)), y2 = y(Math.max(opts.band.lo, t.lo));
-      s += '<rect class="kc-band" x="' + m.l + '" width="' + (W - m.l - m.r) + '" y="' + y1.toFixed(1) + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '"><title>' + esc(opts.band.label || '허용오차') + '</title></rect>';
-      s += '<text class="kc-band-label" x="' + (W - m.r - 4) + '" y="' + (y1 + 11).toFixed(1) + '" text-anchor="end">' + esc(opts.band.label || '허용오차') + '</text>';
+      s += '<rect class="kc-band" x="' + m.l + '" width="' + (W - m.l - m.r) + '" y="' + y1.toFixed(1) + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '"><title>' + esc(opts.band.label || '허용 범위') + '</title></rect>';
+      s += '<text class="kc-band-label" x="' + (W - m.r - 4) + '" y="' + (y1 + 11).toFixed(1) + '" text-anchor="end">' + esc(opts.band.label || '허용 범위') + '</text>';
     }
     items.forEach((it, i) => {
       const x = m.l + i * bw + bw * 0.18;
@@ -124,7 +124,7 @@
     if (opts.band) {
       const y1 = y(Math.min(opts.band.hi, t.hi)), y2 = y(Math.max(opts.band.lo, t.lo));
       s += '<rect class="kc-band" x="' + m.l + '" width="' + (W - m.l - m.r) + '" y="' + y1.toFixed(1) + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '"/>';
-      s += '<text class="kc-band-label" x="' + (W - m.r - 4) + '" y="' + (y1 + 11).toFixed(1) + '" text-anchor="end">' + esc(opts.band.label || '허용오차') + '</text>';
+      s += '<text class="kc-band-label" x="' + (W - m.r - 4) + '" y="' + (y1 + 11).toFixed(1) + '" text-anchor="end">' + esc(opts.band.label || '허용 범위') + '</text>';
     }
     if (opts.mean != null) {
       const ym = y(opts.mean).toFixed(1);

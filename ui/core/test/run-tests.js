@@ -53,6 +53,26 @@ test('AC-3 시리즈 생성: 구단쌍 15경기, 구단 135경기, 연전 2:5/3:
   eq(ex.byCode['H0-a'].amount + ex.byCode['H0-c'].amount + ex.byCode['H0-d'].amount, 0, '구성적 초기해 H0-a/c/d');
 });
 
+test('AC-3 시리즈 생성: 같이 쓰는 구장(잠실 두산·LG) 홈 k연전 수 ≤ k연전 슬롯 수, 구단쌍 9:6 유지', () => {
+  const slots = CalendarGen.generateSlots(Preset.DEFAULT_SETTINGS).slots;
+  const g = CalendarGen.generateSeries(Preset.ENGINE_INPUT_2025.teams, slots, { initialGamesPerPair: 15, homeGamesMajor: 9 });
+  eq(g.errors, []);
+  const sh = CalendarGen.lengthHistogram(slots);
+  const home = {};
+  for (const m of g.matches) if (m.home === '두산' || m.home === 'LG') home[m.consecutive] = (home[m.consecutive] || 0) + 1;
+  for (const k of Object.keys(home)) assert(home[k] <= (sh[k] || 0), k + '연전 잠실 홈 ' + home[k] + ' > 슬롯 ' + sh[k]);
+  const pair = {};
+  for (const m of g.matches) pair[m.home + '|' + m.away] = (pair[m.home + '|' + m.away] || 0) + m.consecutive;
+  for (const k of Object.keys(pair)) { const [h, a] = k.split('|'); assert([9, 6].includes(pair[k]) && pair[k] + pair[a + '|' + h] === 15, '구단쌍 홈 나눔 ' + k + ' ' + pair[k]); }
+  // 빈 프로젝트에서 자동 생성한 데이터는 사전 점검(같이 쓰는 구장 자리·연전 자리)을 통과해야 한다
+  const p = project();
+  p.matches = g.matches.map((m) => Object.assign({ pinned: false }, m));
+  p.plan = g.plan.map((c, m) => ({ match: m, calendar: c }));
+  p.events = [];
+  const half = p.teams.length >> 1, mh = CalendarGen.lengthHistogram(p.matches);
+  for (const k of Object.keys(mh)) assert(mh[k] <= (sh[k] || 0) * half, k + '연전 자리');
+});
+
 test('AC-1 JS 채점기 = Java ScoreFormulas.evaluate (엔진 호환 모드, 골든 값)', () => {
   const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'golden-scores.json'), 'utf8'));
   const plans = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'plans.json'), 'utf8'));

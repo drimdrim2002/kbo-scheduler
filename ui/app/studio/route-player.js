@@ -139,7 +139,7 @@
     const at = st.teams[l.loc];
     let s = '<div class="insp-sec"><h4>현재 구간<span class="r mono">' + (k + 1) + ' / ' + legs.length + '</span></h4>';
     s += '<div class="rt-now-card"><div class="rt-date">' + esc(fmt.date(l.day)) + (l.end !== l.day ? ' ~ ' + esc(fmt.date(l.end)) : '') + '</div>' +
-      '<div class="rt-vs">' + (l.home ? '<span class="home-mark">H</span>홈 · ' : '<span class="away-mark">A</span>원정 · ') + S.team(l.opp) + ' 상대 · ' + l.len + (l.kind === 'resched' ? '경기' : '연전') + '</div>' +
+      '<div class="rt-vs">' + (l.home ? '<span class="home-mark" style="width:auto;padding:0 4px">홈</span>' : '<span class="away-mark" style="width:auto;padding:0 4px">원정</span>') + S.team(l.opp) + ' 상대 · ' + l.len + (l.kind === 'resched' ? '경기' : '연전') + '</div>' +
       '<div class="small muted">' + esc(at.stadium) + (l.kind === 'resched' ? ' · <span class="tag rs">재편성</span>' : '') + '</div>' +
       (l.cancelled.length ? '<div class="rt-cancel">' + icon('x') + '이 시리즈 중 ' + l.cancelled.length + '경기 취소 (' + esc(l.cancelled.map((g) => fmt.short(g.date) + ' ' + (KBO.Reschedule.REASONS[g.reason] || '')).join(', ')) + ')</div>' : '') + '</div>';
     s += '<dl class="props" style="margin-top:8px"><dt>이번 구간</dt><dd><b class="mono">' + fmt.km(l.leg) + '</b> km' + (k > 0 && l.leg === 0 ? ' <span class="muted small">(같은 구장)</span>' : k === 0 ? ' <span class="muted small">(시즌 첫 경기)</span>' : '') + '</dd>' +
@@ -173,7 +173,7 @@
     const st = app().state;
     return legs.map((l, i) => {
       if (i > k) return '';
-      return '<button class="rt-log-row' + (i === k ? ' cur' : '') + (l.kind === 'resched' ? ' rs' : '') + '" data-act="rt-seek" data-i="' + i + '"><span class="mono n">' + (i + 1) + '</span><span class="d">' + esc(legRange(l)) + '</span><span>' + (l.home ? '<span class="home-mark">H</span>' : '<span class="away-mark">A</span>') + '</span><span class="v">' + esc(l.home ? 'vs ' + l.opp : '@ ' + st.teams[l.loc].name) + (l.cancelled.length ? ' <span class="st plain bad">' + icon('x') + '취소 ' + l.cancelled.length + '</span>' : '') + (l.kind === 'resched' ? ' <span class="tag rs">재편성</span>' : '') + '</span><span class="mono km">' + (l.leg ? '+' + fmt.km(l.leg) : '–') + '</span><span class="mono cum">' + fmt.km(l.cum) + '</span></button>';
+      return '<button class="rt-log-row' + (i === k ? ' cur' : '') + (l.kind === 'resched' ? ' rs' : '') + '" data-act="rt-seek" data-i="' + i + '"><span class="mono n">' + (i + 1) + '</span><span class="d">' + esc(legRange(l)) + '</span><span>' + (l.home ? '<span class="home-mark">홈</span>' : '<span class="away-mark">원</span>') + '</span><span class="v">' + esc(l.home ? l.opp + ' 상대' : st.teams[l.loc].name + ' 원정') + (l.cancelled.length ? ' <span class="st plain bad">' + icon('x') + '취소 ' + l.cancelled.length + '</span>' : '') + (l.kind === 'resched' ? ' <span class="tag rs">재편성</span>' : '') + '</span><span class="mono km">' + (l.leg ? '+' + fmt.km(l.leg) : '–') + '</span><span class="mono cum">' + fmt.km(l.cum) + '</span></button>';
     }).reverse().join('');
   }
 
@@ -202,9 +202,9 @@
       '<input type="range" class="rt-range" id="rtRange" min="0" max="' + Math.max(0, legs.length - 1) + '" step="0.05" value="' + (u.routePos || 0).toFixed(2) + '" data-live="rt-range" aria-label="시즌 위치 (구간)">' +
       '<span class="rt-pos mono" id="rtPos">' + (l ? esc(fmt.short(l.day)) + ' · ' + (k + 1) + '/' + legs.length : '-') + '</span></div>';
     main += '<div class="rt-stage"><div class="rt-mapcol"><div class="rt-map" id="rtMap">' + baseMap(name) + '</div>' +
-      '<div class="rt-tl-wrap"><div class="rt-tl-head small"><b>시즌 타임라인</b><span class="muted">칸 = 시리즈 · 진한 칸 홈 · 흰 칸 원정 · 빨간 ✕ 취소</span></div><div class="rt-tl" id="rtTl">' + timelineHtml(legs) + '</div></div></div>' +
-      '<div class="rt-logcol"><div class="rt-log-head"><b>구간 기록</b><span class="muted small">최근 순 · km</span></div><div class="rt-log-cols"><span>#</span><span>기간</span><span></span><span>상대·구장</span><span>구간</span><span>누적</span></div><div class="rt-log" id="rtLog">' + logHtml(legs) + '</div></div></div>';
-    return { list, main: S.paneHead(name + ' 이동 경로', '이동선이 차례로 그려지고 현재 위치 표시가 움직입니다. 슬라이더나 타임라인 칸으로 원하는 시점으로 갑니다.') + main, insp: '<div id="rtInfo">' + infoHtml(legs) + '</div>', title: '현재 구간' };
+      '<div class="rt-tl-wrap"><div class="rt-tl-head small"><b>시즌 흐름</b><span class="muted">한 칸이 한 시리즈 · 진한 칸 홈 · 흰 칸 원정 · 빨간 ✕ 취소</span></div><div class="rt-tl" id="rtTl">' + timelineHtml(legs) + '</div></div></div>' +
+      '<div class="rt-logcol"><div class="rt-log-head"><b>이동 기록</b><span class="muted small">최근 순 · km</span></div><div class="rt-log-cols"><span>#</span><span>기간</span><span></span><span>상대·구장</span><span>이동</span><span>누적</span></div><div class="rt-log" id="rtLog">' + logHtml(legs) + '</div></div></div>';
+    return { list, main: S.paneHead(name + ' 이동 경로', '이동선이 차례로 그려지고 현재 위치 표시가 움직입니다. 막대를 끌거나 아래 칸을 눌러 원하는 날짜로 갑니다.') + main, insp: '<div id="rtInfo">' + infoHtml(legs) + '</div>', title: '현재 구간' };
   };
 
   R.after = function () {
