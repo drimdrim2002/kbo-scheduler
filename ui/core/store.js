@@ -168,19 +168,19 @@
     const s = this.state;
     const snap = Object.assign({
       id: 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
-      name: name || ('스냅샷 ' + (s.snapshots.length + 1)), createdAt: new Date().toISOString(),
+      name: name || ('중간 저장 ' + (s.snapshots.length + 1)), createdAt: new Date().toISOString(),
       plan: clone(s.plan), pins: s.matches.map((m) => !!m.pinned), reschedulePlan: clone((s.reschedule && s.reschedule.plan) || []),
       matchCount: s.matches.length, slotCount: s.calendar.length
     }, extra || {});
-    this.commit('스냅샷 저장', (st) => { st.snapshots.push(snap); }, { undo: false, tags: ['snapshots'] });
+    this.commit('중간 저장', (st) => { st.snapshots.push(snap); }, { undo: false, tags: ['snapshots'] });
     return snap;
   };
 
   Store.prototype.restoreSnapshot = function (id) {
     const snap = this.state.snapshots.find((x) => x.id === id);
     if (!snap) return false;
-    if (snap.matchCount !== this.state.matches.length || snap.slotCount !== this.state.calendar.length) return { ok: false, error: '현재 시리즈·슬롯 구성이 스냅샷과 달라 복원할 수 없습니다.' };
-    this.commit('스냅샷 복원: ' + snap.name, (st) => {
+    if (snap.matchCount !== this.state.matches.length || snap.slotCount !== this.state.calendar.length) return { ok: false, error: '지금 시리즈·연전 기간 구성이 중간 저장과 달라 되돌릴 수 없습니다.' };
+    this.commit('중간 저장 되돌리기: ' + snap.name, (st) => {
       st.plan = clone(snap.plan);
       if (snap.pins) st.matches.forEach((m, i) => { m.pinned = !!snap.pins[i]; });
       if (snap.reschedulePlan && st.reschedule) st.reschedule.plan = clone(snap.reschedulePlan);
@@ -189,11 +189,11 @@
   };
 
   Store.prototype.renameSnapshot = function (id, name) {
-    this.commit('스냅샷 이름 변경', (st) => { const s = st.snapshots.find((x) => x.id === id); if (!s) return false; s.name = name; }, { undo: false, tags: ['snapshots'] });
+    this.commit('중간 저장 이름 변경', (st) => { const s = st.snapshots.find((x) => x.id === id); if (!s) return false; s.name = name; }, { undo: false, tags: ['snapshots'] });
   };
 
   Store.prototype.deleteSnapshot = function (id) {
-    this.commit('스냅샷 삭제', (st) => { st.snapshots = st.snapshots.filter((x) => x.id !== id); }, { undo: false, tags: ['snapshots'] });
+    this.commit('중간 저장 삭제', (st) => { st.snapshots = st.snapshots.filter((x) => x.id !== id); }, { undo: false, tags: ['snapshots'] });
   };
 
   // ───── 입출력 ─────
@@ -232,7 +232,7 @@
     for (const g of games) {
       if (filterTeam && g.home !== filterTeam && g.away !== filterTeam) continue;
       rows.push([g.date, KBO.Dates.WEEKDAY_KO[KBO.Dates.weekday(g.day)], g.away, g.home, g.stadium,
-        KBO.Reschedule.STATUS[g.status] || g.status, g.reason ? KBO.Reschedule.REASONS[g.reason] || g.reason : '', g.source === 'RESCHEDULE' ? '재편성' : '1차 편성', g.dh ? 'DH' : '']);
+        KBO.Reschedule.STATUS[g.status] || g.status, g.reason ? KBO.Reschedule.REASONS[g.reason] || g.reason : '', g.source === 'RESCHEDULE' ? '재편성' : '1차 편성', g.dh ? '더블헤더' : '']);
     }
     return '﻿' + rows.map((r) => r.map(esc).join(',')).join('\r\n') + '\r\n';
   }
@@ -332,7 +332,7 @@
       if (src.plan != null && !Array.isArray(src.plan)) err('plan', '배열이 필요합니다.');
       (src.plan || []).forEach((p, i) => {
         if (!p || !Number.isInteger(p.match) || p.match < 0 || p.match >= src.matches.length) err('plan[' + i + '].match', '매치 인덱스 범위를 벗어났습니다.');
-        if (p && p.calendar != null && (!Number.isInteger(p.calendar) || p.calendar < -1 || p.calendar >= src.calendar.length)) err('plan[' + i + '].calendar', '슬롯 인덱스 범위를 벗어났습니다.');
+        if (p && p.calendar != null && (!Number.isInteger(p.calendar) || p.calendar < -1 || p.calendar >= src.calendar.length)) err('plan[' + i + '].calendar', '연전 기간 인덱스 범위를 벗어났습니다.');
       });
       if (src.events != null && !Array.isArray(src.events)) err('events', '배열이 필요합니다.');
       (src.events || []).forEach((e, i) => {
@@ -350,7 +350,7 @@
     }
     if (errors.length) return { ok: false, errors, warnings, format };
     const raw = format === 'ENGINE' ? fromEngineFormat(src) : src;
-    if (format === 'ENGINE') warnings.push('엔진 입력 형식을 프로젝트로 변환했습니다. 일정 설정은 슬롯에서 추정했습니다.');
+    if (format === 'ENGINE') warnings.push('엔진 입력 형식을 프로젝트로 변환했습니다. 일정 설정은 연전 기간에서 추정했습니다.');
     // 구단쌍 거리 누락은 경고만 (사전 점검에서 차단)
     return { ok: true, errors, warnings, format, project: normalize(raw) };
   }

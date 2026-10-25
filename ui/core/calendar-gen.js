@@ -266,13 +266,13 @@
     const rounds = roundRobin(n);
     const totalGames = slots.reduce((s, c) => s + c.consecutive, 0);
     if (totalGames !== G * (n - 1)) {
-      errors.push('슬롯 경기일 합(' + totalGames + ')이 구단쌍 경기 수 × 상대 수(' + G + ' × ' + (n - 1) + ' = ' + G * (n - 1) + ')와 다릅니다. 슬롯 연전 수나 1차 편성 경기 수를 조정하세요.');
+      errors.push('연전 기간 경기일 합(' + totalGames + ')이 맞대결 경기 수 × 상대 수(' + G + ' × ' + (n - 1) + ' = ' + G * (n - 1) + ')와 다릅니다. 연전 기간의 연전 수나 1차 편성 경기 수를 조정하세요.');
       return { matches: [], plan: [], errors, warnings };
     }
     const lengths = slots.map((s) => s.consecutive);
     const groups = partitionLengths(lengths, n - 1, G);
     if (!groups) {
-      errors.push('슬롯 연전 분포를 구단쌍당 ' + G + '경기로 나눌 수 없습니다.');
+      errors.push('연전 기간 분포를 맞대결당 ' + G + '경기로 나눌 수 없습니다.');
       return { matches: [], plan: [], errors, warnings };
     }
     // 슬롯을 날짜 순으로 라운드에 배정한다. 직전 슬롯과 같은 라운드는 피해 H1(인접 동일 대진)을 막는다.
@@ -290,7 +290,7 @@
         const score = need[r].length * 10 - (r === lastRound ? 1000 : 0) - roundSlots[r].length * 0.01 + ((r * 7 + si) % 5) * 0.001;
         if (score > bestScore) { bestScore = score; chosen = r; }
       }
-      if (chosen < 0) { errors.push('슬롯 ' + si + ' 배정 실패'); continue; }
+      if (chosen < 0) { errors.push('연전 기간 ' + (si + 1) + ' 배정 실패'); continue; }
       need[chosen].splice(need[chosen].indexOf(len), 1);
       roundSlots[chosen].push(si);
       lastRound = chosen;

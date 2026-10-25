@@ -20,20 +20,20 @@
   const ENGINE_OBLIGATION = ['두산', '키움', '한화', 'NC', '롯데']; // Constants.HOME_OBLIGATION_CHILDREN
 
   const HARD_RULES = [
-    { code: 'H0-a', level: 0, label: '슬롯별 출전 구단 수', desc: '슬롯마다 서로 다른 구단이 N개여야 합니다.' },
-    { code: 'H0-b', level: 0, label: '슬롯별 사용 구장 수', desc: '슬롯마다 서로 다른 구장이 N/2개여야 합니다(공유 구장은 1개로 셈).' },
-    { code: 'H0-c', level: 0, label: '슬롯별 시리즈 수', desc: '슬롯마다 시리즈가 N/2개여야 합니다.' },
-    { code: 'H0-d', level: 0, label: '연전 수 불일치', desc: '시리즈 연전 수와 슬롯 연전 수가 같아야 합니다.' },
-    { code: 'H0-e', level: 0, label: '이벤트 홈 의무', desc: '구장 지정 이벤트 슬롯에서 해당 구장 연고 구단이 홈이어야 합니다.' },
+    { code: 'H0-a', level: 0, label: '모든 구단 출전', desc: '연전 기간마다 서로 다른 구단 N개가 모두 출전해야 합니다.' },
+    { code: 'H0-b', level: 0, label: '한 구장에 두 경기', desc: '연전 기간마다 서로 다른 구장 N/2곳을 써야 합니다(같이 쓰는 구장은 1곳으로 셈).' },
+    { code: 'H0-c', level: 0, label: '기간별 시리즈 수', desc: '연전 기간마다 시리즈가 N/2개여야 합니다.' },
+    { code: 'H0-d', level: 0, label: '연전 수 불일치', desc: '시리즈 연전 수와 연전 기간의 연전 수가 같아야 합니다.' },
+    { code: 'H0-e', level: 0, label: '지정 구장 홈 경기', desc: '구장을 지정한 특별 경기 날에는 그 구장 연고 구단이 홈이어야 합니다.' },
     { code: 'H0-f', level: 0, label: '홈/원정 4연속 이상', desc: '같은 구단의 홈 또는 원정 연속은 최대 3시리즈입니다.' },
-    { code: 'H1', level: 1, label: '인접 슬롯 동일 대진', desc: '직전 슬롯과 같은 대진을 연속 편성할 수 없습니다.' }
+    { code: 'H1', level: 1, label: '같은 대진 연속', desc: '바로 앞 연전과 같은 대진을 이어서 잡을 수 없습니다.' }
   ];
   const SOFT_RULES = [
-    { code: 'S0', label: '미배정 시리즈', unit: '개' },
-    { code: 'S1', label: '이동 횟수 분산', unit: '' },
-    { code: 'S2', label: '이동 거리 분산', unit: '' },
-    { code: 'S3', label: '휴일 가중치 분산', unit: '' },
-    { code: 'S4', label: '리그 총 이동거리', unit: 'km' }
+    { code: 'S0', label: '일정 미정 시리즈', unit: '개' },
+    { code: 'S1', label: '이동 횟수 고르게', unit: '' },
+    { code: 'S2', label: '이동거리 고르게', unit: '' },
+    { code: 'S3', label: '휴일 경기 고르게', unit: '' },
+    { code: 'S4', label: '리그 전체 이동거리', unit: 'km' }
   ];
   const RULE_BY_CODE = {};
   for (const r of HARD_RULES) RULE_BY_CODE[r.code] = r;
@@ -448,7 +448,7 @@
       // H0-d
       for (const m of list) {
         if (ctx.len[m] !== ctx.slotLen[s]) {
-          add({ code: 'H0-d', slot: s, matches: [m], amount: 1, message: slotLabel(s) + ' — ' + teamName(ctx.away[m]) + ' @ ' + teamName(ctx.home[m]) + ' ' + ctx.len[m] + '연전 시리즈가 ' + ctx.slotLen[s] + '연전 슬롯에 있음' });
+          add({ code: 'H0-d', slot: s, matches: [m], amount: 1, message: slotLabel(s) + ' — ' + teamName(ctx.away[m]) + ' vs ' + teamName(ctx.home[m]) + ' ' + ctx.len[m] + '연전 시리즈가 ' + ctx.slotLen[s] + '연전 기간에 있음' });
         }
       }
       // H0-e
@@ -477,7 +477,7 @@
         for (const m of list) {
           if (prevPairs.has(ctx.pairKey[m])) {
             const pm = bySlot[s - 1].find((x) => ctx.pairKey[x] === ctx.pairKey[m]);
-            add({ code: 'H1', slot: s, matches: [m, pm], amount: 1, message: slotLabel(s) + ' — ' + teamName(ctx.home[m]) + '·' + teamName(ctx.away[m]) + ' 대진이 직전 슬롯(' + slotLabel(s - 1) + ')에 이어 연속' });
+            add({ code: 'H1', slot: s, matches: [m, pm], amount: 1, message: slotLabel(s) + ' — ' + teamName(ctx.home[m]) + '·' + teamName(ctx.away[m]) + ' 대진이 바로 앞 연전(' + slotLabel(s - 1) + ')에 이어 또 잡힘' });
           }
         }
       }
