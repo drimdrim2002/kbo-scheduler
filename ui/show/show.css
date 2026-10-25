@@ -590,3 +590,37 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
   .sh-q1c .sh-q1c-talk dd .sh-q1c-note { font-size: 21px; }
   .sh-q1c .sh-q1c-foot { margin-top: 22px; }
 }
+
+/* ── 우리 팀 일정표(2026-10-25, 숫자와 근거 쪽 섹션). 대안 셋(목록·달력·원정길 지도) 중 목록을 골랐다 ── */
+/* 칩 줄(구단·기간): 고른 것 = 파랑(규칙 2) */
+.sh-pick-b { margin: 0 0 12px; }
+.sh-pick-b button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sh-pick-b button { min-height: 36px; }
+/* 요약 세 줄: 이름 왼쪽, 실제(주황) → 매치봇(파랑) 오른쪽 */
+.sh-sd-sum { padding: 0 16px; margin-bottom: 12px; }
+.sh-sd-sum .sh-res-key { border-top: 0; padding: 12px 0 8px; }
+.sh-sd-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.sh-sd-l { color: var(--muted); font-weight: 600; }
+.sh-sd-v { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sh-sd-v b { font-size: 17px; font-weight: 800; }
+.sh-sd-v b.r { color: var(--sh-real); } .sh-sd-v b.e { color: var(--sh-engine); }
+.sh-sd-v i { font-style: normal; color: var(--muted); margin: 0 6px; }
+/* 목록 */
+.sh-sd-mon { margin: 0 0 10px; }
+.sh-sl-row { display: grid; grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: stretch; padding: 4px 0; border-top: 1px solid var(--line); }
+.sh-sl-head { border-top: 0; font-size: 12px; font-weight: 700; color: var(--muted); padding: 0 0 4px; }
+.sh-sl-head span:not(:first-child) { padding-left: 8px; }
+.sh-sl-d { display: flex; flex-direction: column; justify-content: center; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.sh-sl-d b { font-size: 13px; white-space: nowrap; }
+.sh-sl-d small { font-size: 11px; color: var(--muted); }
+.sh-sl-d em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--fg); background: var(--surface-2); border-radius: 4px; padding: 0 4px; margin-top: 2px; align-self: flex-start; }
+.sh-sl-c { display: flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; padding: 5px 8px; border-radius: 8px; border: 1px solid transparent; font-size: 13px; line-height: 1.3; }
+.sh-sl-c.r.home { background: color-mix(in srgb, var(--sh-real) 13%, var(--surface)); }
+.sh-sl-c.e.home { background: color-mix(in srgb, var(--sh-engine) 12%, var(--surface)); }
+.sh-sl-vs { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-sl-vs i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+.sh-sl-c.home .sh-sl-vs i { color: var(--fg); }
+.sh-sl-at { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-sl-at b { color: var(--fg); font-weight: 700; margin-left: 6px; }
+.sh-sl-foot { font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 8px; }
+.sh-sl-foot span:not(:first-child) { padding-left: 8px; color: var(--fg); font-variant-numeric: tabular-nums; }

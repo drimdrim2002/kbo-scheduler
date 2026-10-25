@@ -569,6 +569,7 @@
       box.classList.toggle('has-pick', !!picked);
       $$('.sc-t', g).forEach((el) => el.classList.toggle('is-pick', el.getAttribute('data-t') === picked));
       if (pick) $$('[data-pick]', pick).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-pick') === picked)));
+      if (picked) saveTeam(picked, true); // 소개 주소는 그대로 두고 고른 구단만 기억한다(숫자와 근거 쪽 일정표가 이어 받는다)
       if (!say) return;
       if (!picked) { say.textContent = ''; return; }
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
@@ -576,6 +577,8 @@
       const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '주말·공휴일 홈 경기는 평균만큼이에요.' : '주말·공휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
       const mvW = d.mv != null ? ' 이동 일수는 ' + d.mv + '일이에요(10구단 ' + Math.min(...list.map((o) => o.mv)) + '~' + Math.max(...list.map((o) => o.mv)) + '일).' : '';
       say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW + mvW;
+      // 우리 팀 일정표(숫자와 근거 쪽)로 가는 길
+      say.insertAdjacentHTML('beforeend', ' <a class="sh-link" href="compare.html?t=' + encodeURIComponent(picked) + '#sched-h">' + esc(picked) + ' 일정표 보기 →</a>');
     }
     function place(kind) {
       const list = D[kind] || D.real, plan = labelPlan(list);
@@ -915,8 +918,122 @@
     });
   }
 
+  // ───────── 우리 팀 일정표 (2026-10-25, 숫자와 근거 쪽 섹션. 대안 중 A 목록을 골랐다: 달력 쪽·소개 원정길 지도 안은 지웠다) ─────────
+  // 실제 = input_2025.json initialPlan(planFromInitialPlan), 매치봇 = 기본 결과 plan. 이동은 ScoreFormulas.TeamRouteAccumulator와 같게:
+  // 구단마다 시리즈를 슬롯 순서로 놓고 첫 시리즈 구장부터, 앞 시리즈 구장과의 거리가 0보다 크면 이동 일수 하루(잠실 두산↔LG는 0km라 안 셈)
+  const WD = '일월화수목금토';
+  const TEAM_KEY = 'sh-team';
+  const city = (t) => (SHOW.STADIUMS[t] || [0, 0, t])[2];
+  const md = (d) => (d.getMonth() + 1) + '/' + d.getDate();
+  function schedModel(inp, enginePlan) {
+    const D = {}; inp.distanceMatrix.forEach((x) => { D[x.from + '|' + x.to] = x.distance; });
+    // 날짜는 손으로 쪼갠다: iOS 사파리는 new Date('2025-03-22 00:00:00')을 못 읽는다
+    const cal = inp.calendar.map((c, i) => {
+      const p = c.datetime.slice(0, 10).split('-').map(Number), days = [];
+      for (let k = 0; k < c.consecutive; k++) days.push(new Date(p[0], p[1] - 1, p[2] + k));
+      const wk = days.filter((d) => d.getDay() === 0 || d.getDay() === 6).length;
+      return { i, days, hol: c.holiday || 0, tag: !c.holiday ? '' : c.holiday > wk ? '공휴일' : '주말', mon: Math.max(4, days[0].getMonth() + 1) };
+    });
+    const engSlot = new Array(inp.matches.length).fill(-1);
+    (enginePlan || []).forEach((p) => { if (p && p.match >= 0 && p.match < engSlot.length && p.calendar != null) engSlot[p.match] = p.calendar; });
+    function route(slotOf) {
+      const by = {}; SHOW.TEAMS.forEach((t) => { by[t] = []; });
+      inp.matches.forEach((m, i) => {
+        const s = slotOf[i]; if (s == null || s < 0 || !cal[s]) return;
+        if (by[m.home]) by[m.home].push({ slot: s, home: true, opp: m.away, at: m.home });
+        if (by[m.away]) by[m.away].push({ slot: s, home: false, opp: m.home, at: m.home });
+      });
+      const out = {};
+      Object.keys(by).forEach((t) => {
+        const v = by[t].sort((a, b) => a.slot - b.slot);
+        let km = 0, moves = 0, hol = 0;
+        v.forEach((x, k) => {
+          x.cal = cal[x.slot]; x.from = k ? v[k - 1].at : null;
+          x.leg = k ? (D[x.from + '|' + x.at] || 0) : 0; x.move = x.leg > 0;
+          km += x.leg; if (x.move) moves++; if (x.home) hol += x.cal.hol;
+        });
+        out[t] = { series: v, km: Math.round(km * 10) / 10, moves, hol };
+      });
+      return out;
+    }
+    return { cal, real: route(KBO.Preset.planFromInitialPlan(inp)), engine: route(engSlot) };
+  }
+  /** 화면에서 센 값이 서버 지표(비교 API)와 다르면 콘솔 오류로 남긴다(data-errors가 올라가 check.sh가 잡는다) */
+  function schedCheck(model, cmp) {
+    [['real', cmp.real], ['engine', cmp.engine]].forEach(([k, side]) => (side && side.teams || []).forEach((t) => {
+      const m = model[k][t.name]; if (!m) return;
+      if (m.moves !== t.moves || Math.abs(m.km - t.distanceKm) > 0.15 || (t.holidayWeight != null && m.hol !== t.holidayWeight)) console.error('일정표 숫자가 지표와 달라요: ' + k + ' ' + t.name + ' ' + m.moves + '/' + m.km + '/' + m.hol);
+    }));
+  }
+  function loadSched(cb) {
+    loadPreset((err) => {
+      const inp = !err && window.KBO.Preset && window.KBO.Preset.ENGINE_INPUT_2025;
+      if (!inp || !inp.initialPlan) { cb('preset'); return; }
+      load(SHOW.api.result('default'), (e, res) => {
+        if (e || !res || !res.plan) { cb(e || 'plan'); return; }
+        const model = schedModel(inp, res.plan);
+        load(SHOW.api.compare, (e2, cmp) => { if (!e2 && cmp && cmp.real) schedCheck(model, cmp); cb(null, model); });
+      });
+    });
+  }
+  function savedTeam(def) {
+    const q = query.get('t'); if (q && SHOW.TEAMS.indexOf(q) >= 0) return q;
+    try { const s = localStorage.getItem(TEAM_KEY); if (s && SHOW.TEAMS.indexOf(s) >= 0) return s; } catch (e) { /* 무시 */ }
+    return def;
+  }
+  function saveTeam(t, keepUrl) {
+    try { localStorage.setItem(TEAM_KEY, t); } catch (e) { /* 무시 */ }
+    if (!keepUrl) try { const u = new URL(location.href); u.searchParams.set('t', t); history.replaceState(null, '', u.toString()); } catch (e) { /* 무시 */ }
+  }
+  /** 칩 줄: 고른 것 = 파랑(규칙 2). items = [[값, 글]] */
+  function chips(el, label, items, cur, onPick) {
+    el.innerHTML = (label ? '<span class="sh-sc-pick-l">' + esc(label) + '</span>' : '') + items.map((it) => '<button type="button" data-v="' + esc(it[0]) + '" aria-pressed="' + (String(it[0]) === String(cur)) + '">' + esc(it[1]) + '</button>').join('');
+    $$('button', el).forEach((b) => b.addEventListener('click', () => { $$('button', el).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); onPick(b.getAttribute('data-v')); }));
+  }
+  const MONTHS = [[4, '3~4월'], [5, '5월'], [6, '6월'], [7, '7월'], [8, '8월']];
+  /** 요약 세 줄: 이동 일수 → 이동거리 → 주말·공휴일 홈(소개 카드 순서) */
+  function schedSum(el, model, t) {
+    const r = model.real[t], e = model.engine[t];
+    const row = (lb, a, b, u) => '<div class="sh-sd-row"><span class="sh-sd-l">' + lb + '</span><span class="sh-sd-v"><b class="r">' + a + '</b>' + u + '<i aria-hidden="true">→</i><b class="e">' + b + '</b>' + u + '</span></div>';
+    el.innerHTML = '<p class="sh-res-key"><span class="r">실제 2025</span><span class="e">매치봇</span>' + esc(t) + ' · 1차 일정 ' + r.series.length + '시리즈</p>' +
+      row('이동 일수', r.moves, e.moves, '일') + row('이동거리', fmtInt(r.km), fmtInt(e.km), 'km') + row('주말·공휴일 홈 경기', r.hol, e.hol, '경기');
+  }
+  const bySlot = (series) => { const m = {}; series.forEach((x) => { m[x.slot] = x; }); return m; };
+  const monthSum = (list) => list.reduce((s, x) => ({ mv: s.mv + (x.move ? 1 : 0), km: s.km + x.leg }), { mv: 0, km: 0 });
+
+  /** 목록: 시리즈 한 줄 = 날짜 | 실제 | 매치봇. 홈은 옅은 바탕, 구장을 옮긴 시리즈엔 ↗ 거리 */
+  function schedList(el, model, t, mon) {
+    const R = bySlot(model.real[t].series), E = bySlot(model.engine[t].series);
+    const cell = (x, k) => !x ? '<div class="sh-sl-c ' + k + '">–</div>' : '<div class="sh-sl-c ' + k + (x.home ? ' home' : '') + '"><span class="sh-sl-vs"><i>' + (x.home ? '홈' : '원정') + '</i>' + esc(x.opp) + '</span><span class="sh-sl-at">' + esc(city(x.at)) + (x.move ? '<b>↗ ' + fmtInt(x.leg) + 'km</b>' : '') + '</span></div>';
+    const cals = model.cal.filter((c) => c.mon === mon);
+    const rs = monthSum(cals.map((c) => R[c.i]).filter(Boolean)), es = monthSum(cals.map((c) => E[c.i]).filter(Boolean));
+    el.innerHTML = '<div class="sh-sl-row sh-sl-head"><span></span><span><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제 2025</span><span><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>매치봇</span></div>' +
+      cals.map((c) => '<div class="sh-sl-row"><span class="sh-sl-d"><b>' + md(c.days[0]) + '~' + (c.days[c.days.length - 1].getMonth() === c.days[0].getMonth() ? c.days[c.days.length - 1].getDate() : md(c.days[c.days.length - 1])) + '</b><small>' + WD[c.days[0].getDay()] + '~' + WD[c.days[c.days.length - 1].getDay()] + '</small>' + (c.tag ? '<em>' + c.tag + '</em>' : '') + '</span>' + cell(R[c.i], 'r') + cell(E[c.i], 'e') + '</div>').join('') +
+      '<div class="sh-sl-row sh-sl-foot"><span>이 기간 이동</span><span>' + rs.mv + '일 · ' + fmtInt(rs.km) + 'km</span><span>' + es.mv + '일 · ' + fmtInt(es.km) + 'km</span></div>';
+  }
+
+  /** 칩(구단) → 요약 → 기간 칩 → 목록 */
+  function schedMount(root) {
+    const tc = $('[data-sd="team"]', root), sum = $('[data-sd="sum"]', root), body = $('[data-sd="body"]', root), mc = $('[data-sd="month"]', root);
+    if (body) body.innerHTML = '<p class="sh-small" style="margin:0">일정을 불러오는 중…</p>';
+    loadSched((err, model) => {
+      if (err || !model) { if (body) body.innerHTML = '<p class="sh-small" style="margin:0">일정을 불러오지 못했어요.</p>'; mark('sd', 'error'); checkScroll(); return; }
+      const st = { t: savedTeam('KIA'), mon: 4 };
+      const draw = () => {
+        if (sum) schedSum(sum, model, st.t);
+        schedList(body, model, st.t, st.mon);
+        checkScroll();
+      };
+      if (tc) chips(tc, '우리 팀', SHOW.TEAMS.map((n) => [n, n]), st.t, (v) => { st.t = v; saveTeam(v); draw(); });
+      if (mc) chips(mc, '', MONTHS, st.mon, (v) => { st.mon = Number(v); draw(); });
+      draw();
+      mark('sd', 'ok');
+    });
+  }
+
   /** 비교 /compare */
   pages.compare = function () {
+    const sd = $('#sched'); if (sd) schedMount(sd);
     renderQa();
     const dt = $('#dist-table'); if (dt) whenVisible(dt, () => distTable(dt));
     load(SHOW.api.compare, (err, cmp) => {
