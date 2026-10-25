@@ -25,6 +25,14 @@
   SHOW.THINK = { 3: { word: '빠르게', wait: 7 }, 10: { word: '보통', wait: 15 }, 30: { word: '꼼꼼하게', wait: 35 } };
   SHOW.THINK_DEFAULT = 10;
   SHOW.SEOUL_BUSAN_KM = 400;   // '서울–부산 N번 거리' 비유에 쓰는 어림값(도로 기준 약 400km)
+  // 「왜 중요해요?」 환산에 쓰는 근거 숫자(2026-10-24 확인, 출처는 공유 노트 why-matters). 바뀌면 여기만 고친다
+  SHOW.WHY = {
+    busKmh: 80,          // 버스 시간 어림: 고속도로 평균 시속 80km 가정(휴게소 제외)
+    weekdayFans: 12558,  // 화~목 경기당 평균 관중, KBO 보도자료 2024-08-29(8/28까지 집계)
+    weekendFans: 17722,  // 토·일 평균 = (토 18,641 + 일 16,802) ÷ 2, 같은 보도자료
+    ticketWon: 16640,    // 1인당 입장료 어림 = 2025 입장 수입 2,048.8억 원 ÷ 관중 1,231만 2,519명
+    homeShare: 0.72, awayShare: 0.28 // 입장 수입 홈 72 : 원정 28(1993년 결정, 한국일보 2015-04-10)
+  };
   SHOW.REAL_KM = 72955;         // 실제 2025 1차 일정 총 이동거리. 소개 쪽은 비교 API 값으로 덮어쓴다
   SHOW.TEAMS = ['SSG', '두산', 'LG', 'KT', '키움', '한화', '삼성', 'KIA', 'NC', '롯데'];
   SHOW.SITE = '매치봇'; // 솔루션 이름(2026-10-23 브랜드). 사이트 설명은 상단 띠의 'KBO 일정 플레이그라운드'
@@ -105,6 +113,8 @@
     const r1 = (teams, key) => range(teams, key);
     const put = (k, val) => { if (val != null) v[k] = val; };
     put('real.moves', r1(rt, 'moves')); put('engine.moves', r1(et, 'moves'));
+    if (rt.length) v['real.meanMoves'] = String(Math.round(rt.reduce((p, t) => p + t.moves, 0) / rt.length));
+    if (rt.length && et.length) { const rmv = spread(rt, 'moves'), emv = spread(et, 'moves'); v['msg.moves'] = emv === 0 ? '이동 일수를 똑같이 나눴어요' : emv < rmv ? '구단별 이동 일수 차이가 줄었어요' : emv === rmv ? '구단별 이동 일수 차이는 비슷해요' : '구단별 이동 일수 차이는 실제가 더 작아요'; }
     put('real.holiday', r1(rt, 'holidayWeight')); put('engine.holiday', r1(et, 'holidayWeight'));
     put('real.weekend', rt.length ? r1(rt, 'weekendHome') : (real.weekendHomeMin != null ? real.weekendHomeMin + '~' + real.weekendHomeMax : null));
     put('engine.weekend', et.length ? r1(et, 'weekendHome') : (engine.weekendHomeMin != null ? engine.weekendHomeMin + '~' + engine.weekendHomeMax : null));
@@ -139,8 +149,110 @@
     if (engine.seed != null) v['engine.seed'] = String(engine.seed);
     if (engine.options && engine.options.seeds != null) v['engine.seeds'] = String(engine.options.seeds);
     if (engine.improvementCount != null) v['engine.improvements'] = fmtInt(engine.improvementCount);
+    // 「왜 중요해요?」 환산: 가장 많이·적게 다닌 구단의 차이 → 버스 시간, 주말·공휴일 홈 차이 → 관중·입장 수입(어림)
+    Object.assign(v, whyView(rt));
     v.pct = pct; v.ratio = ratio;
     return v;
+  }
+
+  /** 근거 숫자(SHOW.WHY)로 차이를 체감 단위로 바꾼다. 실제 일정 구단 목록을 받는다 */
+  function whyView(teams) {
+    const v = {}, W = SHOW.WHY;
+    if (!teams.length) return v;
+    const byKm = teams.slice().sort((p, q) => q.distanceKm - p.distanceKm), hi = byKm[0], lo = byKm[byKm.length - 1];
+    v['why.kmHiTeam'] = hi.name; v['why.kmHi'] = fmtInt(hi.distanceKm); v['why.kmLoTeam'] = lo.name; v['why.kmLo'] = fmtInt(lo.distanceKm);
+    v['why.kmGap'] = fmtInt(hi.distanceKm - lo.distanceKm); v['why.kmGapHours'] = String(Math.round((hi.distanceKm - lo.distanceKm) / W.busKmh));
+    const hols = teams.map((t) => t.holidayWeight), hMin = Math.min(...hols), hMax = Math.max(...hols);
+    const names = (h) => teams.filter((t) => t.holidayWeight === h).map((t) => t.name).join('·');
+    v['why.holLo'] = String(hMin); v['why.holLoTeams'] = names(hMin); v['why.holHi'] = String(hMax); v['why.holHiTeams'] = names(hMax);
+    v['why.holGap'] = String(hMax - hMin);
+    const mv = teams.map((t) => t.moves), mMin = Math.min(...mv), mMax = Math.max(...mv);
+    v['why.movesGap'] = String(mMax - mMin);
+    Object.assign(v, whyMoney(hMax - hMin, 'why.'));
+    v['why.fanGap'] = fmtInt(Math.round((W.weekendFans - W.weekdayFans) / 100) * 100);
+    return v;
+  }
+  // ───────── 궁금한 점(Q&A) ─────────
+  // 소개·비교 쪽이 같은 질문·답을 쓴다(한 곳). 개념 셋이 먼저, 그다음 자주 받는 질문. {DIST}는 쪽마다 거리표 주소로 바뀐다.
+  // 숫자는 data-n으로 채운다(그리기가 bind보다 먼저라 fetch 뒤 값으로 덮인다). 정의는 ScoreFormulas.TeamRouteAccumulator와 같다
+  SHOW.QA = [
+    ['이동 일수가 뭐예요?', '구단이 다른 구장으로 옮겨 간 날의 수예요. 시리즈를 치른 구장을 날짜 순서대로 이어서, 구장이 바뀔 때마다 하루로 세요. 홈에서 원정, 원정에서 다른 원정, 원정에서 홈 모두 같아요. 두산과 LG는 잠실을 같이 써서 서로 오가도 세지 않아요. 2025년 1차 일정에서는 구단마다 <span data-n="real.moves">32~38</span>일이었어요.'],
+    ['이동거리는 어떻게 쟀어요?', '같은 순서로 앞 구장에서 다음 구장까지의 도로 거리(카카오맵)를 더했어요. 홈에서 홈으로 이어지면 0이에요. 첫 시리즈 구장에서 세기 시작하고, 시즌 앞뒤로 연고지를 오가는 거리는 넣지 않았어요. <a class="sh-link" href="{DIST}">구장 간 거리표 →</a>'],
+    ['주말·공휴일 홈 경기는 어떻게 셌어요?', '토·일요일과 어린이날 연휴·현충일·광복절에 홈에서 치른 경기 수예요. 비로 취소된 경기는 빼지 않은, 발표된 일정 그대로예요. 이런 날엔 평일(화~목)보다 한 경기에 관중이 <span data-n="why.fanGap">5,200</span>명쯤 더 와서 구단 수입과 바로 이어져요.'],
+    ['이동이 많으면 경기에 지나요?', '그렇다고 말할 근거는 아직 찾지 못했어요. 한국은 시차가 없고, 가장 먼 이동도 버스로 5시간쯤이에요. 다만 이동이 잦으면 쉬고 훈련할 시간이 줄어요. 그래서 매치봇은 "이기게 해 준다"가 아니라 "구단이 고를 수 없는 조건을 고르게 나누자"는 쪽이에요.'],
+    ['몇억 원이면 큰 차이인가요?', '2025년 열 개 구단 입장 수입은 모두 2,049억 원, 구단마다 평균 200억 원쯤이라 1~2% 정도예요. 크지 않을 수 있지만, 일정만 고르게 만들면 아무 비용 없이 없앨 수 있는 차이예요.'],
+    ['매치봇은 어떤 규칙으로 만들었어요?', '실제 1차 일정과 같은 대진(225시리즈)·날짜 칸(45개)·거리표·어린이날 홈 구단(두산·키움·한화·NC·롯데)을 그대로 썼어요. 꼭 지킨 규칙은 하루 한 경기, 잠실 공유, 홈·원정 4연속 금지, 같은 대진 연속 금지, 지정 구장 홈 경기예요. 그 안에서 이동 일수 → 구단별 이동거리 → 주말·공휴일 홈 경기를 차례로 고르게 하고, 마지막으로 총 이동거리를 줄였어요. 실제 일정과 매치봇 일정은 같은 채점 방식으로 쟀어요.'],
+    ['KBO는 일정을 어떻게 만들어요?', 'KBO는 2015년까지 손으로 만들다가, 그 뒤로는 프로그램으로 일정을 만들어요. 그렇게 구단 간 이동거리 차이를 2017년 4,034km에서 2021년 1,293km까지 줄였어요(스포츠춘추, 2022). 다만 실제 일정은 매치봇이 모르는 조건까지 맞춰야 해요. 구장 대관·공사, 방송사가 원하는 중계 대진, 지역 행사, 전년 성적에 따른 개막 홈 배정, 우천 예비일 같은 것들이에요. 그래서 매치봇 결과는 "같은 조건이라면 이만큼 더 줄일 수 있다"로 읽어 주세요.'],
+    ['1차 일정이 뭐예요?', 'KBO는 2024년 12월에 8월 31일까지의 경기(구단마다 135경기)를 먼저 발표하고, 나머지 9경기는 비로 취소된 경기와 함께 8월에 따로 발표했어요. 여기서는 먼저 발표한 1차 일정만 견줬어요.'],
+    ['\'출발점 8개\'가 뭐예요?', '매치봇은 대충 맞는 일정 하나에서 출발해 고쳐 나가요. 어디서 출발하느냐에 따라 결과가 조금씩 달라서, 서로 다른 출발점 8개로 동시에 돌려 가장 좋은 결과를 골랐어요.']
+  ];
+  // 소개 말풍선 답 끝에 붙는 숫자와 근거 쪽 이어 보기 링크(2026-10-25 확정, 따로 버튼을 두지 않는다). SHOW.QA와 같은 순서, null이면 없음
+  SHOW.QA_MORE = [['구단별 이동 일수 막대 보기', 'compare.html#chart-h'], null, ['구단별 주말·공휴일 홈 경기 막대 보기', 'compare.html#chart-h'], ['숫자와 근거 전체 보기', 'compare.html'],
+    ['관중·입장 수입 출처 보기', 'compare.html#src-h'], ['표로 보기', 'compare.html#num-h'], ['궁금한 점 모두 보기', 'compare.html#qa-h'], ['데이터 출처 보기', 'compare.html#src-h'], ['탐색 과정 보기', '#replay']];
+  /** [data-qa] 자리에 질문·답을 그린다. data-qa="list" = 펼침 목록, "ask" = 질문 칩 + 매치봇 말풍선(1인칭으로 바꿔 말한다) */
+  function renderQa() {
+    const dist = document.body.getAttribute('data-page') === 'compare' ? '#dist-h' : 'compare.html#dist-h';
+    const me = (a) => a.replace(/매치봇 결과는/g, '제 결과는').replace(/매치봇이 모르는/g, '제가 모르는').replace(/매치봇은/g, '저는');
+    $$('[data-qa]').forEach((box) => {
+      const qa = SHOW.QA.map(([q, a]) => [q, a.replace('{DIST}', dist)]);
+      if (box.getAttribute('data-qa') === 'ask') {
+        const qs = $('.sh-ask-q', box), ans = $('.sh-ask-a', box); if (!qs || !ans) return;
+        qs.innerHTML = qa.map(([q], i) => '<button type="button" data-ask="' + i + '" aria-pressed="false">' + esc(q) + '</button>').join('');
+        const show = (i) => { $$('[data-ask]', qs).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-ask') === String(i)))); const mo = SHOW.QA_MORE[i]; ans.innerHTML = '<b>' + esc(qa[i][0]) + '</b><br>' + me(qa[i][1]) + (mo ? '<a class="sh-link sh-ask-next" href="' + mo[1] + '">' + esc(mo[0]) + ' →</a>' : ''); };
+        $$('[data-ask]', qs).forEach((b) => b.addEventListener('click', () => show(+b.getAttribute('data-ask'))));
+        show(0);
+      } else {
+        box.insertAdjacentHTML('beforeend', qa.map(([q, a]) => '<details><summary>' + esc(q) + '</summary><p>' + a + '</p></details>').join(''));
+      }
+    });
+  }
+
+  /** 기준 세 가지 카드: [data-bar=키] 자리에 가장 적은~많은 구단 막대를 그린다. 눈금 = 구단 평균, 양 끝 = 구단 이름과 값 */
+  function whyBars(teams) {
+    $$('[data-bar]').forEach((el) => {
+      const k = el.getAttribute('data-bar'), u = el.getAttribute('data-unit') || '';
+      const xs = teams.map((t) => t[k]).filter((x) => typeof x === 'number'); if (!xs.length) return;
+      const lo = Math.min(...xs), hi = Math.max(...xs), mean = xs.reduce((p, q) => p + q, 0) / xs.length;
+      const who = (x) => teams.filter((t) => t[k] === x).map((t) => t.name).join('·');
+      const pos = (x) => (hi === lo ? 50 : (x - lo) / (hi - lo) * 100).toFixed(1);
+      el.innerHTML = '<div class="sh-why-track"><i class="sh-why-mean" style="left:' + pos(mean) + '%"><em>평균 ' + fmtInt(mean) + u + '</em></i>' +
+        teams.map((t) => '<i class="sh-why-dot" style="left:' + pos(t[k]) + '%"></i>').join('') + '</div>' +
+        '<div class="sh-why-ends"><span>' + esc(who(lo)) + ' <b>' + fmtInt(lo) + u + '</b></span><span>' + esc(who(hi)) + ' <b>' + fmtInt(hi) + u + '</b></span></div>';
+      el.setAttribute('aria-label', '가장 적은 ' + who(lo) + ' ' + fmtInt(lo) + u + ', 평균 ' + fmtInt(mean) + u + ', 가장 많은 ' + who(hi) + ' ' + fmtInt(hi) + u);
+    });
+  }
+  /** 결과 비교: [data-rbar=키]에 KBO·매치봇 구단 범위 막대 두 줄(같은 눈금). total이면 총 이동거리 길이 막대 */
+  function resBars(real, engine) {
+    const rt = real.teams || [], et = engine.teams || [];
+    $$('[data-rbar]').forEach((el) => {
+      const k = el.getAttribute('data-rbar');
+      if (k === 'total') {
+        const mx = Math.max(real.totalKm, engine.totalKm) || 1;
+        const line = (cls, lb, x) => '<div class="sh-rb-line ' + cls + '"><span class="sh-rb-lb">' + lb + '</span><div class="sh-rb-track"><i class="sh-rb-fill" style="width:' + (x / mx * 100).toFixed(1) + '%"></i></div><span class="sh-rb-val">' + fmtInt(x) + 'km</span></div>';
+        el.innerHTML = line('r', 'KBO', real.totalKm) + line('e', '매치봇', engine.totalKm);
+        el.setAttribute('aria-label', '총 이동거리 KBO ' + fmtInt(real.totalKm) + 'km, 매치봇 ' + fmtInt(engine.totalKm) + 'km');
+        return;
+      }
+      const u = { moves: '일', distanceKm: 'km', holidayWeight: '경기' }[k] || '';
+      const all = rt.concat(et).map((t) => t[k]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.04 || 1;
+      const pos = (x) => ((x - lo + pad) / (hi - lo + 2 * pad) * 100).toFixed(1);
+      const line = (cls, lb, teams) => {
+        const xs = teams.map((t) => t[k]), a = Math.min(...xs), b = Math.max(...xs);
+        return '<div class="sh-rb-line ' + cls + '"><span class="sh-rb-lb">' + lb + '</span><div class="sh-rb-track"><i class="sh-rb-span" style="left:' + pos(a) + '%;width:' + Math.max(0, pos(b) - pos(a)) + '%"></i>' +
+          xs.map((x) => '<i class="sh-rb-dot" style="left:' + pos(x) + '%"></i>').join('') + '</div><span class="sh-rb-val">' + (a === b ? '모두 ' + fmtInt(a) : fmtInt(a) + '~' + fmtInt(b)) + u + '</span></div>';
+      };
+      el.innerHTML = line('r', 'KBO', rt) + line('e', '매치봇', et);
+      el.setAttribute('aria-label', 'KBO ' + fmtInt(Math.min(...rt.map((t) => t[k]))) + '~' + fmtInt(Math.max(...rt.map((t) => t[k]))) + u + ', 매치봇 ' + fmtInt(Math.min(...et.map((t) => t[k]))) + '~' + fmtInt(Math.max(...et.map((t) => t[k]))) + u);
+    });
+  }
+  /** 주말·공휴일 홈 경기 n개 차이 → 관중(만 명)·홈 구단 몫 입장 수입(억 원, 범위). 범위 아래 = 그만큼 주말 원정이 늘어 원정 몫 28%를 받는 경우 */
+  function whyMoney(n, pre) {
+    const W = SHOW.WHY, fans = n * (W.weekendFans - W.weekdayFans), won = fans * W.ticketWon;
+    const lo = won * (W.homeShare - W.awayShare) / 1e8, hi = won * W.homeShare / 1e8;
+    const o = {};
+    o[pre + 'fans'] = fans >= 10000 ? '약 ' + (Math.round(fans / 1000) / 10) + '만' : '약 ' + fmtInt(Math.round(fans / 100) * 100);
+    o[pre + 'won'] = Math.max(1, Math.round(lo)) === Math.round(hi) ? '약 ' + Math.round(hi) : Math.max(1, Math.round(lo)) + '억~' + Math.round(hi);
+    return o;
   }
 
   // ───────── 막대 ─────────
@@ -238,7 +350,7 @@
       const who = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
       // 총 이동거리가 늘어도 위쪽 단계(홈 경기·구단별 이동거리·이동 횟수)가 좋아지면 개선으로 친다. 그 까닭을 붙여 "개선인데 +"가 어색하게 읽히지 않게 한다
       let why = '';
-      if (prev.soft && st.soft && st.soft[4] > prev.soft[4]) why = st.soft[3] < prev.soft[3] ? '대신 주말·공휴일 홈 경기가 더 고르게 됐어요' : st.soft[2] < prev.soft[2] ? '대신 구단별 이동거리 차이가 줄었어요' : st.soft[1] < prev.soft[1] ? '대신 구단별 이동 횟수가 더 고르게 됐어요' : '';
+      if (prev.soft && st.soft && st.soft[4] > prev.soft[4]) why = st.soft[3] < prev.soft[3] ? '대신 주말·공휴일 홈 경기가 더 고르게 됐어요' : st.soft[2] < prev.soft[2] ? '대신 구단별 이동거리 차이가 줄었어요' : st.soft[1] < prev.soft[1] ? '대신 구단별 이동 일수가 더 고르게 됐어요' : '';
       return i + '번째 개선 · ' + RM.moveWord(m, prev, m.events[i - 1].changes) + (dist ? ' · ' + dist : '') + (why ? ' · ' + why : '') + (who ? ' · ' + who : '');
     });
     p.update();
@@ -248,7 +360,7 @@
    * 놓인 카드는 같이 숨긴다. 모듈의 place()는 보이지 않는 칸의 자리를 0으로 재서 카드를 왼쪽 위에 겹쳐 놓기 때문이다.
    */
   // 점수판 지표 이름(팬 말). 마지막은 곡선, 나머지는 칩(show.css)
-  const LEVEL_NAMES = { 1: '이동 횟수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
+  const LEVEL_NAMES = { 1: '이동 일수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
   function fitBoard(box, p) {
     simpleCaptions(p);
     const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/슬롯 (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "슬롯 45개"
@@ -377,6 +489,7 @@
 
   /** 소개 / */
   pages.index = function () {
+    renderQa();
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
       const v = view(cmp.real, cmp.engine);
@@ -385,6 +498,8 @@
       const tb = $('#cmp-total'); if (tb) totalBars(tb, cmp.real, cmp.engine);
       const tt = $('#cmp-teams'); if (tt) teamBars(tt, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
       scatterViz(cmp);
+      whyBars(cmp.real.teams || []);
+      resBars(cmp.real, cmp.engine);
       mark('show', 'compare-ok');
       checkScroll();
     });
@@ -406,7 +521,7 @@
     const rt = cmp.real.teams || [], et = cmp.engine.teams || [];
     if (rt.length < 2) return;
     const W = 360, H = 300, L = 10, R = 10, T = 26, B = 26, cx = (L + (W - R)) / 2, cy = (T + (H - B)) / 2;
-    const dev = (teams) => { const mk = meanBy(teams, 'distanceKm'), mh = meanBy(teams, 'holidayWeight'); return teams.map((t) => ({ name: t.name, x: t.distanceKm - mk, y: (t.holidayWeight != null && mh != null) ? t.holidayWeight - mh : 0, km: t.distanceKm, hol: t.holidayWeight })); };
+    const dev = (teams) => { const mk = meanBy(teams, 'distanceKm'), mh = meanBy(teams, 'holidayWeight'); return teams.map((t) => ({ name: t.name, x: t.distanceKm - mk, y: (t.holidayWeight != null && mh != null) ? t.holidayWeight - mh : 0, km: t.distanceKm, hol: t.holidayWeight, mv: t.moves })); };
     const D = { real: dev(rt), engine: et.length ? dev(et) : null };
     const all = D.real.concat(D.engine || []);
     const xm = Math.max(...all.map((d) => Math.abs(d.x))) * 1.18 || 1, ym = Math.max(3, ...all.map((d) => Math.abs(d.y))) + 0.8;
@@ -459,7 +574,8 @@
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
       const kmW = Math.abs(d.x) < 50 ? '이동거리는 평균 수준이고' : '평균보다 ' + fmtInt(Math.abs(d.x)) + 'km ' + (d.x > 0 ? '더' : '덜') + ' 다니고';
       const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '주말·공휴일 홈 경기는 평균만큼이에요.' : '주말·공휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
-      say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW;
+      const mvW = d.mv != null ? ' 이동 일수는 ' + d.mv + '일이에요(10구단 ' + Math.min(...list.map((o) => o.mv)) + '~' + Math.max(...list.map((o) => o.mv)) + '일).' : '';
+      say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW + mvW;
     }
     function place(kind) {
       const list = D[kind] || D.real, plan = labelPlan(list);
@@ -801,6 +917,7 @@
 
   /** 비교 /compare */
   pages.compare = function () {
+    renderQa();
     const dt = $('#dist-table'); if (dt) whenVisible(dt, () => distTable(dt));
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
@@ -815,8 +932,9 @@
         const realCell = $('#weekend-real-cell'), engCell = $('#weekend-engine-cell');
         if (realCell && engCell) (vv['diff.weekendCmp'] === 'real' ? realCell : engCell).appendChild(tag);
       }
+      const mv = $('#chart-moves'); if (mv) teamBars(mv, cmp.real.teams, cmp.engine.teams, 'moves', { unit: '일', label: '이동 일수' });
       const d = $('#chart-dist'); if (d) teamBars(d, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
-      const w = $('#chart-weekend'); if (w) teamBars(w, cmp.real.teams, cmp.engine.teams, 'weekendHome', { unit: '회', label: '주말 홈 시리즈 수', max: Math.max(14, ...cmp.real.teams.map((t) => t.weekendHome), ...cmp.engine.teams.map((t) => t.weekendHome)) });
+      const w = $('#chart-weekend'); if (w) teamBars(w, cmp.real.teams, cmp.engine.teams, 'holidayWeight', { unit: '경기', label: '주말·공휴일 홈 경기' });
       if (cmp.range) bind({ 'range.from': cmp.range.from, 'range.to': cmp.range.to, 'range.slots': String(cmp.range.slots), 'range.series': String(cmp.range.series) });
       mark('show', 'compare-ok');
       checkScroll();
@@ -864,6 +982,7 @@
       const ogd = (v.pct == null ? '이동거리를 비교해요' : v.pct > 0 ? '이동거리 ' + v.pct + '% 줄었어요' : v.pct === 0 ? '이동거리는 같아요' : '이동거리 ' + (-v.pct) + '% 늘었어요') + ' · ' + fmtInt(engine.totalKm) + 'km (실제 ' + fmtInt(real.totalKm) + 'km) · 구단별 이동거리 차이 ' + fmtInt(engine.spreadKm) + 'km (실제 ' + fmtInt(real.spreadKm) + 'km)';
       setMeta('og:title', title + ' — ' + SHOW.SITE); setMeta('og:description', ogd); setMeta('description', ogd);
       const tb = $('#cmp-total'); if (tb) totalBars(tb, real, engine);
+      resBars(real, engine);
       const trend = $('#weekend-note');
       if (trend && real.weekendHomeMin != null) {
         const rw2 = real.weekendHomeMax - real.weekendHomeMin, ew2 = engine.weekendHomeMax - engine.weekendHomeMin;

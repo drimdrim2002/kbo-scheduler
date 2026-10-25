@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>실제 2025 일정 vs 매치봇 — 매치봇</title>
-<meta name="description" content="KBO 발표 2025 정규시즌 1차 일정과 같은 조건으로 매치봇이 만든 일정을 같은 채점 방식으로 비교합니다. 총 이동거리·구단 간 차이·이동 횟수·휴일 가중치·주말 홈·원정 연속.">
+<title>숫자와 근거: 실제 2025 일정 vs 매치봇 — 매치봇</title>
+<meta name="description" content="KBO가 발표한 2025 정규시즌 1차 일정과 같은 조건으로 매치봇이 만든 일정을 같은 채점 방식으로 비교합니다. 이동 일수·이동거리·주말·공휴일 홈 경기, 구단별 막대, 궁금한 점과 근거.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="실제 2025 KBO 일정 vs 매치봇: 같은 조건, 같은 채점 방식">
-<meta property="og:description" content="총 이동거리 72,955 → 63,312km, 구단 간 차이 1,373 → 554km. 주말 홈 수는 같은 수준(11~12회).">
+<meta property="og:description" content="구단별 이동 일수 32~38 → 31~33일, 이동거리 차이 1,373 → 554km, 주말·공휴일 홈 경기 22~28 → 모두 25경기, 총 이동거리 13% 감소.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>
@@ -70,34 +70,31 @@
 </svg>
 <header class="sh-top">
   <div class="sh-wrap">
-    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 개선 제안</span></a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="compare.html" aria-current="page">비교</a><a href="r.html?id=default">매치봇 일정</a></nav>
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 톺아보기</span></a>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="compare.html" aria-current="page">숫자와 근거</a></nav>
   </div>
 </header>
 
 <main class="sh-wrap">
+  <!-- 숫자와 근거(2026-10-25): 「매치봇 일정 자세히 보기」(r.html)와 「실제와 나란히 비교」를 이 쪽 하나로 합쳤다. r.html은 공유된 결과 주소(/r/<id>)용으로만 남는다 -->
   <section class="sh-sec" aria-labelledby="cmp-h">
     <p class="sh-kicker">같은 조건 · 같은 채점 방식</p>
-    <h1 class="sh-h1" id="cmp-h">실제 2025 일정 vs 매치봇</h1>
-    <p class="sh-lead">실제 = KBO 발표 2025 정규시즌 1차 일정(<span data-n="range.from">2025-03-22</span> ~ <span data-n="range.to">2025-08-29</span>, <span data-n="range.slots">45</span>개 날짜 칸, <span data-n="range.series">225</span>시리즈). 매치봇 = 같은 대진·같은 규칙으로 PC 한 대에서 시드 <span data-n="engine.seeds">8</span>개를 <span data-n="engine.seconds">10</span>초씩 동시에 돌려 고른 일정. 두 일정을 같은 채점 방식으로 쟀어요.</p>
+    <h1 class="sh-h1" id="cmp-h">숫자와 근거</h1>
+    <p class="sh-lead">실제 = KBO가 2024년 12월에 발표한 2025 정규시즌 1차 일정(3/22~8/31, 구단마다 135경기, 225시리즈). 매치봇 = 같은 대진·같은 규칙으로 만든 일정이에요.</p>
+    <nav class="sh-jump" aria-label="이 쪽 바로가기"><a href="#num-h">숫자</a><a href="#chart-h">구단별</a><a href="#qa-h">궁금한 점</a><a href="#src-h">근거</a></nav>
+  </section>
 
-    <div class="sh-card sh-summary">
-      <ul class="sh-msgs">
-        <li><b data-n="msg.total">이동거리를 13% 줄였어요</b><span>실제 <span data-n="real.totalKm">72,955</span>km → 매치봇 <span data-n="engine.totalKm">63,312</span>km</span></li>
-        <li><b data-n="msg.fair">구단별 이동거리 차이가 훨씬 줄었어요</b><span>실제 <span data-n="real.rangeKm">6,711~8,084</span>km → 매치봇 <span data-n="engine.rangeKm">6,078~6,632</span>km</span></li>
-        <li><b data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</b><span>실제 <span data-n="real.holiday">22~28</span> → 매치봇 <span data-n="engine.holidayText">모두 25</span></span></li>
-      </ul>
-    </div>
+  <section class="sh-sec" aria-labelledby="num-h">
+    <h2 class="sh-h2" id="num-h">숫자로 보면</h2>
     <div class="sh-card">
       <table class="sh-table">
-        <caption class="sh-small" style="text-align:left;padding:0 0 8px">숫자로 보면. 노란 줄은 실제 일정이 더 나은 지표.</caption>
+        <caption class="sh-small" style="text-align:left;padding:0 0 8px">2025년 1차 일정, 열 개 구단</caption>
         <thead><tr><th scope="col">지표</th><th scope="col"><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제 2025</th><th scope="col"><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>매치봇</th></tr></thead>
         <tbody>
-          <tr><th scope="row">10구단 총 이동거리<small>시즌 전체 합계</small></th><td class="sh-num"><b><span data-n="real.totalKm">72,955</span> km</b></td><td class="sh-num"><b><span data-n="engine.totalKm">63,312</span> km</b><span class="sh-tag sh-tag-engine"><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></span></td></tr>
+          <tr><th scope="row">구단별 이동 일수<small>다른 구장으로 옮겨 간 날</small></th><td class="sh-num"><b><span data-n="real.moves">32~38</span>일</b></td><td class="sh-num"><b><span data-n="engine.moves">31~33</span>일</b><span class="sh-tag sh-tag-engine">더 고름</span></td></tr>
           <tr><th scope="row">구단별 이동거리<small>가장 적게 다니는 구단 ~ 가장 많이</small></th><td class="sh-num"><b><span data-n="real.rangeKm">6,711~8,084</span> km</b><small><span data-n="real.minTeam">두산</span> ~ <span data-n="real.maxTeam">KIA</span> · 차이 <span data-n="real.spreadKm">1,373</span>km</small></td><td class="sh-num"><b><span data-n="engine.rangeKm">6,078~6,632</span> km</b><small><span data-n="engine.minTeam">SSG</span> ~ <span data-n="engine.maxTeam">키움</span> · 차이 <span data-n="engine.spreadKm">554</span>km</small><span class="sh-tag sh-tag-engine" data-n="diff.spreadTag">훨씬 공정</span></td></tr>
-          <tr><th scope="row">구단별 이동 횟수<small>원정을 떠나거나 돌아온 횟수</small></th><td class="sh-num"><b><span data-n="real.moves">32~38</span>회</b></td><td class="sh-num"><b><span data-n="engine.moves">31~34</span>회</b><span class="sh-tag sh-tag-engine">조금 적고 고름</span></td></tr>
-          <tr><th scope="row">주말·공휴일 홈 경기 몫<small>구단끼리 똑같을수록 공정해요</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span></b></td><td class="sh-num"><b><span data-n="engine.holidayText">모두 25</span></b><span class="sh-tag sh-tag-engine" data-n="diff.holidayTag">똑같이</span></td></tr>
-          <tr id="row-weekend"><th scope="row">주말 홈 경기 수<small>구단별 토·일 홈 3연전 수</small></th><td class="sh-num" id="weekend-real-cell"><b><span data-n="real.weekend">11~12</span>회</b></td><td class="sh-num" id="weekend-engine-cell"><b><span data-n="engine.weekend">11~12</span>회</b><span class="sh-tag sh-tag-even" id="weekend-tag">같음</span></td></tr>
+          <tr><th scope="row">주말·공휴일 홈 경기<small>토·일·공휴일 홈 경기 수, 똑같을수록 공정</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span>경기</b></td><td class="sh-num"><b><span data-n="engine.holidayText">모두 25</span>경기</b><span class="sh-tag sh-tag-engine" data-n="diff.holidayTag">똑같이</span></td></tr>
+          <tr><th scope="row">10구단 총 이동거리<small>1차 일정 동안 열 구단 합계</small></th><td class="sh-num"><b><span data-n="real.totalKm">72,955</span> km</b></td><td class="sh-num"><b><span data-n="engine.totalKm">63,312</span> km</b><span class="sh-tag sh-tag-engine"><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></span></td></tr>
           <tr><th scope="row">가장 긴 원정 연속<small>집에 못 돌아오는 최대 시리즈 수</small></th><td class="sh-num"><b><span data-n="real.awayRun">2~3</span>시리즈</b></td><td class="sh-num"><b><span data-n="engine.awayRun">3</span>시리즈</b><span class="sh-tag sh-tag-even">비슷</span></td></tr>
         </tbody>
       </table>
@@ -108,43 +105,24 @@
     <h2 class="sh-h2" id="chart-h">구단별로 보면</h2>
     <div class="sh-card">
       <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
-      <div class="sh-chart-h"><b>구단별 이동거리</b><span class="sh-small">실제 → 매치봇, km. 매치봇은 모든 구단이 6,000~6,600km 사이</span></div>
+      <div class="sh-chart-h"><b>구단별 이동 일수</b><span class="sh-small">실제 → 매치봇, 일</span></div>
+      <div class="sh-teams" id="chart-moves" role="img" aria-label="구단별 이동 일수 막대 (불러오는 중)"></div>
+    </div>
+    <div class="sh-card">
+      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
+      <div class="sh-chart-h"><b>구단별 이동거리</b><span class="sh-small">실제 → 매치봇, km</span></div>
       <div class="sh-teams" id="chart-dist" role="img" aria-label="구단별 이동거리 막대 (불러오는 중)"></div>
     </div>
     <div class="sh-card">
       <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
-      <div class="sh-chart-h"><b>구단별 주말 홈 경기 수</b><span class="sh-small">실제 → 매치봇, 회. <span data-n="diff.weekendWord">같은 수준입니다</span></span></div>
-      <div class="sh-teams" id="chart-weekend" role="img" aria-label="구단별 주말 홈 경기 수 막대 (불러오는 중)"></div>
+      <div class="sh-chart-h"><b>구단별 주말·공휴일 홈 경기</b><span class="sh-small">실제 → 매치봇, 경기</span></div>
+      <div class="sh-teams" id="chart-weekend" role="img" aria-label="구단별 주말·공휴일 홈 경기 막대 (불러오는 중)"></div>
     </div>
   </section>
 
-  <section class="sh-sec" aria-labelledby="unknown-h">
-    <h2 class="sh-h2" id="unknown-h">매치봇이 모르는 것</h2>
-    <p class="sh-lead">실제 일정에는 들어가 있지만 매치봇에는 아직 없는 조건들이에요. 그래서 "매치봇이 실제보다 낫다"가 아니라 "같은 조건에서는 이만큼 줄일 수 있다"로 읽어 주세요.</p>
-    <div class="sh-card">
-      <ul class="sh-list" id="unknown-list">
-        <li>구장 대관·공사 일정 — 콘서트나 보수 공사로 특정 날짜에 홈 경기를 못 여는 경우</li>
-        <li>중계 편성 — 방송사가 원하는 요일·시간대의 인기 대진</li>
-        <li>지역 행사·연고지 사정 — 축제, 선거, 교통 통제 등</li>
-        <li>개막전·어린이날 지정 방식 — 전년 성적에 따른 개막 홈 배정 등 리그 관례</li>
-        <li>올스타 휴식기·우천 예비일 — 후반기 시작 전후의 여유 날짜 배치</li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="sh-sec" aria-labelledby="method-h">
-    <h2 class="sh-h2" id="method-h">어떻게 쟀나요</h2>
-    <div class="sh-card">
-      <ul class="sh-list" id="method-def">
-        <li><b>이동거리</b> — 구단마다 시리즈를 치른 구장을 날짜 순서대로 이으면서, 앞 구장에서 다음 구장까지의 거리를 더한 값이에요. 홈에서 홈으로 이어지면 0이고, 시즌 처음과 끝은 홈에서 출발·도착해요. 구장 간 거리는 아래 「구장 간 거리표」를 써요.</li>
-        <li><b>주말·공휴일 홈 경기</b> — 토요일·일요일·공휴일(어린이날, 대체공휴일, 현충일, 광복절)에 치르는 홈 경기 수예요. 관중이 가장 많은 날이라 구단마다 고르게 나뉘어야 해요.</li>
-        <li><b>같은 채점기</b> — 브라우저의 채점 방식과 매치봇(Java)의 채점 방식이 같은 값을 내는 것을 확인하고, 실제 일정과 매치봇 일정을 둘 다 그걸로 쟀어요.</li>
-        <li><b>같은 입력</b> — 2025 1차 일정의 대진(225시리즈), 날짜 칸(45개), 구장 간 거리표, 어린이날 홈 구단(두산·키움·한화·NC·롯데)을 그대로 썼어요.</li>
-        <li><b>꼭 지킬 규칙</b> — 하루 한 경기, 한 구장 하루 한 대진, 잠실 공유, 홈·원정 4연속 금지, 같은 대진 연속 금지, 지정 구장 홈 경기.</li>
-        <li><b>목표(순서대로)</b> — 미배정 0 → 이동 횟수 고르기 → 구단별 이동거리 고르기(허용오차 300km) → 휴일 경기 고르기(허용오차 1.5) → 총 이동거리 최소.</li>
-        <li><b>실행</b> — 시드 <span data-n="engine.seeds">8</span>개를 각각 한 스레드로 <span data-n="engine.seconds">10</span>초 동시에 돌려 가장 좋은 일정을 골랐어요(시드 <span data-n="engine.seed">42</span>). 같은 시드면 같은 결과가 나와요.</li>
-      </ul>
-    </div>
+  <!-- 궁금한 점: 소개 쪽과 같은 질문·답(show.js SHOW.QA). 예전 「어떻게 쟀나요」「매치봇이 모르는 것」은 여기 답으로 옮겼다 -->
+  <section class="sh-sec sh-faq" aria-labelledby="qa-h" data-qa="list">
+    <h2 class="sh-h2" id="qa-h">궁금한 점</h2>
   </section>
 
   <!-- 구장 간 거리표: 매치봇 입력(ui/core/preset-2025.js = data/baseball/input_2025.json)의 distanceMatrix를 그대로 표로. 화면에 들어올 때 프리셋을 읽는다 -->
@@ -158,11 +136,12 @@
     <h2 class="sh-h2" id="src-h">데이터 출처</h2>
     <div class="sh-card">
       <ul class="sh-list">
-        <li>실제 일정: KBO 발표 2025 정규시즌 1차 일정(3/22~8/29). 시즌 중 우천·재편성은 반영하지 않았어요.</li>
-        <li>구장 간 거리: 카카오맵으로 잰 구장 사이 도로 거리(위 「구장 간 거리표」). 실제 버스·항공 이동과는 다를 수 있어요.</li>
+        <li>실제 일정: KBO가 발표한 2025 정규시즌 1차 일정(3/22~8/31). 시즌 중 우천 취소·재편성은 반영하지 않았어요.</li>
+        <li>구장 간 거리: 카카오맵으로 잰 구장 사이 도로 거리(위 「구장 간 거리표」). 실제 버스 이동과는 다를 수 있어요.</li>
+        <li>관중·입장 수입: KBO 보도자료(2024-08-29, 요일별 평균 관중), 2025 관중 1,231만 명(노컷뉴스 2025-12-30), 2025 입장 수입 2,049억 원(톱스타뉴스 2026-06-30), 홈 72 : 원정 28 배분(한국일보 2015-04-10).</li>
         <li>매치봇 엔진: 오픈소스 OptaPlanner.</li>
       </ul>
-      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="r.html?id=default">매치봇이 만든 일정 보기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
+      <div class="sh-card-foot"><a class="k-btn k-btn-primary" href="index.html">소개로 돌아가기</a><a class="k-btn" href="index.html#replay">탐색 과정 보기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
     </div>
   </section>
 </main>
