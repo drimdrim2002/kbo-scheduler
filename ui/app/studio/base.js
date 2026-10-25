@@ -291,13 +291,14 @@
     return true;
   }
   /** 처음부터 입력하기: 표를 모두 비운다(실행 취소 가능). 시즌 기본 설정 화면으로 간다. */
+  // 「새로 입력」 선택(guide-steps.js)이 부를 때는 quiet로, 띠·메뉴의 「처음부터 입력하기(초기화)」는 확인 창을 거쳐 부른다.
   S.resetAll = function (opts) {
     const o = opts || {};
     if (!swapProject(S.emptyProject(), '처음부터 입력하기(초기화)')) return false;
     S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단과 거리는 그대로 · ' + S.fmt.clock(new Date()) });
     if (!o.quiet) S.toast('표를 모두 비웠습니다. 시즌 기본 설정부터 차례로 적어 주세요. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
     if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null });
-    if (!o.quiet && S.guideOnReset) S.guideOnReset(); // 안내 방식이 빈 상태 안내를 연다
+    if (S.guideOnReset) S.guideOnReset(); // 단계별 화면이면 1단계로
     return true;
   };
   /** 2025 예시 데이터 다시 불러오기(시연용 위반·경기 기록 포함) */
@@ -316,7 +317,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -335,7 +336,7 @@
     }
     else {
       o.step = u.step;
-      if (u.step === 1) o.tab = u.tab;
+      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계별 화면: g=ask|new|view(&gs=단계), 모든 표 보기: tab=
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
@@ -373,7 +374,7 @@
     if (o.set) u.setTab = o.set;
     u.inspOff = o.insp === '0';
     u.demo = o.demo || null;
-    u.guideReq = o.guide != null ? o.guide : null; // 입력 안내 열기(guide=1·단계 번호) / 자동 시작 끄기(guide=0). 한 번 읽고 지운다
+    if (S.g1Route) S.g1Route(o); // ① 단계별 화면(g=ask|new|view|all, gs=단계). 예전 키 guide=는 묻는 화면으로
   };
 
   // ───────── 스크롤 점검 (NFR-W4, AC-P2) ─────────

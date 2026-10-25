@@ -305,7 +305,7 @@
       S.ui.cell = null; flush(); click('.toolbar [data-act="row-ins"][data-pos="below"]'); flush(); putBlack(1, '7/11', '7/16', '올스타 브레이크');
       ok('휴식기: 첫 줄·끝에 추가 → 2개', st().settings.blackouts.length === 2 && st().settings.blackouts[1].start === '2025-07-11' && st().settings.blackouts[1].end === '2025-07-16');
       S.go({ tab: 'season', cell: null });
-      ok('날짜 몇 개로 경기일 합 맞음(135) · 시즌 기본 설정 완료', document.querySelector('.insp .gd-check').getAttribute('data-ok') === '1' && S.GUIDE_TASKS.find((t) => t.id === 'season').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'dates').status().ok && S.guideNext().id === 'slots');
+      ok('날짜 몇 개로 경기일 합 맞음(135) · 시즌 기본 설정 완료', document.querySelector('.insp .gd-check').getAttribute('data-ok') === '1' && S.GUIDE_TASKS.find((t) => t.id === 'season').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'holidays').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'blackouts').status().ok && S.guideNext().id === 'slots');
       // 3: 연전 기간 — 규칙대로 자동 채우기
       S.go({ tab: 'slots' });
       click('.sheet-empty [data-act="draft-slots"]'); flush();
@@ -341,11 +341,10 @@
       ok('데이터 메뉴 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       ok('2025 예시 데이터 다시 불러오기 → 시연용 위반 3·중간 저장 1', !S.isBlank() && hard() === 3 && st().snapshots.length === 1 && st().games.length > 0 && S.ui.tab === 'slots');
-      if (S.guideUI && S.guideUI.close) S.guideUI.close(); // 초기화 뒤 자동으로 열린 입력 안내를 닫는다(19a는 닫힌 상태에서 시작)
     }
 
     // 19a. ① 입력 안내 (안내 방식마다 자기 점검을 S.guideUI.selftest로 낸다)
-    if (S.guideUI && S.guideUI.selftest) { S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null }); await S.guideUI.selftest({ ok, click, flush, wait }); if (S.guideUI.close) S.guideUI.close(); }
+    if (S.guideUI && S.guideUI.selftest) { S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null }); await S.guideUI.selftest({ ok, click, flush, wait }); if (S.guideUI.close) S.guideUI.close(); S.go({ step: 1, tab: 'slots' }); }
 
     // 20. 일반 모드 금지어 검사 (모든 단계·시즌 운영·설정·모달·메뉴, 선택 기능 모두 켬)
     for (const f of S.FEATURES) if (!f.must) S.features[f.id] = true;

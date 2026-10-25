@@ -278,7 +278,9 @@
   S.importHistory = [{ kind: 'preset', source: '2025 실제 일정 (기본 제공)', detail: '엑셀 표 6개 · 1/14(화) 09:00' }];
 
   // ───────── 가운데: 시트 표 ─────────
-  function renderSheet(key) {
+  /** opts.assist === false 면 표 위 자동 채우기 단추를 뺀다(단계별 화면에서는 카드가 그 단추를 보여 준다) */
+  function renderSheet(key, opts) {
+    const o = opts || {};
     const sh = SHEETS[key], st = app().state, u = S.ui;
     const rows = sh.rows(st);
     const cols = visibleCols(sh);
@@ -287,7 +289,7 @@
     const locked = S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED');
     // 줄을 고르지 않았으면 「아래에 추가」는 맨 끝(빈 표면 첫 줄)에 더한다
     const addLabel = rows.length ? (selRow < 0 ? '끝에 추가' : '아래에 추가') : '첫 줄 추가';
-    const assists = sheetAssists(sh);
+    const assists = o.assist === false ? [] : sheetAssists(sh);
     let s = '<div class="toolbar">' +
       '<span class="pane-title">' + esc(sh.label) + '</span><span class="muted small">' + rows.length + '개</span>' +
       '<span class="pane-desc" style="max-width:420px">' + esc(sh.desc) + '</span>' +
@@ -343,12 +345,14 @@
   S.sheetAssists = (key) => sheetAssists(SHEETS[key] || {});
 
   // ───────── 시즌 골격 ─────────
-  function renderSeason() {
+  /** opts.subs === false 면 아래 공휴일·휴식일 경기·휴식기 요약 상자를 뺀다(단계별 화면에서는 다음 단계들이다) */
+  function renderSeason(opts) {
+    const o = opts || {};
     const st = app().state, set = st.settings;
     const wd = ['일', '월', '화', '수', '목', '금', '토'];
     const blankDates = !set.seasonStart || !set.initialEnd;
     const dateIn = (k, label, ph) => '<label class="field"><span>' + label + ' *</span><input class="input' + (set[k] ? '' : ' empty') + '" data-in="season" data-k="' + k + '" value="' + esc(set[k] ? fmt.date(set[k]) : '') + '" placeholder="' + esc(ph) + '"' + (set[k] ? '' : ' aria-describedby="seasonHint"') + '></label>';
-    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일·휴식일 경기·휴식기는 왼쪽 목록에서 고칩니다.</span></div>';
+    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">' + (o.subs === false ? '개막·종료일과 휴식 요일을 입력합니다. 공휴일·휴식일 경기·휴식기는 다음 단계에서 넣습니다.' : '개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일·휴식일 경기·휴식기는 왼쪽 목록에서 고칩니다.') + '</span></div>';
     s += '<div class="pane-body pad" data-sk="d-season">';
     s += '<div class="blk"><div class="blk-head">기간과 휴식 요일</div><div class="blk-body"><div class="form-grid">' +
       dateIn('seasonStart', '개막일', '예: 2025-03-22') +
@@ -389,7 +393,7 @@
     }
     s += '</div><div class="small muted" style="margin-top:8px">' + (set.initialEnd && set.seasonEnd && set.seasonEnd > set.initialEnd ? esc(fmt.short(Dates.dayNum(set.initialEnd) + 1) + '~' + fmt.short(set.seasonEnd)) + '은 재편성 기간입니다(시즌 운영 메뉴).' : '1차 편성 종료일 뒤부터 시즌 종료일까지는 재편성 기간입니다(시즌 운영 메뉴).') + '</div></div></div>';
     const sub = (k, title, lines) => '<div class="blk"><div class="blk-head">' + icon('sheet') + esc(title) + '<span class="r"><span class="muted small">' + lines.length + '개</span><button class="btn xs" data-act="d-tab" data-tab="' + k + '">표 열기' + icon('right') + '</button></span></div><div class="blk-body small" style="padding:6px 10px;display:flex;flex-direction:column;gap:2px">' + (lines.length ? lines.slice(0, 4).map((x) => '<div>' + x + '</div>').join('') + (lines.length > 4 ? '<div class="muted">외 ' + (lines.length - 4) + '개</div>' : '') : '<span class="muted">없음</span>') + '</div></div>';
-    s += '<div class="season-subs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">' +
+    if (o.subs !== false) s += '<div class="season-subs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">' +
       sub('holidays', SHEETS.holidays.label, set.holidays.map((h) => '<span class="mono">' + esc(fmt.date(h.date)) + '</span> ' + esc(h.name))) +
       sub('restex', SHEETS.restex.label, set.restExceptions.map((d) => '<span class="mono">' + esc(fmt.date(d)) + '</span> 휴식 요일이지만 경기')) +
       sub('blackouts', SHEETS.blackouts.label, set.blackouts.map((b) => '<span class="mono">' + esc(fmt.date(b.start) + (b.end !== b.start ? ' ~ ' + fmt.date(b.end) : '')) + '</span> ' + esc(b.label || ''))) + '</div>';
@@ -581,6 +585,8 @@
     render() {
       const u = S.ui;
       if (!SHEETS[u.tab] && u.tab !== 'season' && u.tab !== 'teams') u.tab = 'slots';
+      // 단계별 화면(묻는 화면·새로 입력·기존 데이터 보기)이면 guide-steps.js가 그린다. null이면 아래 전체 화면(모든 표 보기)
+      if (S.guideUI && S.guideUI.renderStep1) { const g = S.guideUI.renderStep1({ sheet: renderSheet, season: renderSeason, teams: renderTeams }); if (g) return g; }
       let main;
       if (u.tab === 'season') main = renderSeason();
       else if (u.tab === 'teams') main = renderTeams();
