@@ -106,6 +106,8 @@
     q = String(q || '').trim();
     const t = app().state.teams[i];
     if (!t || !q || S.locked()) return Promise.resolve(null);
+    const cur0 = S.ui.teamFind;
+    if (cur0 && cur0.busy && cur0.row === i && cur0.q === q && G.findP) return G.findP; // 같은 검색이 진행 중
     const f = S.ui.teamFind = { row: i, q, busy: true };
     S.render();
     return app().searchPlace(q).then((r) => {
@@ -284,7 +286,8 @@
     onKey(e) {
       if (S.ui.step !== 1 || !stepwise() || S.guideBlocked()) return false;
       // 카드의 구장 칸: Enter = 구장 위치 찾기(이름 저장과 위치 채우기를 한 번에 → 실행 취소 한 번)
-      if (e.key === 'Enter' && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
+      // 한글 입력 중(마지막 글자 조합 중)의 Enter는 조합을 끝내는 키라 건너뛴다 — 맥 Chrome은 조합 Enter 뒤에 보통 Enter를 한 번 더 보낸다
+      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || S.ui.edit || S.ui.cell) return false;
       if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); if (G.i < N()) show(G.i + 1); return true; }
@@ -376,10 +379,14 @@
         await settle();
       };
       const back = () => { const t = st().teams[li]; return t.stadium === lg0.stadium && t.latitude === lg0.latitude && t.longitude === lg0.longitude && st().distanceMatrix.filter((d) => d.estimated).length === est0; };
+      { const i0 = q('.gs-card .gs-team input[data-k="stadium"]'); i0.value = '고척'; i0.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229, bubbles: true, cancelable: true })); }
+      const imeSkip = !S.ui.teamFind && !G.findP && st().teams[li].stadium === lg0.stadium;
+      const us = () => app().store.undoStack, top0 = us()[us().length - 1];
       await findT('고척');
+      const oneUndo = us()[us().length - 2] === top0; // 새 항목이 딱 하나(실행 취소 개수 상한에서도 맞도록 맨 위 항목으로 본다)
       const one = st().teams[li].stadium === '고척' && Math.abs(st().teams[li].latitude - 37.498293) < 1e-5 && Math.abs(st().teams[li].longitude - 126.867137) < 1e-5 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && !!q('.gs-card .gs-find.ok') && /고척돔야구장/.test(q('.gs-card .gs-find').textContent) && /기본 구장 목록/.test(q('.gs-card .gs-find').textContent) && q('.gs-card input[data-k="latitude"]').value === '37.4983';
       app().undo(); flush();
-      ok('단계별: 구장 칸에 「고척」 + Enter → 고척돔야구장 위도·경도를 채움 · 이름은 적은 그대로 · LG 거리 18개 추정 · 실행 취소 한 번으로 복귀', one && back() && !q('.gs-card .gs-find.ok'), 'one ' + one + ' · back ' + back());
+      ok('단계별: 구장 칸에 「고척」 + Enter(한글 조합 중 Enter는 건너뜀) → 고척돔야구장 위도·경도를 채움 · 이름은 적은 그대로 · LG 거리 18개 추정 · 실행 취소 한 번으로 복귀', imeSkip && oneUndo && one && back() && !q('.gs-card .gs-find.ok'), 'ime ' + imeSkip + ' · oneUndo ' + oneUndo + ' · one ' + one + ' · back ' + back());
       await findT('대전');
       const many = qa('.gs-card .gs-cand').length === 2 && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '대전';
       click('.gs-card .gs-cand[data-k="1"]'); flush();

@@ -29,6 +29,7 @@
       const kakao = app.kakao;
       const markers = opts.markers();
       if (!kakaoMap || kakaoMap.__host !== body) {
+        if (!body.isConnected || !body.offsetWidth) return; // 화면에 붙기 전(크기 0)에는 만들지 않는다 — 붙은 뒤 refresh에서 만들고 범위를 맞춘다
         body.innerHTML = '';
         kakaoMap = new kakao.maps.Map(body, { center: new kakao.maps.LatLng(36.3, 127.8), level: 13 });
         kakaoMap.__host = body;
