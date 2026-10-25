@@ -167,14 +167,12 @@
     v['why.holLo'] = String(hMin); v['why.holLoTeams'] = names(hMin); v['why.holHi'] = String(hMax); v['why.holHiTeams'] = names(hMax);
     v['why.holGap'] = String(hMax - hMin);
     const mv = teams.map((t) => t.moves), mMin = Math.min(...mv), mMax = Math.max(...mv);
-    v['why.movesGap'] = String(mMax - mMin); v['why.mvLo'] = String(mMin); v['why.mvHi'] = String(mMax);
-    v['why.mvLoTeams'] = teams.filter((t) => t.moves === mMin).map((t) => t.name).join('·'); v['why.mvHiTeams'] = teams.filter((t) => t.moves === mMax).map((t) => t.name).join('·');
-    v['why.holMean'] = String(Math.round(hols.reduce((p, q) => p + q, 0) / hols.length));
+    v['why.movesGap'] = String(mMax - mMin);
     Object.assign(v, whyMoney(hMax - hMin, 'why.'));
     v['why.fanGap'] = fmtInt(Math.round((W.weekendFans - W.weekdayFans) / 100) * 100);
     return v;
   }
-  /** 합치기 C: [data-bar=키] 자리에 가장 적은~많은 구단 막대를 그린다. 눈금 = 구단 평균, 양 끝 = 구단 이름과 값 */
+  /** 기준 세 가지 카드: [data-bar=키] 자리에 가장 적은~많은 구단 막대를 그린다. 눈금 = 구단 평균, 양 끝 = 구단 이름과 값 */
   function whyBars(teams) {
     $$('[data-bar]').forEach((el) => {
       const k = el.getAttribute('data-bar'), u = el.getAttribute('data-unit') || '';
@@ -186,6 +184,30 @@
         teams.map((t) => '<i class="sh-why-dot" style="left:' + pos(t[k]) + '%"></i>').join('') + '</div>' +
         '<div class="sh-why-ends"><span>' + esc(who(lo)) + ' <b>' + fmtInt(lo) + u + '</b></span><span>' + esc(who(hi)) + ' <b>' + fmtInt(hi) + u + '</b></span></div>';
       el.setAttribute('aria-label', '가장 적은 ' + who(lo) + ' ' + fmtInt(lo) + u + ', 평균 ' + fmtInt(mean) + u + ', 가장 많은 ' + who(hi) + ' ' + fmtInt(hi) + u);
+    });
+  }
+  /** 결과 비교: [data-rbar=키]에 KBO·매치봇 구단 범위 막대 두 줄(같은 눈금). total이면 총 이동거리 길이 막대 */
+  function resBars(real, engine) {
+    const rt = real.teams || [], et = engine.teams || [];
+    $$('[data-rbar]').forEach((el) => {
+      const k = el.getAttribute('data-rbar');
+      if (k === 'total') {
+        const mx = Math.max(real.totalKm, engine.totalKm) || 1;
+        const line = (cls, lb, x) => '<div class="sh-rb-line ' + cls + '"><span class="sh-rb-lb">' + lb + '</span><div class="sh-rb-track"><i class="sh-rb-fill" style="width:' + (x / mx * 100).toFixed(1) + '%"></i></div><span class="sh-rb-val">' + fmtInt(x) + 'km</span></div>';
+        el.innerHTML = line('r', 'KBO', real.totalKm) + line('e', '매치봇', engine.totalKm);
+        el.setAttribute('aria-label', '총 이동거리 KBO ' + fmtInt(real.totalKm) + 'km, 매치봇 ' + fmtInt(engine.totalKm) + 'km');
+        return;
+      }
+      const u = { moves: '일', distanceKm: 'km', holidayWeight: '경기' }[k] || '';
+      const all = rt.concat(et).map((t) => t[k]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.04 || 1;
+      const pos = (x) => ((x - lo + pad) / (hi - lo + 2 * pad) * 100).toFixed(1);
+      const line = (cls, lb, teams) => {
+        const xs = teams.map((t) => t[k]), a = Math.min(...xs), b = Math.max(...xs);
+        return '<div class="sh-rb-line ' + cls + '"><span class="sh-rb-lb">' + lb + '</span><div class="sh-rb-track"><i class="sh-rb-span" style="left:' + pos(a) + '%;width:' + Math.max(0, pos(b) - pos(a)) + '%"></i>' +
+          xs.map((x) => '<i class="sh-rb-dot" style="left:' + pos(x) + '%"></i>').join('') + '</div><span class="sh-rb-val">' + (a === b ? '모두 ' + fmtInt(a) : fmtInt(a) + '~' + fmtInt(b)) + u + '</span></div>';
+      };
+      el.innerHTML = line('r', 'KBO', rt) + line('e', '매치봇', et);
+      el.setAttribute('aria-label', 'KBO ' + fmtInt(Math.min(...rt.map((t) => t[k]))) + '~' + fmtInt(Math.max(...rt.map((t) => t[k]))) + u + ', 매치봇 ' + fmtInt(Math.min(...et.map((t) => t[k]))) + '~' + fmtInt(Math.max(...et.map((t) => t[k]))) + u);
     });
   }
   /** 주말·공휴일 홈 경기 n개 차이 → 관중(만 명)·홈 구단 몫 입장 수입(억 원, 범위). 범위 아래 = 그만큼 주말 원정이 늘어 원정 몫 28%를 받는 경우 */
@@ -293,7 +315,7 @@
       const who = names.slice(0, 3).join('·') + (names.length > 3 ? ' 외 ' + (names.length - 3) : '');
       // 총 이동거리가 늘어도 위쪽 단계(홈 경기·구단별 이동거리·이동 횟수)가 좋아지면 개선으로 친다. 그 까닭을 붙여 "개선인데 +"가 어색하게 읽히지 않게 한다
       let why = '';
-      if (prev.soft && st.soft && st.soft[4] > prev.soft[4]) why = st.soft[3] < prev.soft[3] ? '대신 주말·공휴일 홈 경기가 더 고르게 됐어요' : st.soft[2] < prev.soft[2] ? '대신 구단별 이동거리 차이가 줄었어요' : st.soft[1] < prev.soft[1] ? (html.getAttribute('data-why') && html.getAttribute('data-why') !== '0' ? '대신 구단별 이동 일수가 더 고르게 됐어요' : '대신 구단별 이동 횟수가 더 고르게 됐어요') : '';
+      if (prev.soft && st.soft && st.soft[4] > prev.soft[4]) why = st.soft[3] < prev.soft[3] ? '대신 주말·공휴일 홈 경기가 더 고르게 됐어요' : st.soft[2] < prev.soft[2] ? '대신 구단별 이동거리 차이가 줄었어요' : st.soft[1] < prev.soft[1] ? '대신 구단별 이동 일수가 더 고르게 됐어요' : '';
       return i + '번째 개선 · ' + RM.moveWord(m, prev, m.events[i - 1].changes) + (dist ? ' · ' + dist : '') + (why ? ' · ' + why : '') + (who ? ' · ' + who : '');
     });
     p.update();
@@ -303,7 +325,7 @@
    * 놓인 카드는 같이 숨긴다. 모듈의 place()는 보이지 않는 칸의 자리를 0으로 재서 카드를 왼쪽 위에 겹쳐 놓기 때문이다.
    */
   // 점수판 지표 이름(팬 말). 마지막은 곡선, 나머지는 칩(show.css)
-  const LEVEL_NAMES = { 1: html.getAttribute('data-why') && html.getAttribute('data-why') !== '0' ? '이동 일수 맞추기' : '이동 횟수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
+  const LEVEL_NAMES = { 1: '이동 일수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
   function fitBoard(box, p) {
     simpleCaptions(p);
     const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/슬롯 (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "슬롯 45개"
@@ -430,26 +452,8 @@
   // ───────── 쪽별 ─────────
   const pages = {};
 
-  /** 설명 대안(?why=2|3|4): #faq-src의 질문·답을 안에 맞는 자리·모양으로 그린다. 2 = 질문 칩 + 매치봇 말풍선, 3·4 = 펼침 목록 */
-  function buildFaq() {
-    const src = $('#faq-src'); if (!src) return;
-    const qa = $$('[data-q]', src).map((el) => ({ q: el.getAttribute('data-q'), a: el.innerHTML }));
-    const w = html.getAttribute('data-why');
-    if (w === '2') {
-      const qs = $('#faq-ask .sh-ask-q'), ans = $('#faq-ask .sh-ask-a'); if (!qs || !ans) return;
-      qs.innerHTML = qa.map((o, i) => '<button type="button" data-ask="' + i + '" aria-pressed="false">' + esc(o.q) + '</button>').join('');
-      const show = (i) => { $$('[data-ask]', qs).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-ask') === String(i)))); ans.innerHTML = '<b>' + esc(qa[i].q) + '</b><br>' + qa[i].a; };
-      $$('[data-ask]', qs).forEach((b) => b.addEventListener('click', () => show(+b.getAttribute('data-ask'))));
-      show(0);
-    } else if (w === '3' || w === '4') {
-      const box = w === '3' ? $('#faq-inline') : $('#faq'); if (!box) return;
-      box.insertAdjacentHTML('beforeend', qa.map((o) => '<details><summary>' + esc(o.q) + '</summary><p>' + o.a + '</p></details>').join(''));
-    }
-  }
-
   /** 소개 / */
   pages.index = function () {
-    buildFaq();
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
       const v = view(cmp.real, cmp.engine);
@@ -459,6 +463,7 @@
       const tt = $('#cmp-teams'); if (tt) teamBars(tt, cmp.real.teams, cmp.engine.teams, 'distanceKm', { unit: ' km', label: '이동거리' });
       scatterViz(cmp);
       whyBars(cmp.real.teams || []);
+      resBars(cmp.real, cmp.engine);
       mark('show', 'compare-ok');
       checkScroll();
     });
@@ -533,7 +538,7 @@
       const d = list.find((o) => o.name === picked); if (!d) { say.textContent = ''; return; }
       const kmW = Math.abs(d.x) < 50 ? '이동거리는 평균 수준이고' : '평균보다 ' + fmtInt(Math.abs(d.x)) + 'km ' + (d.x > 0 ? '더' : '덜') + ' 다니고';
       const hy = Math.round(d.y * 10) / 10, hW = Math.abs(hy) < 0.5 ? '주말·공휴일 홈 경기는 평균만큼이에요.' : '주말·공휴일 홈 경기는 ' + Math.abs(hy) + '경기 ' + (hy > 0 ? '많아요.' : '적어요.');
-      const mvW = html.getAttribute('data-why') !== '0' && d.mv != null ? ' 이동 일수는 ' + d.mv + '일이에요(10구단 ' + Math.min(...list.map((o) => o.mv)) + '~' + Math.max(...list.map((o) => o.mv)) + '일).' : '';
+      const mvW = d.mv != null ? ' 이동 일수는 ' + d.mv + '일이에요(10구단 ' + Math.min(...list.map((o) => o.mv)) + '~' + Math.max(...list.map((o) => o.mv)) + '일).' : '';
       say.textContent = (curKind === 'engine' ? '매치봇 일정에서 ' : '2025 실제 일정에서 ') + picked + josa(picked, '은', '는') + ' ' + kmW + ', ' + hW + mvW;
     }
     function place(kind) {

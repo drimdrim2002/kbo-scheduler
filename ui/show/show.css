@@ -510,71 +510,12 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-replay .rp-cap { display: block; } /* 해설이 길어지면(줄어든 거리 추가) flex 안의 굵은 머리말이 세로로 쪼개져서 */
 .sh-replay .rp-cap b { margin-right: 4px; }
 
-/* ── 「왜 중요해요?」 설명 대안 ?why=0|1|2|3|4 (2026-10-24, 고르기 전 임시. 고르면 이 블록의 선택자와 안 고른 마크업을 지운다) ──
-   data-why-only="1 2" = 그 안에서만 보임, data-why-not="1" = 그 안에서 숨김 */
-html[data-why="0"] main [data-why-only]:not([data-why-only~="0"]), html[data-why="0"] main [data-why-not~="0"] { display: none; }
-html[data-why="1"] main [data-why-only]:not([data-why-only~="1"]), html[data-why="1"] main [data-why-not~="1"] { display: none; }
-html[data-why="2"] main [data-why-only]:not([data-why-only~="2"]), html[data-why="2"] main [data-why-not~="2"] { display: none; }
-html[data-why="3"] main [data-why-only]:not([data-why-only~="3"]), html[data-why="3"] main [data-why-not~="3"] { display: none; }
-html[data-why="4"] main [data-why-only]:not([data-why-only~="4"]), html[data-why="4"] main [data-why-not~="4"] { display: none; }
-.sh-why-pick { position: sticky; top: 0; z-index: 30; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 16px; background: #fff7e0; border-bottom: 1px solid #f0d58a; font-size: 13px; }
-.sh-why-pick a { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--fg); text-decoration: none; font-weight: 700; }
-.sh-why-pick a[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-/* 대안 공통: 세 가지 카드(이전 카드 모양 + 차이 숫자) */
+/* ── 기준 세 가지 카드(2026-10-25 확정): 이전 아이콘 카드 모양 + 가장 적은~많은 구단 막대(실제 = 주황, 가운데 눈금 = 구단 평균) ── */
 .sh-why3 { grid-template-columns: 1fr; }
 @media (min-width: 720px) { .sh-why3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.sh-why3 .sh-why-big { display: block; margin-top: 12px; font-style: normal; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; color: var(--fg); font-variant-numeric: tabular-nums; }
-.sh-why3 .sh-why-big span { display: inline; margin: 0; font-size: inherit; color: inherit; }
 .sh-why3 .sh-why-sub { font-size: 13px; }
 .sh-why3 .sh-why-sub span, .sh-why3 .sh-why-i > div > span span { display: inline; margin: 0; font-size: inherit; }
-.sh-why-src { margin: 10px 0 0; }
-.sh-why-src b { color: var(--fg); margin-right: 4px; }
-/* 질문·답 공통: 맨글 + 가는 줄, 누르면 펼침 */
-.sh-faq details { border-top: 1px solid var(--line); }
-.sh-faq details:last-of-type { border-bottom: 1px solid var(--line); }
-.sh-faq summary { list-style: none; cursor: pointer; padding: 14px 28px 14px 0; font-size: 16px; font-weight: 800; line-height: 1.4; position: relative; }
-.sh-faq summary::-webkit-details-marker { display: none; }
-.sh-faq summary::after { content: '+'; position: absolute; right: 4px; top: 12px; font-size: 20px; font-weight: 400; color: var(--muted); }
-.sh-faq details[open] summary::after { content: '−'; }
-.sh-faq details p { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--muted); }
-/* 대안 3: 카드 바로 아래 */
-.sh-faq-inline { margin-top: 8px; }
-/* 대안 4: 맨 아래, 질문 앞 Q 표시 */
-.sh-faq-q summary { padding-left: 36px; }
-.sh-faq-q summary::before { content: 'Q'; position: absolute; left: 0; top: 12px; width: 26px; height: 26px; border-radius: 8px; background: var(--mb-screen); color: var(--mb-deep); font-size: 14px; font-weight: 800; display: grid; place-items: center; }
-.sh-faq-q details p { padding-left: 36px; }
-/* 대안 2: 질문 칩 + 매치봇 말풍선 답 */
-.sh-ask-q { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
-.sh-ask-q button { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--fg); cursor: pointer; }
-.sh-ask-q button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-.sh-ask-a b { display: inline-block; margin-bottom: 4px; }
-.sh-fact > span.sh-fact-2l { white-space: normal; }
-.sh-why-pick { flex-wrap: nowrap; overflow-x: auto; padding: 8px 12px; }
-.sh-why-pick a { white-space: nowrap; }
-/* ── 카드 합치기 대안 ?mix=a|b|c (2026-10-24, 고르기 전 임시) ── */
-html[data-mix="a"] main [data-mix-only]:not([data-mix-only~="a"]), html[data-mix="b"] main [data-mix-only]:not([data-mix-only~="b"]), html[data-mix="c"] main [data-mix-only]:not([data-mix-only~="c"]) { display: none; }
-.sh-why-pick span { font-weight: 800; color: var(--muted); margin-right: 2px; }
-.sh-why-pick2 { top: 41px; background: #fffbea; }
 .sh-why3 .sh-why-i span, .sh-why3 .sh-why-i b { word-break: keep-all; }
-/* A: 카드 안 "구단 평균 | 가장 큰 차이" 두 칸 */
-.sh-why-mini { display: grid; grid-template-columns: 1fr 1fr; margin: 14px 0 8px; border-top: 1px solid var(--line); padding-top: 12px; width: 100%; }
-.sh-why-mini div + div { border-left: 1px solid var(--line); }
-.sh-why-mini dt { font-size: 12px; font-weight: 700; color: var(--muted); }
-.sh-why-mini dd { margin: 2px 0 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--fg); }
-.sh-why-mini dd small { font-size: 13px; margin-left: 1px; color: var(--muted); }
-.sh-why-mini dd.hi { font-size: 24px; }
-.sh-why3 .sh-why-mini dd span { display: inline; margin: 0; font-size: inherit; color: inherit; }
-/* B: 왜만 담은 카드 + 숫자 표 */
-.sh-why3-txt .sh-why-i { padding: 16px 14px; }
-.sh-why-tbl { margin-top: 8px; padding: 12px 14px; }
-.sh-why-tbl caption { text-align: left; padding: 0 0 6px; }
-.sh-why-tbl table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.sh-why-tbl th, .sh-why-tbl td { padding: 8px 4px; border-top: 1px solid var(--line); text-align: right; font-size: 13px; vertical-align: top; word-break: keep-all; }
-.sh-why-tbl thead th { border-top: 0; font-size: 12px; color: var(--muted); font-weight: 700; }
-.sh-why-tbl tbody th { text-align: left; font-size: 13px; }
-.sh-why-tbl td b { display: block; font-size: 16px; }
-.sh-why-tbl td small { display: block; font-size: 11px; color: var(--muted); }
-/* C: 가장 적은~많은 막대(실제 = 주황), 가운데 눈금 = 평균 */
 .sh-why-bar { width: 100%; margin: 26px 0 6px; }
 .sh-why-track { position: relative; height: 8px; margin: 0 6px; border-radius: 4px; background: var(--sh-real); opacity: 1; }
 .sh-why-track::before { content: ''; position: absolute; inset: 0; border-radius: 4px; background: var(--surface); opacity: .55; }
@@ -585,16 +526,30 @@ html[data-mix="a"] main [data-mix-only]:not([data-mix-only~="a"]), html[data-mix
 .sh-why-ends b { color: var(--fg); }
 .sh-why3 .sh-why-bar span { display: inline; margin: 0; font-size: 12px; }
 .sh-why-gap { display: inline !important; color: var(--fg); font-size: 15px !important; }
-/* 어림 기준 접기 */
+.sh-why3 .sh-why-ends b { display: inline; font-size: 12px; }
+.sh-why3 .sh-why-sub .sh-nw { white-space: nowrap; }
+/* 가정 접기 */
 .sh-why-how { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .sh-why-how summary { cursor: pointer; font-weight: 700; color: var(--accent); }
 .sh-why-how p { margin: 6px 0 0; line-height: 1.6; }
-.sh-why3 .sh-why-ends b { display: inline; font-size: 12px; }
-.sh-why-pick span { white-space: nowrap; }
-.sh-why-pick2 { position: static; }
-@media (max-width: 719px) {
-  .sh-why3-txt .sh-why-i { grid-template-columns: 44px minmax(0, 1fr); justify-items: start; text-align: left; align-items: center; padding: 12px 14px; }
-  .sh-why3-txt .sh-why-i i { margin: 0; }
-}
-@media (max-width: 480px) { .sh-why-tbl th:nth-child(3), .sh-why-tbl td:nth-child(3) { display: none; } }
-.sh-why-tbl thead th, .sh-why-tbl tbody th { background: none; }
+/* ── 결과 비교(2026-10-25 확정): 같은 눈금 위 KBO(주황)·매치봇(파랑) 구단 범위 막대, 점 = 구단. 총 이동거리는 길이 막대 ── */
+.sh-res { padding: 0 16px; }
+.sh-res-msg { display: block; font-size: 16px; font-weight: 800; line-height: 1.4; word-break: keep-all; }
+.sh-res-brow { padding: 14px 0; border-top: 1px solid var(--line); }
+.sh-res-brow:first-child { border-top: 0; }
+.sh-res-bars { display: grid; gap: 6px; margin-top: 10px; }
+.sh-rb-line { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 12px; }
+.sh-rb-lb { font-weight: 700; color: var(--muted); }
+.sh-rb-val { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 76px; text-align: right; }
+.sh-rb-line.r .sh-rb-val { color: var(--sh-real); } .sh-rb-line.e .sh-rb-val { color: var(--sh-engine); }
+.sh-rb-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 7px; }
+.sh-rb-track .sh-rb-span { position: absolute; top: 3px; height: 8px; border-radius: 4px; opacity: .35; }
+.sh-rb-track .sh-rb-dot { position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; border: 1.5px solid var(--surface); }
+.sh-rb-track .sh-rb-fill { position: absolute; left: 0; top: 3px; height: 8px; border-radius: 4px; }
+.sh-rb-line.r .sh-rb-span, .sh-rb-line.r .sh-rb-dot, .sh-rb-line.r .sh-rb-fill { background: var(--sh-real); }
+.sh-rb-line.e .sh-rb-span, .sh-rb-line.e .sh-rb-dot, .sh-rb-line.e .sh-rb-fill { background: var(--sh-engine); }
+.sh-rb-line .sh-rb-fill { opacity: .85; }
+.sh-res-key { margin: 0; padding: 10px 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.sh-res-key .r, .sh-res-key .e { font-weight: 700; }
+.sh-res-key .r::before, .sh-res-key .e::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; background: var(--sh-real); }
+.sh-res-key .e::before { background: var(--sh-engine); }
