@@ -95,8 +95,8 @@
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.moves">구단별 이동 일수 차이가 줄었어요</b><div class="sh-res-bars" data-rbar="moves" role="img"></div></div>
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.fair">구단별 이동거리 차이가 훨씬 줄었어요</b><div class="sh-res-bars" data-rbar="distanceKm" role="img"></div></div>
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.weekend">주말·공휴일 홈 경기를 똑같이 나눴어요</b><div class="sh-res-bars" data-rbar="holidayWeight" role="img"></div></div>
-      <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.total">이동거리를 13% 줄였어요</b><div class="sh-res-bars" data-rbar="total" role="img"></div></div>
-      <p class="sh-res-key"><span class="r">KBO 실제</span><span class="e">매치봇</span> 점 하나가 구단 하나예요</p>
+      <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.total">총 이동거리를 13% 줄였어요</b><div class="sh-res-bars" data-rbar="total" role="img"></div></div>
+      <p class="sh-res-key"><span class="r">실제</span><span class="e">매치봇</span> 점 하나가 구단 하나예요</p>
     </div>
     </div>
     <p class="sh-small sh-stat-how" style="margin:10px 0 0"><b>숫자 읽는 법</b> 이동 일수는 구단이 다른 구장으로 옮겨 간 날의 수, 이동거리는 1차 일정 동안 원정을 다니며 이동한 도로 거리예요. 주말·공휴일 홈 경기는 관중이 가장 많이 오는 날에 홈구장에서 치르는 경기 수예요. <a class="sh-link" href="compare.html">숫자와 근거 자세히 보기 →</a></p>
@@ -122,7 +122,7 @@
     <!-- 재생기 (모바일 세로) -->
     <section class="sh-sec" id="replay" aria-labelledby="replay-h">
       <h2 class="sh-h2" id="replay-h">탐색 과정</h2>
-      <p class="sh-lead">카드 1장이 3연전 한 묶음, 색은 홈 구단. 카드가 옮겨질 때마다 아래 곡선이 내려가요.</p>
+      <p class="sh-lead">카드 1장이 시리즈 하나, 색은 홈 구단. 카드가 옮겨질 때마다 아래 곡선이 내려가요.</p>
       <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">탐색 과정을 불러오는 중…</div></div></div>
       <p class="sh-replay-tools"><button class="k-btn" type="button" id="replay-size" aria-pressed="false">판 전체 펼치기 (45칸)</button></p>
     </section>
@@ -137,10 +137,10 @@
           <dt>어린이날(5/5) 홈 구단</dt><dd data-n="knob.cd">두산·키움·한화·NC·롯데</dd>
           <dt>특정 날짜 홈 불가</dt><dd data-n="knob.unavail">없음</dd>
           <dt>구장 간 거리</dt><dd>카카오맵 도로 거리표 <a class="sh-link" href="compare.html#dist-h">보기 →</a></dd>
-          <dt>실행</dt><dd data-n="knob.run">30초 · 시드 8개 동시 · 고른 시드 42</dd>
+          <dt>실행</dt><dd data-n="knob.run">30초 · 출발점 8개 동시 · 고른 출발점 42</dd>
           <dt>개선 횟수</dt><dd data-n="knob.improve">117번 개선</dd>
         </dl>
-        <p class="sh-small" style="margin:10px 0 0">같은 조건·같은 시드면 같은 결과가 다시 나와요. 결과 번호: <code data-n="result.id">default</code></p>
+        <p class="sh-small" style="margin:10px 0 0">같은 조건·같은 출발점이면 같은 결과가 다시 나와요. 결과 번호: <code data-n="result.id">default</code></p>
       </div>
     </section>
 
@@ -153,7 +153,7 @@
         <a class="k-btn" href="compare.html">숫자와 근거 자세히 보기</a>
       </div>
       <!-- 데스크톱: 위저드로 이어서. 조건·시드는 쿼리(?tol=&hol=&cd=&seed=)로 넘긴다(show.js studioQuery) -->
-      <p class="sh-pc">PC라면 <a href="../index.html#step=2" data-studio id="studio-link">편성 스튜디오에서 이어서 다듬기</a> — 이 조건과 시드를 그대로 싣고 날짜별 홈 불가, 시리즈 고정 같은 조건을 더할 수 있어요.</p>
+      <p class="sh-pc">PC라면 <a href="../index.html#step=2" data-studio id="studio-link">편성 스튜디오에서 이어서 다듬기</a> — 이 조건과 출발점을 그대로 싣고 날짜별 홈 불가, 시리즈 고정 같은 조건을 더할 수 있어요.</p>
     </section>
 
   </div>
@@ -161,7 +161,7 @@
 
 <footer class="sh-foot">
   <div class="sh-wrap">
-    <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요 →</p>
+    <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 만들어 드려요 →</p>
     <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
     <p><a href="index.html">소개로</a> · <a href="compare.html">숫자와 근거</a></p>
   </div>
