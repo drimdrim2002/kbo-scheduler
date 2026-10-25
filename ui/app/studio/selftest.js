@@ -261,7 +261,7 @@
       const st = () => S.app.state;
       S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null, menu: null, cell: null, edit: null });
       click('.band [data-act="reset-ask"][data-kind="blank"]'); flush();
-      ok('초기화: 띠 단추 → 확인 창(비우는 것·남기는 것)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단과 거리/.test(document.querySelector('.reset-modal').textContent));
+      ok('초기화: 띠 단추 → 확인 창(비우는 것·남기는 것)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단 정보/.test(document.querySelector('.reset-modal').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       const blankInfo = () => ['blank ' + S.isBlank(), 'cal ' + st().calendar.length, 'm ' + st().matches.length, 'ev ' + st().events.length, 'hol ' + st().settings.holidays.length, 'rex ' + st().settings.restExceptions.length, 'blk ' + st().settings.blackouts.length, 'start "' + st().settings.seasonStart + '"', 'teams ' + st().teams.length, 'dist ' + st().distanceMatrix.length, 'tab ' + S.ui.tab, 'modal ' + S.ui.modal, 'inputs ' + document.querySelectorAll('.form-grid input[data-k]').length].join(' · ');
       const blankNow = () => S.isBlank() && !st().calendar.length && !st().matches.length && !st().events.length && !st().settings.holidays.length && !st().settings.restExceptions.length && !st().settings.blackouts.length && st().settings.seasonStart === '' && st().teams.length === 10 && st().distanceMatrix.length === 100;

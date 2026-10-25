@@ -3,7 +3,7 @@
  * ①에 들어오면 먼저 묻는다: 「데이터를 새로 입력할게요」 / 「기존 데이터를 볼게요」. 그 밖의 것은 보이지 않는다.
  *  - 새로 입력: 표를 비우고(실행 취소 가능) 1단계부터. 한 화면에 그 단계의 표(또는 입력 칸)·짧은 설명·그 단계의 단추·「다음」만 보인다.
  *  - 기존 데이터 보기: 지금 데이터로 같은 순서의 1단계부터. 입력 대신 「이 표에 무엇이 들어 있는지 · 바꿀 거면 어디서」를 보여 준다.
- * 단계 순서는 S.GUIDE_TASKS(guide-base.js) 9개: 구단과 거리(구장이 바뀌었는지 먼저 확인) → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음. 상단 스테퍼의 ①은 그대로 두고, ① 안에서 작은 단계로 넘긴다(위쪽 띠에 「3 / 9」, 아래 「다음」).
+ * 단계 순서는 S.GUIDE_TASKS(guide-base.js) 9개: 구단 정보(구장이 바뀌었는지 먼저 확인) → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음. 상단 스테퍼의 ①은 그대로 두고, ① 안에서 작은 단계로 넘긴다(위쪽 띠에 「3 / 9」, 아래 「다음」).
  * 전문가용: 「모든 표 보기」(지금까지의 ① 전체 화면: 가져오기 띠·왼콍 목록·오른쪽 자세히)로 언제든 갈 수 있고, 단계별 안내는 「안내 끄기」로 끌 수 있다(저장 S.ls).
  * 주소: #step=1&g=ask | g=new&gs=3 | g=view&gs=3 | g=all. 예전 주소 #step=1&tab=… 는 그대로 그 표(모든 표 보기)를 연다.
  */
@@ -96,16 +96,62 @@
     const off = S.guidePairOff();
     return line('맞대결 경기 수', '모두 ' + st.settings.initialGamesPerPair + '경기여야 함', off ? S.stat('warn', off + '곳 다름') : S.stat('ok', '맞음'));
   }
-  /** 구단과 거리 단계: 표에서 고른 구단의 구단명·구장·위도·경도를 카드에서 고친다 */
+  /** 구단 정보 단계: 표에서 고른 구단의 구단명·구장·위도·경도를 카드에서 고친다. 구장 칸에서 Enter = 구장 위치 찾기 */
+  const findState = (i) => { const f = S.ui.teamFind; return f && f.row === i ? f : null; };
+  /**
+   * 구장 이름으로 위도·경도를 찾는다(app.searchPlace: 카카오 지도 키가 있으면 카카오 장소 검색, 없으면 기본 구장 목록).
+   * 하나면 바로 채우고, 여럿이면 카드에 목록, 없으면 직접 적으라고 안내한다. 구장 이름은 적은 그대로 둔다(특별 경기의 구장 이름이 이 이름을 쓴다).
+   */
+  function findStadium(i, q) {
+    q = String(q || '').trim();
+    const t = app().state.teams[i];
+    if (!t || !q || S.locked()) return Promise.resolve(null);
+    const f = S.ui.teamFind = { row: i, q, busy: true };
+    S.render();
+    return app().searchPlace(q).then((r) => {
+      if (S.ui.teamFind !== f) return null; // 그 사이 다른 구단을 골랐다
+      const kakao = r.source === 'KAKAO' && !r.note;
+      Object.assign(f, { busy: false, src: kakao ? '카카오 장소 검색' : '기본 구장 목록' + (app().kakaoKey ? '(카카오 검색을 쓰지 못함)' : ''), results: r.results.slice(0, 6) });
+      if (f.results.length === 1) pickStadium(i, 0);
+      else if (!f.results.length && q !== t.stadium) app().updateTeam(i, { stadium: q }); // 이름만 저장하고 위도·경도는 직접 적는다
+      S.render();
+      return f;
+    });
+  }
+  function pickStadium(i, k) {
+    const f = findState(i), x = f && f.results && f.results[k];
+    if (!x) return false;
+    const t = app().state.teams[i];
+    const lat = Math.round(Number(x.latitude) * 1e6) / 1e6, lon = Math.round(Number(x.longitude) * 1e6) / 1e6;
+    f.done = { name: x.name, address: x.address || '', lat, lon };
+    f.results = null;
+    if (t.stadium === f.q && t.latitude === lat && t.longitude === lon) { f.done.same = true; return true; }
+    return app().updateTeam(i, { stadium: f.q, latitude: lat, longitude: lon });
+  }
+  function findBox(i, t) {
+    const f = findState(i);
+    if (!f) return '';
+    if (f.busy) return '<div class="gs-find">' + icon('search') + ' 「' + esc(f.q) + '」 위치를 찾는 중입니다…</div>';
+    if (f.done) {
+      if (t.latitude !== f.done.lat || t.longitude !== f.done.lon) return ''; // 실행 취소 등으로 위치가 달라졌다
+      return '<div class="gs-find ok">' + icon('check') + ' 「' + esc(f.done.name) + '」' + (f.done.address ? '(' + esc(f.done.address) + ')' : '') + (f.done.same ? ' — 이미 이 위치입니다.' : ' 위치로 위도·경도를 채웠습니다. 이 구단의 거리는 직선거리로 다시 추정했습니다.') + '<span class="gs-find-src">찾은 곳: ' + esc(f.src) + (f.done.same ? '' : ' · 실행 취소(Ctrl+Z)로 되돌릴 수 있습니다') + '</span></div>';
+    }
+    if (!f.results || !f.results.length) return '<div class="gs-find warn">' + icon('warn') + ' 「' + esc(f.q) + '」을(를) 찾지 못했습니다 — 위도·경도를 직접 적어 주세요.<span class="gs-find-src">찾아본 곳: ' + esc(f.src) + '</span></div>';
+    return '<div class="gs-find">「' + esc(f.q) + '」 검색 결과 ' + f.results.length + '곳 — 맞는 곳을 누르면 위도·경도를 채웁니다.<div class="gs-cands" role="listbox" aria-label="구장 검색 결과">' +
+      f.results.map((x, k) => '<button class="gs-cand" data-act="g1-find-pick" data-row="' + i + '" data-k="' + k + '" role="option"><b>' + esc(x.name) + '</b><small>' + esc((x.address ? x.address + ' · ' : '') + Number(x.latitude).toFixed(4) + ', ' + Number(x.longitude).toFixed(4)) + '</small></button>').join('') +
+      '</div><span class="gs-find-src">찾아본 곳: ' + esc(f.src) + ' <button class="lnk" data-act="g1-find-close">닫기</button></span></div>';
+  }
   function teamEditor() {
     const st = app().state, i = S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1;
-    if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표에서 구단을 누르면 여기서 구단명·구장·위도·경도를 고칩니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
-    const t = st.teams[i];
-    const inp = (k, label, v) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm" data-in="team-field" data-row="' + i + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="' + esc(t.name + ' ' + label) + '"></label>';
+    if (i < 0 || !st.teams[i]) return '<div class="gs-sub">고치기</div><div class="gs-hint">표나 지도에서 구단을 누르면 여기서 구단명·구장·위도·경도를 고칩니다. 구장이 바뀌지 않았으면 그대로 「다음」을 누릅니다.</div>';
+    const t = st.teams[i], f = findState(i);
+    const inp = (k, label, v, ph) => '<label class="field"><span>' + esc(label) + '</span><input class="input sm" data-in="team-field" data-row="' + i + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="' + esc(t.name + ' ' + label) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></label>';
+    const stdV = f && !f.done ? f.q : t.stadium; // 고르는 중이면 적은 이름 그대로
     const others = st.teams.filter((x) => x.name !== t.name).map((x) => { const d = app().distanceOf(t.name, x.name) || {}; return { n: x.name, d: d.distance, est: !!d.estimated }; }).sort((a, b) => a.d - b.d);
     return '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
-      '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장', t.stadium) + '</div><div class="gs-form-row">' + inp('latitude', '위도', t.latitude.toFixed(4)) + inp('longitude', '경도', t.longitude.toFixed(4)) + '</div></div>' +
-      '<div class="gs-hint">적고 Enter를 누르면 바로 반영됩니다. 위도·경도를 바꾸면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
+      '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + inp('latitude', '위도', t.latitude.toFixed(4)) + inp('longitude', '경도', t.longitude.toFixed(4)) + '</div></div>' +
+      findBox(i, t) +
+      '<div class="gs-hint">구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 위도·경도를 찾아 채웁니다. 다른 칸은 적고 Enter를 누르면 바로 반영됩니다. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
       '<div class="gs-sub">다른 구장까지 거리 <small>km</small></div>' + others.map((o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v mono">' + fmt.km(o.d) + (o.est ? ' <span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : '') + '</span></div>').join('');
   }
   const EXTRA = {
@@ -121,7 +167,7 @@
     const st = app().state, saved = store.get();
     const li = S.ui.lastImport;
     const isBlank = blank();
-    const now = isBlank ? '지금은 표가 비어 있고 구단과 거리만 들어 있습니다.' : '지금 데이터: ' + esc(li ? li.source : '2025 실제 일정(기본 제공)') + ' · 연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length + ' · 공휴일 ' + st.settings.holidays.length + '일';
+    const now = isBlank ? '지금은 표가 비어 있고 구단 정보만 들어 있습니다.' : '지금 데이터: ' + esc(li ? li.source : '2025 실제 일정(기본 제공)') + ' · 연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length + ' · 공휴일 ' + st.settings.holidays.length + '일';
     const pick = (v, ic, title, sub, cls) => '<button class="gs-pick' + (cls ? ' ' + cls : '') + '" data-act="g1-pick" data-v="' + v + '">' + icon(ic) + '<b>' + esc(title) + '</b><span>' + esc(sub) + '</span></button>';
     const resume = (saved.mode === 'new' || saved.mode === 'view') && saved.at > 1 && saved.at <= N()
       ? '<button class="btn sm" data-act="g1-resume">' + icon('redo') + '이어서 할게요 — ' + esc(MODE_NAME[saved.mode]) + ' ' + saved.at + ' / ' + N() + ' ' + esc(tasks()[saved.at - 1].title) + '</button>' : '';
@@ -129,7 +175,7 @@
       '<div class="gs-ask-kicker">① 데이터 준비</div><h2 id="gsAskTitle">어떻게 시작할까요?</h2>' +
       '<p class="gs-ask-sub">편성에 필요한 시즌 정보를 ' + N() + '단계로 하나씩 보여 드립니다. 한 화면에 하나씩만 나옵니다.</p>' +
       '<div class="gs-picks">' +
-        pick('new', 'plus', '데이터를 새로 입력할게요', isBlank ? '비어 있는 표를 시즌 기본 설정부터 차례로 채웁니다. 직접 적는 것은 날짜 몇 개뿐이고, 큰 표는 단추로 만듭니다.' : '표를 비우고 시즌 기본 설정부터 차례로 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 큰 표는 단추로 만듭니다. 구단과 거리는 남고, 실행 취소로 되돌릴 수 있습니다.', 'rec') +
+        pick('new', 'plus', '데이터를 새로 입력할게요', isBlank ? '비어 있는 표를 시즌 기본 설정부터 차례로 채웁니다. 직접 적는 것은 날짜 몇 개뿐이고, 큰 표는 단추로 만듭니다.' : '표를 비우고 시즌 기본 설정부터 차례로 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 큰 표는 단추로 만듭니다. 구단 정보는 남고, 실행 취소로 되돌릴 수 있습니다.', 'rec') +
         pick('view', 'eye', isBlank ? '2025 예시 데이터를 볼게요' : '기존 데이터를 볼게요', isBlank ? '2025 실제 일정을 불러와 같은 순서로 하나씩 보여 드립니다. 무엇이 들어 있고 어디서 바꾸는지 알 수 있습니다.' : '지금 들어 있는 데이터를 같은 순서로 하나씩 보여 드립니다. 무엇이 들어 있고 어디서 바꾸는지 알 수 있습니다.') +
       '</div>' +
       '<div class="gs-ask-now">' + icon('db') + '<span>' + now + '</span></div>' +
@@ -165,7 +211,7 @@
     return '<aside class="gs-card" aria-label="이 단계 안내" data-page="' + t.id + '" data-status="' + st.kind + '">' +
       '<div class="gs-head"><span class="gs-no">' + G.i + ' / ' + N() + '</span><h3>' + esc(t.title) + '</h3>' + chip + '</div>' +
       '<div class="gs-body" data-sk="gs-card">' +
-        (G.justReset && G.i === 1 ? '<div class="gs-note ok">' + icon('check') + '<span>표를 모두 비웠습니다. 구단과 거리만 남아 있습니다. 실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 되돌릴 수 있습니다.</span></div>' : '') +
+        (G.justReset && G.i === 1 ? '<div class="gs-note ok">' + icon('check') + '<span>표를 모두 비웠습니다. 구단 정보만 남아 있습니다. 실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 되돌릴 수 있습니다.</span></div>' : '') +
         '<p class="gs-why">' + esc(T(t.why)) + '</p>' +
         (isNew
           ? '<div class="gs-how">' + icon('bolt') + '<span>' + esc(T(t.how)) + '</span></div>'
@@ -237,6 +283,8 @@
     after() { /* 띠 위에 그릴 것 없음 */ },
     onKey(e) {
       if (S.ui.step !== 1 || !stepwise() || S.guideBlocked()) return false;
+      // 카드의 구장 칸: Enter = 구장 위치 찾기(이름 저장과 위치 채우기를 한 번에 → 실행 취소 한 번)
+      if (e.key === 'Enter' && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || S.ui.edit || S.ui.cell) return false;
       if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); if (G.i < N()) show(G.i + 1); return true; }
@@ -254,10 +302,13 @@
       for (let k = 1; k <= N(); k++) out.push({ where: '기존 데이터 보기 ' + k, patch: {}, fn: () => { G.mode = 'view'; G.i = k; S.ui.tab = tasks()[k - 1].tab || S.ui.tab; } });
       out.push({ where: '묻는 화면(빈 상태)', patch: {}, fn: () => { S.resetAll({ quiet: true, stay: true }); G.mode = null; } });
       for (let k = 1; k <= N(); k++) out.push({ where: '새로 입력하기 빈 ' + k, patch: {}, fn: () => { G.mode = 'new'; G.i = k; G.justReset = k === 1; S.ui.tab = tasks()[k - 1].tab || S.ui.tab; } });
-      out.push({ where: '모든 표 보기 복귀', patch: { tab: 'slots' }, fn: () => { G.justReset = false; G.mode = 'all'; S.loadExample({ quiet: true, stay: true }); } });
+      out.push({ where: '구단 정보 — 구단 고름·구장 찾기 결과', patch: {}, fn: () => { G.mode = 'new'; G.i = 1; G.justReset = false; S.ui.tab = 'teams'; S.ui.cell = { sheet: 'teams', row: 2, col: 'name' }; S.ui.teamFind = { row: 2, q: '대전', busy: false, src: '기본 구장 목록', results: S.KBO.MapKit.searchStadiums('대전') }; } });
+      out.push({ where: '구단 정보 — 구장을 찾지 못함', patch: {}, fn: () => { G.mode = 'view'; G.i = 1; S.ui.tab = 'teams'; S.ui.cell = { sheet: 'teams', row: 2, col: 'name' }; S.ui.teamFind = { row: 2, q: '없는 구장', busy: false, src: '기본 구장 목록', results: [] }; } });
+      out.push({ where: '모든 표 보기 복귀', patch: { tab: 'slots' }, fn: () => { G.justReset = false; G.mode = 'all'; S.ui.cell = null; S.ui.teamFind = null; S.loadExample({ quiet: true, stay: true }); } });
       return out;
     },
     async selftest({ ok, click, flush }) {
+      const settle = async () => { if (G.findP) await G.findP; G.findP = null; flush(); };
       const st = () => app().state;
       const q = (sel) => document.querySelector(sel);
       const qa = (sel) => document.querySelectorAll(sel);
@@ -269,29 +320,29 @@
       const I = (id) => indexOf(id);
       // 0. 주소에 표가 적혀 있으면 모든 표 보기(기존 주소 호환)
       ok('단계별: 주소 #step=1&tab=… 는 지금까지의 ① 전체 화면(모든 표 보기)', G.mode === 'all' && !!q('.band') && !!q('.pane.list') && !!q('.band [data-act="g1-steps"]'));
-      ok('단계별: 순서 = 구단과 거리 → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음', tasks().map((t) => t.id).join(',') === 'teams,season,holidays,restex,blackouts,slots,series,events,next');
+      ok('단계별: 순서 = 구단 정보 → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음', tasks().map((t) => t.id).join(',') === 'teams,season,holidays,restex,blackouts,slots,series,events,next');
       // 1. 처음 방문: 묻는 화면 — 두 선택만
       store.reset(); G.mode = undefined; G.i = 1; S.go({ step: 1 });
       ok('단계별: 처음 방문 → 「어떻게 시작할까요?」 두 선택(새로 입력 / 기존 데이터 보기), 그 밖의 것은 없음', G.mode === null && qa('.gs-pick').length === 2 && !!q('.gs-pick[data-v="new"]') && !!q('.gs-pick[data-v="view"]') && noExtras() && !q('.gs-card') && /g=ask/.test(hashOf()) && /어떻게 시작할지/.test(q('.step[data-step="1"] .step-sum').textContent), 'mode ' + G.mode + ' · picks ' + qa('.gs-pick').length + ' · extras ' + !noExtras() + ' · hash ' + hashOf() + ' · sum ' + q('.step[data-step="1"] .step-sum').textContent);
-      // 2. 기존 데이터 보기 → 1 / 9 구단과 거리 → 2 시즌 기본 설정(예시 데이터 값 그대로)
+      // 2. 기존 데이터 보기 → 1 / 9 구단 정보 → 2 시즌 기본 설정(예시 데이터 값 그대로)
       click('.gs-pick[data-v="view"]'); flush();
-      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 구단과 거리 · 10구단 · 들어 있는 것/바꾸려면 · 표 안내', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'teams' && card0().getAttribute('data-page') === 'teams' && !!q('.gs-view') && !!q('.gs-edit') && /10구단/.test(card0().textContent) && /구장이 바뀌었는지/.test(document.body.textContent) && !q('.gs-team') && noExtras() && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
+      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 구단 정보 · 10구단 · 들어 있는 것/바꾸려면 · 표 안내', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'teams' && card0().getAttribute('data-page') === 'teams' && !!q('.gs-view') && !!q('.gs-edit') && /10구단/.test(card0().textContent) && /구장이 바뀌었는지/.test(document.body.textContent) && !q('.gs-team') && noExtras() && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
       click('.footer [data-act="g1-next"]'); flush();
       ok('단계별: 다음 → 2 시즌 기본 설정 · 2025 값 그대로 · 요약 상자 없음 · 「다음: 공휴일」', G.i === I('season') && S.ui.tab === 'season' && /개막 3\/22\(토\)/.test(card0().textContent) && q('.form-grid input[data-k="seasonStart"]').value === fmt.date('2025-03-22') && !q('.season-subs') && !q('.gs-card .gs-acts') && qa('.gs-steps li').length === N() && /다음: 공휴일/.test(q('.footer .btn.primary').textContent) && /2 \/ 9/.test(q('.gs-pos').textContent));
       const order = [];
       for (let k = I('season'); k < N(); k++) { click('.footer [data-act="g1-next"]'); flush(); order.push(S.ui.tab); }
       ok('단계별: 「다음」으로 공휴일·휴식일 경기·휴식기·연전 기간·시리즈·특별 경기·정리 순서', order.join(',') === 'holidays,restex,blackouts,slots,series,events,events' && G.i === N() && !!q('.gs-sum') && qa('.gs-sum tbody tr').length === N() - 1 && /다음: 검토·실행/.test(q('.footer .btn.primary').textContent), order.join(','));
-      ok('단계별: 보기 모드 정리 표 — 모두 「문제 없음」, 첫 줄이 구단과 거리', qa('.gs-sum tbody tr .st.ok').length === N() - 1 && /구단과 거리/.test(q('.gs-sum tbody tr').textContent));
+      ok('단계별: 보기 모드 정리 표 — 모두 「문제 없음」, 첫 줄이 구단 정보', qa('.gs-sum tbody tr .st.ok').length === N() - 1 && /구단 정보/.test(q('.gs-sum tbody tr').textContent));
       // 3. 모든 표 보기 ↔ 단계별로 보기(기억한 단계)
       click('.gs-strip [data-act="g1-all"]'); flush();
       ok('단계별: 「모든 표 보기」 → 띠·목록·자세히가 있는 전체 화면, 표는 특별 경기', G.mode === 'all' && !!q('.band') && !!q('.pane.list') && S.ui.tab === 'events' && !q('.gs-card') && /tab=events/.test(hashOf()) && !/g=/.test(hashOf()), 'mode ' + G.mode + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
       click('.band [data-act="g1-steps"]'); flush();
       ok('단계별: 띠 「단계별로 보기」 → 기억한 단계(' + N() + ' / ' + N() + ')로', G.mode === 'view' && G.i === N() && !!q('.gs-sum'));
-      // 4. 처음 질문으로 → 새로 입력 → 표 비움(확인 창 없이, 실행 취소 가능) → 1 구단과 거리
+      // 4. 처음 질문으로 → 새로 입력 → 표 비움(확인 창 없이, 실행 취소 가능) → 1 구단 정보
       click('.gs-strip [data-act="g1-ask"]'); flush();
       ok('단계별: 「처음 질문으로」 → 두 선택 + 「이어서 할게요」', G.mode === null && qa('.gs-pick').length === 2 && !!q('[data-act="g1-resume"]') && /이어서/.test(q('[data-act="g1-resume"]').textContent));
       click('.gs-pick[data-v="new"]'); flush();
-      ok('단계별: 「데이터를 새로 입력할게요」 → 확인 창 없이 표를 비우고 1 / ' + N() + ' 구단과 거리(남아 있음) · 비웠다는 안내 · 어떻게', G.mode === 'new' && G.i === 1 && S.isBlank() && !S.ui.modal && S.ui.tab === 'teams' && st().teams.length === 10 && /비웠습니다/.test(card0().textContent) && !!q('.gs-how') && noExtras());
+      ok('단계별: 「데이터를 새로 입력할게요」 → 확인 창 없이 표를 비우고 1 / ' + N() + ' 구단 정보(남아 있음) · 비웠다는 안내 · 어떻게', G.mode === 'new' && G.i === 1 && S.isBlank() && !S.ui.modal && S.ui.tab === 'teams' && st().teams.length === 10 && /비웠습니다/.test(card0().textContent) && !!q('.gs-how') && noExtras());
       app().undo(); flush();
       const undone = !S.isBlank() && st().calendar.length === 45 && G.mode === 'new';
       app().redo(); flush();
@@ -308,6 +359,38 @@
       const rejected = st().teams[li].latitude === 37.4982;
       app().undo(); app().undo(); flush();
       ok('단계별: 구장·위도 바꾸기 → 반영 · LG 거리 18개 추정 · 잘못된 숫자는 거부 · 실행 취소로 복귀', moved && rejected && st().teams[li].latitude !== 37.4982 && st().distanceMatrix.filter((d) => d.estimated).length === est0 && !q('.gs-card .gs-dist .tag'), 'moved ' + moved + ' · rejected ' + rejected + ' · est ' + st().distanceMatrix.filter((d) => d.estimated).length);
+      // 구장 지도: 키가 없으면 내장 지도(구장 10개, 고른 구단 강조) + 설정 안내 한 줄, 지도에서 구단을 눌러 고르기
+      const mk = () => qa('#teamMapHost .tm-map svg.kmap .kmap-marker');
+      ok('단계별: 구장 지도 — 키 없음 → 내장 지도 · 표시 10개 · 고른 LG 강조 · 「설정 › 카카오 지도 키」 안내 · 개발 글줄 없음', mk().length === 10 && qa('#teamMapHost .kmap-active').length === 1 && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(li) && /설정 › 카카오 지도 키를 넣으면 카카오 지도로 보입니다/.test(q('.tm-foot').textContent) && !!q('.tm-foot [data-act="open-settings"]') && !q('#teamMapHost .k-map-caption') && q('.tm-mapblk').getBoundingClientRect().width >= q('.tm-left').getBoundingClientRect().width * 0.5, 'markers ' + mk().length + ' · map ' + Math.round(q('.tm-mapblk').getBoundingClientRect().width) + ' · table ' + Math.round(q('.tm-left').getBoundingClientRect().width));
+      const ki = st().teams.findIndex((t) => t.name === 'KIA');
+      q('#teamMapHost .kmap-marker[data-id="' + ki + '"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); flush();
+      const mapPick = S.ui.cell && S.ui.cell.row === ki && /고치기 KIA/.test(card0().textContent) && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(ki);
+      click('.pane.main [data-act="team-sel"][data-row="' + li + '"]'); flush();
+      ok('단계별: 지도에서 KIA 표시를 누르면 카드가 KIA로 · 다시 표에서 LG', mapPick && /고치기 LG/.test(card0().textContent));
+      // 구장 칸 Enter = 구장 위치 찾기(키가 없으면 기본 구장 목록): 하나 → 바로 채움 · 여럿 → 카드에서 고름 · 없음 → 직접 적으라는 안내. 매번 실행 취소 한 번으로 복귀
+      const lg0 = Object.assign({}, st().teams[li]);
+      // 실제 브라우저는 Enter 뒤 칸을 다시 그릴 때 그 칸의 change도 보낸다 → 같은 칸의 change를 한 번 더 보내 실행 취소가 한 번으로 남는지 본다
+      const findT = async (v) => {
+        const i = q('.gs-card .gs-team input[data-k="stadium"]'); i.value = v; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        const ghost = document.createElement('input'); ghost.setAttribute('data-in', 'team-field'); ghost.dataset.row = i.dataset.row; ghost.dataset.k = 'stadium'; ghost.value = v; document.body.appendChild(ghost); ghost.dispatchEvent(new Event('change', { bubbles: true })); ghost.remove();
+        await settle();
+      };
+      const back = () => { const t = st().teams[li]; return t.stadium === lg0.stadium && t.latitude === lg0.latitude && t.longitude === lg0.longitude && st().distanceMatrix.filter((d) => d.estimated).length === est0; };
+      await findT('고척');
+      const one = st().teams[li].stadium === '고척' && Math.abs(st().teams[li].latitude - 37.498293) < 1e-5 && Math.abs(st().teams[li].longitude - 126.867137) < 1e-5 && st().distanceMatrix.filter((d) => d.estimated && (d.from === 'LG' || d.to === 'LG')).length === 18 && !!q('.gs-card .gs-find.ok') && /고척돔야구장/.test(q('.gs-card .gs-find').textContent) && /기본 구장 목록/.test(q('.gs-card .gs-find').textContent) && q('.gs-card input[data-k="latitude"]').value === '37.4983';
+      app().undo(); flush();
+      ok('단계별: 구장 칸에 「고척」 + Enter → 고척돔야구장 위도·경도를 채움 · 이름은 적은 그대로 · LG 거리 18개 추정 · 실행 취소 한 번으로 복귀', one && back() && !q('.gs-card .gs-find.ok'), 'one ' + one + ' · back ' + back());
+      await findT('대전');
+      const many = qa('.gs-card .gs-cand').length === 2 && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '대전';
+      click('.gs-card .gs-cand[data-k="1"]'); flush();
+      const picked = st().teams[li].stadium === '대전' && st().teams[li].latitude === 36.3166 && !q('.gs-card .gs-cand') && /대전한화생명볼파크/.test(q('.gs-card .gs-find.ok').textContent);
+      app().undo(); flush();
+      ok('단계별: 「대전」 + Enter → 결과 2곳을 카드에 · 고르면 채움 · 실행 취소 한 번으로 복귀', many && picked && back(), 'many ' + many + ' · picked ' + picked + ' · back ' + back());
+      await findT('없는구장이름');
+      const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 위도·경도를 직접 적어 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === '없는구장이름' && st().teams[li].latitude === lg0.latitude;
+      app().undo(); flush();
+      ok('단계별: 없는 이름 + Enter → 「찾지 못했습니다 — 위도·경도를 직접 적어 주세요」 · 이름만 저장 · 실행 취소로 복귀', none && back(), 'none ' + none + ' · back ' + back());
+      S.ui.teamFind = null;
       click('.footer [data-act="g1-next"]'); flush();
       ok('단계별: 다음 → 2 시즌 기본 설정 · 날짜 칸 3개 비어 있음 · 「아직」', G.i === I('season') && S.ui.tab === 'season' && card0().getAttribute('data-status') === 'todo' && qa('.form-grid input[data-k]').length === 3 && Array.from(qa('.form-grid input[data-k]')).every((i) => i.value === '') && !!q('.gs-how'));
       const put = (k, v) => { const i = q('.form-grid input[data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
@@ -398,6 +481,8 @@
     'g1-all': () => { setMode('all'); const tab = S.SHEETS[S.ui.tab] || S.ui.tab === 'season' || S.ui.tab === 'teams' ? S.ui.tab : 'slots'; S.go({ step: 1, ops: null, tab, modal: null, drawer: null }); },
     'g1-steps': () => { const s = store.get(); if ((s.mode === 'new' || s.mode === 'view') && s.at > 0) { setMode(s.mode, s.at); show(G.i); } else { G.mode = null; S.go({ step: 1, ops: null, modal: null, drawer: null }); } },
     'g1-ask': () => { G.mode = null; G.justReset = false; S.go({ step: 1, ops: null, modal: null, drawer: null, cell: null, edit: null }); },
+    'g1-find-pick': (el) => { if (S.locked()) return; pickStadium(+el.dataset.row, +el.dataset.k); S.render(); },
+    'g1-find-close': () => { S.ui.teamFind = null; S.render(); },
     'g1-go': (el) => { G.justReset = false; show(+el.dataset.i); },
     'g1-next': () => { G.justReset = false; if (G.i < N()) show(G.i + 1); else S.go({ step: 2, ops: null, sel: null, edit: null }); },
     'g1-off': () => { store.set({ off: true, seen: true }); setMode('all'); S.go({ step: 1, ops: null, tab: S.ui.tab && S.ui.tab !== 'next' ? S.ui.tab : 'slots' }); S.toast('단계별 안내를 껐습니다. ①에 들어오면 바로 모든 표가 보입니다. 띠의 「단계별 안내 켜기」로 다시 켭니다.', 'info', 6000); },

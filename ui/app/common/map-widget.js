@@ -10,7 +10,8 @@
 
   /**
    * opts: { markers: () => [...], lines: () => [...], onDragEnd(id, lat, lon), onMarkerClick(id),
-   *         width, allowKakao, tags, caption, extraClass }
+   *         width, allowKakao, tags, caption(false면 아래 글줄 없음), extraClass, fit(Kakao: 처음에 마커가 모두 보이게), spread, title, box(SVG: 보이는 범위) }
+   * 마커의 active는 SVG·Kakao 모두 강조한다(Kakao: 이름표에 on, 위로).
    */
   function mapWidget(el, app, opts) {
     el.classList.add('k-map');
@@ -19,7 +20,7 @@
     let drag = null;
 
     function renderSvg(body) {
-      const r = MapKit.render({ width: opts.width || 420, markers: opts.markers(), lines: opts.lines ? opts.lines() : [], labels: opts.labels !== false, extraClass: opts.extraClass, maxWidth: opts.maxWidth || 9999, grid: opts.grid });
+      const r = MapKit.render({ width: opts.width || 420, markers: opts.markers(), lines: opts.lines ? opts.lines() : [], labels: opts.labels !== false, extraClass: opts.extraClass, maxWidth: opts.maxWidth || 9999, grid: opts.grid, spread: opts.spread, title: opts.title, box: opts.box });
       body.innerHTML = r.svg;
       body._proj = r.proj;
     }
@@ -31,7 +32,8 @@
         body.innerHTML = '';
         kakaoMap = new kakao.maps.Map(body, { center: new kakao.maps.LatLng(36.3, 127.8), level: 13 });
         kakaoMap.__host = body;
-      }
+        if (opts.fit && markers.length) { const b = new kakao.maps.LatLngBounds(); for (const mk of markers) b.extend(new kakao.maps.LatLng(mk.lat, mk.lon)); kakaoMap.setBounds(b); }
+      } else if (kakaoMap.relayout) kakaoMap.relayout(); // 다른 자리로 옮겨 붙였거나 크기가 바뀌었을 때
       for (const o of kakaoObjs) o.setMap(null);
       kakaoObjs = [];
       for (const ln of opts.lines ? opts.lines() : []) {
@@ -40,9 +42,9 @@
       }
       for (const mk of markers) {
         const pos = new kakao.maps.LatLng(mk.lat, mk.lon);
-        const marker = new kakao.maps.Marker({ position: pos, draggable: !!mk.draggable, title: mk.label });
+        const marker = new kakao.maps.Marker({ position: pos, draggable: !!mk.draggable, title: mk.label, zIndex: mk.active ? 3 : 1 });
         marker.setMap(kakaoMap); kakaoObjs.push(marker);
-        const label = new kakao.maps.CustomOverlay({ position: pos, yAnchor: 2.4, content: '<div class="k-kakao-label" style="--tc:' + UI.esc(mk.color || '#333') + '">' + UI.esc(mk.label || '') + '</div>' });
+        const label = new kakao.maps.CustomOverlay({ position: pos, yAnchor: 2.4, zIndex: mk.active ? 4 : 2, content: '<div class="k-kakao-label' + (mk.active ? ' on' : '') + '" style="--tc:' + UI.esc(mk.color || '#333') + '">' + UI.esc(mk.label || '') + '</div>' });
         label.setMap(kakaoMap); kakaoObjs.push(label);
         if (mk.draggable && opts.onDragEnd) kakao.maps.event.addListener(marker, 'dragend', () => { const p = marker.getPosition(); opts.onDragEnd(mk.id, p.getLat(), p.getLng()); });
         if (opts.onMarkerClick) kakao.maps.event.addListener(marker, 'click', () => opts.onMarkerClick(mk.id));
@@ -54,11 +56,11 @@
       let body = el.querySelector('.k-map-body');
       let cap = el.querySelector('.k-map-caption');
       if (!body) {
-        el.innerHTML = '<div class="k-map-body"></div><div class="k-map-caption"></div>';
+        el.innerHTML = '<div class="k-map-body"></div>' + (opts.caption === false ? '' : '<div class="k-map-caption"></div>');
         body = el.querySelector('.k-map-body'); cap = el.querySelector('.k-map-caption');
       }
       const mode = useKakao ? 'Kakao 지도' : '내장 SVG 지도';
-      cap.innerHTML = '<span class="k-map-mode">' + mode + '</span>' + (app.kakaoError ? ' <span class="k-chip k-chip-warn">⚠ ' + UI.esc(app.kakaoError) + '</span>' : '') + (opts.caption ? ' <span class="k-muted">' + opts.caption() + '</span>' : '');
+      if (cap) cap.innerHTML = '<span class="k-map-mode">' + mode + '</span>' + (app.kakaoError ? ' <span class="k-chip k-chip-warn">⚠ ' + UI.esc(app.kakaoError) + '</span>' : '') + (opts.caption ? ' <span class="k-muted">' + opts.caption() + '</span>' : '');
       if (useKakao) {
         try { renderKakao(body); return; } catch (e) { app.kakaoError = 'Kakao 지도 오류: ' + e.message; kakaoMap = null; }
       }

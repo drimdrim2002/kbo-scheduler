@@ -120,7 +120,7 @@
     { id: 'A3', name: '홈/원정 흐름 그래프', ref: 'FR-A3', desc: '구단별 연전 기간 순서, 4연속 이상 강조.', must: true },
     { id: 'M7', name: '중간 저장·되돌리기', ref: 'FR-M7', desc: '지금 일정을 이름 붙여 저장하고 되돌립니다.', must: true },
     { id: 'T4', name: '지도에서 구장 위치 옮기기', ref: 'FR-T4', desc: '지도에서 구장 표시를 끌어 위치를 조금씩 고칩니다.', def: false },
-    { id: 'T7', name: '구장 간 거리표', ref: 'FR-T7', desc: '구단과 거리 화면의 접힌 거리표. A→B를 고치면 B→A도 함께 바뀝니다.', def: true },
+    { id: 'T7', name: '구장 간 거리표', ref: 'FR-T7', desc: '구단 정보 화면의 접힌 거리표. A→B를 고치면 B→A도 함께 바뀝니다.', def: true },
     { id: 'V6', name: '구단별 연전 표', ref: 'FR-V6', desc: '결과·수정의 세 번째 보기.', def: false },
     { id: 'M2', name: '바꾸면 어떻게 되나 미리보기', ref: 'FR-M2', desc: '옮길 곳을 고르면 위반과 공정성이 어떻게 바뀌는지 미리 보여 줍니다.', def: true },
     { id: 'M8', name: '일정 미정 보관함', ref: 'FR-M8', desc: '시리즈를 보관함으로 뺐다가 다시 넣습니다.', def: true },
@@ -295,7 +295,7 @@
   S.resetAll = function (opts) {
     const o = opts || {};
     if (!swapProject(S.emptyProject(), '처음부터 입력하기(초기화)')) return false;
-    S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단과 거리는 그대로 · ' + S.fmt.clock(new Date()) });
+    S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단 정보는 그대로 · ' + S.fmt.clock(new Date()) });
     if (!o.quiet) S.toast('표를 모두 비웠습니다. 시즌 기본 설정부터 차례로 적어 주세요. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
     if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null });
     if (S.guideOnReset) S.guideOnReset(); // 단계별 화면이면 1단계로

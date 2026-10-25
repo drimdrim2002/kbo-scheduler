@@ -4,8 +4,8 @@
  * 보여 주는 방식(단계별 화면 등)은 guide-*.js가 S.guideUI로 정한다.
  *
  * 할 일 순서는 「새로 입력」과 「기존 데이터 보기」가 같다:
- *   구단과 거리(구장이 바뀌었는지 먼저 확인) → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간(자동 채우기) → 시리즈(자동 채우기) → 특별 경기(개막전·어린이날) → 다음 단계.
- * 구단과 거리가 맨 앞인 이유: 다른 단계가 이 표에 기대지 않아 어디에 두어도 되고, 가장 이해하기 쉬운 정보라 시작으로 알맞다.
+ *   구단 정보(구장이 바뀌었는지 먼저 확인) → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간(자동 채우기) → 시리즈(자동 채우기) → 특별 경기(개막전·어린이날) → 다음 단계.
+ * 구단 정보가 맨 앞인 이유: 다른 단계가 이 표에 기대지 않아 어디에 두어도 되고, 가장 이해하기 쉬운 정보라 시작으로 알맞다.
  *   구장이 바뀌는 해(잠실 공사 등)에는 거리가 달라지므로 시리즈·공정성보다 먼저 고쳐야 한다.
  * 공휴일·휴식일 경기·휴식기는 표가 셋이라 「한 화면에 하나」를 지키기 위해 세 할 일로 나눴다(각각 표 하나, 설명 한 줄, 단추 하나).
  * 할 일마다: title·why(왜) · how(새로 입력할 때 하는 법) · view(기존 데이터에 무엇이 들어 있는지) · edit(바꿀 거면 어디서) · acts(누를 단추) · status(데이터로 판단).
@@ -64,13 +64,13 @@
   const restDays = () => (set().restWeekdays.length ? set().restWeekdays.map((k) => WD[k] + '요일').join('·') : '없음');
   S.GUIDE_TASKS = [
     {
-      id: 'teams', tab: 'teams', title: '구단과 거리', short: '구장이 바뀌었는지 먼저 확인',
-      why: '구단과 구장 위치, 구장 사이 거리입니다. 이동거리는 이 표로 계산합니다. 구장이 바뀌는 해(예: 잠실 공사로 임시 구장을 쓸 때)에는 여기부터 고쳐야 뒤의 시리즈·공정성 계산이 맞습니다. 「새로 입력」으로 비워도 남는 표입니다.',
-      how: '구장이 바뀌었는지 먼저 확인합니다. 바뀐 구단이 있으면 표에서 그 구단을 누르고 이 카드에서 구단명·구장·위도·경도를 고칩니다. 위치를 바꾸면 그 구단의 거리는 직선거리로 다시 추정합니다. 그대로면 「다음」을 누릅니다.',
-      view: () => { const st = app().state, sh = Array.from(app().sharedStadiums().entries()); const est = st.distanceMatrix.filter((d) => d.estimated).length; return st.teams.length + '구단 · ' + (sh.length ? '같이 쓰는 구장 ' + sh.map(([k, v]) => k + '(' + v.join('·') + ')').join(', ') : '같이 쓰는 구장 없음') + ' · 구장 간 거리 ' + st.teams.length * (st.teams.length - 1) + '개' + (est ? ' (추정 ' + est + '개)' : ''); },
-      edit: '표에서 구단을 누르면 이 카드에서 구단명·구장·위도·경도를 고칩니다. 구장 위치를 바꾸면 그 구단의 거리는 직선거리로 다시 추정합니다. 아래 「구장 간 거리표」에서 거리를 확인합니다.',
+      id: 'teams', tab: 'teams', title: '구단 정보', short: '구장이 바뀌었는지 먼저 확인',
+      why: '구단 이름과 구장, 구장 위치(위도·경도)입니다. 구장 사이 이동거리는 이 위치로 계산합니다. 구장이 바뀌는 해(예: 잠실 공사로 임시 구장을 쓸 때)에는 여기부터 고쳐야 뒤의 시리즈·공정성 계산이 맞습니다. 「새로 입력」으로 비워도 남는 표입니다.',
+      how: '구장이 바뀌었는지 먼저 확인합니다. 바뀐 구단이 있으면 표에서 그 구단을 누르고, 이 카드의 구장 칸에 새 구장 이름을 적고 Enter를 누르면 위도·경도를 찾아 채웁니다. 위치가 바뀌면 그 구단의 거리는 직선거리로 다시 추정합니다. 그대로면 「다음」을 누릅니다.',
+      view: () => { const st = app().state; const est = st.distanceMatrix.filter((d) => d.estimated).length; return st.teams.length + '구단 · 구장 위치(위도·경도) · 구장 간 거리 ' + st.teams.length * (st.teams.length - 1) + '개' + (est ? ' (추정 ' + est + '개)' : ''); },
+      edit: '표에서 구단을 누르면 이 카드에서 구단명·구장·위도·경도를 고칩니다. 구장 칸에 이름을 적고 Enter를 누르면 위도·경도를 찾아 채웁니다. 구장 위치를 바꾸면 그 구단의 거리는 직선거리로 다시 추정합니다.',
       acts: () => [],
-      status: () => { const st = app().state; const est = st.distanceMatrix.filter((d) => d.estimated).length; return res('ok', st.teams.length + '구단 · 같이 쓰는 구장 ' + app().sharedStadiums().size + (est ? ' · 추정 거리 ' + est + '개' : '')); }
+      status: () => { const st = app().state; const est = st.distanceMatrix.filter((d) => d.estimated).length; return res('ok', st.teams.length + '구단 · 구장 간 거리 ' + st.teams.length * (st.teams.length - 1) + '개' + (est ? ' · 추정 거리 ' + est + '개' : '')); }
     },
     {
       id: 'season', tab: 'season', title: '시즌 기본 설정', short: '개막일·종료일·휴식 요일',

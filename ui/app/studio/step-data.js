@@ -1,6 +1,6 @@
 /*
  * alt-a 편성 스튜디오 — ① 데이터 준비
- * 위: 가져오기 띠 / 왼쪽: 시트 목록 / 가운데: 시트 표(한 건 편집) · 시즌 골격 폼 · 구단과 거리 / 오른쪽: 행 인스펙터
+ * 위: 가져오기 띠 / 왼쪽: 시트 목록 / 가운데: 시트 표(한 건 편집) · 시즌 골격 폼 · 구단 정보 / 오른쪽: 행 인스펙터
  */
 (function () {
   'use strict';
@@ -62,7 +62,7 @@
   const STADIUM_NAMES = () => app().state.teams.map((t) => t.stadium).filter((x, i, a) => a.indexOf(x) === i);
   const vMode = (v) => (['대진 지정', '구장 지정', 'MATCH', 'STADIUM'].includes(String(v).trim()) ? null : { error: '「대진 지정」 또는 「구장 지정」으로 씁니다.', fix: /대진|MATCH/i.test(String(v)) ? '대진 지정' : '구장 지정' });
   const parseMode = (v) => (/대진|MATCH/i.test(String(v)) ? 'MATCH' : 'STADIUM');
-  const vStadiums = (v) => { const names = STADIUM_NAMES(); const bad = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean).filter((x) => !names.includes(x)); return bad.length ? { error: "모르는 구장 '" + bad[0] + "' — 구단과 거리 화면의 구장 이름을 쉼표로 적습니다." } : null; };
+  const vStadiums = (v) => { const names = STADIUM_NAMES(); const bad = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean).filter((x) => !names.includes(x)); return bad.length ? { error: "모르는 구장 '" + bad[0] + "' — 구단 정보 화면의 구장 이름을 쉼표로 적습니다." } : null; };
   const SHEETS = {
     slots: {
       label: '연전 기간', sheet: S.SHEET_NAMES.slots, unit: '기간', get desc() { return (app().state.teams.length >> 1) + '개 구장에서 동시에 시리즈가 열리는 2~4일입니다. 보통 엑셀 파일로 한꺼번에 받습니다.'; },
@@ -236,11 +236,11 @@
       '<span class="sep" style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>' +
       (S.isBlank()
         ? '<button class="btn sm" data-act="reset-ask" data-kind="example"' + (locked ? ' disabled' : '') + ' title="2025 실제 일정(기본 제공)을 다시 불러옵니다">' + icon('db') + '2025 예시 데이터 불러오기</button>'
-        : '<button class="btn sm reset-btn" data-act="reset-ask" data-kind="blank"' + (locked ? ' disabled' : '') + ' title="표를 모두 비우고 빈 상태에서 처음부터 입력합니다(구단과 거리는 남김)">' + icon('plus') + '처음부터 입력하기</button>') +
+        : '<button class="btn sm reset-btn" data-act="reset-ask" data-kind="blank"' + (locked ? ' disabled' : '') + ' title="표를 모두 비우고 빈 상태에서 처음부터 입력합니다(구단 정보는 남김)">' + icon('plus') + '처음부터 입력하기</button>') +
       (S.guideButton ? S.guideButton() : '') +
       '<span class="last">' + (li
         ? S.stat('ok', '적용됨') + '<span>' + esc(li.source) + ' · ' + esc(li.sheets) + ' · ' + esc(li.time) + '</span>' + (li.kind === 'gsheet' ? '<button class="btn xs" data-act="import-gsheet-reload">' + icon('redo') + '다시 불러오기</button>' : '') + S.mock()
-        : S.isBlank() ? '<span class="muted">현재 데이터: 직접 입력(처음부터) · 구단과 거리만 들어 있음</span>' : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>' + S.mock()) + '</span>' +
+        : S.isBlank() ? '<span class="muted">현재 데이터: 직접 입력(처음부터) · 구단 정보만 들어 있음</span>' : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>' + S.mock()) + '</span>' +
       '</div>';
   }
 
@@ -267,7 +267,7 @@
     s += item('series', SHEETS.series.label, st.matches.length, { icon: 'list', sub: '맞대결 ' + pairs + '쌍 × ' + (pairs ? Math.round(st.matches.length / pairs * 10) / 10 : 0), issues: sheetIssueCount('series') });
     s += item('events', SHEETS.events.label, st.events.length, { icon: 'target', sub: '대진 지정 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 지정 ' + st.events.filter((e) => e.mode === 'STADIUM').length, issues: sheetIssueCount('events') });
     s += '<div class="label">구단</div>';
-    s += item('teams', '구단과 거리', st.teams.length, { icon: 'team', sub: '같이 쓰는 구장 ' + app().sharedStadiums().size + ' · 거리 ' + nT * (nT - 1) });
+    s += item('teams', '구단 정보', st.teams.length, { icon: 'team', sub: '같이 쓰는 구장 ' + app().sharedStadiums().size + ' · 거리 ' + nT * (nT - 1) });
     s += '<div class="list-sep"></div><div class="label">가져온 기록</div>';
     const hist = (S.importHistory || []).slice().reverse();
     s += hist.map((h) => '<div class="small" style="padding:3px 12px 5px;display:flex;gap:6px;align-items:flex-start"><span class="ico" style="color:var(--text-3)">' + icon(h.kind === 'gsheet' ? 'link' : h.kind === 'preset' ? 'db' : 'upload') + '</span><span><b style="font-weight:600">' + esc(h.source) + '</b><br><span class="muted">' + esc(h.detail) + '</span></span></div>').join('');
@@ -401,35 +401,70 @@
     return s;
   }
 
-  // ───────── 구단과 거리 ─────────
+  // ───────── 구단 정보 ─────────
+  // 왼쪽: 구단 표(+ 접힌 구장 간 거리표) / 오른쪽: 구장 지도(남은 높이를 모두).
+  // 지도는 UI.mapWidget(설정에 카카오 지도 키가 있으면 카카오 지도, 없으면 내장 지도)을 한 번만 만들어 두고,
+  // 화면을 다시 그릴 때마다 자리(#teamMapHost)에 옮겨 붙인다(카카오 지도를 매번 새로 만들지 않도록).
+  const TM = { el: null, w: null, app: null };
+  const TEAM_BOX = { lonMin: 125.9, lonMax: 129.8, latMin: 34.6, latMax: 38.0 }; // 내장 지도: 제주를 빼고 구장이 있는 곳만(지도가 덜 길쭉해 넓게 보인다)
+  const running = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
+  function teamMarkers() {
+    const u = S.ui, sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
+    const drag = S.feature('T4') && !running();
+    return app().state.teams.map((t, i) => ({ id: i, lat: Number(t.latitude), lon: Number(t.longitude), color: t.color, label: t.name, title: t.stadium, size: i === sel ? 7 : 5, active: i === sel, draggable: drag }));
+  }
+  function mountTeamMap() {
+    const host = document.getElementById('teamMapHost');
+    if (!host) return;
+    if (TM.app !== app()) { if (TM.w) TM.w.destroy(); TM.el = null; TM.w = null; TM.app = app(); }
+    if (!TM.el) {
+      TM.el = document.createElement('div');
+      TM.el.className = 'tm-map';
+      host.appendChild(TM.el); // 크기가 있는 자리에 붙인 뒤 만든다(카카오 지도는 처음 크기로 범위를 맞춘다)
+      TM.w = KBO.UI.mapWidget(TM.el, app(), {
+        get width() { return S.wide ? 520 : 400; }, // 넓은 화면에서 이름표가 너무 커지지 않게
+        box: TEAM_BOX, spread: 10, grid: false, caption: false, fit: true, title: '구장 위치', tags: ['teams', 'map'], markers: teamMarkers,
+        onMarkerClick: (id) => { S.ui.cell = { sheet: 'teams', row: +id, col: 'name' }; S.render(); },
+        onDragEnd: (id, lat, lon) => { if (!locked() && app().updateTeam(+id, { latitude: lat, longitude: lon })) S.toast('구장 위치를 옮겼습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000); }
+      });
+      return;
+    }
+    if (TM.el.parentNode !== host) host.appendChild(TM.el);
+    TM.w.refresh();
+  }
+  S.teamMap = TM;
+  function mapFoot() {
+    const a = app();
+    const drag = S.feature('T4') ? ' 구장 표시를 끌어 위치를 옮길 수 있습니다.' + (S.dev() ? ' <span class="tag ref">FR-T4</span>' : '') : '';
+    let s;
+    if (!a.kakaoKey) s = icon('info') + '<span><button class="lnk" data-act="open-settings" data-set="data">설정 › 카카오 지도 키</button>를 넣으면 카카오 지도로 보입니다.' + drag + '</span>';
+    else if (a.kakao) s = icon('map') + '<span>카카오 지도 · 표시를 누르면 그 구단을 고릅니다.' + drag + '</span>';
+    else if (a.kakaoError) s = icon('warn') + '<span>카카오 지도를 열지 못해 기본 지도로 보입니다. 설정 › 카카오 지도 키와, 이 사이트 주소를 카카오에 등록했는지 확인해 주세요.' + (S.dev() ? ' (' + esc(a.kakaoError) + ')' : '') + '</span>';
+    else s = icon('map') + '<span>카카오 지도를 불러오는 중입니다…</span>';
+    return '<div class="pane-foot small tm-foot' + (a.kakaoKey && a.kakaoError ? ' warn' : '') + '"' + (S.feature('T4') ? ' data-feature="T4"' : '') + '>' + s + '</div>';
+  }
   function renderTeams() {
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
-    let s = '<div class="pane-head"><span class="pane-title">구단과 거리</span><span class="pane-desc">구단과 구장 위치입니다. 구장 사이 거리표는 접어 두었습니다. 여기서 직접 입력합니다.</span></div>';
-    s += '<div class="pane-body pad" data-sk="d-teams"><div style="display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px;align-items:start">';
-    s += '<div class="blk"><table class="sheet"><colgroup><col style="width:44px"><col style="width:110px"><col><col style="width:86px"><col style="width:86px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
+    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단을 누르면 고칠 수 있고, 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
+    s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
+    s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
-        const sh = Array.from(shared.keys()).includes(t.stadium);
-        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + esc(t.stadium) + (sh ? ' <span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
+        const sh = shared.get(t.stadium);
+        const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
+        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
-    const markers = st.teams.map((t, i) => ({ id: t.name, lat: t.latitude, lon: t.longitude, x: 0, y: 0, color: t.color, label: t.name, size: i === sel ? 7 : 5, active: i === sel }));
-    let mapSvg = '';
-    try {
-      const proj = KBO.MapKit.projection(250);
-      for (const mk of markers) { const p = proj.project(mk.lat, mk.lon); mk.x = p[0]; mk.y = p[1]; }
-      mapSvg = KBO.MapKit.render({ width: 250, markers, grid: false, spread: 10, title: '구장 위치' }).svg;
-    } catch (e) { mapSvg = '<div class="empty">지도를 그릴 수 없습니다.</div>'; }
-    s += '<div class="blk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">내장 SVG</span></span>' : '') + '</div><div class="blk-body mapbox" style="padding:6px">' + mapSvg + '</div>' +
-      (S.feature('T4') ? '<div class="pane-foot small" data-feature="T4">' + icon('move') + '구장 표시를 끌어 위치를 조금씩 옮길 수 있습니다' + (S.dev() ? ' <span class="tag ref">FR-T4</span>' : '') + '</div>' : '') + '</div>';
-    s += '</div>';
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
-      s += '<details class="fold" style="margin-top:12px" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · A→B를 고치면 B→A도 함께 바뀜</span></summary><div style="padding:8px 10px" class="chart-box">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 58, cellH: 24, labelW: 50, format: (v) => (v == null ? '' : Number(v).toFixed(1)), title: '구단 간 이동거리' }) + '</div></details>';
+      s += '<details class="fold" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · A→B를 고치면 B→A도 함께 바뀜</span></summary><div style="padding:8px 6px" class="chart-box">' +
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: 24, labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
+    s += '<div class="blk tm-mapblk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">' + (app().kakao && app().kakaoKey ? 'Kakao' : '내장 SVG') + '</span></span>' : '') + '</div><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>';
+    s += '</div></div>';
+    S.afterRender(mountTeamMap);
     return s;
   }
 
@@ -611,6 +646,7 @@
 
   // ───────── 동작 ─────────
   function locked() { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 입력이 잠깁니다. 먼저 중지하세요.', 'warn'); return true; } return false; }
+  S.locked = locked;
   function startEdit(sheet, row, col, initial) {
     const sh = SHEETS[sheet];
     const c = sh.cols.find((x) => x.key === col);
@@ -731,7 +767,7 @@
       S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — ' + fmt.date(date) + '이 휴식 요일이면 「휴식일 경기」에 넣고 연전 기간을 다시 만드세요.'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
-    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.render(); },
+    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.render(); },
     'rest-wd': (el) => {
       if (locked()) return;
       const w = +el.dataset.wd;
@@ -757,14 +793,19 @@
   S.inputs['team-field'] = (el) => {
     if (locked()) return;
     const i = +el.dataset.row, k = el.dataset.k;
-    if (!el.value.trim()) return;
+    const t = app().state.teams[i];
+    if (!el.value.trim() || !t) return;
     if (k === 'latitude' || k === 'longitude') {
       const v = Number(el.value.trim());
       const okRange = Number.isFinite(v) && (k === 'latitude' ? v >= -90 && v <= 90 : v >= -180 && v <= 180);
       if (!okRange) { el.classList.add('err'); S.toast((k === 'latitude' ? '위도' : '경도') + '는 숫자로 적습니다(예: ' + (k === 'latitude' ? '37.5122' : '127.0719') + ').', 'bad'); return; }
+      if (el.value.trim() === t[k].toFixed(4)) return; // 칸에 보이는 값 그대로(바뀐 것 없음)
       if (app().updateTeam(i, { [k]: v })) S.toast('구장 위치를 바꿨습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
       return;
     }
+    if (el.value.trim() === t[k]) return; // 바뀐 것 없음(Enter로 위치를 찾은 뒤의 change 등)
+    const f = S.ui.teamFind;
+    if (k === 'stadium' && f && f.row === i && f.q === el.value.trim()) return; // 구장 위치 찾기(Enter)가 이름과 위치를 한 번에 저장한다(칸을 다시 그릴 때 오는 change는 무시)
     app().updateTeam(i, { [k]: el.value.trim() });
   };
 

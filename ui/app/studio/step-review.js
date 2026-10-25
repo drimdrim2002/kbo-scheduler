@@ -12,7 +12,7 @@
   const ORDER = { block: 0, warn: 1, pass: 2 };
   const KIND = { pass: 'ok', warn: 'warn', block: 'block' };
   const LBL = { pass: '통과', warn: '확인 필요', block: '진행 불가' };
-  const TARGET_LABEL = { teams: '① 구단과 거리', distance: '① 구단과 거리', slots: '① 연전 기간', series: '① 시리즈', events: '① 특별 경기', result: '③ 결과·수정', season: '① 시즌 기본 설정' };
+  const TARGET_LABEL = { teams: '① 구단 정보', distance: '① 구단 정보', slots: '① 연전 기간', series: '① 시리즈', events: '① 특별 경기', result: '③ 결과·수정', season: '① 시즌 기본 설정' };
   // 규칙 설명. 개발자 모드는 코드가 들어간 원문, 일반 모드는 쉬운 문장
   const EXPLAIN = {
     'teams-even': '구단 수가 홀수면 연전 기간마다 한 구단이 쉬어야 해서 H0-a(출전 구단 수)를 만족할 수 없습니다.',

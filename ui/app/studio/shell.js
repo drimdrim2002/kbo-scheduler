@@ -179,7 +179,7 @@
       (blank
         ? '<p class="small" style="margin:0">지금 들어 있는 표를 모두 비우고, 빈 상태에서 시즌 정보를 처음부터 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 연전 기간·시리즈 같은 큰 표는 단추로 만듭니다.</p>' +
           '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 공휴일 · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 특별 경기 · 경기 기록 · 중간 저장</dd>' +
-          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단과 거리」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
+          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단 정보」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
           '<dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>'
         : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
           '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
