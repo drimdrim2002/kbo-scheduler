@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="../app/common/common.css?v=20261024p">
-<link rel="stylesheet" href="show.css?v=20261024p">
+<link rel="stylesheet" href="show.css?v=20261026a">
 </head>
 <body class="sh-body" data-page="compare">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -81,7 +81,7 @@
     <p class="sh-kicker">같은 조건 · 같은 채점 방식</p>
     <h1 class="sh-h1" id="cmp-h">숫자와 근거</h1>
     <p class="sh-lead">실제 = KBO가 2024년 12월에 발표한 2025 정규시즌 1차 일정(3/22~8/31, 구단마다 135경기, 225시리즈). 매치봇 = 같은 대진·같은 규칙으로 만든 일정이에요.</p>
-    <nav class="sh-jump" aria-label="이 쪽 바로가기"><a href="#num-h">숫자</a><a href="#chart-h">구단별</a><a href="#qa-h">궁금한 점</a><a href="#src-h">근거</a></nav>
+    <nav class="sh-jump" aria-label="이 쪽 바로가기"><a href="#num-h">숫자</a><a href="#chart-h">구단별</a><a href="#sched-h">우리 팀 일정</a><a href="#qa-h">궁금한 점</a><a href="#src-h">근거</a></nav>
   </section>
 
   <section class="sh-sec" aria-labelledby="num-h">
@@ -120,6 +120,19 @@
     </div>
   </section>
 
+  <!-- 우리 팀 일정표(2026-10-25, 대안 셋 중 목록 안): 구단 칩 → 요약 세 줄 → 기간 칩 → 시리즈 목록(날짜 | 실제 | 매치봇). show.js schedMount -->
+  <section class="sh-sec" id="sched" aria-labelledby="sched-h">
+    <h2 class="sh-h2" id="sched-h">우리 팀 일정표</h2>
+    <p class="sh-lead">구단을 고르면 1차 일정 45시리즈를 실제와 매치봇으로 나란히 보여 줘요. <b>↗</b>는 다른 구장으로 옮긴 시리즈예요. 이걸 센 게 이동 일수예요.</p>
+    <div class="sh-sc-pick sh-pick-b" data-sd="team" role="group" aria-label="우리 팀 고르기"></div>
+    <div class="sh-card sh-sd-sum" data-sd="sum"></div>
+    <div class="sh-card">
+      <div class="sh-sc-pick sh-pick-b sh-sd-mon" data-sd="month" role="group" aria-label="기간 고르기"></div>
+      <div class="sh-sl" data-sd="body"></div>
+    </div>
+    <p class="sh-small" style="margin:10px 0 0">홈 = 옅은 바탕. 시즌 처음에는 첫 시리즈 구장에서 출발한다고 셌어요. 우천 취소·재편성은 반영하지 않았어요.</p>
+  </section>
+
   <!-- 궁금한 점: 소개 쪽과 같은 질문·답(show.js SHOW.QA). 예전 「어떻게 쟀나요」「매치봇이 모르는 것」은 여기 답으로 옮겼다 -->
   <section class="sh-sec sh-faq" aria-labelledby="qa-h" data-qa="list">
     <h2 class="sh-h2" id="qa-h">궁금한 점</h2>
@@ -153,6 +166,6 @@
     <p><a href="index.html">소개로</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261025a"></script>
+<script src="show.js?v=20261026a"></script>
 </body>
 </html>
