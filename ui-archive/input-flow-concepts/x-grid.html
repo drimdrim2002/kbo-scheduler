@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>엑셀 서식 ㄴ · 날짜 × 구장 격자 — 공식 일정표 모양의 달력 시트 하나</title>
+<link rel="stylesheet" href="xl.css"></head>
+<body>
+<div class="xl">
+  <div class="ribbon"><span class="file">2025_편성입력.xlsx</span><span class="muted">서식 ㄴ · 격자 — 시트 3개: 구단 정보 · <b>시즌 달력</b>(날짜 행 × 구장 열, 공식 일정표와 같은 모양) · 설명</span></div>
+  <div class="two">
+    <div class="sheet wide">
+      <div class="cap">시트 ② 시즌 달력 — 공식 일정표와 같은 행·열. <b>연전</b> 열에 묶음 첫날만 2·3·4를 적고, <b>공휴일·가중치</b>는 그 날 행에, <b>홈 구장 지정</b>은 구장 열에 ○. 나머지 칸은 비워 둡니다(대진은 자동 편성이 채웁니다).</div>
+      <table id="t2"></table>
+    </div>
+    <div class="sheet narrow">
+      <div class="note"><b>읽는 법</b><br>· 연전 열의 숫자 = 그 날부터 N일 묶음(아래 N−1줄은 비움). 빈 날 = 경기 없음(월요일·올스타).<br>· 공휴일 열에 이름, 가중치 열에 숫자.<br>· 구장 열의 ○ = 그 날 그 구장 홈 경기 고정(개막전·어린이날). 잠실은 ○ 옆에 구단(두산/LG).<br>· 시즌 기간(개막일·1차 편성 종료일)은 시트 맨 위 칸.</div>
+      <div class="note" style="margin-top:12px"><b>장점</b> 담당자가 보는 공식 일정표와 같은 모양이라 요일·주가 눈에 보이고, 날짜에 붙는 입력(연전·공휴일·홈 구장)이 시트 하나에 모임. 결과(③) 내보내기와 같은 꼴이라 전년 결과 파일을 복사해 고치는 식으로 쓸 수 있음.<br><b>단점</b> 줄이 163개(3/22~8/31)로 길고, 묶음 첫날에만 숫자를 적는 규칙을 알아야 함. 구장 열 9개 중 대부분 비어 있어 「왜 비었나」 설명이 필요. 읽는 쪽(스튜디오)은 규칙 검사(묶음 겹침·월요일)를 더 해야 함.</div>
+      <div class="note" style="margin-top:12px;background:#EAF1FD;border-color:#B7CBF2"><b>절충</b> 격자 시트에서 구장 열을 빼고 「월·일·요일·연전·공휴일·가중치·홈 구장(구단 5개 쉼표)」 7열만 두면, 공식 표의 세로 흐름은 살리고 빈 칸은 줄어듭니다.</div>
+    </div>
+  </div>
+  <div class="tabs"><span>① 구단 정보</span><span class="on">② 시즌 달력</span><span class="muted">설명</span></div>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, S = C.S2025, sl = C.slots(S), WD = C.D.WD, ST = ['잠실', '고척', '문학', '수원', '대전', '대구', '광주', '사직', '창원'];
+  const start = new Map(sl.map((s) => [s.start, s.len]));
+  const hol = new Map(S.holidays.map((h) => [C.D.dn(h.date), h.name]));
+  const W = (n) => (/어린이날/.test(hol.get(n) || '') ? 3 : 2);
+  const pin = { '2025-03-22': { 잠실: '○ LG', 문학: '○', 수원: '○', 대전: '○', 대구: '○' }, '2025-05-05': { 잠실: '○ 두산', 고척: '○', 대전: '○', 창원: '○', 사직: '○' } };
+  let h = '<tr><th class="rn"></th>' + 'ABCDEFGHIJKLMNO'.split('').map((c) => '<th>' + c + '</th>').join('') + '</tr>';
+  h += '<tr><td class="rn">1</td><td class="h">개막일</td><td class="in">2025-03-22</td><td class="h">1차 편성 종료일</td><td class="in">2025-08-31</td><td class="h">휴식 요일</td><td class="in">월</td><td colspan="9" class="muted">↓ 연전 열에 묶음 첫날만 숫자 · 구장 열에 ○ = 홈 구장 지정</td></tr>';
+  h += '<tr><td class="rn">2</td><td class="h">월</td><td class="h">일</td><td class="h">요일</td><td class="h">연전</td><td class="h">공휴일</td><td class="h">가중치</td>' + ST.map((s) => '<td class="h">' + s + '</td>').join('') + '</tr>';
+  let r = 3;
+  for (let n = C.D.dn('2025-03-22'); n <= C.D.dn('2025-04-13'); n++) {
+    const w = C.D.wd(n), iso = C.D.iso(n), p = pin[iso] || {};
+    h += '<tr' + (w === 1 ? ' class="rest"' : '') + '><td class="rn">' + (r++) + '</td><td>' + C.D.mo(n) + '</td><td class="' + (w === 6 ? 'sat' : w === 0 ? 'sun' : '') + '">' + C.D.dd(n) + '</td><td class="' + (w === 6 ? 'sat' : w === 0 ? 'sun' : '') + '">' + WD[w] + '</td><td class="in">' + (start.get(n) || '') + '</td><td class="' + (hol.has(n) ? 'sun' : '') + '">' + (hol.get(n) || '') + '</td><td class="in">' + (hol.has(n) ? W(n) : '') + '</td>' + ST.map((s) => '<td class="in">' + (p[s] || '') + '</td>').join('') + '</tr>';
+  }
+  h += '<tr><td class="rn">…</td><td colspan="15" class="muted">… 8/31까지 163줄. 5/5(월) 행: 연전 3 · 어린이날·부처님오신날 · 3 · 잠실 ○ 두산 · 고척 ○ · 대전 ○ · 창원 ○ · 사직 ○ / 7/11~7/16: 연전 비움(올스타) / 7/17: 연전 4</td></tr>';
+  document.getElementById('t2').innerHTML = h;
+</script>
+</body></html>

@@ -31,7 +31,7 @@
       '<div class="xs muted" style="margin-top:4px">1차 편성 15경기 × 9상대 = <b>경기일 135일</b>이 필요합니다. 그 뒤는 미편성 45경기 + 우천 취소분을 넣는 재편성 기간입니다.</div></div>' +
       '<div class="box"><h4>연전 규칙 <span class="r"><span class="stat ok" style="font-size:10px">2025 공식 일정표로 확인</span></span></h4>' +
       '<div class="line"><span class="k">기본</span><span class="v">화·수·목 <b>3연전</b> / 금·토·일 <b>3연전</b> · 월요일 휴식</span></div>' +
-      '<div class="line"><span class="k">개막 주</span><span class="v">개막일부터 일요일까지 한 묶음(토 개막 → 2연전)</span></div>' +
+      '<div class="line"><span class="k">개막</span><span class="v">늘 토요일 → 토·일 <b>2연전</b>, 월 휴식</span></div>' +
       '<div class="line"><span class="k">월요일 공휴일</span><span class="v">그 날 경기, 목요일 휴식(어린이날 월·화·수)</span></div>' +
       '<div class="line"><span class="k">올스타 휴식기</span><span class="v">금~수 6일 · 뒤 목~일 <b>4연전</b></span></div>' +
       '<div style="margin-top:8px"><span class="btn pri big">⚡ 규칙대로 채우기</span></div><div class="xs muted" style="margin-top:6px">채운 뒤 달력에서 끌어서 고칩니다. 묶음이 없는 날이 경기 없는 날입니다.</div></div>' +

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>엑셀 서식 ㄱ · 날짜 행 — 연전 기간 시트(시작일·연전 수) + 홈 구장 지정 시트</title>
+<link rel="stylesheet" href="xl.css"></head>
+<body>
+<div class="xl">
+  <div class="ribbon"><span class="file">2025_편성입력.xlsx</span><span class="muted">서식 ㄱ · 날짜 행 — 시트 4개: 구단 정보 · 시즌 기간과 공휴일 · <b>연전 기간</b> · <b>홈 구장 지정</b></span></div>
+  <div class="two">
+    <div class="sheet">
+      <div class="cap">시트 ③ 연전 기간 — 한 줄이 한 묶음. 시작일과 연전 수만 적습니다(끝 날짜·요일·경기일 합은 자동). 비워 두면 규칙으로 만듭니다.</div>
+      <table id="t1"></table>
+    </div>
+    <div class="sheet narrow">
+      <div class="cap">시트 ④ 홈 구장 지정 — 날짜마다 홈 경기를 해야 하는 구단 5곳.</div>
+      <table>
+        <tr><th class="rn"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr>
+        <tr><td class="rn">1</td><td class="h">날짜</td><td class="h">이름</td><td class="h">구단 1</td><td class="h">구단 2</td><td class="h">구단 3</td><td class="h">구단 4</td><td class="h">구단 5</td></tr>
+        <tr><td class="rn">2</td><td>2025-03-22</td><td>개막전</td><td>LG</td><td>SSG</td><td>KT</td><td>한화</td><td>삼성</td></tr>
+        <tr><td class="rn">3</td><td>2025-05-05</td><td>어린이날</td><td>두산</td><td>키움</td><td>한화</td><td>NC</td><td>롯데</td></tr>
+        <tr><td class="rn">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      </table>
+      <div class="cap" style="margin-top:14px">시트 ② 시즌 기간과 공휴일 (일부)</div>
+      <table>
+        <tr><th class="rn"></th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+        <tr><td class="rn">1</td><td class="h">종류</td><td class="h">날짜</td><td class="h">이름</td><td class="h">가중치</td></tr>
+        <tr><td class="rn">2</td><td>개막일</td><td>2025-03-22</td><td></td><td></td></tr>
+        <tr><td class="rn">3</td><td>1차 편성 종료일</td><td>2025-08-31</td><td></td><td></td></tr>
+        <tr><td class="rn">4</td><td>휴식 요일</td><td>월</td><td></td><td></td></tr>
+        <tr><td class="rn">5</td><td>공휴일</td><td>2025-05-05</td><td>어린이날·부처님오신날</td><td>3</td></tr>
+        <tr><td class="rn">6</td><td>공휴일</td><td>2025-06-06</td><td>현충일</td><td>2</td></tr>
+      </table>
+      <div class="note"><b>장점</b> 지금 스튜디오의 표·가져오기와 같은 꼴이라 바로 읽힘, 줄 45개라 짧음, 검사하기 쉬움.<br><b>단점</b> 날짜가 어느 요일·어느 주인지 눈에 안 보여, 엑셀 안에서 묶음이 맞는지 확인하기 어려움(요일·끝 날짜 열을 자동 수식으로 보완).</div>
+    </div>
+  </div>
+  <div class="tabs"><span>① 구단 정보</span><span>② 시즌 기간과 공휴일</span><span class="on">③ 연전 기간</span><span class="on">④ 홈 구장 지정</span><span class="muted">설명</span></div>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, sl = C.slots(C.S2025), WD = C.D.WD;
+  let h = '<tr><th class="rn"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>' +
+    '<tr><td class="rn">1</td><td class="h">번호</td><td class="h">시작일</td><td class="h">요일 <i>(자동)</i></td><td class="h">연전 수</td><td class="h">끝 날짜 <i>(자동)</i></td><td class="h">메모</td></tr>';
+  let acc = 0;
+  sl.slice(0, 26).forEach((s, i) => { acc += s.len; h += '<tr><td class="rn">' + (i + 2) + '</td><td>' + (i + 1) + '</td><td>' + C.D.iso(s.start) + '</td><td class="auto">' + WD[C.D.wd(s.start)] + '</td><td class="in">' + s.len + '</td><td class="auto">' + C.D.iso(s.start + s.len - 1) + '</td><td>' + (i === 0 ? '개막 2연전' : C.D.iso(s.start) === '2025-05-05' ? '어린이날 월·화·수' : C.D.iso(s.start) === '2025-07-17' ? '올스타 뒤 4연전' : '') + '</td></tr>'; });
+  h += '<tr><td class="rn">…</td><td colspan="6" class="muted">… 45번까지 (경기일 합 135 — 시트 맨 아래 수식)</td></tr>';
+  document.getElementById('t1').innerHTML = h;
+</script>
+</body></html>

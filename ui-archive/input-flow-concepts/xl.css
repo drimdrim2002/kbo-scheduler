@@ -1,0 +1,31 @@
+/* 엑셀 서식 시안(x-rows · x-grid) — 엑셀처럼 보이게 */
+* { box-sizing: border-box; }
+body { margin: 0; font: 12.5px/1.4 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #172033; background: #E9ECF0; overflow: hidden; height: 100vh; }
+.xl { display: flex; flex-direction: column; height: 100vh; }
+.ribbon { height: 44px; background: #1D6F42; color: #fff; display: flex; align-items: center; gap: 14px; padding: 0 16px; flex: none; }
+.ribbon .file { font-weight: 700; }
+.ribbon .muted { color: #D6EAD9; }
+.two { flex: 1; display: flex; gap: 14px; padding: 14px; min-height: 0; }
+.sheet { background: #fff; border: 1px solid #C9CED6; flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
+.sheet.narrow { flex: 0 0 430px; overflow: auto; padding: 10px; }
+.sheet.narrow table { flex: none; }
+.sheet.wide { flex: 1; }
+.cap { font-size: 12px; color: #435067; padding: 8px 10px; background: #F8F9FB; border-bottom: 1px solid #E2E5EA; }
+.sheet > table { flex: 1; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; }
+th, td { border: 1px solid #D2D7DF; padding: 2px 7px; height: 22px; white-space: nowrap; text-align: left; }
+th { background: #E8EBEF; color: #5F697D; font-weight: 500; text-align: center; font-size: 11px; }
+th.rn, td.rn { background: #E8EBEF; color: #5F697D; text-align: center; width: 34px; font-size: 11px; }
+td.h { background: #DCE6F5; font-weight: 600; color: #22406F; }
+td.h i { font-style: normal; font-weight: 400; color: #5F697D; font-size: 10.5px; }
+td.in { background: #FFFBE6; }
+td.auto { color: #5F697D; }
+td.sat { color: #1F5FD6; }
+td.sun { color: #B3261E; }
+tr.rest td { background: #F3F4F6; color: #8A93A3; }
+tr.rest td.rn { background: #E8EBEF; }
+.muted { color: #5F697D; }
+.note { font-size: 12px; color: #435067; background: #F8F9FB; border: 1px solid #E2E5EA; border-radius: 6px; padding: 10px 12px; }
+.tabs { height: 32px; background: #F3F4F6; border-top: 1px solid #C9CED6; display: flex; align-items: flex-end; gap: 2px; padding: 0 14px; flex: none; }
+.tabs span { font-size: 12px; padding: 4px 14px; border: 1px solid #C9CED6; border-bottom: 0; background: #fff; color: #435067; }
+.tabs span.on { color: #1D6F42; font-weight: 700; box-shadow: inset 0 -2px 0 #1D6F42; }
