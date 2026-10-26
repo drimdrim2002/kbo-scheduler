@@ -28,6 +28,9 @@ test('AC-2 슬롯 자동 생성이 input_2025.json calendar 45개와 일치 (휴
   // 묶음 값 = 든 날 가중치 합: 금·토·일 2, 화·수·목 0, 어린이날 월·화·수 3 + 2, 현충일(금)·광복절(금) 2 + 토 1 + 일 1
   const at = (d) => r.slots.find((x) => x.datetime.startsWith(d)).holiday;
   eq([at('2025-03-22'), at('2025-03-25'), at('2025-03-28'), at('2025-05-05'), at('2025-06-06'), at('2025-08-15'), at('2025-07-17')], [2, 0, 2, 5, 4, 4, 2], '가중치 합');
+  // 가중치는 정수로 읽어 묶음 값도 늘 정수(엔진 Calendar.holiday는 정수)
+  const odd = CalendarGen.applyWeights(JSON.parse(JSON.stringify(exp)), { holidays: [{ date: '2025-05-05', weight: 2.6 }, { date: '2025-06-06', weight: '1.4' }] });
+  assert(odd.every((c) => Number.isInteger(c.holiday)), '묶음 값은 정수');
   // 예전 저장 데이터(weight 없음)는 2로 읽는다
   eq(CalendarGen.slotWeights(CalendarGen.slotDays(exp[13])[0], 3, CalendarGen.holidayWeights({ holidays: [{ date: '2025-05-05', name: '어린이날' }, '2025-05-06'] })).holiday, 4, 'weight 없음 = 2');
 });

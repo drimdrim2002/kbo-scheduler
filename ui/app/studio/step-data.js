@@ -134,7 +134,7 @@
       cols: [
         { key: 'date', head: '날짜', alias: 'date', req: true, w: 130, get: (r) => r.date, show: (r) => dateCell(r.date), validate: vDate, set: (r, v) => { r.date = P.date(v); } },
         { key: 'name', head: '이름', alias: 'name', req: true, w: 200, get: (r) => r.name, validate: (v) => (String(v).trim() ? null : { error: '이름이 비었습니다.' }), set: (r, v) => { r.name = String(v).trim(); } },
-        { key: 'weight', head: '가중치', alias: 'weight', w: 70, num: true, get: (r) => (r.weight == null ? CalendarGen.HOLIDAY_WEIGHT : r.weight), validate: (v) => { const n = Number(String(v).trim()); return String(v).trim() !== '' && Number.isFinite(n) && n >= 0 && n <= 10 ? null : { error: '가중치는 0~10 숫자입니다(주말 하루 = 1).' }; }, set: (r, v) => { r.weight = Math.round(Number(String(v).trim()) * 10) / 10; } },
+        { key: 'weight', head: '가중치', alias: 'weight', w: 70, num: true, get: (r) => (r.weight == null ? CalendarGen.HOLIDAY_WEIGHT : r.weight), validate: (v) => { const n = Number(String(v).trim()); return String(v).trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 10 ? null : { error: '가중치는 0~10 정수입니다(주말 하루 = 1).' }; }, set: (r, v) => { r.weight = Number(String(v).trim()); } },
         { key: 'slot', head: '속한 연전 기간', w: 0, ro: true, show: (r) => { const i = CalendarGen.slotIndexOfDate(app().state.calendar, r.date); return i >= 0 ? D().slots[i].label : '<span class="muted">경기 없음</span>'; }, html: true }
       ],
       rowIssues(st, i) { const r = st.settings.holidays[i]; return st.settings.holidays.some((h, k) => k !== i && h.date === r.date) ? [{ level: 'error', col: 'date', msg: '같은 날짜가 두 번 있습니다.' }] : []; },
@@ -366,7 +366,7 @@
     const wd = ['일', '월', '화', '수', '목', '금', '토'];
     const blankDates = !set.seasonStart || !set.initialEnd;
     const dateIn = (k, label, ph) => '<label class="field"><span>' + label + ' *</span><input class="input' + (set[k] ? '' : ' empty') + '" data-in="season" data-k="' + k + '" value="' + esc(set[k] ? fmt.date(set[k]) : '') + '" placeholder="' + esc(ph) + '"' + (set[k] ? '' : ' aria-describedby="seasonHint"') + '></label>';
-    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">' + (o.subs === false ? '개막·종료일과 휴식 요일을 입력합니다. 공휴일·휴식일 경기·휴식기는 다음 단계에서 넣습니다.' : '개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일·휴식일 경기·휴식기는 왼쪽 목록에서 고칩니다.') + '</span></div>';
+    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">' + (o.subs === false ? '개막·종료일과 휴식 요일을 입력합니다.' : '개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일은 왼쪽 목록에서 고치고, 휴식일 경기·휴식기는 시즌 달력의 묶음에서 만들어집니다.') + '</span></div>';
     s += '<div class="pane-body pad" data-sk="d-season">';
     s += '<div class="blk"><div class="blk-head">기간과 휴식 요일</div><div class="blk-body"><div class="form-grid">' +
       dateIn('seasonStart', '개막일', '예: 2025-03-22') +

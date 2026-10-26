@@ -71,6 +71,8 @@
     const running = !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
     if (onCal && !C.tour && !suppressed && !S.selftestMode && !running && !S.guideBlocked() && !store.get().seen) { suppressed = true; setTimeout(() => start(1), 0); }
     const t = C.tour;
+    // 따라 하는 중에 달력을 떠나면(②로·모든 표 보기·구단 정보 펼침·시즌 운영) 따라 하기를 닫고 바꾼 것을 되돌린다 — 4/8 묶음을 비운 채로 남지 않게
+    if (t && !onCal && !S.guideBlocked() && t.ready) { el.innerHTML = ''; setTimeout(() => { if (C.tour === t) finish(false); }, 0); return; }
     if (!t || !onCal || S.guideBlocked()) { el.innerHTML = ''; return; }
     while (t.step <= STEPS.length && STEPS[t.step - 1].done()) t.step++;
     if (t.step > STEPS.length) { el.innerHTML = card(null); placeCard(el, []); return; }

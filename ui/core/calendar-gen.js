@@ -109,7 +109,8 @@
     for (const h of settings.holidays || []) {
       const d = dayNum(typeof h === 'string' ? h : h.date);
       if (!Number.isFinite(d)) continue;
-      const w = typeof h === 'object' && h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Number(h.weight)) : HOLIDAY_WEIGHT;
+      // 정수로 읽는다(엔진의 휴일 값 Calendar.holiday가 정수라 묶음 합도 정수여야 한다)
+      const w = typeof h === 'object' && h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Math.round(Number(h.weight))) : HOLIDAY_WEIGHT;
       map.set(d, w);
     }
     return map;

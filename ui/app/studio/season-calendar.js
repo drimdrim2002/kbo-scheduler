@@ -567,6 +567,7 @@
   });
   /** 「다음: 검토·실행」: 묶음이 바뀌어 시리즈가 맞지 않으면(경기일 합이 맞을 때) 규칙대로 다시 만들고 ②로 간다 */
   S.calNext = function () {
+    if (C.tour && S.calTour) S.calTour.finish(false); // 따라 하는 중이면 먼저 닫고 바꾼 것을 되돌린다
     const sr = seriesState();
     if (!sr.ok && S.gameDaysCheck().ok && !S.locked()) {
       const g = app().generateSeriesPreview();
@@ -599,7 +600,8 @@
     let v = el.value.trim();
     if (k === 'date') { v = S.parse.date(v); if (!v) { el.classList.add('err'); S.toast("날짜로 읽을 수 없습니다: '" + el.value + "'", 'bad'); return; } if (set().holidays.some((x, j) => j !== i && x.date === v)) { el.classList.add('err'); S.toast(fmt.date(v) + '은(는) 이미 표에 있습니다.', 'bad'); return; } }
     if (k === 'name' && !v) { el.classList.add('err'); S.toast('이름이 비었습니다.', 'bad'); return; }
-    if (k === 'weight') { const n = Number(v); if (!Number.isFinite(n) || n < 0 || n > 10) { el.classList.add('err'); S.toast('가중치는 0~10 숫자입니다(주말 하루 = 1).', 'bad'); return; } v = Math.round(n * 10) / 10; }
+    // 가중치는 정수(엔진의 휴일 값이 정수라 묶음 합도 정수여야 한다)
+    if (k === 'weight') { const n = Number(v); if (!Number.isInteger(n) || n < 0 || n > 10) { el.classList.add('err'); S.toast('가중치는 0~10 정수입니다(주말 하루 = 1).', 'bad'); return; } v = n; }
     if (String(h[k] == null ? (k === 'weight' ? CalendarGen.HOLIDAY_WEIGHT : '') : h[k]) === String(v)) return;
     app().commit('공휴일 ' + fmt.date(h.date) + ' ' + ({ date: '날짜', name: '이름', weight: '가중치' }[k]) + ': ' + (h[k] == null ? '' : h[k]) + ' → ' + v, (x) => { x.settings.holidays[i][k] = v; x.settings.holidays.sort((p, q) => (p.date < q.date ? -1 : 1)); S.recalcCalendar(x); }, ['settings', 'calendar']);
   };
@@ -690,6 +692,9 @@
     const w1 = w5();
     undoN(1);
     ok('공휴일 표: 어린이날 가중치 3(KBO 확인 필요 표시) → 1이면 5/5 묶음 값 5 → 3 · 실행 취소', w0 === 5 && w1 === 3 && w5() === 5 && /KBO 확인 필요/.test(q('.sc-hols').textContent) && wIn().value === '3', w0 + '→' + w1);
+    const u7 = app().store.undoStack.length;
+    wIn().value = '2.5'; wIn().dispatchEvent(new Event('change', { bubbles: true })); flush();
+    ok('공휴일 표: 가중치는 0~10 정수만(2.5는 거부 — 엔진의 휴일 값이 정수)', app().store.undoStack.length === u7 && w5() === 5 && Number.isInteger(bAt('2025-05-05').holiday));
     const nh = st().settings.holidays.length;
     click('.sc-hols [data-act="cal-hol-add"]'); flush();
     const added = st().settings.holidays.length === nh + 1;
@@ -787,6 +792,18 @@
       ok('따라 하기: 135로 맞추면 「다 했습니다」', C.tour.step === 5 && /다 했습니다/.test(card()));
       click('#guide [data-act="tour-end"]'); flush();
       ok('따라 하기 마치기 → 바꾼 것을 되돌림(묶음·시리즈 배정 그대로) · 다시 뜨지 않게 기억', !C.tour && !q('#guide .ct-card') && app().store.undoStack.length === depth0 && JSON.stringify(st().calendar) === cal0 && JSON.stringify(st().plan) === plan0 && S.guideStore('cal-tour').get().seen === true);
+      // 따라 하는 중에 「다음: 검토·실행」을 누르거나 달력을 떠나면: 따라 하기를 닫고 되돌린다(4/8 묶음이 빈 채로 ②가 막히지 않게)
+      click('.sc-right [data-act="cal-tour"]'); flush();
+      const mid = C.tour && C.tour.step === 1 && gd() === 132;
+      click('.footer [data-act="cal-next"]'); flush();
+      ok('따라 하는 중 「다음: 검토·실행」 → 따라 하기 닫고 되돌림 · ② · 45개 · 진행 불가 0', mid && !C.tour && S.ui.step === 2 && st().calendar.length === 45 && gd() === 135 && app().preflight().counts.block === 0 && JSON.stringify(st().plan) === plan0, 'block ' + app().preflight().counts.block);
+      S.go({ step: 1 }); S.g1.mode = 'cal'; flush();
+      click('.sc-right [data-act="cal-tour"]'); flush();
+      const mid2 = C.tour && gd() === 132;
+      click('.sc-teams [data-act="g1-teams"]'); flush();
+      await new Promise((r) => setTimeout(r, 30)); flush();
+      ok('따라 하는 중 구단 정보 펼치기(달력을 떠남) → 따라 하기 닫고 되돌림', mid2 && !C.tour && st().calendar.length === 45 && gd() === 135 && app().store.undoStack.length === depth0);
+      click('[data-act="g1-teams-close"]'); flush();
       S.guideStore('cal-tour').reset();
     }
     // 12. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)

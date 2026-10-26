@@ -106,9 +106,9 @@
           const v = cellDate(r[1], year), name = norm(r[2]), w = r[3] == null || r[3] === '' ? CalendarGen.defaultHolidayWeight(name) : Number(r[3]);
           if (!v) { rs.errors.push({ loc: where(sSh, i, '날짜'), why: "공휴일 날짜로 읽을 수 없습니다: '" + (r[1] == null ? '' : r[1]) + "'" }); return; }
           if (!name) { rs.errors.push({ loc: where(sSh, i, '이름'), why: '공휴일 이름이 비었습니다.' }); return; }
-          if (!Number.isFinite(w) || w < 0 || w > 10) { rs.errors.push({ loc: where(sSh, i, '가중치'), why: "가중치는 0~10 숫자입니다(주말 하루 = 1): '" + r[3] + "'" }); return; }
+          if (!Number.isInteger(w) || w < 0 || w > 10) { rs.errors.push({ loc: where(sSh, i, '가중치'), why: "가중치는 0~10 정수입니다(주말 하루 = 1): '" + r[3] + "'" }); return; }
           if (hols.some((h) => h.date === v)) { rs.errors.push({ loc: where(sSh, i, '날짜'), why: fmt.date(v) + '이(가) 두 번 있습니다.' }); return; }
-          hols.push({ date: v, name, weight: Math.round(w * 10) / 10 });
+          hols.push({ date: v, name, weight: w });
         } else if (kind !== KIND.year) rs.warnings.push({ loc: where(sSh, i, '종류'), why: "모르는 종류 「" + kind + "」는 읽지 않습니다." });
       });
       set.holidays = hols.sort((a, b) => (a.date < b.date ? -1 : 1));
