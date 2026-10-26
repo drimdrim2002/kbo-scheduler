@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 R · 2027년을 고르면 — 주말·공휴일이 먼저 표시된 빈 달력</title>
+<link rel="stylesheet" href="concept.css"></head>
+<body><div class="body"></div>
+<script src="concept.js"></script><script src="r-screen.js"></script>
+<script>
+  // 2027년: 개막일 등은 아직 안 적었고, 연도만 골랐다. 주말(토 파랑·일 빨강)과 공휴일(빨강 ○)이 내장 표에서 바로 표시된다.
+  renderR({ blank: true, year: 2027, S: { seasonStart: '', initialEnd: '', seasonEnd: '', restWeekdays: [1], restExceptions: [], blackouts: [], holidays: Concept.holidaysOf(2027), events: [] } });
+</script></body></html>

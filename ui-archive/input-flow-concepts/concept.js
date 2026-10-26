@@ -27,6 +27,23 @@
       { date: '2025-05-05', kind: 'STADIUM', name: '어린이날', stadiums: ['잠실', '고척', '대전', '창원', '사직'] }
     ]
   };
+  /**
+   * 연도별 공휴일(시즌 3~10월). 고정일은 해마다 같고, 음력(부처님오신날·추석)과 대체공휴일만 연도 표가 필요하다.
+   * 2027·2028은 2026-10-26 검색으로 확인(인사혁신처 고시로 최종 확인 필요).
+   */
+  const FIXED = [['03-01', '삼일절'], ['05-05', '어린이날'], ['06-06', '현충일'], ['08-15', '광복절'], ['10-03', '개천절'], ['10-09', '한글날']];
+  const LUNAR = {
+    2025: [['05-05', '부처님오신날'], ['05-06', '대체공휴일'], ['10-05', '추석 연휴'], ['10-06', '추석'], ['10-07', '추석 연휴'], ['10-08', '추석 대체공휴일']],
+    2026: [['05-24', '부처님오신날'], ['05-25', '대체공휴일'], ['08-17', '광복절 대체공휴일'], ['09-24', '추석 연휴'], ['09-25', '추석'], ['09-26', '추석 연휴'], ['10-05', '개천절 대체공휴일']],
+    2027: [['05-13', '부처님오신날'], ['08-16', '광복절 대체공휴일'], ['09-14', '추석 연휴'], ['09-15', '추석'], ['09-16', '추석 연휴'], ['10-04', '개천절 대체공휴일'], ['10-11', '한글날 대체공휴일']],
+    2028: [['05-02', '부처님오신날'], ['10-02', '추석 연휴'], ['10-03', '추석'], ['10-04', '추석 연휴'], ['10-05', '개천절 대체공휴일']]
+  };
+  C.holidaysOf = function (year) {
+    const m = new Map();
+    for (const [md, n] of FIXED) m.set(year + '-' + md, n);
+    for (const [md, n] of LUNAR[year] || []) { const k = year + '-' + md; m.set(k, m.has(k) ? m.get(k) + '·' + n : n); }
+    return Array.from(m.entries()).sort().map(([date, name]) => ({ date, name }));
+  };
   C.TEAMS = [['SSG', '문학경기장'], ['두산', '잠실종합운동장'], ['LG', '잠실종합운동장'], ['KT', '수원KT위즈파크'], ['키움', '고척돔야구장'], ['한화', '한화이글스파크'], ['삼성', '대구삼성라이언즈파크'], ['KIA', '광주챔피언스필드'], ['NC', '창원NC파크'], ['롯데', '사직야구장']].map(([name, stadium]) => ({ name, stadium }));
 
   /** 경기일인가: 경기 없는 기간 > 휴식일 경기 > 휴식 요일 */
@@ -57,19 +74,21 @@
     const rex = new Set(S.restExceptions.map(dn));
     const ev = new Map((S.events || []).map((e) => [dn(e.date), e]));
     const slotOf = new Map(); (o.slots || []).forEach((s, i) => { for (let k = 0; k < s.len; k++) slotOf.set(s.start + k, { i, k, s }); });
-    const a = dn(S.seasonStart), b = dn(S.initialEnd), e = dn(S.seasonEnd);
+    const year = o.year || String(S.seasonStart || S.year || '2025').slice(0, 4);
+    const a = S.seasonStart ? dn(S.seasonStart) : -Infinity, b = S.initialEnd ? dn(S.initialEnd) : Infinity, e = S.seasonEnd ? dn(S.seasonEnd) : Infinity;
     let h = '<div class="strip' + (o.big ? ' big' : '') + '">';
     for (let m = o.from; m <= o.to; m++) {
       h += '<div class="srow"><span class="m">' + m + '월</span><div class="sdays">';
       for (let d = 1; d <= 31; d++) {
-        const n = dn('2025-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
+        const n = dn(year + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
         if (mo(n) !== m) { h += '<span class="sd out"></span>'; continue; }
         const cls = ['sd'], tt = [fmt(n)];
         const w = wd(n), inSlot = slotOf.get(n);
+        if (w === 6) cls.push('sat'); if (w === 0) cls.push('sun');
         if (L.range && (n < a || n > e)) cls.push('off');
         else if (L.range && n > b) cls.push('re');
         if (L.slot && inSlot) { cls.push('game'); if (inSlot.k === 0) cls.push('ss'); if (inSlot.k === inSlot.s.len - 1) cls.push('se'); if (o.sel === inSlot.i) cls.push('sel'); tt.push(inSlot.s.len + '연전 ' + (inSlot.k + 1) + '일째'); }
-        else if (!L.slot && n >= a && n <= b && C.isGameDay(S, n)) cls.push('game');
+        else if (!L.slot && !o.noGame && n >= a && n <= b && C.isGameDay(S, n)) cls.push('game');
         else if (n >= a && n <= e) cls.push('rest');
         if (w === 0 || w === 6) cls.push('we');
         if (L.black && black.has(n)) { cls.push('black'); tt.push(black.get(n)); }
