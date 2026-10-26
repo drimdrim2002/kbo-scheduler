@@ -710,7 +710,8 @@
    */
   function presetEvents() {
     const stadiumOf = (n) => ENGINE_INPUT_2025.teams.find((t) => t.name === n).stadium;
-    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22')).map((p) => p.home);
+    const order = ENGINE_INPUT_2025.teams.map((t) => t.name);
+    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22')).map((p) => p.home).sort((a, b) => order.indexOf(a) - order.indexOf(b));
     const children = ['두산', '키움', '한화', 'NC', '롯데'];
     return [
       { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2025-03-22', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf) },

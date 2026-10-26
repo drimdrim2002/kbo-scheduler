@@ -97,7 +97,7 @@
       kv('특별 경기', st.events.length, '대진 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 ' + st.events.filter((e) => e.mode === 'STADIUM').length) +
       kv('시리즈', st.matches.length, games + '경기') +
       kv('맞대결', st.teams.length * (st.teams.length - 1) / 2, set.initialGamesPerPair + '경기씩') +
-      kv('고정', st.matches.filter((m) => m.pinned).length, '개막전 대진 지정') + '</div>';
+      kv('고정', st.matches.filter((m) => m.pinned).length, '개막전 홈 구장 지정') + '</div>';
   }
 
   /** 시뮬레이션 점수 곡선: t(0..1) → [hardSum, softSum] */

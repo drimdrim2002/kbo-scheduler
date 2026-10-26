@@ -95,7 +95,7 @@
       label: '시리즈', sheet: S.SHEET_NAMES.series, unit: '시리즈', desc: '같은 두 구단이 한 구장에서 치르는 2~4연전입니다. 날짜와 고정은 ③에서 정합니다.',
       rows: (st) => st.matches,
       cols: [
-        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="muted" title="개막전 대진 지정으로 고정(③에서 관리)">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
+        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="muted" title="홈 구장 지정으로 고정(③에서 관리)">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
         { key: 'away', head: '원정', alias: 'away', req: true, w: 120, get: (r) => r.away, show: (r) => S.team(r.away), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.home ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.away = String(v).trim(); } },
         { key: 'games', head: '연전 수', alias: 'games', req: true, w: 70, num: true, get: (r) => r.consecutive, validate: vRange(2, 4, '연전 수'), set: (r, v) => { r.consecutive = P.int(v); } },
         { key: 'stadium', head: '구장', w: 170, ro: true, show: (r) => esc(((app().team(r.home) || {}).stadium) || '-'), html: true },
@@ -181,7 +181,7 @@
         { key: 'mode', head: '지정 방식', alias: 'mode', req: true, w: 84, get: (r) => (r.mode === 'MATCH' ? '대진 지정' : '구장 지정'), validate: vMode, set: (r, v) => { r.mode = parseMode(v); if (r.mode === 'STADIUM') { delete r.home; delete r.away; r.stadiums = r.stadiums || []; } else delete r.stadiums; } },
         { key: 'home', head: '홈', alias: 'home', w: 90, get: (r) => r.home || '', show: (r) => (r.home ? S.team(r.home) : ''), html: true, validate: (v, r) => (r.mode === 'MATCH' ? vTeam(v) : null), set: (r, v) => { r.home = String(v).trim(); } },
         { key: 'away', head: '원정', alias: 'away', w: 90, get: (r) => r.away || '', show: (r) => (r.away ? S.team(r.away) : ''), html: true, validate: (v, r) => (r.mode === 'MATCH' ? vTeam(v) : null), set: (r, v) => { r.away = String(v).trim(); } },
-        { key: 'stadiums', head: '구장', alias: 'stadiums', w: 0, get: (r) => (r.stadiums || []).join(', '), validate: (v, r) => (r.mode === 'STADIUM' ? vStadiums(v) : null), set: (r, v) => { if (r.mode === 'STADIUM') r.stadiums = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean); } }
+        { key: 'stadiums', head: '구장', alias: 'stadiums', w: 0, get: (r) => (r.stadiums || []).join(', '), validate: (v, r) => (r.mode === 'STADIUM' ? vStadiums(v) : null), set: (r, v) => { if (r.mode === 'STADIUM') { r.stadiums = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean); delete r.teams; r.teams = S.evTeams(r); } } }
       ],
       rowIssues(st, i) {
         const e = st.events[i];
@@ -781,21 +781,18 @@
       S.toast('법정 공휴일 ' + add.length + '일을 넣었습니다(' + add.map((h) => fmt.short(h.date)).join(', ') + '). 가중치는 공휴일 2 · 어린이날 3입니다. 임시 공휴일은 「줄 추가」로 더하세요.', 'ok', 6000);
       S.go({ tab: 'holidays' });
     },
+    // 개막전 홈 구장 지정: 대진이 아니라 그 날 홈 경기를 해야 하는 구단 5곳(구장 지정). 지금 일정의 개막일 홈 구단으로 채우고, 시즌 달력에서 고친다
     'add-opening': () => {
       if (locked()) return;
       const st = app().state, c = D();
-      if (!st.calendar.length) { S.toast('연전 기간이 먼저 있어야 합니다. 연전 기간 표에서 「규칙대로 자동 채우기」를 누르세요.', 'warn', 5000); S.go({ tab: 'slots' }); return; }
-      const ms = (c.bySlot[0] || []).filter((m) => !st.events.some((e) => e.mode === 'MATCH' && e.date === c.slots[0].date && e.home === st.matches[m].home && e.away === st.matches[m].away));
-      if (!ms.length) { S.toast(st.matches.length ? '개막일(' + fmt.date(c.slots[0].day) + ')의 대진이 이미 모두 특별 경기에 있습니다.' : '시리즈가 먼저 있어야 개막전 대진을 정할 수 있습니다. 시리즈 표에서 「맞대결 규칙대로 자동 채우기」를 누르세요.', st.matches.length ? 'info' : 'warn', 5000); if (!st.matches.length) S.go({ tab: 'series' }); return; }
-      const date = c.slots[0].date;
-      const evs = ms.map((m, k) => ({ id: 'ev-open-' + Date.now().toString(36) + k, type: 'OPENING', name: '개막전', slot: 0, date, mode: 'MATCH', home: st.matches[m].home, away: st.matches[m].away }));
-      S.trackViz('events', () => app().commit('개막전 대진 추가 (' + evs.length + '경기)', (s) => {
-        s.events = s.events.concat(evs);
-        // 개막일 연전 기간에 이미 들어 있는 그 대진 시리즈를 고정한다(자동 편성이 그대로 둔다)
-        evs.forEach((e, k) => { const m = ms[k]; if (s.plan[m] && s.plan[m].calendar === 0) { s.matches[m].pinned = true; s.matches[m].eventId = e.id; } });
-      }, ['input', 'events', 'pins']));
-      S.ui.cell = { sheet: 'events', row: st.events.length - evs.length, col: 'name' }; S.ui.edit = null;
-      S.toast('개막전 ' + fmt.date(date) + ' 대진 ' + evs.length + '경기를 「대진 지정」으로 넣고 고정했습니다. 대진을 바꾸려면 홈·원정 칸을 고치세요.', 'ok', 6000);
+      if (!st.calendar.length) { S.toast('연전 기간이 먼저 있어야 합니다. 시즌 달력에서 「규칙대로 채우기」를 누르세요.', 'warn', 5000); return; }
+      if (st.events.some((e) => e.type === 'OPENING' && e.mode === 'STADIUM')) { S.toast('개막전 홈 구장 지정이 이미 있습니다. 시즌 달력에서 개막일을 눌러 고칩니다.', 'info', 4500); return; }
+      const date = c.slots[0].date, half = st.teams.length >> 1;
+      const homes = (c.bySlot[0] || []).map((m) => st.matches[m].home).filter((x, i, a) => a.indexOf(x) === i).slice(0, half);
+      const ev = { id: 'ev-opening-' + Date.now().toString(36), type: 'OPENING', name: '개막전', slot: 0, date, mode: 'STADIUM', teams: homes, stadiums: homes.map((n) => (app().team(n) || {}).stadium).filter(Boolean) };
+      S.trackViz('events', () => app().commit('개막전 홈 구장 지정 추가', (s) => { s.events.push(ev); }, ['input', 'events']));
+      S.ui.cell = { sheet: 'events', row: st.events.length - 1, col: 'stadiums' }; S.ui.edit = null;
+      S.toast(homes.length ? '개막전(' + fmt.date(date) + ') 홈 구장 ' + homes.length + '곳을 넣었습니다: ' + homes.join('·') + '. 상대는 자동 편성이 정합니다. 시즌 달력에서 개막일을 눌러 바꿀 수 있습니다.' : '개막전(' + fmt.date(date) + ') 홈 구장 지정을 넣었습니다. 시즌 달력에서 개막일을 눌러 홈 구단 ' + half + '곳을 고르세요.', homes.length ? 'ok' : 'warn', 6500);
       S.go({ tab: 'events' });
     },
     'add-children': () => {
@@ -806,10 +803,10 @@
       const teams = (set.obligationTeams || []).filter((n) => st.teams.some((t) => t.name === n));
       const stadiums = teams.map((n) => st.teams.find((t) => t.name === n).stadium).filter((x, i, a) => a.indexOf(x) === i);
       const inSlot = CalendarGen.slotIndexOfDate(st.calendar, date) >= 0;
-      const ev = { id: 'ev-children-' + Date.now().toString(36), type: 'CHILDREN', name: '어린이날', date, mode: 'STADIUM', stadiums };
+      const ev = { id: 'ev-children-' + Date.now().toString(36), type: 'CHILDREN', name: '어린이날', date, mode: 'STADIUM', teams, stadiums };
       S.trackViz('events', () => app().commit('어린이날 구장 지정 추가', (s) => { s.events.push(ev); }, ['input', 'events']));
       S.ui.cell = { sheet: 'events', row: st.events.length - 1, col: 'stadiums' }; S.ui.edit = null;
-      S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — ' + fmt.date(date) + '이 휴식 요일이면 「휴식일 경기」에 넣고 연전 기간을 다시 만드세요.'), inSlot ? 'ok' : 'warn', 7000);
+      S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — 시즌 달력에서 ' + fmt.date(date) + '이 든 묶음을 만드세요(휴식 요일이면 그 날을 눌러 끌기).'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
     'road-all': () => { if (locked()) return; app().fetchRoadDistances(null).then(S.roadToast); },

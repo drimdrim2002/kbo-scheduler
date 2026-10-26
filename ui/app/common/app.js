@@ -523,6 +523,8 @@
     const o = opts || {};
     const st = this.state;
     const notes = [];
+    // 바뀐 것이 없으면 실행 취소 항목을 남기지 않는다(「다음」 때마다 부르므로)
+    const before = JSON.stringify([st.matches.map((m) => [m.pinned, m.eventId || '']), st.plan.map((p) => p.calendar)]);
     const ok = this.commit(o.label || '특별 경기 대진 고정', (s) => {
       for (const e of s.events) {
         if (e.mode !== 'MATCH') continue;
@@ -548,6 +550,33 @@
         s.matches[m].pinned = true;
         s.matches[m].eventId = e.id;
       }
+      // 홈 구장 지정(개막전 등, 어린이날 말고): 고른 구단이 그 연전 기간에 홈인 시리즈를 고정한다.
+      // 서버 자동 편성은 어린이날 홈 구단만 알기 때문에, 나머지는 고정으로 지킨다. 그 구단의 홈 시리즈가 그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다.
+      for (const e of s.events) {
+        if (e.mode !== 'STADIUM' || e.type === 'CHILDREN' || !(e.teams || []).length) continue;
+        const slot = Score.resolveEventSlot(e, s.calendar);
+        if (slot < 0) continue;
+        const L = s.calendar[slot].consecutive;
+        const busy = () => { const b = new Set(); s.matches.forEach((mm, i) => { if (s.plan[i].calendar === slot && mm.pinned) { b.add(mm.home); b.add(mm.away); } }); return b; };
+        for (const h of e.teams) {
+          let m = s.matches.findIndex((mm, i) => mm.home === h && s.plan[i].calendar === slot);
+          if (m < 0) {
+            const b = busy();
+            m = s.matches.findIndex((mm) => mm.home === h && mm.consecutive === L && !mm.pinned && !e.teams.includes(mm.away) && !b.has(mm.away));
+            if (m < 0) { notes.push(e.name + ': ' + h + ' 홈 ' + L + '연전 시리즈 없음'); continue; }
+            const from = s.plan[m].calendar;
+            for (let n = 0; n < s.matches.length; n++) {
+              if (n === m || s.plan[n].calendar !== slot || s.matches[n].pinned) continue;
+              const mm = s.matches[n];
+              if ([mm.home, mm.away].some((t) => t === h || t === s.matches[m].away)) { s.plan[n].calendar = from; break; }
+            }
+            s.plan[m].calendar = slot;
+          }
+          s.matches[m].pinned = true;
+          s.matches[m].eventId = e.id;
+        }
+      }
+      if (JSON.stringify([s.matches.map((m) => [m.pinned, m.eventId || '']), s.plan.map((p) => p.calendar)]) === before) return false;
     }, ['plan', 'pins']);
     if (!o.silent) UI.toast(notes.length ? '일부 특별 경기를 고정하지 못했습니다: ' + notes.join(', ') : '대진 지정 특별 경기를 고정했습니다.', notes.length ? 'warn' : 'ok', 5000);
     return ok;

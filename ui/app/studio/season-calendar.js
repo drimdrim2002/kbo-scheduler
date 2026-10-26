@@ -427,8 +427,122 @@
     if (C.slotAt != null) o.slot = Dates.isoDate(C.slotAt);
   };
 
+  // ───────── 홈 구장 지정 (날짜 메뉴는 이것 하나) ─────────
+  // 그 날 홈 경기를 해야 하는 구단을 고른다(구장 지정, events의 STADIUM). 개막전도 대진이 아니라 홈 구장만 — 상대는 자동 편성이 정한다.
+  // teams = 고른 구단(잠실은 두산·LG 중 하나), stadiums = 채점에 쓰는 구장. 어린이날은 서버 자동 편성의 어린이날 홈 구단(obligationTeams)도 같이 맞춘다.
+  const homeEv = (d) => app().state.events.find((e) => e.mode === 'STADIUM' && dn(e.date) === d) || null;
+  const matchEvs = (d) => app().state.events.filter((e) => e.mode === 'MATCH' && dn(e.date) === d);
+  /** 구장 지정의 구단: teams가 있으면 그대로, 없으면(예전 데이터) 구장의 연고 구단 — 같이 쓰는 구장은 어린이날 홈 구단 설정에서 고른다 */
+  S.evTeams = function (e) {
+    const st = app().state;
+    if (e.teams && e.teams.length) return e.teams.filter((n) => st.teams.some((t) => t.name === n));
+    const pref = st.settings.obligationTeams || [];
+    return (e.stadiums || []).map((x) => { const own = st.teams.filter((t) => t.stadium === x).map((t) => t.name); return own.find((n) => pref.includes(n)) || own[0]; }).filter(Boolean);
+  };
+  function evKind(d) {
+    const s = set(), iso = Dates.isoDate(d), hh = holidayOf(d);
+    if (s.seasonStart && iso === s.seasonStart) return { type: 'OPENING', name: '개막전' };
+    if (iso.slice(5) === '05-05') return { type: 'CHILDREN', name: '어린이날' };
+    return { type: 'CUSTOM', name: hh ? hh.name : '홈 구장 지정' };
+  }
+  /** 고른 날의 홈 구장 구단 하나를 넣거나 뺀다(저장 한 번) */
+  function toggleHome(d, name) {
+    if (S.locked()) return false;
+    const st = app().state, e = homeEv(d), cur = e ? S.evTeams(e) : [];
+    const t = st.teams.find((x) => x.name === name);
+    if (!t) return false;
+    let next;
+    if (cur.includes(name)) next = cur.filter((x) => x !== name);
+    else {
+      const clash = cur.find((x) => (st.teams.find((y) => y.name === x) || {}).stadium === t.stadium);
+      if (clash) { S.toast(t.stadium + '은(는) ' + st.teams.filter((y) => y.stadium === t.stadium).map((y) => y.name).join('·') + ' 중 하나만 고릅니다(같은 날 한 구장에서 홈 경기는 하나). 이미 ' + clash + '을(를) 골랐습니다.', 'warn', 5500); return false; }
+      if (cur.length >= half()) { S.toast('하루에 홈 경기는 ' + half() + '곳입니다. 이미 ' + cur.length + '곳을 골랐습니다 — 다른 구단을 먼저 빼세요.', 'warn', 5000); return false; }
+      next = cur.concat([name]);
+    }
+    const order = st.teams.map((x) => x.name);
+    next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    const stadiums = next.map((n) => st.teams.find((x) => x.name === n).stadium);
+    const kind = e ? { type: e.type, name: e.name } : evKind(d);
+    const label = fmt.short(d) + ' ' + kind.name + ' 홈 구장 ' + (cur.includes(name) ? '빼기: ' : '넣기: ') + name;
+    const ok = app().commit(label, (s) => {
+      let ev = s.events.find((x) => x.mode === 'STADIUM' && dn(x.date) === d);
+      if (!next.length) {
+        if (ev) { s.events = s.events.filter((x) => x !== ev); for (const m of s.matches) if (m.eventId === ev.id) { delete m.eventId; m.pinned = false; } }
+        return;
+      }
+      if (!ev) { ev = { id: 'ev-' + kind.type.toLowerCase() + '-' + Date.now().toString(36), type: kind.type, name: kind.name, date: Dates.isoDate(d), mode: 'STADIUM' }; s.events.push(ev); s.events.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); }
+      ev.teams = next; ev.stadiums = stadiums; ev.slot = Score.resolveEventSlot(ev, s.calendar);
+      for (const m of s.matches) if (m.eventId === ev.id && !next.includes(m.home)) { delete m.eventId; m.pinned = false; }
+      if (ev.type === 'CHILDREN' && next.length === (s.teams.length >> 1)) s.settings.obligationTeams = next.slice();
+    }, ['events', 'pins', 'settings']);
+    if (ok && C.tour) C.tour.homePicked = true;
+    return ok;
+  }
+  function removeHome(d) {
+    const e = homeEv(d);
+    if (!e || S.locked()) return false;
+    return app().commit(fmt.short(d) + ' ' + e.name + ' 홈 구장 지정 지우기', (s) => {
+      s.events = s.events.filter((x) => x.id !== e.id);
+      for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; }
+    }, ['events', 'pins']);
+  }
+  /** 예전 방식(대진 지정)으로 들어온 그 날 경기를 홈 구장 지정으로 바꾼다: 홈 구단만 남긴다 */
+  function convertMatch(d) {
+    const ms = matchEvs(d);
+    if (!ms.length || S.locked()) return false;
+    const st = app().state, homes = ms.map((e) => e.home).filter((n, i, a) => st.teams.some((t) => t.name === n) && a.indexOf(n) === i).slice(0, half());
+    const kind = evKind(d);
+    return app().commit(fmt.short(d) + ' 대진 지정 ' + ms.length + '경기 → 홈 구장 지정', (s) => {
+      const ids = new Set(ms.map((e) => e.id));
+      const keep = s.events.find((x) => x.mode === 'STADIUM' && dn(x.date) === d);
+      s.events = s.events.filter((x) => !ids.has(x.id));
+      for (const m of s.matches) if (ids.has(m.eventId)) { delete m.eventId; m.pinned = false; }
+      const ev = keep || { id: 'ev-' + kind.type.toLowerCase() + '-' + Date.now().toString(36), type: kind.type === 'CUSTOM' ? (ms[0].type || 'CUSTOM') : kind.type, name: kind.type === 'CUSTOM' ? ms[0].name : kind.name, date: Dates.isoDate(d), mode: 'STADIUM' };
+      ev.teams = homes; ev.stadiums = homes.map((n) => s.teams.find((t) => t.name === n).stadium); ev.slot = Score.resolveEventSlot(ev, s.calendar);
+      if (!keep) s.events.push(ev);
+    }, ['events', 'pins']);
+  }
+  S.calHome = { toggleHome, removeHome, convertMatch };
+  /** 오른쪽 「고른 날」 안: 홈 구장 지정 */
+  S.calHomeBox = function (d, b) {
+    const st = app().state, e = homeEv(d), picked = e ? S.evTeams(e) : [], ms = matchEvs(d);
+    const on = !!e || C.homeOpen === d;
+    const head = '<div class="sc-home-head"><button class="sc-tog' + (on ? ' on' : '') + '" data-act="' + (e ? 'cal-home-off' : 'cal-home-on') + '" role="switch" aria-checked="' + on + '"' + (b ? '' : ' disabled') + '><i></i><b>홈 구장 지정</b></button>' + (e ? '<span class="sc-home-n">' + picked.length + ' / ' + half() + '곳</span>' : '') + '</div>';
+    if (!b) return head + '<div class="sc-note">이 날은 묶음이 없어 경기가 없습니다. 먼저 달력에서 끌어서 묶음을 만들면 홈 구장을 지정할 수 있습니다.</div>';
+    let s = head + '<div class="sc-note">이 날 홈 경기를 해야 하는 구단 ' + half() + '곳을 고릅니다. 상대는 자동 편성이 정합니다.</div>';
+    if (on) {
+      s += '<div class="sc-home-teams" role="group" aria-label="홈 경기 구단">' + st.teams.map((t) => {
+        const sel = picked.includes(t.name);
+        const clash = !sel && picked.some((x) => x !== t.name && (st.teams.find((y) => y.name === x) || {}).stadium === t.stadium);
+        return '<button class="gs-tbtn' + (sel ? ' on' : '') + (clash ? ' dim' : '') + '" data-act="cal-home-team" data-team="' + esc(t.name) + '" aria-pressed="' + sel + '" style="--tc:' + esc(t.color || '#555') + '" title="' + esc(t.stadium + (clash ? ' — 같은 구장 구단을 이미 골랐습니다' : '')) + '"><i></i>' + esc(t.name) + '</button>';
+      }).join('') + '</div>';
+      const shared = app().sharedStadiums();
+      s += '<div class="sc-note">' + (shared.size ? Array.from(shared).map(([x, n]) => esc(x.replace(/종합운동장$/, '')) + '은 ' + esc(n.join('·')) + ' 중 하나만').join(' · ') + '. ' : '') + (e && e.type === 'OPENING' ? '개막전 ' : '') + (dlabel(d)) + ' · ' + (b ? esc(bundleText(b.d, b.len)) : '') + '</div>';
+      if (e && picked.length < half()) s += '<div class="sc-warn">' + icon('info') + '<span>' + (half() - picked.length) + '곳 더 고를 수 있습니다' + (e.type === 'CHILDREN' ? ' — 어린이날은 ' + half() + '곳을 모두 골라야 서버 자동 편성도 같은 구단으로 지킵니다' : '') + '.</span></div>';
+    }
+    if (ms.length) s += '<div class="sc-warn">' + icon('warn') + '<span>예전 방식 「대진 지정」 ' + ms.length + '경기가 이 날에 있습니다(' + esc(ms.map((x) => x.away + '–' + x.home).slice(0, 3).join(', ')) + (ms.length > 3 ? ' …' : '') + '). <button class="lnk" data-act="cal-ev-convert">홈 구장 지정으로 바꾸기</button></span></div>';
+    return s;
+  };
+  /** 오른쪽 「확인」의 홈 구장 지정 줄 */
+  S.calHomeLine = function () {
+    const st = app().state, evs = st.events.filter((e) => e.mode === 'STADIUM').slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+    const iss = app().checkEvents().filter((x) => x.level === 'block' || x.level === 'warn');
+    if (!evs.length) return { ok: true, html: S.stat('todo', '아직 없음') };
+    const txt = evs.map((e) => fmt.short(e.date) + ' ' + e.name + ' ' + S.evTeams(e).length + '곳').join(' · ');
+    return { ok: !iss.length, html: '<span class="sc-home-sum">' + esc(txt) + '</span>' + (iss.length ? S.stat('warn', '확인 ' + iss.length) : '') };
+  };
+  /** 「다음」 전에: 개막전 같은 홈 구장 지정은 그 날 홈 시리즈를 고정한다(서버 자동 편성은 어린이날 홈 구단만 안다) */
+  S.calBeforeNext = function () {
+    const st = app().state;
+    if (st.events.some((e) => e.mode === 'MATCH' || (e.mode === 'STADIUM' && e.type !== 'CHILDREN' && (e.teams || []).length))) app().applyEvents({ silent: true, label: '홈 구장 지정 시리즈 고정' });
+  };
+
   // ───────── 동작 ─────────
   Object.assign(S.actions, {
+    'cal-home-team': (el) => { if (C.day != null) toggleHome(C.day, el.dataset.team); },
+    'cal-home-on': () => { if (C.day != null) { C.homeOpen = C.day; S.render(); } },
+    'cal-home-off': () => { if (C.day != null) { C.homeOpen = null; removeHome(C.day); } },
+    'cal-ev-convert': () => { if (C.day != null) convertMatch(C.day); },
     'cal-fill': () => fillByRule(),
     'cal-len': (el) => setLen(+el.dataset.i, +el.dataset.n),
     'cal-split': (el) => splitBundle(+el.dataset.i),
@@ -598,7 +712,38 @@
     ok('묶음을 나누면 확인에 「다시 만듦」 → 「다음: 검토·실행」이 시리즈를 규칙대로 다시 만들고(묶음 46 × 5 = 230개) ② · 사전 점검 진행 불가 0', !before.ok && S.ui.step === 2 && st().matches.length === 230 && S.calSeriesState().ok && app().preflight().counts.block === 0, before.text + ' · block ' + app().preflight().items.filter((x) => x.status === 'block').map((x) => x.title).join(','));
     S.go({ step: 1 }); undoN(3);
     ok('실행 취소 세 번(시리즈 고정·시리즈·나누기) → 나누기 전 · 시리즈 그대로', st().calendar.length === 45 && S.calSeriesState().ok && Array.from(app().derived().plan).every((c, m) => c === p0[m]));
-    // 10. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
+    // 10. 홈 구장 지정(날짜 메뉴는 이것 하나): 5/5 어린이날 · 3/22 개막전도 구장 5곳 · 잠실은 하나만 · 5곳 넘으면 거부
+    const evAt = (iso) => st().events.find((e) => e.mode === 'STADIUM' && e.date === iso);
+    const teamBtn = (n) => q('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]');
+    tap('2025-05-05');
+    ok('5/5를 누르면 「고른 날 · 5/5(월)」 · 홈 구장 지정 켜짐 · 두산·키움·한화·NC·롯데 5 / 5곳 · 상대는 자동 편성', /고른 날 · 5\/5\(월\)/.test(q('.sc-day').textContent) && q('.sc-day .sc-tog').classList.contains('on') && qa('.sc-day .gs-tbtn.on').length === 5 && ['두산', '키움', '한화', 'NC', '롯데'].every((n) => teamBtn(n).classList.contains('on')) && /5 \/ 5곳/.test(q('.sc-day').textContent) && /상대는 자동 편성/.test(q('.sc-day').textContent));
+    const u0 = app().store.undoStack.length;
+    click('.sc-day [data-act="cal-home-team"][data-team="LG"]'); flush();
+    click('.sc-day [data-act="cal-home-team"][data-team="SSG"]'); flush();
+    ok('5곳이 찼으면 더 넣지 않음 · 잠실은 두산·LG 중 하나만(두산을 고른 채 LG 거부)', app().store.undoStack.length === u0 && evAt('2025-05-05').teams.length === 5 && !evAt('2025-05-05').teams.includes('LG') && teamBtn('LG').classList.contains('dim'));
+    click('.sc-day [data-act="cal-home-team"][data-team="두산"]'); flush();
+    click('.sc-day [data-act="cal-home-team"][data-team="LG"]'); flush();
+    const sw = evAt('2025-05-05');
+    ok('두산을 빼고 LG → 어린이날 홈 구단 LG·키움·한화·NC·롯데 · 구장은 그대로 잠실 · 서버 자동 편성 어린이날 구단도 같이', sw.teams.join() === 'LG,키움,한화,NC,롯데' && sw.stadiums.includes('잠실종합운동장') && st().settings.obligationTeams.join() === 'LG,키움,한화,NC,롯데' && app().store.undoStack.length === u0 + 2);
+    undoN(2);
+    ok('실행 취소 두 번 → 두산·키움·한화·NC·롯데', evAt('2025-05-05').teams.join() === '두산,키움,한화,NC,롯데' && st().settings.obligationTeams.join() === '두산,키움,한화,NC,롯데');
+    tap('2025-03-22');
+    ok('개막전 3/22(토)도 대진이 아니라 홈 구장 5곳(LG·SSG·KT·삼성·KIA — 2025 공식 일정표)', evAt('2025-03-22').type === 'OPENING' && evAt('2025-03-22').teams.join() === 'SSG,LG,KT,삼성,KIA' && !st().events.some((e) => e.mode === 'MATCH') && qa('.sc-day .gs-tbtn.on').length === 5);
+    tap('2025-06-03');
+    const offFirst = !q('.sc-day .sc-tog').classList.contains('on') && !q('.sc-day .gs-tbtn');
+    click('.sc-day [data-act="cal-home-on"]'); flush();
+    click('.sc-day [data-act="cal-home-team"][data-team="KIA"]'); flush();
+    const made = evAt('2025-06-03');
+    ok('지정 없는 날(6/3): 켜면 구단 단추 → KIA를 고르면 홈 구장 지정 1곳 · 달력에 표시', offFirst && !!made && made.teams.join() === 'KIA' && cell('2025-06-03').classList.contains('ev') && /1 \/ 5곳/.test(q('.sc-day').textContent));
+    click('.sc-day [data-act="cal-home-off"]'); flush();
+    ok('끄면 그 날 지정을 지움', !evAt('2025-06-03') && !cell('2025-06-03').classList.contains('ev'));
+    undoN(2);
+    tap('2025-07-14');
+    ok('묶음 없는 날(7/14 월)은 홈 구장 지정을 켤 수 없음(경기 없는 날 안내)', q('.sc-day .sc-tog').disabled && /경기가 없습니다/.test(q('.sc-day').textContent));
+    cell('2025-05-05').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); flush();
+    ok('오른쪽 단추도 같은 메뉴(5/5 고른 날)', C.day === dn('2025-05-05') && /고른 날 · 5\/5/.test(q('.sc-day').textContent));
+    ok('확인: 홈 구장 지정 「3/22 개막전 5곳 · 5/5 어린이날 5곳」', /3\/22 개막전 5곳 · 5\/5 어린이날 5곳/.test(q('.sc-check').textContent));
+    // 11. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
     tap('2025-07-17');
     const pop = q('#scPop').getBoundingClientRect(), body = q('#scCal').getBoundingClientRect();
     ok('말풍선은 달력 안 · 페이지 스크롤 0', pop.left >= body.left - 1 && pop.right <= body.right + 1 && pop.top >= body.top - 1 && pop.bottom <= body.bottom + 1 && S.checkScroll().ok);

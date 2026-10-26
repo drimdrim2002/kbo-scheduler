@@ -1356,3 +1356,16 @@ svg.mc text { font-family: var(--font); }
 .sc-seg button:hover { background: var(--hover); }
 .sc-seg button.on { background: var(--navy); color: #fff; font-weight: 700; }
 .sc-pop-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+/* 고른 날: 홈 구장 지정 */
+.sc-home-head { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.sc-tog { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; color: var(--navy); cursor: pointer; }
+.sc-tog i { position: relative; display: inline-block; width: 30px; height: 16px; border-radius: 8px; background: var(--line-2); }
+.sc-tog i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .12s; }
+.sc-tog.on i { background: var(--blue); }
+.sc-tog.on i::after { left: 16px; }
+.sc-tog:disabled { opacity: .5; cursor: default; }
+.sc-home-n { margin-left: auto; font-family: var(--mono); font-size: var(--fs-s); font-weight: 700; color: var(--blue); }
+.sc-home-teams { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.sc-home-teams .gs-tbtn { height: 26px; padding: 0 8px; }
+.sc-home-teams .gs-tbtn.dim { opacity: .45; }
+.sc-home-sum { font-size: var(--fs-xs); color: var(--text-2); text-align: right; }
