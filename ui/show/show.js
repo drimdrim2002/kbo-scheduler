@@ -18,7 +18,7 @@
     compare: '/api/v1/compare',
     result: (id) => '/api/v1/results/' + encodeURIComponent(id)
   };
-  SHOW.replayScripts = ['../core/replay-model.js?v=20261024p', '../app/replay/replay.js?v=20261024p']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
+  SHOW.replayScripts = ['../core/replay-model.js?v=20261025a', '../app/replay/replay.js?v=20261025a']; // ?v=: 캐시 버스터. 2026-10-24부터 서버 ETag·304 + Cloudflare가 no-cache를 전달하므로 필수는 아니지만, 옛 캐시가 남은 브라우저를 위해 큰 변경 때는 올린다
   SHOW.studioHref = { file: '../index.html', http: '/studio/' }; // 위저드 주소 (D7: 서버에서는 /studio/)
   SHOW.PREVIEW_MS = 15000;      // 소개 쪽 미리보기 재생 시간
   // 「편성 시작」 생각 시간 3단계. wait = 누르고 결과가 나오기까지 실측(정한 시간 + 첫 일정 만들기·정리 3.5~4.5초, docs/STATUS.md)
@@ -337,7 +337,7 @@
    */
   /**
    * 보여주는 문의 해설은 "어떤 수로 총 이동거리가 얼마에서 얼마가 됐나"만 말한다.
-   * 모듈 기본 해설(ui/core/replay-model.js caption)은 슬롯 없는 시리즈·구단 간 차이 같은 단계까지 적는데, 여기서는 개념만 보여 주면 된다.
+   * 모듈 기본 해설(ui/core/replay-model.js caption)은 일정 미정 시리즈·구단 간 차이 같은 단계까지 적는데, 여기서는 개념만 보여 주면 된다.
    */
   function simpleCaptions(p) {
     const m = p.model, RM = window.KBO.ReplayModel, km = (st) => (st.soft && st.soft.length >= 5 ? fmtInt(st.soft[4]) + 'km' : null);
@@ -363,7 +363,7 @@
   const LEVEL_NAMES = { 1: '이동 일수 맞추기', 2: '구단별 이동거리 맞추기', 3: '주말·공휴일 홈 맞추기', 4: '10개 팀 전체 이동거리' };
   function fitBoard(box, p) {
     simpleCaptions(p);
-    const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/슬롯 (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "슬롯 45개"
+    const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/(?:연전 기간|슬롯) (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "연전 기간 45개"
     const sh = $('.rp-score-h b', box); if (sh) sh.textContent = '이동거리 곡선'; // 모듈 기본은 "점수 곡선"
     $$('.rp-lv', box).forEach((el) => { const nm = el.querySelector('.rp-lv-name'), l = Number(el.getAttribute('data-l')); if (nm && LEVEL_NAMES[l]) nm.textContent = LEVEL_NAMES[l]; });
     // 칩 값: 0이면 "다 맞췄어요 ✓", 아니면 "아직 N"

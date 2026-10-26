@@ -69,9 +69,9 @@
     const st = app().state, c = D();
     const sl = (s) => fmt.date(c.slots[s].day);
     if (cd.kind === 'swap') return { kind: '시리즈 맞바꾸기', what: app().matchLabel(cd.m) + ' ↔ ' + app().matchLabel(cd.n) + ' (' + sl(c.plan[cd.n]) + ')' };
-    if (cd.kind === 'slots') return { kind: '슬롯 맞바꾸기', what: sl(cd.a) + ' ↔ ' + sl(cd.b) + ' (' + c.slots[cd.a].consecutive + '연전 5시리즈)' };
+    if (cd.kind === 'slots') return { kind: '연전 맞바꾸기', what: sl(cd.a) + ' ↔ ' + sl(cd.b) + ' (' + c.slots[cd.a].consecutive + '연전 ' + (st.teams.length >> 1) + '시리즈 통째로)' };
     const m = st.matches[cd.m];
-    return { kind: '홈·원정 뒤집기 · 입력 변경', what: m.away + ' @ ' + m.home + ' → ' + m.home + ' @ ' + m.away };
+    return { kind: '홈·원정 바꾸기 · 입력 데이터도 바뀜', what: app().matchLabel(cd.m) + ' → ' + m.home + ' vs ' + m.away };
   }
   /** Δ 표시. 일반 모드: 위반 증감 + 공정성 좋아짐/나빠짐(아이콘·글자). 개발자 모드: Hard/Soft 수치 */
   S.deltaHtml = function (h, s) {
@@ -98,10 +98,10 @@
   // ───────── 왼쪽: 위반 · 구단 필터 · 미배정 풀 ─────────
   function renderList() {
     const c = D(), ex = c.ex, u = S.ui;
-    let s = '<div class="pane-head"><span class="pane-title">' + esc(S.term('hardViol')) + '</span><span class="pane-desc">' + (ex.violations.length ? '클릭하면 위치로 이동' : '없음') + '</span>' +
+    let s = '<div class="pane-head"><span class="pane-title">' + esc(S.term('hardViol')) + '</span><span class="pane-desc">' + (ex.violations.length ? '누르면 그 자리로 갑니다' : '없음') + '</span>' +
       '<span style="margin-left:auto">' + (ex.violations.length ? S.stat('block', ex.violations.length + '건') : S.stat('ok', '0건')) + '</span></div>';
     s += '<div class="pane-body" data-sk="r-list">';
-    if (!ex.violations.length) s += '<div class="empty"><b>' + icon('check') + ' ' + esc(S.termPlain('hardViol')) + '이 없습니다</b>편성 가능한 일정입니다. ④ 품질·배포로 넘어가세요.</div>';
+    if (!ex.violations.length) s += '<div class="empty"><b>' + icon('check') + ' ' + esc(S.termPlain('hardViol')) + '이 없습니다</b>편성 가능한 일정입니다. ④ 공정성·배포로 넘어가세요.</div>';
     for (const r of Score.HARD_RULES) {
       const vs = ex.violations.filter((v) => v.code === r.code);
       if (!vs.length) continue;
@@ -115,15 +115,15 @@
       }
     }
     s += '<div class="list-sep"></div>';
-    s += '<div class="label">구단 필터<span class="cnt">' + (u.teamFilter.length ? '<button class="btn xs ghost" data-act="tf-clear">해제</button>' : '전체') + '</span></div>';
+    s += '<div class="label">구단 고르기<span class="cnt">' + (u.teamFilter.length ? '<button class="btn xs ghost" data-act="tf-clear">해제</button>' : '전체') + '</span></div>';
     s += '<div class="tf">' + app().state.teams.map((t) => {
       const on = u.teamFilter.includes(t.name);
       return '<button class="' + (on ? 'on' : '') + '" data-act="tf" data-team="' + esc(t.name) + '" aria-pressed="' + on + '"><i class="sw" style="background:' + esc(t.color) + '"></i>' + esc(t.name) + '<span class="ck">' + (on ? icon('check') : '') + '</span></button>';
     }).join('') + '</div>';
     if (S.feature('M8')) {
-      s += '<div class="label">미배정 풀<span class="cnt">' + c.pool.length + '</span></div>';
+      s += '<div class="label">일정 미정 보관함<span class="cnt">' + c.pool.length + '</span></div>';
       if (c.pool.length) s += '<div class="pool" data-drop-pool="1">' + c.pool.map((m) => chip(m, -1)).join('') + '</div>';
-      else s += '<div class="small muted" style="padding:0 12px 12px" data-drop-pool="1">비어 있음. 시리즈를 여기로 끌어 놓거나 인스펙터에서 뺄 수 있습니다.</div>';
+      else s += '<div class="small muted" style="padding:0 12px 12px" data-drop-pool="1">비어 있음. 시리즈를 여기로 끌어다 놓거나 오른쪽 자세히 보기에서 뺄 수 있습니다.</div>';
     }
     s += '</div>';
     return s;
@@ -143,16 +143,16 @@
     let fm = '';
     if (f.length && involved) {
       const homeSide = f.includes(mt.home);
-      fm = homeSide ? '<span class="fm h" title="홈">H</span>' : '<span class="fm a" title="원정">A</span>';
+      fm = homeSide ? '<span class="fm h" title="홈">홈</span>' : '<span class="fm a" title="원정">원</span>';
     }
     const sel = u.sel === 'm:' + m;
     const vsel = S._selViol && (S._selViol.matches || []).includes(m);
     const flash = u.flashMatches && u.flashMatches.includes(m);
     const cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (vsel ? ' vsel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
     const stad = (app().team(mt.home) || {}).stadium || '';
-    return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(mt.away + ' @ ' + mt.home + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
+    return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(app().matchLabel(m) + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
       fm + (mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
-      '<span class="tm"><i style="background:' + esc(S.teamColor(mt.away)) + '"></i>' + esc(mt.away) + '</span><span class="at">@</span>' +
+      '<span class="tm"><i style="background:' + esc(S.teamColor(mt.away)) + '"></i>' + esc(mt.away) + '</span><span class="at">vs</span>' +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.home)) + '"></i>' + esc(mt.home) + '</span>' +
       (S.wide ? '<span class="stad">· ' + esc(stad.replace(/(야구장|경기장|종합운동장|구장|라이언즈파크|챔피언스필드|이글스파크|NC파크|KT위즈파크|돔야구장)$/, '')) + '</span>' : '') +
       (flags.length ? '<span class="st-ico">' + icon('warn') + esc(flags.map(S.ruleShort).join(' ')) + '</span>' : '') + '</button>';
@@ -182,7 +182,7 @@
     let s = '<div class="cal-wrap"><div class="cal-head"><div></div>' + ['월', '화', '수', '목', '금', '토', '일'].map((d, i) => '<div class="' + (i === 6 ? 'sun' : i === 0 ? 'mon' : '') + '">' + d + '</div>').join('') + '</div>';
     s += '<div class="cal-grid" style="grid-template-rows:repeat(' + weeks.length + ',minmax(0,1fr))">';
     for (const w of weeks) {
-      s += '<div class="cal-week"><div class="cal-wk">' + weekNo(w) + '주</div>';
+      s += '<div class="cal-week"><div class="cal-wk">' + weekNo(w) + '주차</div>';
       const slotsHere = c.slots.filter((sl) => sl.days.some((d) => d >= w && d <= w + 6));
       for (let i = 0; i < 7; i++) {
         const d = w + i;
@@ -192,11 +192,11 @@
         let extra = '';
         if (sl) {
           const hard = c.ex.slotHard[sl.index];
-          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (sl.weekend && !hard ? ' 주말' : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '');
+          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (!hard ? (sl.weekend ? ' 주말' : ' 주중') : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '');
         }
         s += '<div class="cal-day' + (out ? ' out' : '') + (i === 6 ? ' sun' : '') + (hn ? ' hol' : '') + (d === ref ? ' today' : '') + '" style="grid-column:' + (i + 2) + '">' + Dates.fmtShort(d).split('/')[1] + (hn ? '<span class="hn">' + esc(hn) + '</span>' : '') + extra + '</div>';
         const inSlot = c.dayToSlot.has(d);
-        if (!inSlot) s += '<div class="cal-fill' + (black.has(d) ? ' black' : out ? ' out' : ' rest') + '" style="grid-column:' + (i + 2) + '" title="' + (black.has(d) ? '경기 없는 기간' : out ? '' : '휴식일') + '"></div>';
+        if (!inSlot) s += '<div class="cal-fill' + (black.has(d) ? ' black' : out ? ' out' : ' rest') + '" style="grid-column:' + (i + 2) + '" title="' + (black.has(d) ? '휴식기' : out ? '' : '휴식일') + '"></div>';
       }
       for (const sl of slotsHere) {
         const ds = sl.days.filter((d) => d >= w && d <= w + 6);
@@ -223,11 +223,11 @@
 
   function renderSlotList() {
     const c = D(), st = app().state;
-    let s = '<div class="pane-body" data-sk="r-slots"><table class="slotlist"><thead><tr><th>#</th><th>슬롯</th><th>연전</th><th>주말</th><th>휴일</th><th>상태</th><th>시리즈 (원정 @ 홈)</th></tr></thead><tbody>';
+    let s = '<div class="pane-body" data-sk="r-slots"><table class="slotlist"><thead><tr><th>#</th><th>연전 기간</th><th>연전 수</th><th>주중/주말</th><th>휴일 등급</th><th>상태</th><th>시리즈 (원정 vs 홈)</th></tr></thead><tbody>';
     for (const sl of c.slots) {
       const hard = c.ex.slotHard[sl.index];
-      s += '<tr class="' + (hard ? 'hard' : '') + '"><td class="mono">' + (sl.index + 1) + '</td><td>' + esc(fmt.date(sl.day)) + '</td><td>' + sl.consecutive + '</td><td>' + (sl.weekend ? '주말' : '-') + '</td><td>' + sl.holiday + '</td><td>' +
-        (hard ? S.stat('block', '위반 ' + hard) : S.stat('ok', '정상')) + '</td><td>' + c.bySlot[sl.index].map((m) => '<button class="btn xs ghost" data-act="sel-match" data-m="' + m + '">' + esc(st.matches[m].away + '@' + st.matches[m].home) + ((c.ex.matchFlags[m] || []).length ? ' ' + icon('warn') : '') + '</button>').join('') + '</td></tr>';
+      s += '<tr class="' + (hard ? 'hard' : '') + '"><td class="mono">' + (sl.index + 1) + '</td><td>' + esc(fmt.date(sl.day)) + '</td><td>' + sl.consecutive + '</td><td>' + (sl.weekend ? '주말' : '주중') + '</td><td>' + sl.holiday + '</td><td>' +
+        (hard ? S.stat('block', '위반 ' + hard) : S.stat('ok', '문제 없음')) + '</td><td>' + c.bySlot[sl.index].map((m) => '<button class="btn xs ghost" data-act="sel-match" data-m="' + m + '">' + esc(app().matchLabel(m)) + ((c.ex.matchFlags[m] || []).length ? ' ' + icon('warn') : '') + '</button>').join('') + '</td></tr>';
     }
     return s + '</tbody></table></div>';
   }
@@ -243,7 +243,7 @@
         const mt = st.matches[m];
         const home = mt.home === t.name;
         const bad = (c.ex.matchFlags[m] || []).length;
-        s += '<td style="' + (home ? 'background:#0A1E3C;color:#fff;' : '') + (bad ? 'box-shadow:inset 0 0 0 2px #B3261E;' : '') + 'font-size:11px;cursor:pointer" data-act="sel-match" data-m="' + m + '">' + (home ? 'H ' : 'A ') + esc(home ? mt.away : mt.home) + '</td>';
+        s += '<td style="' + (home ? 'background:#0A1E3C;color:#fff;' : '') + (bad ? 'box-shadow:inset 0 0 0 2px #B3261E;' : '') + 'font-size:11px;cursor:pointer" data-act="sel-match" data-m="' + m + '">' + (home ? '홈 ' : '원 ') + esc(home ? mt.away : mt.home) + '</td>';
       }
       s += '</tr>';
     }
@@ -257,17 +257,17 @@
 
   function renderMain() {
     const u = S.ui;
-    const views = [['calendar', '달력', 'cal'], ['slots', '슬롯 목록', 'list']];
-    if (S.feature('V6')) views.push(['matrix', '구단 × 슬롯', 'grid']);
+    const views = [['calendar', '달력', 'cal'], ['slots', '연전 기간 목록', 'list']];
+    if (S.feature('V6')) views.push(['matrix', '구단별 연전 표', 'grid']);
     if (!views.some((v) => v[0] === u.view)) u.view = 'calendar';
     let s = '<div class="toolbar">' +
       '<div class="seg" role="tablist">' + views.map((v) => '<button class="' + (u.view === v[0] ? 'on' : '') + '" data-act="r-view" data-view="' + v[0] + '">' + icon(v[2]) + v[1] + '</button>').join('') + '</div>';
     if (u.view === 'calendar') {
       s += '<div class="month-tabs">' + MONTHS.map((mo) => { const n = monthViolations(mo); return '<button class="' + (u.month === mo ? 'on' : '') + '" data-act="r-month" data-month="' + mo + '">' + mo + '월' + (n ? '<span class="mv">' + icon('x') + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
-      s += '<span class="legend" style="margin-left:6px"><span><span class="fm h" style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;background:var(--navy);color:#fff;font-size:9px;font-weight:800">H</span>홈</span><span><span style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;border:1px solid var(--navy);font-size:9px;font-weight:800">A</span>원정</span><span><i style="background:#FFF1F0;box-shadow:inset 2px 0 0 #B3261E"></i>위반</span><span>' + icon('pin') + '고정</span></span>';
+      s += '<span class="legend" style="margin-left:6px"><span><span class="fm h" style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;background:var(--navy);color:#fff;font-size:9px;font-weight:800">홈</span>홈 경기</span><span><span style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;border:1px solid var(--navy);font-size:9px;font-weight:800">원</span>원정 경기</span><span><i style="background:#FFF1F0;box-shadow:inset 2px 0 0 #B3261E"></i>위반</span><span>' + icon('pin') + '고정</span></span>';
     }
     s += '<span style="margin-left:auto;display:flex;gap:6px;align-items:center">' + S.undoButtons() +
-      '<button class="btn sm" data-act="snap-menu" aria-haspopup="menu">' + icon('bookmark') + '스냅샷 ' + app().state.snapshots.length + icon('down') + '</button></span></div>';
+      '<button class="btn sm" data-act="snap-menu" aria-haspopup="menu">' + icon('bookmark') + '중간 저장 ' + app().state.snapshots.length + icon('down') + '</button></span></div>';
     if (u.view === 'calendar') s += renderCalendar();
     else if (u.view === 'slots') s += renderSlotList();
     else s += renderMatrix();
@@ -282,7 +282,7 @@
     const bySlot = new Map(tm.visits.map((v) => [v.slot, v]));
     const overSlots = new Set();
     for (const r of tm.runs) if (r.length > 3) r.slots.slice(3).forEach((x) => overSlots.add(x));
-    let s = '<div class="mini-strip" title="' + esc(name) + ' 슬롯별 홈(진한 칸)/원정">';
+    let s = '<div class="mini-strip" title="' + esc(name) + ' 연전 기간별 홈(진한 칸)/원정">';
     for (const sl of c.slots) {
       const v = bySlot.get(sl.index);
       s += '<i class="' + (v && v.home ? 'h' : '') + (overSlots.has(sl.index) ? ' over' : '') + '" style="' + (sl.index === hiSlot ? 'outline:2px solid #1F5FD6;outline-offset:0;' : '') + (v ? '' : 'background:#fff;') + '"></i>';
@@ -295,20 +295,20 @@
     const rule = Score.RULE_BY_CODE[v.code];
     let s = '<div class="insp-sec"><div class="insp-title"><span class="vrule" style="padding:0;font-size:inherit;color:inherit">' + S.ruleLabel(v.code) + '</span>' + (S.isVirtual(v) ? S.virt() : '') + '</div>' +
       '<div class="insp-sub">' + esc(rule.desc) + '</div></div>';
-    if (S.isVirtual(v)) s += '<div class="insp-sec"><h4>가상 위반</h4><div class="small muted">' + icon('info') + ' 시연을 위해 넣은 위반입니다: ' + esc(virtNote(v)) + '. 원인 문장은 왼쪽 위반 목록에 있습니다.</div></div>';
+    if (S.isVirtual(v)) s += '<div class="insp-sec"><h4>시연용 위반</h4><div class="small muted">' + icon('info') + ' 시연용으로 일부러 만든 위반입니다: ' + esc(virtNote(v)) + '. 원인 문장은 왼쪽 위반 목록에 있습니다.</div></div>';
     s += '<div class="insp-sec"><h4>위치<span class="r">' + esc(c.slots[v.slot].label) + '</span></h4>' +
-      (v.matches || []).map((m) => '<button class="li" data-act="sel-match" data-m="' + m + '" style="padding-left:6px"><span class="ico">' + icon('target') + '</span><span class="li-main">' + esc(app().matchLabel(m)) + ' <span class="muted small">' + esc(c.plan[m] >= 0 ? fmt.date(c.slots[c.plan[m]].day) : '미배정') + '</span></span>' + icon('right') + '</button>').join('') +
+      (v.matches || []).map((m) => '<button class="li" data-act="sel-match" data-m="' + m + '" style="padding-left:6px"><span class="ico">' + icon('target') + '</span><span class="li-main">' + esc(app().matchLabel(m)) + ' <span class="muted small">' + esc(c.plan[m] >= 0 ? fmt.date(c.slots[c.plan[m]].day) : '일정 미정') + '</span></span>' + icon('right') + '</button>').join('') +
       '</div>';
     const slots = v.code === 'H0-f' ? [] : [v.slot];
     if (v.code === 'H0-f') for (const m of v.matches || []) if (c.plan[m] >= 0) slots.push(c.plan[m]);
     const cands = S.candidates((v.matches || []).filter((m) => c.plan[m] >= 0), slots, 5);
-    s += '<div class="insp-sec"><h4>조치 후보' + (S.feature('M2') ? '<span class="r">Δ = 적용 후 − 현재</span>' : '') + '</h4>' + candList(cands) + '</div>';
+    s += '<div class="insp-sec"><h4>고치는 방법' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ = 적용 후 − 현재' : '적용하면 이렇게 달라집니다') + '</span>' : '') + '</h4>' + candList(cands) + '</div>';
     return s;
   }
   function virtNote(v) {
     // 같은 코드의 시드가 여럿이면(H1 슬롯 맞바꾸기 2건) 위반 슬롯이 맞바꾼 슬롯(또는 그 직후)인 것을 고른다
     const sd = S.SEEDS.filter((x) => x.code === v.code).find((x) => !x.slots || x.slots.some((k) => k === v.slot || k + 1 === v.slot)) || S.SEEDS.find((x) => x.code === v.code);
-    return sd ? sd.note + (S.dev() ? ' (' + sd.code + ')' : '') : '시드로 넣은 위반';
+    return sd ? sd.note + (S.dev() ? ' (' + sd.code + ')' : '') : '시연용으로 넣은 위반';
   }
 
   function inspMatch(m) {
@@ -321,33 +321,33 @@
     const flags = c.ex.matchFlags[m] || [];
     const vs = c.ex.violations.filter((v) => (v.matches || []).includes(m));
     const ev = mt.eventId ? st.events.find((e) => e.id === mt.eventId) : null;
-    let s = '<div class="insp-sec"><div class="insp-title">' + S.team(mt.away) + '<span class="muted">@</span>' + S.team(mt.home) + (mt.pinned ? '<span class="tag pin">' + icon('pin') + '고정</span>' : '') + '</div>' +
-      '<div class="insp-sub">' + (sl ? esc(fmt.date(sl.day) + ' ~ ' + fmt.date(sl.days[sl.days.length - 1])) + ' · ' : '미배정 · ') + mt.consecutive + '연전 · 시리즈 #' + (m + 1) + '</div></div>';
-    s += '<div class="insp-sec"><h4>속성</h4><dl class="props">' +
-      '<dt>홈</dt><dd>' + S.team(mt.home) + '<span class="home-mark">H</span></dd>' +
-      '<dt>원정</dt><dd>' + S.team(mt.away) + '<span class="away-mark">A</span></dd>' +
-      '<dt>구장</dt><dd>' + esc(team.stadium || '-') + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">공유 구장</span>' : '') + '</dd>' +
-      '<dt>슬롯</dt><dd>' + (sl ? esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : '') + (sl.holiday ? ' <span class="tag ref">휴일 ' + sl.holiday + '</span>' : '') : '미배정') + '</dd>' +
-      (ev ? '<dt>이벤트</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
+    let s = '<div class="insp-sec"><div class="insp-title">' + S.team(mt.away) + '<span class="muted"> vs </span>' + S.team(mt.home) + (mt.pinned ? '<span class="tag pin">' + icon('pin') + '고정</span>' : '') + '</div>' +
+      '<div class="insp-sub">' + (sl ? esc(fmt.date(sl.day) + ' ~ ' + fmt.date(sl.days[sl.days.length - 1])) + ' · ' : '일정 미정 · ') + mt.consecutive + '연전' + (S.dev() ? ' · 시리즈 #' + (m + 1) : '') + '</div></div>';
+    s += '<div class="insp-sec"><h4>정보</h4><dl class="props">' +
+      '<dt>홈</dt><dd>' + S.team(mt.home) + '<span class="home-mark">홈</span></dd>' +
+      '<dt>원정</dt><dd>' + S.team(mt.away) + '<span class="away-mark">원</span></dd>' +
+      '<dt>구장</dt><dd>' + esc(team.stadium || '-') + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</dd>' +
+      '<dt>연전 기간</dt><dd>' + (sl ? esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : '') + (sl.holiday ? ' <span class="tag ref">휴일 등급 ' + sl.holiday + '</span>' : '') : '일정 미정') + '</dd>' +
+      (ev ? '<dt>특별 경기</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
       '<dt>상태</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '위반 없음')) + '</dd>' +
       '</dl></div>';
-    s += '<div class="insp-sec"><h4>고정·풀</h4><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-      '<label style="display:inline-flex;gap:8px;align-items:center"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>핀 고정 <span class="muted small">(엔진이 옮기지 않음)</span></label>' +
-      (S.feature('M8') ? (s0 >= 0 ? '<button class="btn sm" style="margin-left:auto" data-act="to-pool" data-m="' + m + '">' + icon('pool') + '미배정 풀로</button>' : '') : '') +
+    s += '<div class="insp-sec"><h4>고정·보관</h4><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      '<label style="display:inline-flex;gap:8px;align-items:center"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>고정 <span class="muted small">(자동 편성이 옮기지 않음)</span></label>' +
+      (S.feature('M8') ? (s0 >= 0 ? '<button class="btn sm" style="margin-left:auto" data-act="to-pool" data-m="' + m + '">' + icon('pool') + '보관함으로 빼기</button>' : '') : '') +
       '</div></div>';
     if (s0 < 0) {
       // 풀에서 넣을 슬롯 후보
       const c2 = D();
       const opts = c2.slots.filter((x) => x.consecutive === mt.consecutive).map((x) => { const p = app().previewDrop(m, x.index); return { x, p }; }).sort((a, b) => b.p.hardDelta - a.p.hardDelta).slice(0, 5);
-      s += '<div class="insp-sec"><h4>넣을 슬롯 후보</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">슬롯에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
+      s += '<div class="insp-sec"><h4>넣을 연전 기간</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">이 기간에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
     } else {
       const cands = S.candidates([m], [], 5).filter((x) => x.kind === 'swap' || x.kind === 'flip');
-      s += '<div class="insp-sec"><h4>이동 후보' + (S.feature('M2') ? '<span class="r">Δ 미리보기</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 시리즈는 옮길 수 없습니다. 핀을 풀면 후보가 나옵니다.</div>' : candList(cands)) + '</div>';
+      s += '<div class="insp-sec"><h4>옮길 곳' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ 미리보기' : '바꾸면 어떻게 되나') + '</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 시리즈는 옮길 수 없습니다. 고정을 풀면 옮길 곳이 나옵니다.</div>' : candList(cands)) + '</div>';
     }
-    s += '<div class="insp-sec"><h4>홈/원정 흐름<span class="r">45 슬롯</span></h4>' +
+    s += '<div class="insp-sec"><h4>홈/원정 흐름<span class="r">연전 기간 ' + c.slots.length + '</span></h4>' +
       '<div class="small" style="margin-bottom:3px">' + S.team(mt.home) + '</div>' + teamStrip(mt.home, s0) +
       '<div class="small" style="margin:6px 0 3px">' + S.team(mt.away) + '</div>' + teamStrip(mt.away, s0) +
-      '<div class="legend" style="margin-top:6px"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>3연속 초과</span><span><i style="outline:2px solid var(--blue)"></i>이 시리즈</span></div></div>';
+      '<div class="legend" style="margin-top:6px"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>홈·원정 4연속 이상</span><span><i style="outline:2px solid var(--blue)"></i>이 시리즈</span></div></div>';
     return s;
   }
 
@@ -355,11 +355,11 @@
     const u = S.ui;
     if (u.sel && u.sel.startsWith('v:')) {
       const v = S.findViolation(u.sel.slice(2));
-      if (v) return { title: '위반 상세', html: inspViolation(v) };
+      if (v) return { title: '위반 자세히', html: inspViolation(v) };
     }
-    if (u.sel && u.sel.startsWith('m:')) return { title: '시리즈 상세', html: inspMatch(parseInt(u.sel.slice(2), 10)) };
+    if (u.sel && u.sel.startsWith('m:')) return { title: '시리즈 자세히', html: inspMatch(parseInt(u.sel.slice(2), 10)) };
     const ex = D().ex;
-    return { title: '인스펙터', html: '<div class="empty"><b>항목을 고르세요</b>왼쪽 위반이나 달력의 시리즈를 고르면 원인, 핀, 이동 후보와 Δ가 여기에 나옵니다.</div>' +
+    return { title: '자세히', html: '<div class="empty"><b>항목을 고르세요</b>왼쪽 위반이나 달력의 시리즈를 고르면 원인, 고정 여부, 옮길 곳과 달라지는 점이 여기에 나옵니다.</div>' +
       '<div class="insp-sec"><h4>규칙별 건수</h4><dl class="props rules">' + Score.HARD_RULES.map((r) => '<dt>' + S.ruleLabel(r.code) + '</dt><dd>' + (ex.byCode[r.code].count ? S.stat('block', ex.byCode[r.code].count + '건') : S.stat('ok', '0')) + '</dd>').join('') + '</dl></div>' };
   }
 
@@ -369,7 +369,7 @@
       S.wide = window.innerWidth >= 1800;
       S._selViol = S.ui.sel && S.ui.sel.startsWith('v:') ? S.findViolation(S.ui.sel.slice(2)) : null;
       const insp = renderInsp();
-      return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '위반·구단 필터' }) + '</div>';
+      return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '위반·구단 고르기' }) + '</div>';
     },
     after() {
       const u = S.ui;
@@ -405,8 +405,8 @@
       if (cd.kind === 'swap') ok = app().swapMatches(cd.m, cd.n);
       else if (cd.kind === 'slots') {
         const c = D();
-        ok = app().commit('슬롯 맞바꾸기: ' + fmt.date(c.slots[cd.a].day) + ' ↔ ' + fmt.date(c.slots[cd.b].day), (s) => { for (const p of s.plan) { if (p.calendar === cd.a) p.calendar = cd.b; else if (p.calendar === cd.b) p.calendar = cd.a; } }, ['plan']);
-      } else ok = app().commit('홈·원정 뒤집기: ' + app().matchLabel(cd.m), (s) => { const m = s.matches[cd.m]; const t = m.home; m.home = m.away; m.away = t; }, ['matches']);
+        ok = app().commit('연전 맞바꾸기: ' + fmt.date(c.slots[cd.a].day) + ' ↔ ' + fmt.date(c.slots[cd.b].day), (s) => { for (const p of s.plan) { if (p.calendar === cd.a) p.calendar = cd.b; else if (p.calendar === cd.b) p.calendar = cd.a; } }, ['plan']);
+      } else ok = app().commit('홈·원정 바꾸기: ' + app().matchLabel(cd.m), (s) => { const m = s.matches[cd.m]; const t = m.home; m.home = m.away; m.away = t; }, ['matches']);
       if (!ok) return;
       const after = D().ex.violations.length;
       if (sel && sel.startsWith('v:') && !S.findViolation(sel.slice(2))) S.ui.sel = after ? 'v:' + S.vsig(D().ex.violations[0]) : null;
@@ -422,8 +422,8 @@
     const p = S.ui.menuPos || { x: 0, y: 0 };
     const snaps = app().state.snapshots.slice().reverse();
     return '<div class="menu" role="menu" style="top:' + p.y + 'px;right:' + Math.max(8, window.innerWidth - p.x) + 'px;width:330px">' +
-      '<button role="menuitem" data-act="snap-save">' + icon('plus') + '현재 배정을 스냅샷으로 저장</button><div class="msep"></div><div class="mh">저장된 스냅샷 ' + snaps.length + '</div>' +
-      (snaps.length ? snaps.map((sn) => '<button role="menuitem" data-act="snap-restore" data-id="' + esc(sn.id) + '" style="height:auto;padding:6px 12px;flex-direction:column;align-items:flex-start;gap:1px"><span style="display:flex;gap:6px;width:100%"><b>' + esc(sn.name) + '</b><span class="tag ref" style="margin-left:auto">복원</span></span>' + (S.dev() ? '<span class="mono muted" style="font-size:10.5px">' + esc((sn.score || '').replace(/-/g, '−')) + '</span>' : '<span class="muted" style="font-size:11px">' + (sn.feasible ? '편성 가능' : '필수 규칙 위반 있음') + '</span>') + '</button>').join('') : '<div class="small muted" style="padding:6px 12px">없음</div>') +
+      '<button role="menuitem" data-act="snap-save">' + icon('plus') + '지금 일정을 중간 저장</button><div class="msep"></div><div class="mh">중간 저장 ' + snaps.length + '개</div>' +
+      (snaps.length ? snaps.map((sn) => '<button role="menuitem" data-act="snap-restore" data-id="' + esc(sn.id) + '" style="height:auto;padding:6px 12px;flex-direction:column;align-items:flex-start;gap:1px"><span style="display:flex;gap:6px;width:100%"><b>' + esc(sn.name) + '</b><span class="tag ref" style="margin-left:auto">되돌리기</span></span>' + (S.dev() ? '<span class="mono muted" style="font-size:10.5px">' + esc((sn.score || '').replace(/-/g, '−')) + '</span>' : '<span class="muted" style="font-size:11px">' + (sn.feasible ? '편성 가능' : '필수 규칙 위반 있음') + '</span>') + '</button>').join('') : '<div class="small muted" style="padding:6px 12px">없음</div>') +
       '</div>';
   };
 

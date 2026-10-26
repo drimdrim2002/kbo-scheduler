@@ -82,13 +82,13 @@
   };
   App.prototype.team = function (name) { return this.derived().teamByName.get(name); };
   App.prototype.teamAt = function (i) { return this.state.teams[i]; };
-  App.prototype.matchLabel = function (m) { const x = this.state.matches[m]; return x ? x.away + ' @ ' + x.home : '?'; };
+  App.prototype.matchLabel = function (m) { const x = this.state.matches[m]; return x ? x.away + ' vs ' + x.home : '?'; };
   App.prototype.slotOfDate = function (date) { const s = this.derived().dayToSlot.get(Dates.dayNum(date)); return s == null ? -1 : s; };
 
   // ───────────── 잠금 (FR-R4) ─────────────
   App.prototype.isRunning = function () { return !!(this.run && ['STARTING', 'RUNNING', 'PAUSED'].includes(this.run.status)); };
   App.prototype.guard = function () {
-    if (this.isRunning()) { UI.toast('엔진 실행 중에는 입력과 배정을 바꿀 수 없습니다. 먼저 중지하세요.', 'warn'); return false; }
+    if (this.isRunning()) { UI.toast('자동 편성 중에는 입력과 일정을 바꿀 수 없습니다. 먼저 멈추세요.', 'warn'); return false; }
     return true;
   };
   App.prototype.commit = function (label, fn, tags, opts) {
@@ -100,15 +100,15 @@
   App.prototype.moveMatch = function (m, slot) {
     const st = this.state;
     if (!st.matches[m]) return false;
-    if (st.matches[m].pinned) { UI.toast('고정(핀)된 시리즈는 옮길 수 없습니다. 먼저 고정을 해제하세요.', 'warn'); return false; }
+    if (st.matches[m].pinned) { UI.toast('고정한 시리즈는 옮길 수 없습니다. 먼저 고정을 푸세요.', 'warn'); return false; }
     const from = this.derived().plan[m];
     if (from === slot) return false;
-    return this.commit((slot < 0 ? '미배정 풀로: ' : '이동: ') + this.matchLabel(m), (s) => { s.plan[m].calendar = slot; }, ['plan']);
+    return this.commit((slot < 0 ? '보관함으로: ' : '이동: ') + this.matchLabel(m), (s) => { s.plan[m].calendar = slot; }, ['plan']);
   };
   App.prototype.swapMatches = function (a, b) {
     const st = this.state;
     if (a === b) return false;
-    if (st.matches[a].pinned || st.matches[b].pinned) { UI.toast('고정(핀)된 시리즈는 맞바꿀 수 없습니다.', 'warn'); return false; }
+    if (st.matches[a].pinned || st.matches[b].pinned) { UI.toast('고정한 시리즈는 맞바꿀 수 없습니다.', 'warn'); return false; }
     return this.commit('교환: ' + this.matchLabel(a) + ' ↔ ' + this.matchLabel(b), (s) => {
       const t = s.plan[a].calendar; s.plan[a].calendar = s.plan[b].calendar; s.plan[b].calendar = t;
     }, ['plan']);
@@ -136,10 +136,10 @@
   };
   App.prototype.pinSlot = function (slot, value) {
     const ms = this.derived().bySlot[slot] || [];
-    return this.commit((value ? '슬롯 고정: ' : '슬롯 고정 해제: ') + this.derived().slots[slot].label, (s) => { for (const m of ms) s.matches[m].pinned = !!value; }, ['pins']);
+    return this.commit((value ? '연전 기간 고정: ' : '연전 기간 고정 해제: ') + this.derived().slots[slot].label, (s) => { for (const m of ms) s.matches[m].pinned = !!value; }, ['pins']);
   };
   App.prototype.pinEventSeries = function (value) {
-    return this.commit(value ? '이벤트 시리즈 일괄 고정' : '이벤트 시리즈 고정 해제', (s) => {
+    return this.commit(value ? '특별 경기 시리즈 일괄 고정' : '특별 경기 시리즈 고정 해제', (s) => {
       for (const m of s.matches) if (m.eventId) m.pinned = !!value;
     }, ['pins']);
   };
@@ -262,7 +262,7 @@
     if (this.kakao) return Promise.resolve(this.kakao);
     if (this._kakaoPromise) return this._kakaoPromise;
     this._kakaoPromise = MapKit.loadKakao(this.kakaoKey, document, window).then((k) => { this.kakao = k; this.kakaoError = null; this._kakaoPromise = null; this.emitUI(['map']); return k; })
-      .catch((e) => { this.kakao = null; this.kakaoError = e.message; this._kakaoPromise = null; UI.toast(e.message + ' — 내장 SVG 지도로 전환합니다.', 'warn', 6000); this.emitUI(['map']); return null; });
+      .catch((e) => { this.kakao = null; this.kakaoError = e.message; this._kakaoPromise = null; UI.toast(e.message + ' — 기본 지도로 바꿉니다.', 'warn', 6000); this.emitUI(['map']); return null; });
     return this._kakaoPromise;
   };
   /** 구장 검색: Kakao가 준비되어 있으면 Kakao, 아니면(또는 실패 시) 내장 사전 */
@@ -271,7 +271,7 @@
     if (!this.kakaoKey) return Promise.resolve({ source: 'DICT', results: dict() });
     return this.ensureKakao().then((k) => {
       if (!k) return { source: 'DICT', results: dict(), note: this.kakaoError };
-      return MapKit.kakaoSearch(k, query).then((r) => ({ source: 'KAKAO', results: r.length ? r : dict(), note: r.length ? '' : 'Kakao 결과 없음 → 내장 사전' }))
+      return MapKit.kakaoSearch(k, query).then((r) => ({ source: 'KAKAO', results: r.length ? r : dict(), note: r.length ? '' : '카카오 결과 없음 → 기본 구장 목록' }))
         .catch((e) => ({ source: 'DICT', results: dict(), note: e.message }));
     });
   };
@@ -281,7 +281,7 @@
     return this.commit(label || '일정 설정 변경', (s) => { Object.assign(s.settings, patch); }, ['settings']);
   };
   App.prototype.updateSolverSettings = function (patch) {
-    return this.store.commit('엔진 옵션 변경', (s) => { Object.assign(s.settings.solver, patch); }, { tags: ['settings'], undo: false });
+    return this.store.commit('자동 편성 옵션 변경', (s) => { Object.assign(s.settings.solver, patch); }, { tags: ['settings'], undo: false });
   };
   /**
    * 결과 공유 쪽 「스튜디오에서 이어서 다듬기」 링크의 쿼리(?tol=&hol=&cd=&seed=)를 settings에 싣는다.
@@ -320,7 +320,7 @@
     const gen = CalendarGen.generateSlots(st.settings);
     const oldCal = st.calendar;
     const map = new Map(gen.slots.map((s, i) => [s.datetime + '|' + s.consecutive, i]));
-    const ok = this.commit('슬롯 자동 생성 (' + gen.slots.length + '개)', (s) => {
+    const ok = this.commit('연전 기간 자동 생성 (' + gen.slots.length + '개)', (s) => {
       s.calendar = gen.slots;
       s.plan.forEach((p) => {
         if (p.calendar < 0) return;
@@ -334,7 +334,7 @@
     return ok;
   };
   App.prototype.updateSlot = function (i, patch) {
-    return this.commit('슬롯 수정: ' + this.derived().slots[i].label, (s) => {
+    return this.commit('연전 기간 수정: ' + this.derived().slots[i].label, (s) => {
       const c = s.calendar[i];
       for (const k of ['consecutive', 'weekend', 'holiday']) if (patch[k] != null) c[k] = Math.max(0, parseInt(patch[k], 10) || 0);
       if (c.consecutive < 1) c.consecutive = 1;
@@ -352,27 +352,27 @@
       s.plan = g.plan.map((c, m) => ({ match: m, calendar: c }));
       s.games = []; s.reschedule.units = []; s.reschedule.plan = [];
     }, ['matches', 'plan', 'games']);
-    if (ok) { this.applyEvents({ silent: true, label: '이벤트 대진 고정' }); if (g.warnings.length) UI.toast(g.warnings[0], 'warn'); }
+    if (ok) { this.applyEvents({ silent: true, label: '특별 경기 대진 고정' }); if (g.warnings.length) UI.toast(g.warnings[0], 'warn'); }
     return ok;
   };
   App.prototype.loadPreset = function () {
     if (!this.guard()) return false;
-    const v = this.store.replace(KBO.Preset.buildProject(), '2025 프리셋 불러오기');
-    if (v.ok) UI.toast('2025 프리셋을 불러왔습니다.', 'ok');
+    const v = this.store.replace(KBO.Preset.buildProject(), '2025 실제 일정 불러오기');
+    if (v.ok) UI.toast('2025 실제 일정을 불러왔습니다.', 'ok');
     return v.ok;
   };
 
   // ───────────── 이벤트 (FR-E) ─────────────
   App.prototype.addEvent = function (ev) {
     const id = 'ev-' + Date.now().toString(36);
-    return this.commit('이벤트 추가: ' + (ev.name || ''), (s) => {
-      const e = Object.assign({ id, type: 'CUSTOM', name: '사용자 이벤트', mode: 'MATCH' }, ev, { id });
+    return this.commit('특별 경기 추가: ' + (ev.name || ''), (s) => {
+      const e = Object.assign({ id, type: 'CUSTOM', name: '사용자 지정 경기', mode: 'MATCH' }, ev, { id });
       e.slot = Score.resolveEventSlot(e, s.calendar);
       s.events.push(e);
     }, ['events']) && id;
   };
   App.prototype.updateEvent = function (id, patch) {
-    return this.commit('이벤트 수정', (s) => {
+    return this.commit('특별 경기 수정', (s) => {
       const e = s.events.find((x) => x.id === id);
       if (!e) return false;
       Object.assign(e, patch);
@@ -381,7 +381,7 @@
     }, ['events']);
   };
   App.prototype.removeEvent = function (id) {
-    return this.commit('이벤트 삭제', (s) => {
+    return this.commit('특별 경기 삭제', (s) => {
       s.events = s.events.filter((x) => x.id !== id);
       for (const m of s.matches) if (m.eventId === id) { delete m.eventId; m.pinned = false; }
     }, ['events', 'pins']);
@@ -395,14 +395,14 @@
     const bySlot = new Map();
     for (const e of st.events) {
       const s = Score.resolveEventSlot(e, st.calendar);
-      if (s < 0) { issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + (e.date ? Dates.fmtDate(e.date) : '날짜 미지정') + '이(가) 어느 슬롯에도 속하지 않습니다.' }); continue; }
+      if (s < 0) { issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + (e.date ? Dates.fmtDate(e.date) : '날짜 미지정') + '이(가) 어느 연전 기간에도 속하지 않습니다.' }); continue; }
       if (!bySlot.has(s)) bySlot.set(s, []);
       bySlot.get(s).push(e);
       if (e.mode === 'MATCH') {
         if (!c.teamByName.has(e.home) || !c.teamByName.has(e.away) || e.home === e.away) { issues.push({ level: 'block', events: [e.id], message: e.name + ': 홈·원정 구단이 올바르지 않습니다.' }); continue; }
         const cands = st.matches.filter((m) => m.home === e.home && m.away === e.away);
-        if (!cands.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + e.away + ' @ ' + e.home + ' 시리즈가 목록에 없습니다(홈/원정 조합 확인).' });
-        else if (!cands.some((m) => m.consecutive === st.calendar[s].consecutive)) issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + st.calendar[s].consecutive + '연전 ' + e.away + ' @ ' + e.home + ' 시리즈가 없습니다(연전 수 불일치).' });
+        if (!cands.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + e.away + ' vs ' + e.home + ' 시리즈가 목록에 없습니다(홈/원정 조합 확인).' });
+        else if (!cands.some((m) => m.consecutive === st.calendar[s].consecutive)) issues.push({ level: 'warn', events: [e.id], message: e.name + ': ' + st.calendar[s].consecutive + '연전 ' + e.away + ' vs ' + e.home + ' 시리즈가 없습니다(연전 수 불일치).' });
       } else {
         const unknown = (e.stadiums || []).filter((x) => !st.teams.some((t) => t.stadium === x));
         if (unknown.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 연고 구단이 없는 구장 ' + unknown.join(', ') });
@@ -411,7 +411,7 @@
     }
     const half = st.teams.length >> 1;
     for (const [s, evs] of bySlot) {
-      const label = c.slots[s] ? c.slots[s].label : '슬롯 ' + s;
+      const label = c.slots[s] ? c.slots[s].label : '연전 기간 ' + (s + 1);
       const matchEvs = evs.filter((e) => e.mode === 'MATCH');
       const seen = new Map();
       for (const e of matchEvs) for (const t of [e.home, e.away]) {
@@ -424,20 +424,20 @@
         if (stad.has(st0)) issues.push({ level: 'block', events: [stad.get(st0), e.id], message: label + ': ' + st0 + ' 구장을 두 대진이 함께 씁니다.' });
         else stad.set(st0, e.id);
       }
-      if (matchEvs.length > half) issues.push({ level: 'block', events: matchEvs.map((e) => e.id), message: label + ': 대진 지정이 슬롯 수용 시리즈 수(' + half + ')보다 많습니다.' });
+      if (matchEvs.length > half) issues.push({ level: 'block', events: matchEvs.map((e) => e.id), message: label + ': 대진 지정이 한 기간에 들어갈 시리즈 수(' + half + ')보다 많습니다.' });
       const designated = new Set();
       for (const e of evs.filter((x) => x.mode === 'STADIUM')) {
         for (const x of e.stadiums || []) {
-          if (designated.has(x)) issues.push({ level: 'warn', events: [e.id], message: label + ': ' + x + ' 구장이 여러 이벤트에 지정되었습니다.' });
+          if (designated.has(x)) issues.push({ level: 'warn', events: [e.id], message: label + ': ' + x + ' 구장이 여러 특별 경기에 지정되었습니다.' });
           designated.add(x);
           const owners = st.teams.filter((t) => t.stadium === x).map((t) => t.name);
           const conflict = matchEvs.find((me) => owners.includes(me.away) && !matchEvs.some((o) => owners.includes(o.home)));
           if (conflict && owners.every((o) => matchEvs.some((me) => me.away === o))) {
-            issues.push({ level: 'block', events: [e.id, conflict.id], message: label + ': 구장 지정(' + x + ')과 대진 지정(' + conflict.away + ' @ ' + conflict.home + ')이 충돌합니다 — 연고 구단이 모두 원정입니다.' });
+            issues.push({ level: 'block', events: [e.id, conflict.id], message: label + ': 구장 지정(' + x + ')과 대진 지정(' + conflict.away + ' vs ' + conflict.home + ')이 충돌합니다 — 연고 구단이 모두 원정입니다.' });
           }
         }
       }
-      if (designated.size > half) issues.push({ level: 'block', events: evs.map((e) => e.id), message: label + ': 지정 구장 수(' + designated.size + ')가 슬롯 수용 구장 수(' + half + ')보다 많습니다.' });
+      if (designated.size > half) issues.push({ level: 'block', events: evs.map((e) => e.id), message: label + ': 지정 구장 수(' + designated.size + ')가 한 기간에 쓸 수 있는 구장 수(' + half + ')보다 많습니다.' });
     }
     c._eventCheck = issues;
     return issues;
@@ -447,14 +447,14 @@
     const o = opts || {};
     const st = this.state;
     const notes = [];
-    const ok = this.commit(o.label || '이벤트 대진 고정', (s) => {
+    const ok = this.commit(o.label || '특별 경기 대진 고정', (s) => {
       for (const e of s.events) {
         if (e.mode !== 'MATCH') continue;
         const slot = Score.resolveEventSlot(e, s.calendar);
         if (slot < 0) continue;
         const L = s.calendar[slot].consecutive;
         const cands = s.matches.map((m, i) => i).filter((i) => s.matches[i].home === e.home && s.matches[i].away === e.away);
-        if (!cands.length) { notes.push(e.name + ': ' + e.away + ' @ ' + e.home + ' 시리즈 없음'); continue; }
+        if (!cands.length) { notes.push(e.name + ': ' + e.away + ' vs ' + e.home + ' 시리즈 없음'); continue; }
         let m = cands.find((i) => s.plan[i].calendar === slot);
         if (m == null) m = cands.find((i) => s.matches[i].consecutive === L && !s.matches[i].pinned);
         if (m == null) m = cands.find((i) => !s.matches[i].pinned);
@@ -473,7 +473,7 @@
         s.matches[m].eventId = e.id;
       }
     }, ['plan', 'pins']);
-    if (!o.silent) UI.toast(notes.length ? '일부 이벤트를 고정하지 못했습니다: ' + notes.join(', ') : '대진 지정 이벤트를 고정했습니다.', notes.length ? 'warn' : 'ok', 5000);
+    if (!o.silent) UI.toast(notes.length ? '일부 특별 경기를 고정하지 못했습니다: ' + notes.join(', ') : '대진 지정 특별 경기를 고정했습니다.', notes.length ? 'warn' : 'ok', 5000);
     return ok;
   };
 
@@ -486,26 +486,26 @@
     const half = N >> 1;
     const items = [];
     const add = (id, status, title, detail, target) => items.push({ id, status, title, detail, target });
-    add('teams-even', N % 2 === 0 && N >= 2 ? 'pass' : 'block', '구단 수 짝수', '현재 ' + N + '개 구단' + (N % 2 ? ' — 한 구단이 매 슬롯 쉬게 되어 편성할 수 없습니다.' : ''), 'teams');
-    if (N !== 10 && N % 2 === 0) add('teams-10', 'warn', 'Java 엔진 상수', '구단 수가 10이 아니면 Java 엔진 상수(TEAMS_PER_DAY 등)도 함께 수정해야 합니다. UI는 N=' + N + ' 기준(' + N + '/' + half + '/' + half + ')으로 채점합니다.', 'teams');
+    add('teams-even', N % 2 === 0 && N >= 2 ? 'pass' : 'block', '구단 수 짝수', '현재 ' + N + '개 구단' + (N % 2 ? ' — 연전 기간마다 한 구단이 쉬게 되어 편성할 수 없습니다.' : ''), 'teams');
+    if (N !== 10 && N % 2 === 0) add('teams-10', 'warn', '서버 자동 편성 설정', '구단 수가 10이 아니면 서버 자동 편성 설정도 함께 바꿔야 합니다. 이 화면은 ' + N + '개 구단 기준으로 채점합니다.', 'teams');
     const shared = this.sharedStadiums();
-    add('shared', 'pass', '공유 구장', shared.size ? Array.from(shared).map(([s, n]) => s + '(' + n.join('·') + ')').join(', ') : '없음', 'teams');
+    add('shared', 'pass', '같이 쓰는 구장', shared.size ? Array.from(shared).map(([s, n]) => s + '(' + n.join('·') + ')').join(', ') : '없음', 'teams');
     const have = new Set(st.distanceMatrix.map((d) => d.from + '|' + d.to));
     let missing = 0, estimated = 0;
     for (const a of st.teams) for (const b of st.teams) if (a.name !== b.name && !have.has(a.name + '|' + b.name)) missing++;
     for (const d of st.distanceMatrix) if (d.estimated) estimated++;
-    add('distance', missing ? 'block' : estimated ? 'warn' : 'pass', '거리 행렬', missing ? '누락 ' + missing + '건 — 이동거리를 계산할 수 없습니다.' : estimated ? '추정 거리 ' + estimated + '건(직선거리 × 도로계수). 실제 도로거리로 바꾸면 정확해집니다.' : N * (N - 1) + '건 모두 입력됨', 'distance');
-    add('slots', st.calendar.length ? 'pass' : 'block', '슬롯', st.calendar.length + '개' + (this.slotsOutOfDate() ? ' — 일정 설정과 다릅니다(재생성 필요 여부 확인)' : ''), 'slots');
+    add('distance', missing ? 'block' : estimated ? 'warn' : 'pass', '구장 간 거리', missing ? '누락 ' + missing + '개 — 이동거리를 계산할 수 없습니다.' : estimated ? '추정 거리 ' + estimated + '개(직선거리 × 도로계수). 실제 도로거리로 바꾸면 정확해집니다.' : N * (N - 1) + '개 모두 입력됨', 'distance');
+    add('slots', st.calendar.length ? 'pass' : 'block', '연전 기간', st.calendar.length + '개' + (this.slotsOutOfDate() ? ' — 시즌 기본 설정과 다릅니다(규칙대로 다시 채울지 확인)' : ''), 'slots');
     if (st.calendar.length && this.slotsOutOfDate()) items[items.length - 1].status = 'warn';
     const singles = st.calendar.filter((x) => x.consecutive === 1).length;
-    if (singles) add('single', 'warn', '1연전 슬롯', singles + '개 — 1연전 시리즈가 없으면 비게 됩니다.', 'slots');
+    if (singles) add('single', 'warn', '1연전 기간', singles + '개 — 1연전 시리즈가 없으면 비게 됩니다.', 'slots');
     const sh = CalendarGen.lengthHistogram(st.calendar), mh = CalendarGen.lengthHistogram(st.matches);
     const lens = Array.from(new Set(Object.keys(sh).concat(Object.keys(mh)))).map(Number).sort();
     for (const k of lens) {
       const series = mh[k] || 0, cap = (sh[k] || 0) * half;
-      if (series > cap) add('cap-' + k, 'block', k + '연전 용량', '시리즈 ' + series + '개 > 슬롯 ' + (sh[k] || 0) + '개 × ' + half + ' = ' + cap + ' — 미배정(S0)이나 슬롯 과밀이 불가피합니다.', 'series');
-      else if (series < cap) add('cap-' + k, 'warn', k + '연전 용량', '시리즈 ' + series + '개 < 수용 ' + cap + ' — 빈 자리는 추가 휴식이며 감점 없음.', 'series');
-      else add('cap-' + k, 'pass', k + '연전 용량', '시리즈 ' + series + '개 = 슬롯 ' + (sh[k] || 0) + '개 × ' + half, 'series');
+      if (series > cap) add('cap-' + k, 'block', k + '연전 자리', '시리즈 ' + series + '개 > ' + k + '연전 기간 ' + (sh[k] || 0) + '개 × ' + half + ' = ' + cap + ' — 일정 미정 시리즈나 넘치는 기간이 생깁니다.', 'series');
+      else if (series < cap) add('cap-' + k, 'warn', k + '연전 자리', '시리즈 ' + series + '개 < 자리 ' + cap + ' — 빈 자리는 추가 휴식이며 감점 없음.', 'series');
+      else add('cap-' + k, 'pass', k + '연전 자리', '시리즈 ' + series + '개 = ' + k + '연전 기간 ' + (sh[k] || 0) + '개 × ' + half, 'series');
     }
     if (!st.matches.length) add('matches', 'block', '시리즈 목록', '시리즈가 없습니다. 시리즈를 자동 생성하세요.', 'series');
     // 공유 구장(잠실 두산·LG): 같은 날 두 구단이 모두 홈일 수 없으므로 홈 k연전 수가 k연전 슬롯 수를 넘으면 편성할 수 없다
@@ -513,21 +513,21 @@
       const byLen = {};
       for (const m of st.matches) if (names.includes(m.home)) byLen[m.consecutive] = (byLen[m.consecutive] || 0) + 1;
       const over = Object.keys(byLen).map(Number).filter((k) => byLen[k] > (sh[k] || 0));
-      const detail = Object.keys(byLen).map(Number).sort().map((k) => k + '연전 홈 ' + byLen[k] + '개 / 슬롯 ' + (sh[k] || 0) + '개').join(', ');
-      if (over.length) add('shared-' + stadium, 'block', '공유 구장 용량', stadium + ' — ' + detail + '. ' + names.join('·') + '가 같은 날 홈이 되는 시리즈가 생겨 편성할 수 없습니다.', 'series');
-      else add('shared-' + stadium, 'pass', '공유 구장 용량', stadium + ' — ' + detail, 'series');
+      const detail = Object.keys(byLen).map(Number).sort().map((k) => k + '연전 홈 ' + byLen[k] + '개 / 기간 ' + (sh[k] || 0) + '개').join(', ');
+      if (over.length) add('shared-' + stadium, 'block', '같이 쓰는 구장 자리', stadium + ' — ' + detail + '. ' + names.join('·') + '가 같은 날 홈이 되는 시리즈가 생겨 편성할 수 없습니다.', 'series');
+      else add('shared-' + stadium, 'pass', '같이 쓰는 구장 자리', stadium + ' — ' + detail, 'series');
     }
     // 구단쌍 경기 수
     const pair = new Map();
     for (const m of st.matches) { const k = [m.home, m.away].sort().join('|'); pair.set(k, (pair.get(k) || 0) + m.consecutive); }
     const G = st.settings.initialGamesPerPair;
     const off = Array.from(pair.values()).filter((v) => v !== G).length + Math.max(0, N * (N - 1) / 2 - pair.size);
-    add('pairs', off ? 'warn' : 'pass', '구단쌍 경기 수', off ? off + '개 구단쌍이 ' + G + '경기가 아닙니다.' : '모든 구단쌍 ' + G + '경기', 'series');
+    add('pairs', off ? 'warn' : 'pass', '맞대결 경기 수', off ? off + '개 맞대결이 ' + G + '경기가 아닙니다.' : '모든 맞대결 ' + G + '경기', 'series');
     const ev = this.checkEvents();
     const blocks = ev.filter((x) => x.level === 'block'), warns = ev.filter((x) => x.level === 'warn');
-    add('events', blocks.length ? 'block' : warns.length ? 'warn' : 'pass', '이벤트 모순', blocks.length + warns.length ? ev.map((x) => x.message).join(' / ') : st.events.length + '개 이벤트, 모순 없음', 'events');
+    add('events', blocks.length ? 'block' : warns.length ? 'warn' : 'pass', '특별 경기 충돌', blocks.length + warns.length ? ev.map((x) => x.message).join(' / ') : st.events.length + '개 모두 충돌 없음', 'events');
     const pinMis = st.matches.filter((m, i) => m.pinned && c.plan[i] >= 0 && m.consecutive !== st.calendar[c.plan[i]].consecutive).length;
-    if (pinMis) add('pins', 'warn', '고정 시리즈 연전 불일치', pinMis + '개 고정 시리즈가 연전 수가 다른 슬롯에 있습니다(H0-d 위반 유지).', 'result');
+    if (pinMis) add('pins', 'warn', '고정 시리즈 연전 불일치', pinMis + '개 고정 시리즈가 연전 수가 다른 기간에 있습니다(연전 수 불일치 위반이 남음).', 'result');
     const st0 = { block: 0, warn: 0, pass: 0 };
     for (const it of items) st0[it.status]++;
     c._preflight = { items, counts: st0, ok: st0.block === 0 };
@@ -564,11 +564,11 @@
     const st = this.state;
     if (mode === 'INITIAL') {
       const pf = this.preflight();
-      if (!pf.ok && !o.force) { UI.toast('사전 점검에서 차단 항목이 있어 실행할 수 없습니다.', 'bad'); this.nav('review'); return false; }
-      this.applyEvents({ silent: true, label: '엔진 실행 전 이벤트 고정' });
+      if (!pf.ok && !o.force) { UI.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); this.nav('review'); return false; }
+      this.applyEvents({ silent: true, label: '자동 편성 전 특별 경기 고정' });
     } else if (!(st.reschedule.units || []).length) { UI.toast('재편성 대상 묶음이 없습니다. 먼저 대상을 계산하세요.', 'warn'); return false; }
     const solverOpts = Object.assign({}, st.settings.solver, o, { mode });
-    this.store.checkpoint(mode === 'INITIAL' ? '엔진 실행' : '재편성 실행');
+    this.store.checkpoint(mode === 'INITIAL' ? '자동 편성' : '재편성 실행');
     const handle = this.engine.solve(this.state, solverOpts);
     const run = this.run = { mode, status: 'STARTING', handle, history: [], startedAt: Date.now(), elapsedMs: 0, improvements: 0, iterations: 0, transport: null, reason: null, score: null, engineLabel: this.engine.label };
     handle.on('status', (s) => { run.status = s; run.transport = handle.transport || run.transport; this.emitUI(['run']); });
@@ -578,10 +578,10 @@
       run.status = 'DONE'; run.reason = p.reason;
       if (p.trace) run.trace = p.trace; // 서버 엔진의 탐색 트레이스(§4.2 재생용)
       const why = { TIME_LIMIT: '최대 실행 시간 도달', UNIMPROVED: '개선 없음 종료', STOPPED: '사용자 중지' }[p.reason] || p.reason;
-      if (!o.quiet) UI.toast('엔진 종료 (' + why + ') — ' + Score.scoreString(p.score), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
+      if (!o.quiet) UI.toast('자동 편성 끝 (' + why + ') — ' + (window.Studio && window.Studio.dev() ? Score.scoreString(p.score) : Score.isFeasible(p.score) ? '필수 규칙 모두 지킴' : '필수 규칙 위반 남음'), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
       this.emitUI(['run']);
     });
-    handle.on('error', (e) => { run.status = 'ERROR'; run.reason = e.message; if (!o.quiet) UI.toast('엔진 오류: ' + e.message, 'bad', 7000); this.emitUI(['run']); });
+    handle.on('error', (e) => { run.status = 'ERROR'; run.reason = e.message; if (!o.quiet) UI.toast('자동 편성 오류: ' + e.message, 'bad', 7000); this.emitUI(['run']); });
     this.emitUI(['run']);
     return true;
   };
@@ -592,7 +592,7 @@
     const flat = Score.flat(p.score);
     run.history.push({ t: p.elapsedMs, score: flat });
     if (run.history.length > 400) run.history.splice(1, 1);
-    this.store.commit(run.mode === 'INITIAL' ? '엔진 결과' : '재편성 결과', (s) => {
+    this.store.commit(run.mode === 'INITIAL' ? '자동 편성 결과' : '재편성 결과', (s) => {
       if (run.mode === 'INITIAL') s.plan = p.plan.map((x) => ({ match: x.match, calendar: x.calendar }));
       else s.reschedule.plan = p.plan;
     }, { undo: false, tags: run.mode === 'INITIAL' ? ['plan', 'live'] : ['reschedule', 'live'] });
@@ -606,7 +606,7 @@
 
   // ───────────── 경기 기록·재편성 (FR-P) ─────────────
   App.prototype.setGameStatus = function (game, status, reason) {
-    return this.commit('경기 기록: ' + Dates.fmtDate(game.date) + ' ' + game.away + ' @ ' + game.home, (s) => { Reschedule.setGameStatus(s, game, status, reason); }, ['games']);
+    return this.commit('경기 기록: ' + Dates.fmtDate(game.date) + ' ' + game.away + ' vs ' + game.home, (s) => { Reschedule.setGameStatus(s, game, status, reason); }, ['games']);
   };
   App.prototype.setDayStatus = function (date, status, reason) {
     const list = this.games().filter((g) => g.date === date);
@@ -651,14 +651,14 @@
   App.prototype.saveSnapshot = function (name) {
     const ex = this.derived().ex;
     const snap = this.store.addSnapshot(name, { score: Score.scoreString(ex.score), feasible: ex.feasible, h0eMode: this.state.settings.h0eMode });
-    UI.toast('스냅샷 저장: ' + snap.name, 'ok');
+    UI.toast('중간 저장: ' + snap.name, 'ok');
     return snap;
   };
   App.prototype.restoreSnapshot = function (id) {
     if (!this.guard()) return false;
     const r = this.store.restoreSnapshot(id);
     if (r && r.ok === false) UI.toast(r.error, 'bad');
-    else UI.toast('스냅샷을 복원했습니다.', 'ok');
+    else UI.toast('중간 저장으로 되돌렸습니다.', 'ok');
     return r;
   };
   /** 스냅샷 배정을 현재 입력으로 채점 */

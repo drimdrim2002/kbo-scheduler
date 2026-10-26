@@ -21,6 +21,8 @@
   V.ribbon = function (o) {
     const set = o.settings;
     const s0 = Dates.dayNum(set.seasonStart), s1 = Dates.dayNum(set.initialEnd);
+    if (!Number.isFinite(s0) || !Number.isFinite(s1) || s1 < s0) return '<div class="empty rb-empty"><b>시즌 달력을 아직 그릴 수 없습니다</b>시즌 기본 설정에서 개막일과 1차 편성 종료일을 먼저 적어 주세요.</div>';
+    const year = String(set.seasonStart).slice(0, 4);
     const hol = new Map((set.holidays || []).map((h) => [Dates.dayNum(h.date), h.name]));
     const blk = new Map();
     for (const b of set.blackouts || []) for (let d = Dates.dayNum(b.start); d <= Dates.dayNum(b.end); d++) blk.set(d, b.label || '경기 없는 기간');
@@ -32,13 +34,13 @@
     for (const e of o.events || []) if (e.date) evs.set(Dates.dayNum(e.date), e);
     const changed = o.changed || new Set(), changedDays = o.changedDays || new Set(), selDays = o.selDays || new Set(), errRows = o.errRows || new Set();
     const m0 = Dates.month(s0), m1 = Dates.month(s1);
-    let s = '<div class="rb" role="img" aria-label="' + esc(o.label || '시즌 띠') + ': 경기일·휴식·경기 없는 기간·공휴일">';
+    let s = '<div class="rb" role="img" aria-label="' + esc(o.label || '시즌 달력') + ': 경기일·휴식·경기 없는 기간·공휴일">';
     s += '<div class="rb-row rb-head"><span></span>' + Array.from({ length: 31 }, (_, i) => '<span>' + ((i + 1) % 5 === 0 || i === 0 ? i + 1 : '') + '</span>').join('') + '</div>';
     let nGame = 0;
     for (let mo = m0; mo <= m1; mo++) {
       s += '<div class="rb-row"><span class="rb-m">' + mo + '월</span>';
       for (let day = 1; day <= 31; day++) {
-        const iso = '2025-' + String(mo).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        const iso = year + '-' + String(mo).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         const n = Dates.dayNum(iso);
         if (Dates.month(n) !== mo) { s += '<span class="rd none"></span>'; continue; }
         let cls = 'rd';
@@ -52,12 +54,12 @@
           if (changed.has(i)) cls += ' chg';
           if (errRows.has(i)) cls += ' err';
           if (n === Dates.dayNum(o.slots[i].datetime)) cls += ' first';
-          title += ' · ' + (i + 1) + '번 슬롯 ' + o.slots[i].consecutive + '연전';
+          title += ' · ' + (i + 1) + '번째 연전 기간 · ' + o.slots[i].consecutive + '연전';
         } else if (rest.has(Dates.weekday(n)) && !exc.has(n)) { cls += ' rest'; title += ' · 휴식'; }
-        else { cls += ' gap'; title += ' · 슬롯 없음'; }
-        if (exc.has(n)) { cls += ' exc'; title += ' · 휴식 예외일'; }
+        else { cls += ' gap'; title += ' · 연전 기간 없음'; }
+        if (exc.has(n)) { cls += ' exc'; title += ' · 휴식일 경기'; }
         if (hol.has(n)) { cls += ' hol'; title += ' · ' + hol.get(n); }
-        if (evs.has(n)) { const e = evs.get(n); cls += ' ev' + (e.sel ? ' evsel' : ''); title += ' · 이벤트 ' + e.name; }
+        if (evs.has(n)) { const e = evs.get(n); cls += ' ev' + (e.sel ? ' evsel' : ''); title += ' · 특별 경기 ' + e.name; }
         if (selDays.has(n)) cls += ' selday';
         if (changedDays.has(n)) cls += ' chg';
         s += '<span class="' + cls + '" title="' + esc(title) + '"></span>';
@@ -65,12 +67,12 @@
       s += '</div>';
     }
     s += '</div>';
-    const lg = ['<span><i class="lg ga"></i>경기일(슬롯마다 교대 음영)</span>', '<span><i class="lg rest"></i>휴식</span>', '<span><i class="lg blk"></i>경기 없음</span>', '<span><i class="lg hol"></i>공휴일</span>'];
-    if (o.sel != null && o.sel >= 0) lg.push('<span><i class="lg sel"></i>선택 행</span>');
+    const lg = ['<span><i class="lg ga"></i>경기일 (연전 기간마다 색을 번갈아 칠함)</span>', '<span><i class="lg rest"></i>휴식</span>', '<span><i class="lg blk"></i>경기 없음</span>', '<span><i class="lg hol"></i>공휴일</span>'];
+    if (o.sel != null && o.sel >= 0) lg.push('<span><i class="lg sel"></i>선택한 줄</span>');
     if (selDays.size) lg.push('<span><i class="lg selday"></i>선택 날짜</span>');
-    if ((o.events || []).length) lg.push('<span><i class="lg ev"></i>이벤트</span>');
+    if ((o.events || []).length) lg.push('<span><i class="lg ev"></i>특별 경기</span>');
     if (changed.size || changedDays.size) lg.push('<span><i class="lg chg"></i>바뀐 곳</span>');
-    if (errRows.size) lg.push('<span><i class="lg err"></i>오류 행</span>');
+    if (errRows.size) lg.push('<span><i class="lg err"></i>오류 있는 줄</span>');
     return s + '<div class="legend rb-lg">' + lg.join('') + '</div>';
   };
 
@@ -95,7 +97,7 @@
     const sel = o.sel || null;
     const changed = o.changed || new Set();
     let off = 0;
-    let s = '<svg class="vz-mx" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.title || '구단쌍 경기 수') + ': 행 홈, 열 원정">';
+    let s = '<svg class="vz-mx" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.title || '맞대결 경기 수') + ': 가로줄 홈, 세로줄 원정">';
     s += '<text class="vz-corner" x="2" y="12">홈＼원정</text>';
     N.forEach((a, j) => { s += '<text class="vz-col' + (sel && sel.away === a ? ' on' : '') + '" x="' + (left + j * cs + cs / 2 - 1) + '" y="13" text-anchor="middle">' + esc(a) + '</text>'; });
     N.forEach((h, i) => {
@@ -114,7 +116,7 @@
         const fill = bad ? '#FFF3D9' : step(v);
         const dark = !bad && v >= 9; // 6~8 칸은 남색 글자(대비 4.5:1 이상)
         const prev = o.before && o.before.has(h + '|' + a) ? o.before.get(h + '|' + a) : null;
-        const tip = a + ' @ ' + h + ' — ' + h + ' 홈 ' + v + '경기 · ' + a + ' 홈 ' + w + '경기 · 합 ' + (v + w) + (bad ? ' (목표 ' + target + '와 다름)' : '') + (chg ? ' · 방금 바뀜' + (prev != null ? ' (' + prev + ' → ' + v + ')' : '') : '');
+        const tip = a + ' vs ' + h + ' — ' + h + ' 홈 ' + v + '경기 · ' + a + ' 홈 ' + w + '경기 · 합 ' + (v + w) + (bad ? ' (목표 ' + target + '와 다름)' : '') + (chg ? ' · 방금 바뀜' + (prev != null ? ' (' + prev + ' → ' + v + ')' : '') : '');
         s += '<g class="vz-cell' + (bad ? ' bad' : '') + (chg ? ' chg' : '') + (isSel ? ' sel' : '') + '" data-pair="' + esc(h + '|' + a) + '" data-v="' + v + '"><title>' + esc(tip) + '</title>' +
           '<rect x="' + x + '" y="' + y + '" width="' + (cw - 2) + '" height="' + (ch - 2) + '" rx="2" fill="' + fill + '"' + (bad ? ' stroke="#C98A00" stroke-width="1" stroke-dasharray="2 1.5"' : '') + '/>' +
           (isMirror ? '<rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="' + (cw - 4) + '" height="' + (ch - 4) + '" rx="1.5" fill="none" stroke="#0A1E3C" stroke-width="1.2" stroke-dasharray="3 2"/>' : '') +
@@ -125,8 +127,8 @@
     });
     s += '</svg>';
     const lg = '<div class="legend vz-lg"><span><i style="background:' + step(9) + '"></i>9경기</span><span><i style="background:' + step(6) + '"></i>6~8</span><span><i style="background:' + step(3) + '"></i>1~5</span><span><i style="background:' + step(12) + '"></i>10 이상</span>' +
-      '<span><i style="background:#FFF3D9;box-shadow:inset 0 0 0 1px #C98A00"></i>! 두 칸 합 ≠ ' + target + '</span>' +
-      (sel ? '<span><i style="box-shadow:inset 0 0 0 2px #0A1E3C;background:#fff"></i>선택 행의 구단쌍</span>' : '') +
+      '<span><i style="background:#FFF3D9;box-shadow:inset 0 0 0 1px #C98A00"></i>! 두 칸 합이 ' + target + '가 아님</span>' +
+      (sel ? '<span><i style="box-shadow:inset 0 0 0 2px #0A1E3C;background:#fff"></i>선택한 줄의 맞대결</span>' : '') +
       (changed.size ? '<span><i style="box-shadow:inset 0 0 0 2px #1F5FD6;background:#fff"></i>방금 바뀐 칸</span>' : '') + '</div>';
     return { html: s + lg, off };
   };
@@ -146,9 +148,9 @@
       const st = need > cap ? 'block' : need < cap ? 'warn' : 'ok';
       const max = Math.max(cap, need, 1);
       s += '<div class="vz-bal-row"><span class="k">' + k + '연전</span><div class="bars">' +
-        '<div class="bar cap" style="width:' + (cap / max * 100).toFixed(1) + '%"><span>슬롯 ' + (sh[k] || 0) + ' × ' + half + ' = ' + cap + '</span></div>' +
+        '<div class="bar cap" style="width:' + (cap / max * 100).toFixed(1) + '%"><span>기간 ' + (sh[k] || 0) + '개 × ' + half + ' = ' + cap + '</span></div>' +
         '<div class="bar need ' + st + '" style="width:' + (need / max * 100).toFixed(1) + '%"><span>시리즈 ' + need + '</span></div></div>' +
-        S.stat(st, st === 'ok' ? '일치' : st === 'warn' ? '여유 ' + (cap - need) : '부족 ' + (need - cap)) + '</div>';
+        S.stat(st, st === 'ok' ? '맞음' : st === 'warn' ? '여유 ' + (cap - need) : '부족 ' + (need - cap)) + '</div>';
     }
     return s + '</div>';
   };

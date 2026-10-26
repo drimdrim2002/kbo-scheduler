@@ -8,10 +8,10 @@
   const { Score } = KBO;
 
   const STEP_META = {
-    1: { name: '데이터 준비', task: '시즌 데이터를 가져오고 한 건씩 고친다.' },
-    2: { name: '검토·실행', task: '사전 점검을 통과시키고 엔진을 돌린다.' },
-    3: { name: '결과·수정', task: '위반을 없애고 일정을 다듬는다.' },
-    4: { name: '품질·배포', task: '공정성을 확인하고 배포본을 만든다.' }
+    1: { name: '데이터 준비', task: '시즌 데이터를 가져오고 한 건씩 고칩니다.' },
+    2: { name: '검토·실행', task: '사전 점검을 통과하면 자동 편성을 돌립니다.' },
+    3: { name: '결과·수정', task: '위반을 없애고 일정을 다듬습니다.' },
+    4: { name: '공정성·배포', task: '공정성을 확인하고 배포 파일을 만듭니다.' }
   };
   S.STEP_META = STEP_META;
   const CIRCLED = ['', '①', '②', '③', '④'];
@@ -23,8 +23,9 @@
     const app = S.app, st = app.state, c = app.derived();
     if (n === 1) {
       const errs = S.draftErrors ? S.draftErrors() : 0;
-      const sum = st.calendar.length + ' 슬롯 · ' + st.matches.length + ' 시리즈 · 이벤트 ' + st.events.length;
-      if (errs) return { kind: 'warn', text: '셀 오류 ' + errs, summary: sum, next: '셀 오류 ' + errs };
+      const sum = '연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length;
+      if (errs) return { kind: 'warn', text: '칸 오류 ' + errs, summary: sum, next: '칸 오류 ' + errs };
+      if (!st.calendar.length || !st.matches.length) return { kind: 'todo', text: '작성 중', summary: sum, next: !st.calendar.length ? '연전 기간 없음' : '시리즈 없음' };
       return { kind: 'ok', text: '완료', summary: sum, next: '입력 완료' };
     }
     if (n === 2) {
@@ -33,22 +34,22 @@
       if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) {
         return { kind: 'todo', text: S.run.status === 'PAUSED' ? '일시정지' : '편성 중', summary: (S.run.status === 'PAUSED' ? '일시정지' : '더 나은 일정을 찾는 중') + ' · ' + S.fmt.time(S.run.elapsed) + (S.dev() ? ' · 개선 ' + S.run.improvements + '회' : ''), next: '편성 중' };
       }
-      const sum = '통과 ' + k.pass + ' · 경고 ' + k.warn + ' · 차단 ' + k.block + (S.lastRun ? ' · 실행 ' + S.lastRun.count + '회' : ' · 실행 1회');
-      if (k.block) return { kind: 'block', text: '차단 ' + k.block, summary: sum, next: '차단 ' + k.block };
-      if (k.warn) return { kind: 'warn', text: '경고 ' + k.warn, summary: sum, next: '경고 ' + k.warn };
+      const sum = '통과 ' + k.pass + ' · 확인 필요 ' + k.warn + ' · 진행 불가 ' + k.block + (S.lastRun ? ' · 자동 편성 ' + S.lastRun.count + '회' : ' · 자동 편성 1회');
+      if (k.block) return { kind: 'block', text: '진행 불가 ' + k.block, summary: sum, next: '진행 불가 ' + k.block };
+      if (k.warn) return { kind: 'warn', text: '확인 필요 ' + k.warn, summary: sum, next: '확인 필요 ' + k.warn };
       return { kind: 'ok', text: '통과', summary: sum, next: '점검 통과' };
     }
     if (n === 3) {
       const ex = c.ex;
       const cnt = ex.violations.length;
-      const sum = S.term('hardViol') + ' ' + cnt + '건 · 미배정 ' + c.pool.length + ' · 고정 ' + st.matches.filter((m) => m.pinned).length;
+      const sum = S.term('hardViol') + ' ' + cnt + '건 · 일정 미정 ' + c.pool.length + ' · 고정 ' + st.matches.filter((m) => m.pinned).length;
       if (cnt) return { kind: 'block', text: '위반 ' + cnt, summary: sum, next: S.termPlain('hardViol') + ' ' + cnt };
-      if (c.pool.length) return { kind: 'warn', text: '미배정 ' + c.pool.length, summary: sum, next: '미배정 ' + c.pool.length };
+      if (c.pool.length) return { kind: 'warn', text: '일정 미정 ' + c.pool.length, summary: sum, next: '일정 미정 ' + c.pool.length };
       return { kind: 'ok', text: '편성 가능', summary: sum, next: '편성 가능' };
     }
     const tm = c.ex.teamMetrics;
     const over = tm.filter((t) => t.overDistance).length;
-    const sum = '거리 허용오차 초과 ' + over + '구단 · ' + (S.ui.exported ? '배포본 생성됨' : '배포본 미생성');
+    const sum = '이동거리 범위 밖 ' + over + '구단 · ' + (S.ui.exported ? '배포 파일 만듦' : '배포 파일 아직 없음');
     if (S.ui.exported) return { kind: 'ok', text: '완료', summary: sum, next: '완료' };
     return { kind: 'todo', text: '작성 중', summary: sum, next: '작성 중' };
   };
@@ -65,7 +66,7 @@
     let eng;
     if (r && r.status === 'RUNNING') eng = '<span class="eng run"><span class="dot"></span><b>실행 중</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
     else if (r && r.status === 'PAUSED') eng = '<span class="eng pause"><span class="dot"></span><b>일시정지</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
-    else eng = '<span class="eng"><span class="dot"></span>엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? (S.dev() ? 'REST' : '서버 엔진') : (S.dev() ? 'Mock' : '시안용')) + '</span>';
+    else eng = '<span class="eng"><span class="dot"></span>' + (S.dev() ? '엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? 'REST' : 'Mock') : '자동 편성 <b>대기</b>') + '</span>';
     return '' +
       '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">KBO 일정 편성 · 2025</span><span class="brand-sub">편성 스튜디오</span></div>' +
       '<span class="tb-sep"></span>' +
@@ -73,7 +74,7 @@
         (S.dev()
           ? '<button class="chip-mode" data-act="open-settings" data-set="scoring" title="H0-e 홈 의무 판정 모드 — 설정에서 바꿉니다">H0-e ' + esc(mode) + '</button>' +
             '<span class="badge-score" title="BendableLongScore 원점수">' + esc(S.fmt.score(ex.score)) + '</span><span class="dev-pill" title="설정에서 끌 수 있습니다">개발자 모드</span>'
-          : '<button class="chip-mode" data-act="open-settings" data-set="scoring" title="이벤트 구장의 홈 경기 의무를 어떻게 판정할지 — 설정에서 바꿉니다">홈 의무 판정: ' + esc(mode) + '</button>') +
+          : '') +
       '</div>' +
       '<span class="tb-sep"></span>' +
       '<div class="tb-group">' + eng + '</div>' +
@@ -91,11 +92,13 @@
     for (let n = 1; n <= 4; n++) {
       const st = S.stepStatus(n);
       const active = S.ui.step === n;
+      const g1 = n === 1 && S.guideUI && S.guideUI.stepSummary ? S.guideUI.stepSummary() : null; // ① 단계별 화면: 「새로 입력하기 · 3 / 9 공휴일」
+      const sum = g1 || st.summary;
       s += '<button class="step' + (active ? ' active' : '') + '" data-act="go-step" data-step="' + n + '"' + (active ? ' aria-current="step"' : '') + '>' +
         '<span class="step-no">' + n + '</span>' +
         '<span class="step-name">' + STEP_META[n].name + (locked && n === 1 ? '<span class="step-lock">' + icon('lock') + '잠김</span>' : '') + '</span>' +
         S.stat(st.kind, st.text) +
-        '<span class="step-sum" title="' + esc(st.summary) + '">' + esc(st.summary) + '</span>' +
+        '<span class="step-sum" title="' + esc(sum) + '">' + esc(sum) + '</span>' +
         '</button>';
     }
     return s;
@@ -104,16 +107,17 @@
   // ───────── 하단 ─────────
   function renderFooter() {
     if (S.ui.ops) {
-      return '<button class="btn" data-act="close-ops">' + icon('left') + '위저드로 돌아가기</button>' +
-        '<span class="hint">시즌 운영은 1차 편성 위저드와 따로 둡니다. 경기 기록 → 재편성 순서로 씁니다.</span>' +
-        S.mock('경기 기록 저장·재편성 탐색 목업');
+      return '<button class="btn" data-act="close-ops">' + icon('left') + '1차 편성으로 돌아가기</button>' +
+        '<span class="hint">시즌 운영은 1차 편성과 따로 둡니다. 경기 기록 → 재편성 순서로 씁니다.</span>' +
+        S.mock('시안 예시: 경기 기록 저장·재편성');
     }
     const n = S.ui.step;
+    if (n === 1 && S.guideUI && S.guideUI.footer) { const f = S.guideUI.footer(); if (f) return f; } // ① 단계별 화면: 이전·단계·다음
     const cur = S.stepStatus(n);
     const prev = n > 1 ? '<button class="btn" data-act="go-step" data-step="' + (n - 1) + '">' + icon('left') + '이전: ' + STEP_META[n - 1].name + '</button>' : '<button class="btn" disabled>' + icon('left') + '이전 단계</button>';
     const next = n < 4
       ? '<button class="btn primary" data-act="go-step" data-step="' + (n + 1) + '">다음: ' + STEP_META[n + 1].name + ' <span class="nx">(' + icon(KICON[cur.kind] || 'info') + esc(cur.next) + ')</span>' + icon('right') + '</button>'
-      : '<button class="btn primary" data-act="q-view" data-qv="export">배포본 내보내기 <span class="nx">(' + icon(KICON[cur.kind] || 'info') + esc(cur.next) + ')</span>' + icon('right') + '</button>';
+      : '<button class="btn primary" data-act="q-view" data-qv="export">배포 파일 내보내기 <span class="nx">(' + icon(KICON[cur.kind] || 'info') + esc(cur.next) + ')</span>' + icon('right') + '</button>';
     return prev + '<span class="hint"><b>' + CIRCLED[n] + ' ' + STEP_META[n].name + '</b> — ' + esc(STEP_META[n].task) + '</span>' +
       '<span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
   }
@@ -148,16 +152,39 @@
       const p = S.ui.menuPos || { x: 0, y: 44 };
       return '<div class="menu" role="menu" style="top:' + p.y + 'px;right:' + Math.max(8, window.innerWidth - p.x) + 'px">' +
         '<div class="mh">가져오기</div>' +
-        '<button role="menuitem" data-act="import-xlsx">' + icon('upload') + '.xlsx 업로드…' + S.mock() + '</button>' +
+        '<button role="menuitem" data-act="import-xlsx">' + icon('upload') + '엑셀 올리기…' + S.mock() + '</button>' +
         '<button role="menuitem" data-act="import-gsheet">' + icon('link') + '구글 시트 연결…' + S.mock() + '</button>' +
         '<div class="msep"></div><div class="mh">내보내기</div>' +
-        '<button role="menuitem" data-act="export" data-kind="xlsx">' + icon('download') + '.xlsx 내보내기' + S.mock() + '</button>' +
-        '<button role="menuitem" data-act="export" data-kind="template">' + icon('file') + '빈 양식 다운로드' + S.mock() + '</button>' +
-        '<button role="menuitem" data-act="export" data-kind="project">' + icon('db') + '프로젝트 JSON</button>' +
-        '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' +
+        '<button role="menuitem" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기' + S.mock() + '</button>' +
+        '<button role="menuitem" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식 받기' + S.mock() + '</button>' +
+        (S.dev() ? '<button role="menuitem" data-act="export" data-kind="project">' + icon('db') + '프로젝트 JSON</button>' +
+        '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' : '') +
         (S.feature('D4') ? '<button role="menuitem" data-act="export" data-kind="csv">' + icon('table') + '일정표 CSV</button>' : '') +
+        '<div class="msep"></div><div class="mh">데이터 바꾸기</div>' +
+        '<button role="menuitem" data-act="reset-ask" data-kind="blank">' + icon('plus') + '처음부터 입력하기(초기화)…</button>' +
+        '<button role="menuitem" data-act="reset-ask" data-kind="example">' + icon('db') + '2025 예시 데이터 다시 불러오기…</button>' +
       '</div>';
     }
+  };
+
+  // ───────── 처음부터 입력하기 · 예시 데이터 확인 창 ─────────
+  S.modals.reset = function () {
+    const st = S.app.state, kind = S.ui.resetKind || 'blank';
+    const cnt = (n, unit) => '<b>' + n + '</b>' + unit;
+    const now = '연전 기간 ' + cnt(st.calendar.length, '개') + ' · 시리즈 ' + cnt(st.matches.length, '개') + ' · 특별 경기 ' + cnt(st.events.length, '개') + ' · 공휴일 ' + cnt(st.settings.holidays.length, '일') + ' · 휴식일 경기 ' + cnt(st.settings.restExceptions.length, '일') + ' · 휴식기 ' + cnt(st.settings.blackouts.length, '개');
+    const blank = kind === 'blank';
+    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '">' +
+      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
+      '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">' +
+      (blank
+        ? '<p class="small" style="margin:0">지금 들어 있는 표를 모두 비우고, 빈 상태에서 시즌 정보를 처음부터 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 연전 기간·시리즈 같은 큰 표는 단추로 만듭니다.</p>' +
+          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 공휴일 · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 특별 경기 · 경기 기록 · 중간 저장</dd>' +
+          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단과 거리」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
+          '<dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>'
+        : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
+          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
+      '<div class="confirm-box">' + icon('info') + '<span>실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div>' +
+      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 기본 설정부터 시작합니다. 단계별로 적으려면 「단계별로 보기」를 누르세요.' : '불러온 뒤에는 연전 기간 화면에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
   };
 
   // ───────── 렌더 루프 ─────────
@@ -179,6 +206,7 @@
     for (const fn of after) { try { fn(); } catch (e) { console.error(e); } }
     if (!u.ops && S.steps[u.step].after) S.steps[u.step].after();
     if (u.ops && S.ops.after) S.ops.after();
+    if (S.guideAfter) S.guideAfter();
     S.writeHash();
     S.checkScroll();
   };
@@ -218,11 +246,14 @@
       S.ui.menu = S.ui.menu === el.dataset.menu ? null : el.dataset.menu;
       els.overlay.innerHTML = renderOverlay();
       els.top.innerHTML = renderTop();
+      if (S.guideAfter) S.guideAfter();
     },
     'toggle-insp': () => { S.go({ inspOff: !S.ui.inspOff }); },
     'undo': () => { S.app.undo(); },
     'redo': () => { S.app.redo(); },
-    'export': (el) => S.doExport(el.dataset.kind)
+    'export': (el) => S.doExport(el.dataset.kind),
+    'reset-ask': (el) => { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 데이터를 바꿀 수 없습니다. 먼저 중지하세요.', 'warn'); return; } S.ui.resetKind = el.dataset.kind || 'blank'; S.go({ modal: 'reset', menu: null }); },
+    'reset-go': (el) => { if (el.dataset.kind === 'example') S.loadExample(); else S.resetAll(); }
   });
 
   S.doExport = function (kind) {
@@ -231,8 +262,8 @@
     if (kind === 'project') { app.exportProject(); S.toast('프로젝트 JSON을 내려받았습니다.', 'ok'); }
     else if (kind === 'engine') { app.exportEngine(); S.toast('엔진 호환 JSON(input_2025 형식)을 내려받았습니다.', 'ok'); }
     else if (kind === 'csv') { app.exportCSV(S.ui.team || null); S.toast('일정표 CSV를 내려받았습니다' + (S.ui.team ? ' (' + S.ui.team + ')' : '') + '.', 'ok'); }
-    else if (kind === 'xlsx') S.toast('목업: 2025_KBO_편성_배포본.xlsx (시트 6개 · 슬롯 45 · 시리즈 225)를 만들었다고 가정합니다.', 'info', 4200);
-    else if (kind === 'template') S.toast('목업: 빈 양식.xlsx (안내 시트 + 시트별 머리글·예시 1행)를 받았다고 가정합니다.', 'info', 4200);
+    else if (kind === 'xlsx') S.toast('시안 예시: 2025_KBO_편성_배포본.xlsx (시트 6개 · 연전 기간 ' + app.state.calendar.length + ' · 시리즈 ' + app.state.matches.length + ')를 만들었다고 가정합니다.', 'info', 4200);
+    else if (kind === 'template') S.toast('시안 예시: 빈 엑셀 양식.xlsx (안내 시트 + 시트별 제목 줄·예시 한 줄)를 받았다고 가정합니다.', 'info', 4200);
     if (kind !== 'template') S.ui.exported = true;
     S.render();
   };
@@ -246,6 +277,7 @@
     els.overlay = document.getElementById('overlay');
     const q = new URLSearchParams(location.search);
     S.debugScroll = q.get('debug') === 'scroll';
+    S.selftestMode = q.get('selftest') === '1';
     if (q.get('fresh') === '1') { S.ls.del(S.KEY + 'features'); }
     S.loadFeatures();
     const app = S.app = new KBO.App({ appId: 'wizard-final', appName: '편성 스튜디오' });
@@ -265,7 +297,7 @@
       const parts = [];
       if (linked.distanceToleranceKm) parts.push(tolWord(linked.distanceToleranceKm));
       if (linked.obligationTeams) parts.push('어린이날 홈 ' + linked.obligationTeams.join('·'));
-      if (linked.seed != null) parts.push('시드 ' + linked.seed);
+      if (linked.seed != null && S.dev()) parts.push('시드 ' + linked.seed);
       setTimeout(() => KBO.UI.toast('공유 결과의 조건을 실었어요: ' + parts.join(' · '), 'info', 6000), 0);
     }
     app.subscribe(() => S.scheduleRender());
@@ -281,12 +313,15 @@
     if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
   };
   S.demos = {};
+  /** 점검용 주소 demo=blank: 처음부터 입력하기 상태로 시작한다(빈 표 화면 점검). 주소의 단계·화면은 그대로 둔다 */
+  S.demos.blank = function () { S.resetAll({ quiet: true, stay: true }); };
 
   /** 사전 점검 링크 등에서 입력 위치로 이동 */
   S.navTarget = function (target) {
     const map = { teams: 'teams', distance: 'teams', slots: 'slots', series: 'series', events: 'events', season: 'season' };
     if (target === 'result') S.go({ step: 3, ops: null });
     else if (target === 'review') S.go({ step: 2, ops: null });
+    else if (S.g1Open) S.g1Open(map[target] || 'slots', { flash: map[target] || null }); // ① 단계별 화면이면 그 표의 단계로
     else S.go({ step: 1, tab: map[target] || 'slots', ops: null, sel: null, flash: map[target] || null });
   };
 
@@ -311,6 +346,7 @@
       if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button' && e.target.dataset && e.target.dataset.act && e.target.tagName.toLowerCase() !== 'button') {
         e.preventDefault(); const fn = S.actions[e.target.dataset.act]; if (fn) fn(e.target, e); return;
       }
+      if (S.guideOnKey && S.guideOnKey(e) === true) return;
       if (S.onKey && S.onKey(e) === true) return;
       const tag = (e.target.tagName || '').toLowerCase();
       const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
@@ -329,8 +365,8 @@
   S.workspace = function (o) {
     const off = S.ui.inspOff;
     const insp = off
-      ? '<aside class="insp-rail" aria-label="인스펙터(접힘)"><button class="btn sm icon ghost" data-act="toggle-insp" title="인스펙터 펼치기">' + icon('left') + '</button><span class="rail-label">인스펙터 · ' + esc(o.inspTitle || '') + '</span></aside>'
-      : '<aside class="pane insp" aria-label="인스펙터"><div class="pane-head"><span class="pane-title">' + esc(o.inspTitle || '인스펙터') + '</span>' + (o.inspHead || '') + '<button class="btn sm icon ghost" style="margin-left:auto" data-act="toggle-insp" title="인스펙터 접기">' + icon('right') + '</button></div><div class="pane-body" data-sk="insp-' + S.ui.step + (S.ui.ops || '') + '">' + o.insp + '</div>' + (o.inspFoot ? '<div class="pane-foot">' + o.inspFoot + '</div>' : '') + '</aside>';
+      ? '<aside class="insp-rail" aria-label="자세히(접힘)"><button class="btn sm icon ghost" data-act="toggle-insp" title="자세히 펼치기">' + icon('left') + '</button><span class="rail-label">자세히 · ' + esc(o.inspTitle || '') + '</span></aside>'
+      : '<aside class="pane insp" aria-label="자세히"><div class="pane-head"><span class="pane-title">' + esc(o.inspTitle || '자세히') + '</span>' + (o.inspHead || '') + '<button class="btn sm icon ghost" style="margin-left:auto" data-act="toggle-insp" title="자세히 접기">' + icon('right') + '</button></div><div class="pane-body" data-sk="insp-' + S.ui.step + (S.ui.ops || '') + '">' + o.insp + '</div>' + (o.inspFoot ? '<div class="pane-foot">' + o.inspFoot + '</div>' : '') + '</aside>';
     return '<div class="workspace' + (off ? ' insp-off' : '') + (o.cls ? ' ' + o.cls : '') + '">' +
       '<nav class="pane list" aria-label="' + esc(o.listLabel || '목록') + '">' + o.list + '</nav>' +
       '<section class="pane main">' + o.main + '</section>' + insp + '</div>';

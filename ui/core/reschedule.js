@@ -18,17 +18,17 @@
   const STATUS = { SCHEDULED: '예정', PLAYED: '완료', CANCELLED: '취소' };
   const REASONS = { RAIN: '우천', HEAT: '폭염', DUST: '미세먼지', GROUND: '그라운드 사정', OTHER: '기타' };
   const HARD_RULES = [
-    { code: 'RH-1', level: 0, label: '구단 하루 1경기', desc: '하루에 한 구단은 한 경기만 합니다(DH 허용 시 같은 대진 2경기 예외).' },
-    { code: 'RH-2', level: 0, label: '구장 하루 1대진', desc: '하루에 한 구장은 한 대진만 수용합니다.' },
-    { code: 'RH-3', level: 0, label: '월요일·경기 없는 날', desc: '월요일 경기 미허용 시 월요일, 경기 없는 날에는 배정할 수 없습니다.' },
+    { code: 'RH-1', level: 0, label: '구단 하루 1경기', desc: '하루에 한 구단은 한 경기만 합니다(더블헤더 허용 시 같은 대진 2경기 예외).' },
+    { code: 'RH-2', level: 0, label: '구장 하루 1대진', desc: '한 구장에서는 하루에 한 대진만 열립니다.' },
+    { code: 'RH-3', level: 0, label: '월요일·경기 없는 날', desc: '월요일 경기 미허용 시 월요일, 경기 없는 날에는 경기를 넣을 수 없습니다.' },
     { code: 'RH-4', level: 0, label: '더블헤더 한도', desc: '구단별 더블헤더 수가 설정값 이하여야 합니다.' },
-    { code: 'RH-5', level: 1, label: '미배정 재편성 경기', desc: '모든 재편성 대상 경기를 재편성 기간 안에 배정해야 합니다.' }
+    { code: 'RH-5', level: 1, label: '재편성 경기 일정 미정', desc: '모든 재편성 대상 경기를 재편성 기간 안에 넣어야 합니다.' }
   ];
   const SOFT_RULES = [
     { code: 'RS-1', label: '마지막 경기일(기간 시작 후 일수)', unit: '일' },
-    { code: 'RS-2a', label: '구단별 이동거리 증가분 편차', unit: '' },
-    { code: 'RS-2b', label: '이동거리 증가분 합계', unit: 'km' },
-    { code: 'RS-3', label: 'DH·월요일 경기 수', unit: '경기' }
+    { code: 'RS-2a', label: '구단마다 늘어난 이동거리 차이', unit: '' },
+    { code: 'RS-2b', label: '늘어난 이동거리 합계', unit: 'km' },
+    { code: 'RS-3', label: '더블헤더·월요일 경기 수', unit: '경기' }
   ];
   const SPREAD_STEP_KM = 50;
   const RULE_BY_CODE = {};
@@ -401,28 +401,28 @@
         push(teamDayUnits, ctx.uAway[u] + ':' + d, rec);
         push(stadDayUnits, ctx.stadiumOf[ctx.uHome[u]] + ':' + d, rec);
         const gamesToday = useDH && k === 0 ? 2 : 1;
-        if (ctx.forbidden[d]) add({ code: 'RH-3', date: D().isoDate(input.d0 + d), units: [info.unit], amount: gamesToday, message: dateOf(d) + ' 경기 없는 날에 ' + info.away + ' @ ' + info.home + ' 배정' });
-        if (ctx.monday[d] && !ctx.allowMonday) add({ code: 'RH-3', date: D().isoDate(input.d0 + d), units: [info.unit], amount: gamesToday, message: dateOf(d) + ' 월요일 경기 미허용인데 ' + info.away + ' @ ' + info.home + ' 배정' });
+        if (ctx.forbidden[d]) add({ code: 'RH-3', date: D().isoDate(input.d0 + d), units: [info.unit], amount: gamesToday, message: dateOf(d) + ' 경기 없는 날에 ' + info.away + ' vs ' + info.home + ' 배정' });
+        if (ctx.monday[d] && !ctx.allowMonday) add({ code: 'RH-3', date: D().isoDate(input.d0 + d), units: [info.unit], amount: gamesToday, message: dateOf(d) + ' 월요일 경기를 허용하지 않았는데 ' + info.away + ' vs ' + info.home + ' 배정' });
       }
     }
     for (const [key, list] of teamDayUnits) {
       if (list.length < 2) continue;
       const [t, d] = key.split(':').map(Number);
       add({ code: 'RH-1', date: D().isoDate(input.d0 + d), units: list.filter((x) => x.unit).map((x) => x.unit), teams: [t], amount: list.length - 1,
-        message: dateOf(d) + ' ' + names[t] + ' 하루 ' + list.length + '경기: ' + list.map((x) => names[x.away] + ' @ ' + names[x.home] + (x.fixed ? '(기존)' : '')).join(', ') });
+        message: dateOf(d) + ' ' + names[t] + ' 하루 ' + list.length + '경기: ' + list.map((x) => names[x.away] + ' vs ' + names[x.home] + (x.fixed ? '(기존)' : '')).join(', ') });
     }
     for (const [key, list] of stadDayUnits) {
       if (list.length < 2) continue;
       const [, d] = key.split(':').map(Number);
       add({ code: 'RH-2', date: D().isoDate(input.d0 + d), units: list.filter((x) => x.unit).map((x) => x.unit), amount: list.length - 1,
-        message: dateOf(d) + ' ' + input.teams[list[0].home].stadium + ' 하루 ' + list.length + '대진: ' + list.map((x) => names[x.away] + ' @ ' + names[x.home]).join(', ') });
+        message: dateOf(d) + ' ' + input.teams[list[0].home].stadium + ' 하루 ' + list.length + '대진: ' + list.map((x) => names[x.away] + ' vs ' + names[x.home]).join(', ') });
     }
     for (let t = 0; t < ctx.N; t++) {
       if (ctx.dhCount[t] > ctx.maxDH) add({ code: 'RH-4', teams: [t], units: [], amount: ctx.dhCount[t] - ctx.maxDH, message: names[t] + ' 더블헤더 ' + ctx.dhCount[t] + '회 (한도 ' + ctx.maxDH + ')' });
     }
     for (const info of unitInfo) {
       if (info.days.length) continue;
-      add({ code: 'RH-5', units: [info.unit], amount: info.games, message: info.away + ' @ ' + info.home + ' ' + info.games + '경기 미배정 — ' + unassignedReason(ctx, input, start, dh, input.units.findIndex((u) => u.id === info.unit)) });
+      add({ code: 'RH-5', units: [info.unit], amount: info.games, message: info.away + ' vs ' + info.home + ' ' + info.games + '경기 일정 미정 — ' + unassignedReason(ctx, input, start, dh, input.units.findIndex((u) => u.id === info.unit)) });
     }
     let h0 = 0, h1 = 0;
     for (const v of violations) { if (v.level === 0) h0 += v.amount; else h1 += v.amount; }
@@ -469,7 +469,7 @@
     for (let s = 0; s + g <= ctx.Dn; s++) {
       trial[u] = s;
       const r = evaluate(ctx, trial, dh, []);
-      if (r[0] === base[0]) return '배정 가능한 날짜가 있음 — 재최적화하거나 직접 배치하세요';
+      if (r[0] === base[0]) return '넣을 수 있는 날짜가 있음 — 재편성을 다시 돌리거나 직접 배치하세요';
     }
     return '두 구단이 함께 비는 날짜가 없음(구단·구장 일정 충돌)';
   }
