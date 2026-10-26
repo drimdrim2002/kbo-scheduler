@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 R · 엑셀로 한꺼번에 — 지금 데이터가 채워진 서식을 내려받아 고쳐 올리기</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .dim { position: fixed; inset: 0; background: rgba(10,30,60,.45); z-index: 20; }
+  .modal { position: fixed; z-index: 21; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 980px; background: #fff; border-radius: 8px; box-shadow: 0 16px 40px rgba(10,30,60,.3); display: flex; flex-direction: column; max-height: 800px; }
+  .modal .mh { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+  .modal .mh b { font-size: 16px; }
+  .modal .mb { padding: 16px 20px; overflow: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .step { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .step.on { border-color: var(--blue); background: var(--blue-weak); }
+  .step h4 { margin: 0; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .step h4 i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+  .drop { border: 2px dashed var(--line-3); border-radius: 6px; padding: 18px; text-align: center; color: var(--text-3); background: #fff; }
+  table.x { border-collapse: collapse; font-size: 11px; width: 100%; background: #fff; }
+  table.x th, table.x td { border: 1px solid var(--line-2); padding: 2px 6px; height: 20px; white-space: nowrap; }
+  table.x th { background: #E8EBEF; font-weight: 600; color: var(--text-2); }
+  .tabs { display: flex; gap: 2px; }
+  .tabs span { font-size: 11px; padding: 3px 8px; border: 1px solid var(--line-2); border-bottom: 0; border-radius: 4px 4px 0 0; background: #F8F9FB; color: var(--text-3); }
+  .tabs span.on { background: #fff; color: var(--text); font-weight: 600; }
+  .modal .mf { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+</style></head>
+<body><div class="body"></div>
+<div class="dim"></div>
+<div class="modal">
+  <div class="mh"><b>엑셀로 한꺼번에 넣기</b><span class="muted small">서식은 지금 화면의 데이터가 채워진 채로 내려옵니다 — 빈칸부터 적지 않습니다</span><span class="r"><a class="small">닫기 ✕</a></span></div>
+  <div class="mb">
+    <div class="step"><h4><i>1</i>서식 내려받기</h4>
+      <span class="btn pri">⬇ 2025_편성입력.xlsx 내려받기</span>
+      <div class="xs muted">시트 4개 · 지금 데이터 채움 · 설명 시트 포함</div>
+      <div class="tabs"><span>구단 정보</span><span class="on">시즌 기간과 공휴일</span><span>연전 기간</span><span>홈 구장 지정</span></div>
+      <table class="x"><tr><th>종류</th><th>날짜</th><th>이름</th><th>가중치</th></tr>
+        <tr><td>개막일</td><td>2025-03-22</td><td></td><td></td></tr><tr><td>1차 편성 종료일</td><td>2025-08-31</td><td></td><td></td></tr><tr><td>시즌 종료일</td><td>2025-10-31</td><td></td><td></td></tr><tr><td>휴식 요일</td><td>월</td><td></td><td></td></tr>
+        <tr><td>공휴일</td><td>2025-05-05</td><td>어린이날·부처님오신날</td><td>3</td></tr><tr><td>공휴일</td><td>2025-05-06</td><td>대체공휴일</td><td>2</td></tr><tr><td>공휴일</td><td>2025-06-06</td><td>현충일</td><td>2</td></tr><tr><td>공휴일</td><td>2025-08-15</td><td>광복절</td><td>2</td></tr></table>
+      <div class="xs muted">연전 기간 시트: 시작일·연전 수 45줄. <b>비워 두면 규칙으로 만듭니다.</b><br>홈 구장 지정 시트: 날짜·이름·구단 5곳.</div>
+    </div>
+    <div class="step on"><h4><i>2</i>채운 파일 올리기</h4>
+      <div class="drop">여기에 파일을 끌어 놓거나<br><span class="btn sm" style="margin-top:6px">파일 고르기</span></div>
+      <div class="small" style="background:#fff;border:1px solid var(--line);border-radius:4px;padding:6px 8px"><b>2025_편성입력_v2.xlsx</b> <span class="muted xs">54 KB · 시트 4개 · 방금</span></div>
+      <div class="xs muted">같은 이름의 시트를 읽고, 모르는 열은 건너뜁니다. 날짜는 2025-05-05나 5/5 모두 됩니다.</div>
+    </div>
+    <div class="step"><h4><i>3</i>검사하고 달력에 반영</h4>
+      <div class="line small"><span>구단 정보 10줄</span><span class="v"><span class="stat ok">맞음</span></span></div>
+      <div class="line small"><span>시즌 기간과 공휴일 9줄</span><span class="v"><span class="stat ok">맞음</span></span></div>
+      <div class="line small"><span>연전 기간 45줄 · 경기일 135</span><span class="v"><span class="stat ok">맞음</span></span></div>
+      <div class="line small"><span>홈 구장 지정 2건</span><span class="v"><span class="stat warn">확인 1</span></span></div>
+      <div class="xs" style="background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:4px;padding:6px 8px">5/5 홈 구장에 <b>두산·LG</b>가 같이 있습니다(잠실 하나). 반영 뒤 달력에서 5/5를 눌러 하나만 남겨 주세요.</div>
+      <span class="btn pri">달력에 반영 (실행 취소 가능)</span>
+    </div>
+  </div>
+  <div class="mf"><span class="xs muted">반영하면 지금 화면의 값이 파일 값으로 바뀝니다. 파일에 없는 시트는 그대로 둡니다.</span><span class="r"><span class="btn">취소</span></span></div>
+</div>
+<script src="concept.js"></script><script src="r-screen.js"></script>
+<script>renderR({});</script></body></html>

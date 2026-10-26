@@ -22,6 +22,6 @@
 | `gemini-ui/` | `feat/kbo-ui-templates`의 `gemini-ui/` (c3c5003) | gemini 후보 4종. candidate-1의 위저드 구성을 참고했다. |
 | `opus-layout-design/` | (추적하지 않던 폴더) | 레이아웃 와이어프레임 A~E |
 | `opus-layout-design-v2/` | (추적하지 않던 폴더) | 레이아웃 시안 01~07. 06-replay는 이동 경로 재생의 참고 자료다. |
-| `input-flow-concepts/` | `claude/input-flow-ux-d531b4` | ① 데이터 준비 **입력 흐름** 컨셉 시안(2026-10-26). `index.html` 비교 페이지: 지금 9단계의 문제 → 추천안 A(5단계, 띠에 역할 표시 · 특별한 날 달력 하나 · 연전 기간 규칙 + 달력에서 고치기 · 시리즈 규칙 확인만) + 대안 B 달력 한 장 · C 질문형 · D 엑셀 중심. 2025 설정으로 그린 정적 HTML, `shots/` 1440×877, `shot.sh`로 다시 찍는다. |
+| `input-flow-concepts/` | `claude/input-flow-ux-d531b4` | ① 데이터 준비 **입력 흐름** 컨셉 시안(2026-10-26). `index.html` 비교 페이지: ★추천안 R(사용자 제안 반영 — 입력은 모두 시즌 달력 한 화면: 끌어서 연전 묶음·눌러서 홈 구장·공휴일 가중치 표·엑셀 왕복·따라 하기) → 지금 9단계의 문제 → 이전 추천안 A(5단계, 띠에 역할 표시 · 특별한 날 달력 하나 · 연전 기간 규칙 + 달력에서 고치기 · 시리즈 규칙 확인만) + 대안 B 달력 한 장 · C 질문형 · D 엑셀 중심. 2025 설정으로 그린 정적 HTML, `shots/` 1440×877, `shot.sh`로 다시 찍는다. |
 
 경위와 결정 사항은 `../KBO_WIZARD_UI_REQUIREMENTS.md` §12~§13에 있다.

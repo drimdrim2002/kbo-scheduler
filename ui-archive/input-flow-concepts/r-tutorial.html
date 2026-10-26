@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 R · 따라 하기 1 / 4 — 날짜를 끌어 연전 묶음 만들기</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .spot { position: fixed; border-radius: 6px; box-shadow: 0 0 0 9999px rgba(10,30,60,.58); pointer-events: none; z-index: 20; }
+  .coach { position: fixed; z-index: 21; width: 380px; background: #fff; border-radius: 8px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(10,30,60,.3); }
+  .coach .n { font-family: var(--mono); font-size: 11px; color: var(--blue); }
+  .coach h3 { margin: 4px 0 6px; font-size: 16px; }
+  .coach p { margin: 0 0 10px; color: var(--text-2); }
+  .coach .dots { display: flex; gap: 4px; margin-bottom: 12px; }
+  .coach .dots i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+  .coach .dots i.c { background: var(--blue); }
+  .coach .acts { display: flex; gap: 8px; align-items: center; }
+  .gcell { outline: 2px dashed var(--blue) !important; outline-offset: 1px; background: var(--blue-weak) !important; z-index: 21; position: relative; }
+  .coach .acts a, .coach .acts .btn { white-space: nowrap; }
+  .hand { position: fixed; z-index: 22; font-size: 26px; }
+</style></head>
+<body><div class="body"></div>
+<div class="spot" id="spot"></div>
+<div class="coach" id="coach">
+  <div class="n">따라 하기 1 / 4 · 2025 예시 데이터</div>
+  <h3>날짜를 끌어 연전 묶음을 만들어 보세요</h3>
+  <p>4/8(화)부터 4/10(목)까지 끌면 <b>3연전</b> 묶음이 생깁니다. 묶음이 생길 때마다 위의 <b>경기일 합</b>이 올라갑니다. 묶음이 없는 날은 경기가 없는 날입니다.</p>
+  <div class="dots"><i class="c"></i><i></i><i></i><i></i></div>
+  <div class="acts"><span class="xs muted">다음: 묶음을 눌러 연전 수 바꾸기 → 어린이날 눌러 홈 구장 → 경기일 합 135 맞추기</span><span class="r"><a class="small">건너뛰기</a><span class="btn pri sm">다음 ›</span></span></div>
+</div>
+<div class="hand" id="hand">🖱️</div>
+<script src="concept.js"></script><script src="r-screen.js"></script>
+<script>
+  renderR({ onCell: (n) => { const d = Concept.D.iso(n); return d >= '2025-04-08' && d <= '2025-04-10' ? 'gcell' : ''; } });
+  // 달력 영역에 빛을 비추고, 안내 카드를 그 아래에 둔다
+  const cal = document.getElementById('rcal').getBoundingClientRect();
+  Object.assign(document.getElementById('spot').style, { left: cal.left + 'px', top: cal.top + 'px', width: cal.width + 'px', height: (cal.height - 30) + 'px' });
+  const g = document.querySelectorAll('.sd.gcell')[2] || document.querySelector('.sd.gcell');
+  const gr = g.getBoundingClientRect();
+  Object.assign(document.getElementById('hand').style, { left: (gr.right - 6) + 'px', top: (gr.bottom - 8) + 'px' });
+  const hint = document.querySelector('#rcal > .small.muted').getBoundingClientRect();
+  Object.assign(document.getElementById('coach').style, { left: cal.left + 20 + 'px', top: (hint.bottom + 14) + 'px' });
+</script></body></html>
