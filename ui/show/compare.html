@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="../app/common/common.css?v=20261024p">
-<link rel="stylesheet" href="show.css?v=20261026a">
+<link rel="stylesheet" href="show.css?v=20261027a">
 </head>
 <body class="sh-body" data-page="compare">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -88,13 +88,13 @@
     <h2 class="sh-h2" id="num-h">숫자로 보면</h2>
     <div class="sh-card">
       <table class="sh-table">
-        <caption class="sh-small" style="text-align:left;padding:0 0 8px">2025년 1차 일정, 열 개 구단</caption>
-        <thead><tr><th scope="col">지표</th><th scope="col"><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제 2025</th><th scope="col"><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>매치봇</th></tr></thead>
+        <caption class="sh-small" style="text-align:left;padding:0 0 8px">2025년 1차 일정, 10개 구단</caption>
+        <thead><tr><th scope="col">지표</th><th scope="col"><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제</th><th scope="col"><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>매치봇</th></tr></thead>
         <tbody>
           <tr><th scope="row">구단별 이동 일수<small>다른 구장으로 옮겨 간 날</small></th><td class="sh-num"><b><span data-n="real.moves">32~38</span>일</b></td><td class="sh-num"><b><span data-n="engine.moves">31~33</span>일</b><span class="sh-tag sh-tag-engine">더 고름</span></td></tr>
-          <tr><th scope="row">구단별 이동거리<small>가장 적게 다니는 구단 ~ 가장 많이</small></th><td class="sh-num"><b><span data-n="real.rangeKm">6,711~8,084</span> km</b><small><span data-n="real.minTeam">두산</span> ~ <span data-n="real.maxTeam">KIA</span> · 차이 <span data-n="real.spreadKm">1,373</span>km</small></td><td class="sh-num"><b><span data-n="engine.rangeKm">6,078~6,632</span> km</b><small><span data-n="engine.minTeam">SSG</span> ~ <span data-n="engine.maxTeam">키움</span> · 차이 <span data-n="engine.spreadKm">554</span>km</small><span class="sh-tag sh-tag-engine" data-n="diff.spreadTag">훨씬 공정</span></td></tr>
-          <tr><th scope="row">주말·공휴일 홈 경기<small>토·일·공휴일 홈 경기 수, 똑같을수록 공정</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span>경기</b></td><td class="sh-num"><b><span data-n="engine.holidayText">모두 25</span>경기</b><span class="sh-tag sh-tag-engine" data-n="diff.holidayTag">똑같이</span></td></tr>
-          <tr><th scope="row">10구단 총 이동거리<small>1차 일정 동안 열 구단 합계</small></th><td class="sh-num"><b><span data-n="real.totalKm">72,955</span> km</b></td><td class="sh-num"><b><span data-n="engine.totalKm">63,312</span> km</b><span class="sh-tag sh-tag-engine"><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></span></td></tr>
+          <tr><th scope="row">구단별 이동거리<small>가장 적게 다니는 구단 ~ 가장 많이</small></th><td class="sh-num"><b><span data-n="real.rangeKm">6,711~8,084</span> km</b><small><span data-n="real.minTeam">두산</span> ~ <span data-n="real.maxTeam">KIA</span> · 차이 <span data-n="real.spreadKm">1,373</span>km</small></td><td class="sh-num"><b><span data-n="engine.rangeKm">6,078~6,632</span> km</b><small><span data-n="engine.minTeam">SSG</span> ~ <span data-n="engine.maxTeam">키움</span> · 차이 <span data-n="engine.spreadKm">554</span>km</small><span class="sh-tag sh-tag-engine" data-n="diff.spreadTag">훨씬 고름</span></td></tr>
+          <tr><th scope="row">주말·공휴일 홈 경기<small>토·일·공휴일 홈 경기 수, 똑같을수록 공평</small></th><td class="sh-num"><b><span data-n="real.holiday">22~28</span>경기</b></td><td class="sh-num"><b><span data-n="engine.holidayText">모두 25</span>경기</b><span class="sh-tag sh-tag-engine" data-n="diff.holidayTag">똑같이</span></td></tr>
+          <tr><th scope="row">총 이동거리<small>1차 일정 동안 10개 구단 합계</small></th><td class="sh-num"><b><span data-n="real.totalKm">72,955</span> km</b></td><td class="sh-num"><b><span data-n="engine.totalKm">63,312</span> km</b><span class="sh-tag sh-tag-engine"><span data-n="diff.totalKmPct">14</span>% <span data-n="diff.totalKmWord">적음</span></span></td></tr>
           <tr><th scope="row">가장 긴 원정 연속<small>집에 못 돌아오는 최대 시리즈 수</small></th><td class="sh-num"><b><span data-n="real.awayRun">2~3</span>시리즈</b></td><td class="sh-num"><b><span data-n="engine.awayRun">3</span>시리즈</b><span class="sh-tag sh-tag-even">비슷</span></td></tr>
         </tbody>
       </table>
@@ -104,17 +104,17 @@
   <section class="sh-sec" aria-labelledby="chart-h">
     <h2 class="sh-h2" id="chart-h">구단별로 보면</h2>
     <div class="sh-card">
-      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
+      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
       <div class="sh-chart-h"><b>구단별 이동 일수</b><span class="sh-small">실제 → 매치봇, 일</span></div>
       <div class="sh-teams" id="chart-moves" role="img" aria-label="구단별 이동 일수 막대 (불러오는 중)"></div>
     </div>
     <div class="sh-card">
-      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
+      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
       <div class="sh-chart-h"><b>구단별 이동거리</b><span class="sh-small">실제 → 매치봇, km</span></div>
       <div class="sh-teams" id="chart-dist" role="img" aria-label="구단별 이동거리 막대 (불러오는 중)"></div>
     </div>
     <div class="sh-card">
-      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제 2025</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
+      <div class="sh-legend" aria-hidden="true"><span><i class="sh-sw-real"></i>실제</span><span><i class="sh-sw-engine"></i>매치봇</span></div>
       <div class="sh-chart-h"><b>구단별 주말·공휴일 홈 경기</b><span class="sh-small">실제 → 매치봇, 경기</span></div>
       <div class="sh-teams" id="chart-weekend" role="img" aria-label="구단별 주말·공휴일 홈 경기 막대 (불러오는 중)"></div>
     </div>
@@ -161,11 +161,11 @@
 
 <footer class="sh-foot">
   <div class="sh-wrap">
-    <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 짜 드려요 →</p>
+    <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 만들어 드려요 →</p>
     <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
     <p><a href="index.html">소개로</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
   </div>
 </footer>
-<script src="show.js?v=20261026a"></script>
+<script src="show.js?v=20261027a"></script>
 </body>
 </html>
