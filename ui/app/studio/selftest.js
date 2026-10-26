@@ -284,58 +284,26 @@
       click('.sheet-empty [data-act="row-ins"]'); flush();
       ok('빈 표: 첫 줄 추가 → 1줄·선택됨', st().calendar.length === 1 && S.ui.cell && S.ui.cell.row === 0 && !document.querySelector('.sheet-empty'));
       S.app.undo(); flush();
-      // 튜토리얼 순서 1: 시즌 기본 설정
-      S.go({ tab: 'season' });
-      ok('빈 상태: 시즌 달력 대신 안내 · 자동 채우기 잠김', !!document.querySelector('.rb-empty') && document.querySelector('.insp [data-act="draft-slots"]').disabled);
-      const setDate = (k, v) => { const i = document.querySelector('.form-grid input[data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      // 빈 상태에서 끝까지: 시즌 달력 한 화면에서 날짜 3개 → 법정 공휴일 → 규칙대로 채우기 → 「다음」(시리즈는 규칙대로)
+      click('.band [data-act="g1-cal"]'); flush();
+      const q = (sel) => document.querySelector(sel);
+      ok('빈 상태: 시즌 달력 — 「0 / 135일」 · 묶음 없음 · 규칙대로 채우기 잠김(날짜 먼저)', !!q('.sc-strip') && /0 \/ 135일/.test(q('#scCount').textContent) && q('.sc-rules [data-act="cal-fill"]').disabled && !document.querySelectorAll('.sc-strip .sd.game').length);
+      const setDate = (k, v) => { const i = q('.sc-season input[data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
       setDate('seasonStart', '2025-03-22'); setDate('initialEnd', '8/31'); setDate('seasonEnd', '2025-10-31');
-      const gd1 = document.querySelector('.insp .gd-check');
-      ok('시즌 기본 설정 입력 → 경기일 합 140 / 필요 135 (5일 많음) 안내', st().settings.initialEnd === '2025-08-31' && gd1 && gd1.getAttribute('data-ok') === '0' && /140/.test(gd1.textContent) && /135/.test(gd1.textContent) && !!document.querySelector('.insp .rb'), gd1 && gd1.textContent);
-      // 2: 공휴일(단추) · 휴식일 경기 5/5 · 휴식기 5/8, 7/11~7/16
-      S.go({ tab: 'holidays' });
-      click('.sheet-empty [data-act="fill-holidays"]'); flush();
-      ok('법정 공휴일 채우기 → 10일(5/5 어린이날 포함)', st().settings.holidays.length === 10 && st().settings.holidays.some((h) => h.date === '2025-05-05' && /어린이날/.test(h.name)) && S.ui.tab === 'holidays');
-      S.go({ tab: 'restex', cell: null });
-      click('.sheet-empty [data-act="row-ins"]'); flush();
-      S.startEdit('restex', 0, 'date', '5/5'); document.getElementById('cellEditor').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush();
-      ok('휴식일 경기: 첫 줄 추가 → 5/5(월)', st().settings.restExceptions.length === 1 && st().settings.restExceptions[0] === '2025-05-05' && S.SHEETS.restex.rowIssues(st(), 0).length === 0);
-      S.go({ tab: 'blackouts', cell: null });
-      const putBlack = (row, s0, e0, name) => { for (const [col, v] of [['start', s0], ['end', e0], ['name', name]]) { S.startEdit('blackouts', row, col, v); document.getElementById('cellEditor').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush(); } };
-      click('.sheet-empty [data-act="row-ins"]'); flush(); putBlack(0, '5/8', '5/8', '어린이날 3연전 뒤 휴식');
-      S.ui.cell = null; flush(); click('.toolbar [data-act="row-ins"][data-pos="below"]'); flush(); putBlack(1, '7/11', '7/16', '올스타 브레이크');
-      ok('휴식기: 첫 줄·끝에 추가 → 2개', st().settings.blackouts.length === 2 && st().settings.blackouts[1].start === '2025-07-11' && st().settings.blackouts[1].end === '2025-07-16');
-      S.go({ tab: 'season', cell: null });
-      ok('날짜 몇 개로 경기일 합 맞음(135) · 시즌 기본 설정 완료', document.querySelector('.insp .gd-check').getAttribute('data-ok') === '1' && S.GUIDE_TASKS.find((t) => t.id === 'season').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'holidays').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'blackouts').status().ok && S.guideNext().id === 'slots');
-      // 3: 연전 기간 — 규칙대로 자동 채우기
-      S.go({ tab: 'slots' });
-      click('.sheet-empty [data-act="draft-slots"]'); flush();
-      ok('연전 기간 자동 채우기 미리보기 (45개 추가 · 확인 칸 없음)', S.ui.modal === 'import' && S.ui.imp.kind === 'draft-slots' && S.ui.imp.sheets[0].rows === 45 && !document.querySelector('[data-in="imp-confirm"]') && !document.querySelector('[data-act="imp-apply"]').disabled);
-      click('[data-act="imp-apply"]'); flush();
+      ok('빈 상태: 날짜 3개 → 묶음은 아직 없음(휴식기·휴식일 경기도 없음) · 규칙대로 채우기 켜짐', st().settings.initialEnd === '2025-08-31' && !st().calendar.length && !st().settings.blackouts.length && !q('.sc-rules [data-act="cal-fill"]').disabled);
+      click('.sc-hols [data-act="fill-holidays"]'); flush();
+      ok('법정 공휴일 채우기 → 10일 · 가중치 어린이날 3 · 나머지 2', st().settings.holidays.length === 10 && st().settings.holidays.find((h) => h.date === '2025-05-05').weight === 3 && st().settings.holidays.filter((h) => h.weight === 2).length === 9 && document.querySelectorAll('.sc-hols tbody tr').length === 10);
+      click('.sc-rules [data-act="cal-fill"]'); flush();
       const cal = st().calendar, exp = S.KBO.Preset.ENGINE_INPUT_2025.calendar;
-      ok('연전 기간 45개 = 2025 실제 연전 기간', cal.length === 45 && cal.every((c, i) => c.datetime === exp[i].datetime && c.consecutive === exp[i].consecutive) && !st().snapshots.length && S.guideNext().id === 'series');
-      // 4: 시리즈 — 맞대결 규칙대로 자동 채우기
-      S.go({ tab: 'series' });
-      click('.sheet-empty [data-act="draft-series"]'); flush();
-      ok('시리즈 자동 채우기 미리보기 (225개 · 오류 0)', S.ui.modal === 'import' && S.ui.imp.kind === 'draft-series' && S.ui.imp.sheets[0].rows === 225 && S.ui.imp.sheets[0].errors.length === 0 && !document.querySelector('[data-in="imp-confirm"]'));
-      click('[data-act="imp-apply"]'); flush();
-      ok('시리즈 225개 · 맞대결 경기 수·연전 수 맞음', st().matches.length === 225 && S.GUIDE_TASKS.find((t) => t.id === 'series').status().ok && S.GUIDE_TASKS.find((t) => t.id === 'slots').status().ok && !document.querySelector('.insp .vz-cell.bad') && S.guideNext().id === 'events');
-      // 5: 특별 경기 — 개막전·어린이날 단추
-      S.go({ tab: 'events', cell: null });
-      click('.sheet-empty [data-act="add-opening"]'); flush();
-      ok('개막전 대진 추가 → 대진 지정 5개·고정 5', st().events.filter((e) => e.type === 'OPENING' && e.mode === 'MATCH' && e.date === '2025-03-22').length === 5 && st().matches.filter((m) => m.pinned).length === 5);
-      click('.toolbar [data-act="add-children"]'); flush();
-      const ch = st().events.find((e) => e.type === 'CHILDREN');
-      ok('어린이날 구장 지정 추가 → 5/5 · 구장 5 · 오류 없음', !!ch && ch.stadiums.length === 5 && S.SHEETS.events.rowIssues(st(), st().events.length - 1).length === 0 && S.GUIDE_TASKS.find((t) => t.id === 'events').status().ok);
-      S.startEdit('events', st().events.length - 1, 'stadiums', '사직야구장, 어디구장'); document.getElementById('cellEditor').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); flush();
-      ok('특별 경기 구장 칸 고치기: 모르는 구장은 오류', !!document.querySelector('.cell-pop') && /모르는 구장/.test(document.querySelector('.cell-pop').textContent));
-      S.ui.edit = null; flush();
-      // 6·7: 구단 그대로 → 다음 단계
-      ok('빈 상태에서 끝까지: 할 일 모두 완료 → 「다음 단계로」 · 사전 점검 진행 불가 0', S.guideNext().id === 'next' && S.GUIDE_TASKS.find((t) => t.id === 'next').status().ok && S.app.preflight().counts.block === 0, 'next ' + S.guideNext().id + ' · ' + S.GUIDE_TASKS.map((t) => t.id + ':' + t.status().kind).join(',') + ' · block ' + S.app.preflight().items.filter((x) => x.status === 'block').map((x) => x.title + ' ' + x.detail).join(' / '));
+      ok('규칙대로 채우기 → 45개 = 2025 실제 연전 기간 · 경기일 135 맞음 · 휴식일 경기 5/5 · 휴식기 5/8·7/11~16', cal.length === 45 && cal.every((c, i) => c.datetime === exp[i].datetime && c.consecutive === exp[i].consecutive) && S.gameDaysCheck().ok && st().settings.restExceptions.join() === '2025-05-05' && st().settings.blackouts.map((x) => x.start + x.end).join() === '2025-05-082025-05-08,2025-07-112025-07-16' && !st().snapshots.length);
+      ok('확인: 시리즈 「「다음」 때 규칙대로 만듭니다」', /다음」 때 규칙대로 만듭니다/.test(q('.sc-check').textContent));
+      click('.footer [data-act="cal-next"]'); flush();
+      ok('「다음: 검토·실행」 → 시리즈 225개 규칙대로 · ② · 사전 점검 진행 불가 0', S.ui.step === 2 && st().matches.length === 225 && S.calSeriesState().ok && S.app.preflight().counts.block === 0, S.app.preflight().items.filter((x) => x.status === 'block').map((x) => x.title + ' ' + x.detail).join(' / '));
       S.go({ step: 2 });
       ok('빈 상태에서 채운 데이터로 ② 점검 통과', document.querySelector('.step[data-step="2"] .st').classList.contains('ok') || S.app.preflight().counts.block === 0);
       ok('초기화 흐름 전체 콘솔 오류 0', window.__studioErrors.length === errs0, String(window.__studioErrors.slice(errs0).join(' | ')).slice(0, 120));
       // 예시 데이터 다시 불러오기
-      S.go({ step: 1, tab: 'slots', cell: null, edit: null });
+      S.g1.mode = 'all'; S.go({ step: 1, tab: 'slots', cell: null, edit: null });
       S.ui.menu = 'data'; S.ui.menuPos = { x: 1200, y: 44 }; flush();
       click('.menu [data-act="reset-ask"][data-kind="example"]'); flush();
       ok('데이터 메뉴 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));

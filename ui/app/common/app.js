@@ -381,16 +381,17 @@
     }, { undo: false, tags: ['settings', 'events'] });
     return Object.assign({}, patch, isNaN(seed) ? {} : { seed });
   };
-  /** 설정으로 생성할 슬롯과 현재 슬롯이 다른가 */
+  /** 규칙(시즌 기간·휴식 요일·휴식 요일 공휴일·올스타 휴식기)으로 깔 묶음과 지금 묶음(시작일·연전 수)이 다른가 — 달력에서 직접 고친 묶음이 있으면 참 */
   App.prototype.slotsOutOfDate = function () {
-    const gen = CalendarGen.generateSlots(this.state.settings).slots;
+    const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(this.state.settings)).slots;
     const cur = this.state.calendar;
     if (gen.length !== cur.length) return true;
-    return gen.some((g, i) => g.datetime !== cur[i].datetime || g.consecutive !== cur[i].consecutive || g.weekend !== cur[i].weekend || g.holiday !== cur[i].holiday);
+    return gen.some((g, i) => g.datetime !== cur[i].datetime || g.consecutive !== cur[i].consecutive);
   };
+  /** 규칙대로 채우기(모든 표 보기의 미리보기 적용). 묶음에서 휴식기·휴식일 경기를 다시 만든다 */
   App.prototype.regenerateSlots = function () {
     const st = this.state;
-    const gen = CalendarGen.generateSlots(st.settings);
+    const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(st.settings));
     const oldCal = st.calendar;
     const map = new Map(gen.slots.map((s, i) => [s.datetime + '|' + s.consecutive, i]));
     const ok = this.commit('연전 기간 자동 생성 (' + gen.slots.length + '개)', (s) => {
@@ -402,7 +403,9 @@
         p.calendar = n == null ? -1 : n;
       });
       for (const e of s.events) { const idx = Score.resolveEventSlot(e, s.calendar); e.slot = idx; }
-    }, ['calendar', 'plan', 'events']);
+      const d = CalendarGen.deriveRestDays(s.calendar, s.settings);
+      s.settings.restExceptions = d.restExceptions; s.settings.blackouts = d.blackouts;
+    }, ['calendar', 'plan', 'events', 'settings']);
     if (ok && gen.warnings.length) UI.toast(gen.warnings[0].message, 'warn', 6000);
     return ok;
   };
@@ -568,8 +571,8 @@
     for (const a of st.teams) for (const b of st.teams) if (a.name !== b.name && !have.has(a.name + '|' + b.name)) missing++;
     for (const d of st.distanceMatrix) if (d.estimated) estimated++;
     add('distance', missing ? 'block' : estimated ? 'warn' : 'pass', '구장 간 거리', missing ? '누락 ' + missing + '개 — 이동거리를 계산할 수 없습니다.' : estimated ? '추정 거리 ' + estimated + '개(직선거리 × 도로계수). 실제 도로거리로 바꾸면 정확해집니다.' : N * (N - 1) + '개 모두 입력됨', 'distance');
-    add('slots', st.calendar.length ? 'pass' : 'block', '연전 기간', st.calendar.length + '개' + (this.slotsOutOfDate() ? ' — 시즌 기본 설정과 다릅니다(규칙대로 다시 채울지 확인)' : ''), 'slots');
-    if (st.calendar.length && this.slotsOutOfDate()) items[items.length - 1].status = 'warn';
+    // 연전 묶음이 곧 경기일: 달력에서 직접 고친 묶음은 그대로 쓴다(규칙과 달라도 확인 필요가 아님)
+    add('slots', st.calendar.length ? 'pass' : 'block', '연전 기간', st.calendar.length + '개' + (st.calendar.length && this.slotsOutOfDate() ? ' — 규칙과 다른 묶음이 있습니다(시즌 달력에서 직접 고친 묶음)' : ''), 'slots');
     const singles = st.calendar.filter((x) => x.consecutive === 1).length;
     if (singles) add('single', 'warn', '1연전 기간', singles + '개 — 1연전 시리즈가 없으면 비게 됩니다.', 'slots');
     const sh = CalendarGen.lengthHistogram(st.calendar), mh = CalendarGen.lengthHistogram(st.matches);

@@ -39,7 +39,7 @@
   S.importAfter = function (imp, key) {
     const st = app().state;
     const clone = (x) => JSON.parse(JSON.stringify(x));
-    if (imp.kind === 'draft-slots') return { calendar: CalendarGen.generateSlots(st.settings).slots, settings: st.settings };
+    if (imp.kind === 'draft-slots') return { calendar: CalendarGen.generateSlots(CalendarGen.ruleSettings(st.settings)).slots, settings: st.settings };
     if (imp.kind === 'draft-series') return { matches: app().generateSeriesPreview().matches };
     if (key === 'slots') { const cal = clone(st.calendar); if (cal[18]) cal[18].holiday = 2; if (cal[29]) cal[29].note = '비고2 무시'; return { calendar: cal, changedSlots: new Set([18, 29]) }; }
     if (key === 'series') {
@@ -93,7 +93,7 @@
     if (kind === 'xlsx') S.ui.imp = { kind, source: '2025_KBO_편성_v3.xlsx', meta: '128KB · 시트 7개 · 읽기 0.4초', sheets: mockSheets(), sel: 'series', confirm: false, mock: true, allIssues: true };
     else if (kind === 'gsheet') S.ui.imp = { kind, source: '구글 시트 "2025 KBO 편성 작업본"', meta: (extra || '') + ' · 시트 7개 · 읽기 1.1초', sheets: mockSheets(), sel: 'series', confirm: false, mock: true, allIssues: true };
     else if (kind === 'draft-slots') {
-      const gen = CalendarGen.generateSlots(app().state.settings).slots;
+      const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(app().state.settings)).slots;
       const cur = app().state.calendar;
       let chg = 0;
       for (let i = 0; i < Math.min(gen.length, cur.length); i++) if (gen[i].datetime !== cur[i].datetime || gen[i].consecutive !== cur[i].consecutive || gen[i].weekend !== cur[i].weekend || gen[i].holiday !== cur[i].holiday) chg++;

@@ -272,11 +272,11 @@
   };
   /** 지금 데이터가 「처음부터 입력하기」로 비운 상태인가 (예시 데이터를 다시 불러오면 false) */
   S.isBlank = () => !!(S.app && S.app.state.meta && S.app.state.meta.blank);
-  /** 시즌 연도: 개막일이 있으면 그 연도, 없으면 2025 */
+  /** 시즌 연도: 개막일이 있으면 그 연도, 없으면 시즌 달력에서 고른 연도(settings.seasonYear), 그것도 없으면 2025 */
   S.seasonYear = function () {
-    const s = S.app && S.app.state.settings.seasonStart;
-    const m = /^(\d{4})-/.exec(s || '');
-    return m ? +m[1] : 2025;
+    const set = S.app && S.app.state.settings;
+    const m = /^(\d{4})-/.exec((set && set.seasonStart) || '');
+    return m ? +m[1] : set && set.seasonYear ? +set.seasonYear : 2025;
   };
   const SWAP_KEYS = ['teams', 'distanceMatrix', 'settings', 'events', 'calendar', 'matches', 'plan', 'games', 'reschedule'];
   function swapProject(next, label) {
@@ -318,7 +318,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -337,7 +337,7 @@
     }
     else {
       o.step = u.step;
-      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계별 화면: g=ask|new|view(&gs=단계), 모든 표 보기: tab=
+      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 시즌 달력: tab 없음(open=teams·day=·slot=), 모든 표 보기: tab=
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
@@ -375,7 +375,7 @@
     if (o.set) u.setTab = o.set;
     u.inspOff = o.insp === '0';
     u.demo = o.demo || null;
-    if (S.g1Route) S.g1Route(o); // ① 단계별 화면(g=ask|new|view|all, gs=단계). 예전 키 guide=는 묻는 화면으로
+    if (S.g1Route) S.g1Route(o); // ① 시즌 달력 한 화면(기본) · tab= 이면 모든 표 보기. 예전 g=·gs=·guide=는 시즌 달력으로
   };
 
   // ───────── 스크롤 점검 (NFR-W4, AC-P2) ─────────
