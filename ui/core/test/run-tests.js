@@ -7,9 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 const core = path.resolve(__dirname, '..');
-for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model']) require(path.join(core, f + '.js'));
+for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
 const K = globalThis.KBO;
-const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel } = K;
+const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel, Xlsx } = K;
 
 let passed = 0, failed = 0;
 const queue = [];
@@ -66,6 +66,44 @@ test('내장 공휴일: 2027·2028 음력·대체공휴일, 기본 가중치(어
   const w = (y, d) => CalendarGen.builtinHolidays(y).find((h) => h.date === d).weight;
   eq([w(2027, '2027-05-05'), w(2027, '2027-06-06'), w(2025, '2025-05-05')], [3, 2, 3]);
 });
+
+test('엑셀(.xlsx) 쓰기·읽기: 글자·숫자·날짜·수식(계산해 둔 값), 압축 없는 파일과 엑셀처럼 압축한 파일', async () => {
+  const zlib = require('zlib');
+  const rows = [['번호', '시작일', '요일', '연전 수', '끝 날짜', '메모'], [1, { date: '2025-03-22' }, { f: 'CHOOSE(WEEKDAY(B2),"일","월","화","수","목","금","토")', v: '토' }, 2, { f: 'B2+D2-1', v: { date: '2025-03-23' } }, '개막 <토·일> & "2연전"'], [2, { date: '2025-03-25' }, null, 3]];
+  const bytes = Xlsx.write([{ name: '연전 기간', rows, header: true, widths: [6, 12] }, { name: '빈 시트', rows: [] }]);
+  const back = await Xlsx.read(bytes);
+  eq(back.map((x) => x.name), ['연전 기간', '빈 시트']);
+  const r = back[0].rows;
+  eq(r[0], rows[0]); eq(r[1][0], 1); eq(Xlsx.serialToIso(r[1][1]), '2025-03-22'); eq(r[1][2], '토'); eq(Xlsx.serialToIso(r[1][4]), '2025-03-23'); eq(r[1][5], '개막 <토·일> & "2연전"');
+  eq(r[2], [2, Xlsx.isoToSerial('2025-03-25'), null, 3], '빈 칸은 null');
+  eq(Xlsx.isoToSerial('2025-03-22'), 45738, '엑셀 일련번호');
+  // 엑셀이 저장한 파일처럼: 항목을 deflate로 압축하고 공유 문자열을 쓴 zip
+  const ents = Xlsx.zipEntries(bytes);
+  const dec = (b) => Buffer.from(b).toString('utf8');
+  const files = Object.keys(ents).map((name) => ({ name, xml: dec(ents[name].data) }));
+  const sh = files.find((f) => f.name === 'xl/worksheets/sheet1.xml');
+  sh.xml = sh.xml.replace('<c r="A1" t="inlineStr" s="2"><is><t xml:space="preserve">번호</t></is></c>', '<c r="A1" t="s"><v>0</v></c>');
+  files.push({ name: 'xl/sharedStrings.xml', xml: '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1"><si><r><t>번</t></r><r><t>호</t></r></si></sst>' });
+  const deflated = deflateZip(files.map((f) => ({ name: f.name, data: Buffer.from(f.xml, 'utf8') })), zlib);
+  const back2 = await Xlsx.read(deflated, (b) => new Uint8Array(zlib.inflateRawSync(Buffer.from(b))));
+  eq(back2[0].rows[0][0], '번호', '공유 문자열(여러 조각)'); eq(back2[0].rows[1][2], '토');
+  let threw = false; try { await Xlsx.read(new Uint8Array([1, 2, 3])); } catch (e) { threw = /xlsx/.test(e.message); }
+  assert(threw, 'zip이 아니면 알기 쉬운 오류');
+});
+function deflateZip(files, zlib) {
+  const parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8'), comp = zlib.deflateRawSync(f.data), crc = Xlsx.crc32(new Uint8Array(f.data));
+    const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(8, 8); lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(comp.length, 18); lh.writeUInt32LE(f.data.length, 22); lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(4, 28);
+    parts.push(lh, name, Buffer.alloc(4), comp);
+    const ch = Buffer.alloc(46); ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(8, 10); ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(comp.length, 20); ch.writeUInt32LE(f.data.length, 24); ch.writeUInt16LE(name.length, 28); ch.writeUInt32LE(off, 42);
+    central.push(ch, name);
+    off += 30 + name.length + 4 + comp.length;
+  }
+  const cd = Buffer.concat(central), end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10); end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(off, 16);
+  return new Uint8Array(Buffer.concat(parts.concat([cd, end])));
+}
 
 test('§5.2.1 구간 분할 규칙', () => {
   eq(CalendarGen.splitRun(6), [3, 3]); eq(CalendarGen.splitRun(9), [3, 3, 3]); eq(CalendarGen.splitRun(4), [4]);

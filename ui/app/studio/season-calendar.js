@@ -743,7 +743,35 @@
     cell('2025-05-05').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); flush();
     ok('오른쪽 단추도 같은 메뉴(5/5 고른 날)', C.day === dn('2025-05-05') && /고른 날 · 5\/5/.test(q('.sc-day').textContent));
     ok('확인: 홈 구장 지정 「3/22 개막전 5곳 · 5/5 어린이날 5곳」', /3\/22 개막전 5곳 · 5\/5 어린이날 5곳/.test(q('.sc-check').textContent));
-    // 11. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
+    // 11. 엑셀(ㄱ 날짜 행): 지금 데이터로 서식 내려받기 → 고쳐서 올리기 → 시트마다 검사 → 달력에 반영(실행 취소 한 번)
+    if (S.calXlSheets) {
+      const X = KBO.Xlsx;
+      click('.sc-xl [data-act="cal-xl-down"]'); flush();
+      const sheets0 = await X.read(S.lastXlBytes, null).catch(() => null);
+      ok('엑셀: 서식 내려받기 → 시트 4개(구단 정보 · 시즌 기간과 공휴일 · 연전 기간 · 홈 구장 지정) · 연전 기간 45줄 · 요일·끝 날짜는 수식', !!sheets0 && sheets0.map((x) => x.name).join() === '구단 정보,시즌 기간과 공휴일,연전 기간,홈 구장 지정' && sheets0[2].rows.length === 46 && sheets0[2].rows[1][2] === '토' && X.serialToIso(sheets0[2].rows[1][4]) === '2025-03-23' && sheets0[3].rows.length === 3);
+      let res = await S.calXlOpen(S.lastXlBytes, '서식.xlsx'); flush();
+      ok('엑셀: 고치지 않고 올리면 오류 0 · 「지금과 같음」 · 확인 창', S.ui.modal === 'calxl' && res.errors === 0 && /지금과 같음/.test(res.sheets[0].notes[0]) && !q('.cx-modal [data-act="cal-xl-apply"]').disabled);
+      const sh = S.calXlSheets(), bySh = (n) => sh.find((x) => x.name === n);
+      bySh('연전 기간').rows = bySh('연전 기간').rows.filter((r) => !(r[1] && r[1].date === '2025-04-08'));
+      bySh('시즌 기간과 공휴일').rows.forEach((r) => { if (r[1] && r[1].date === '2025-06-06') r[3] = 3; });
+      bySh('홈 구장 지정').rows.forEach((r) => { if (r[1] === '어린이날') r[2] = 'LG'; });
+      res = await S.calXlOpen(X.write(sh), '고친 서식.xlsx'); flush();
+      click('.cx-modal [data-act="cal-xl-apply"]'); flush();
+      const applied = !S.ui.modal && st().calendar.length === 44 && gd() === 132 && /04-08~04-10/.test(blk()) && st().settings.holidays.find((h) => h.date === '2025-06-06').weight === 3 && bAt('2025-06-06').holiday === 5 && evAt('2025-05-05').teams[0] === 'LG';
+      undoN(1);
+      ok('엑셀: 4/8 줄 지우기·현충일 가중치 3·어린이날 두산 → LG로 올리기 → 달력에 반영(44개 · 132일 · 6/6 묶음 값 5) → 실행 취소 한 번으로 복귀', res.errors === 0 && applied && st().calendar.length === 45 && gd() === 135 && evAt('2025-05-05').teams[0] === '두산');
+      const sb = S.calXlSheets(), sl = sb.find((x) => x.name === '연전 기간'), hm = sb.find((x) => x.name === '홈 구장 지정');
+      sl.rows[3][1] = '4월 첫째'; sl.rows[5][1] = { date: '2025-04-02' }; sl.rows[6][3] = 5;
+      hm.rows[1][4] = '두산'; hm.rows[2].push('SSG'); hm.rows.push([{ date: '2025-06-06' }, '현충일', 'LGG']);
+      res = await S.calXlOpen(X.write(sb), '틀린 서식.xlsx'); flush();
+      const why = res.sheets.flatMap((x) => x.errors.map((e) => e.why)).join(' / ');
+      ok('엑셀: 날짜 형식·겹침·연전 수·잠실 두 구단·6곳·모르는 구단 → 오류 6 · 「달력에 반영」 잠김 · 엑셀 줄 번호', res.errors === 6 && /날짜로 읽을 수 없습니다/.test(why) && /겹칩니다/.test(why) && /연전 수는 2~4/.test(why) && /두산·LG 중 하나만/.test(why) && /5곳입니다\(6곳/.test(why) && /'LGG' — 'LG'인가요/.test(why) && q('.cx-modal [data-act="cal-xl-apply"]').disabled && /엑셀 4번째 줄/.test(q('.cx-modal').textContent), why);
+      const se = S.calXlSheets(); se.find((x) => x.name === '연전 기간').rows.length = 1;
+      res = await S.calXlOpen(X.write(se), '규칙.xlsx'); flush();
+      ok('엑셀: 연전 기간 줄을 모두 비우면 규칙대로(묶음 45개)', res.errors === 0 && res.next.list.length === 45 && /규칙대로 채웁니다/.test(res.sheets.find((x) => x.key === 'slots').notes.join()));
+      S.ui.calxl = null; S.go({ modal: null });
+    }
+    // 12. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
     tap('2025-07-17');
     const pop = q('#scPop').getBoundingClientRect(), body = q('#scCal').getBoundingClientRect();
     ok('말풍선은 달력 안 · 페이지 스크롤 0', pop.left >= body.left - 1 && pop.right <= body.right + 1 && pop.top >= body.top - 1 && pop.bottom <= body.bottom + 1 && S.checkScroll().ok);

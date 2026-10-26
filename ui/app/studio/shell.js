@@ -184,7 +184,7 @@
         : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
           '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
       '<div class="confirm-box">' + icon('info') + '<span>실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div>' +
-      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 기본 설정부터 시작합니다. 단계별로 적으려면 「단계별로 보기」를 누르세요.' : '불러온 뒤에는 연전 기간 화면에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
+      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 달력에서 개막일부터 적습니다.' : '불러온 뒤에는 시즌 달력에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
   };
 
   // ───────── 렌더 루프 ─────────

@@ -1369,3 +1369,18 @@ svg.mc text { font-family: var(--font); }
 .sc-home-teams .gs-tbtn { height: 26px; padding: 0 8px; }
 .sc-home-teams .gs-tbtn.dim { opacity: .45; }
 .sc-home-sum { font-size: var(--fs-xs); color: var(--text-2); text-align: right; }
+/* 엑셀 서식 확인 창 */
+.modal.cx-modal { width: 760px; height: auto; max-height: calc(100vh - 56px); }
+.cx-body { display: block; overflow-y: auto; padding: 12px 14px; }
+.cx-lead { margin: 0 0 10px; font-size: var(--fs-s); color: var(--text-2); line-height: 1.55; }
+.cx-sheet { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; background: var(--surface); }
+.cx-sheet.bad { border-color: var(--bad-line); }
+.cx-sheet.warn { border-color: var(--warn-line); }
+.cx-sheet h4 { margin: 0 0 4px; font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--navy); }
+.cx-sheet h4 .st { margin-left: auto; }
+.cx-note { font-size: var(--fs-s); color: var(--text-2); }
+.cx-iss { display: flex; gap: 6px; align-items: flex-start; margin-top: 4px; font-size: var(--fs-s); line-height: 1.45; }
+.cx-iss.bad { color: var(--bad); }
+.cx-iss.warn { color: #5C3700; }
+.cx-iss b { font-weight: 600; }
+.cx-modal .modal-foot .sp { flex: 1; }
