@@ -290,9 +290,6 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
   .sh-story-h { font-size: 20px; }
 }
 
-/* q=1 무대: 드라마 대본 한 장(모양은 파일 끝 "첫 화면" 블록). 아래 여백은 다음 섹션 위 여백만(.sh-sec 기본 여백보다 이기게 .sh-sec.sh-q1) */
-.sh-sec.sh-q1 { padding: 0 0 4px; border: 0; }
-@media (min-width: 768px) { .sh-sec.sh-q1 { padding: 40px 0 4px; } }
 
 /* ───── 한 결 규칙 (2026-10-22). 위 규칙보다 나중에 와서 이긴다 ─────
    1) 제목 3단계만: h1 28 / h2 22 / 소제목 17. 본문 15, 작은 글 13, 머리글(kicker) 12 회색.
@@ -497,6 +494,10 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-rp-how { margin: -4px 0 12px; }
 .sh-rp-how b { color: var(--fg); margin-right: 4px; }
 .sh-replay .rp-cap { display: block; } /* 해설이 길어지면(줄어든 거리 추가) flex 안의 굵은 머리말이 세로로 쪼개져서 */
+/* 해설 칸 높이 고정(2026-10-25 사용자: 재생 중 높이가 계속 변함). 해설은 휴대폰 375에서 1~3줄(36/53/72px), 768+에서 1~2줄이라
+   가장 긴 3줄 높이로 고정해 아래 단추 줄이 들썩이지 않게 한다. 360px 아래(320 등)는 4줄 */
+.sh-replay .rp-cap { min-height: 72px; }
+@media (max-width: 359px) { .sh-replay .rp-cap { min-height: 90px; } }
 .sh-replay .rp-cap b { margin-right: 4px; }
 
 /* ── 기준 세 가지 카드(2026-10-25 확정): 이전 아이콘 카드 모양 + 가장 적은~많은 구단 막대(실제 = 주황, 가운데 눈금 = 구단 평균) ── */
@@ -573,8 +574,9 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-q1c-talk dd p { margin: 0 0 10px; font-size: 15px; line-height: 1.75; word-break: keep-all; }
 .sh-q1c-talk .sh-q1c-key { font-size: 18px; font-weight: 700; line-height: 1.7; }
 .sh-q1c-key mark { background: linear-gradient(transparent 52%, #ffe066 52%, #ffe066 92%, transparent 92%); color: inherit; padding: 0 1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-/* 손글씨 메모: 대사 칸 왼쪽 선에 맞춰 형광펜 줄 바로 아래(↑가 마지막 줄 첫 글자 밑) */
-.sh-q1c .sh-q1c-talk dd .sh-q1c-note { margin: 2px 0 0; font-family: Jua, sans-serif; font-size: 18px; font-weight: 400; line-height: 1.3; color: var(--mb-deep); }
+/* 손글씨 메모 + 쪽 제목 h1, 한 줄(2026-10-25 사용자): 대사 칸 왼쪽 선에 맞춰 형광펜 줄 바로 아래. 둘 다 inline이라 한 문장처럼 이어 흐른다. 특이성 (0,3,1): html[data-lay] .sh-h1(28px·아래 여백 12)보다 이기게 */
+.sh-q1c .sh-q1c-talk dd .sh-q1c-memo { margin: 4px 0 0; font-family: Jua, sans-serif; font-size: 18px; font-weight: 400; line-height: 1.35; letter-spacing: 0; color: var(--mb-deep); word-break: keep-all; }
+.sh-q1c .sh-q1c-talk dd .sh-q1c-note, .sh-q1c .sh-q1c-talk dd .sh-q1c-ask { display: inline; margin: 0; font: inherit; letter-spacing: inherit; color: inherit; }
 .sh-q1c-note span { display: inline-block; margin-right: 4px; }
 /* 바닥글: 머리글과 같은 모양(가는 줄 + 작은 회색), 종이 안 */
 .sh-q1c .sh-q1c-foot { margin: 16px 0 0; padding-top: 8px; border-top: 1px solid #d9d5ca; font-family: inherit; font-size: 12px; line-height: 1.5; color: #7a7466; letter-spacing: .02em; word-break: keep-all; }
@@ -587,7 +589,7 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
   .sh-q1c-talk dt { font-size: 16px; }
   .sh-q1c-talk dd p { font-size: 17px; }
   .sh-q1c-talk .sh-q1c-key { font-size: 24px; }
-  .sh-q1c .sh-q1c-talk dd .sh-q1c-note { font-size: 21px; }
+  .sh-q1c .sh-q1c-talk dd .sh-q1c-memo { font-size: 22px; } /* 휴대폰 18(사용자: 생각보다 큼, 2026-10-26), 768+ 22. 24면 PC 대사 칸(482px)에서 넘침 */
   .sh-q1c .sh-q1c-foot { margin-top: 22px; }
 }
 
@@ -630,3 +632,86 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 /* 우리 팀 일정표로 가는 길: 카드 맨 아래 가는 줄 위, 왼쪽 설명 · 오른쪽 링크 */
 .sh-body .sh-sc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
 .sh-body .sh-sc-foot[hidden] { display: none; }
+
+/* ───── 레이아웃 두 단계(2026-10-25 확정, 소개 쪽만: index.html의 <html data-lay>) ─────
+   큰 블록(h2 22·가는 줄·섹션 여백) 안에 소블록(소제목 17·소블록 여백·줄 없음). 숫자와 근거·결과 쪽엔 data-lay가 없어 영향이 없다. */
+/* 간격 토큰 하나, 글자 사다리 하나, 칩 높이 하나, 덮여 있던 여백 바로잡기
+   간격: 섹션 40(768+ 56) · 소블록 32(40) · 제목→다음 12 · 글→상자 16 · 상자→작은 글 12 · 상자 안 16(20).
+   글자: h1 28(768+ 32) / h2 22 / 소제목 17 / 항목 제목 16 / 본문·설명 15 / 작은 글 13 / 축·범례 12. */
+html[data-lay] { --ly-sec: 40px; --ly-sub: 32px; --ly-h: 12px; --ly-box: 16px; --ly-note: 12px; --ly-pad: 16px; --ly-chip: 36px; }
+@media (min-width: 768px) { html[data-lay] { --ly-sec: 56px; --ly-sub: 40px; --ly-pad: 20px; } }
+/* .sh-body p(0,1,1)에 져서 원래 값을 잃던 것: 머리글 8→12, 대본 머리글·장면 14→12, 범례·만든 사람 글 0→12(상자 아래 빈칸) */
+html[data-lay] .sh-kicker { margin: 0 0 8px; }
+html[data-lay] .sh-q1c-top, html[data-lay] .sh-q1c-scene { margin: 0 0 14px; } /* 종이는 이제 첫 화면 블록 안(2026-10-25) */
+html[data-lay] .sh-res-key, html[data-lay] .sh-maker-p { margin: 0; }
+/* 섹션·장 끝 여백은 섹션 여백 하나만(말풍선 14px이 더해져 재생기 위 간격만 87px이던 것) */
+html[data-lay] .sh-sec > :last-child, html[data-lay] .sh-chap > :last-child, html[data-lay] .sh-ask > :last-child { margin-bottom: 0; }
+html[data-lay] .sh-sec { padding: var(--ly-sec) 0; }
+/* 글자 사다리 */
+html[data-lay] .sh-h1 { font-size: 28px; margin: 0 0 var(--ly-h); }
+html[data-lay] .sh-h2, html[data-lay] .sh-story-h { margin-bottom: var(--ly-h); }
+html[data-lay] .sh-h2 { font-size: 22px; }
+@media (min-width: 768px) { html[data-lay] .sh-h1 { font-size: 32px; } }
+html[data-lay] .sh-chart-h b, html[data-lay] .sh-res-msg, html[data-lay] .sh-maker-h, html[data-lay] .sh-why-i b, html[data-lay] .sh-step h3 { font-size: 16px; font-weight: 700; line-height: 1.4; } /* 굵기도 블록 제목(700)과 같게(2026-10-25 점검) */
+html[data-lay] .sh-small, html[data-lay] .sh-why-how, html[data-lay] .sh-why3 .sh-why-sub { font-size: 13px; }
+html[data-lay] .sh-sec .sh-say-msg { font-size: 15px; line-height: 1.6; }
+/* 글 → 상자 → 작은 글 */
+html[data-lay] .sh-sec .sh-lead, html[data-lay] .sh-say, html[data-lay] .sh-sec .sh-rp-how { margin: 0 0 var(--ly-box); }
+html[data-lay] .sh-say { gap: 12px; }
+html[data-lay] .sh-why-how { margin: var(--ly-note) 0 0; }
+/* 상자: 데이터 상자는 모두 흰 바탕 + 1px 선 + 같은 안쪽 여백 */
+html[data-lay] .sh-card { padding: var(--ly-pad); }
+html[data-lay] .sh-res { padding: 0 var(--ly-pad); }
+html[data-lay] .sh-why-i { border: 1px solid var(--line); }
+@media (min-width: 720px) and (max-width: 767px) { html[data-lay] .sh-why3 { grid-template-columns: 1fr; } } /* 3열은 글자 사다리와 같은 768부터 */
+/* 칩: 고르는 칩·링크 칩 모두 36px·같은 둥근 알약·글 13. 고른 질문 = 파랑, 고른 구단 = 검정(점 지도에서 고른 점의 검은 테두리와 짝이라 예외로 둔다) */
+html[data-lay] .sh-sc-pick button, html[data-lay] .sh-ask-q button, html[data-lay] .sh-chip { min-height: var(--ly-chip); padding: 0 12px; font-size: 13px; }
+html[data-lay] .sh-maker-top { min-height: var(--ly-chip); }
+html[data-lay] .sh-sc-pick { margin-top: 12px; }
+html[data-lay] .sh-seg-s button { min-height: 44px; font-size: 14px; }
+
+/* 소블록 제목(.sh-story-h) 17 + 소블록 여백 */
+html[data-lay] .sh-story-h { font-size: 17px; margin-top: var(--ly-sub); }
+
+/* ───── 첫 화면·질문 접기·어떻게 카드(2026-10-25 확정) ───── */
+
+/* ── 첫 화면: 표제어 → 대본 종이, 쪽 제목 h1은 종이 안 손글씨 메모와 한 줄(모양은 위 "첫 화면: 드라마 대본 한 장" 블록) ── */
+.sh-chap-why .sh-q1c { padding: 0; margin: 0 0 20px; }
+.sh-body .sh-q1-h { margin: 0 0 16px; } /* 표제어(사용자 문구) → 종이 */
+
+/* ── 질문 접기: 결과 카드 맨 아래 줄처럼 붙인 단추(점 지도 카드의 「경기 일정 보기 →」 줄과 같은 자리), 닫힌 채 시작. 열면 같은 틀 안에 칩 + 답 말풍선 ── */
+.sh-ask-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; font: inherit; text-align: left; cursor: pointer; }
+.sh-ask-toggle span { word-break: keep-all; }
+.sh-ask-toggle i { flex: none; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-3px) rotate(45deg); transition: transform .15s; }
+.sh-ask.open .sh-ask-toggle i { transform: translateY(2px) rotate(-135deg); }
+.sh-ask-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+html[data-lay] .sh-ask:not(.open) .sh-ask-body { display: none; }
+html[data-lay] .sh-chap-res > .sh-ask { margin-top: 0; }
+html[data-lay] .sh-chap-res > .sh-res { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+html[data-lay] .sh-ask-toggle { min-height: 48px; padding: 0 var(--ly-pad, 16px); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; background: var(--surface); font-size: 14px; font-weight: 700; color: var(--accent); }
+html[data-lay] .sh-ask.open .sh-ask-toggle { border-radius: 0; }
+html[data-lay] .sh-ask-body { border: 1px solid var(--line); border-top: 1px dashed var(--line); border-radius: 0 0 12px 12px; background: var(--surface); padding: var(--ly-pad, 16px); }
+html[data-lay] .sh-ask-body > :last-child { margin-bottom: 0; }
+
+/* ── 어떻게 하는 건가요(재생기 블록 아래 소블록): 기준 세 가지 카드와 같은 모양(흰 상자·1px 선·44 아이콘 칸 + 12) ── */
+html[data-lay] .sh-steps { gap: 8px; }
+html[data-lay] .sh-step { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: var(--ly-pad, 16px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+html[data-lay] .sh-step i { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: var(--mb-deep); }
+html[data-lay] .sh-step h3 { margin: 0 0 4px; }
+html[data-lay] .sh-step p { font-size: 14px; line-height: 1.55; color: var(--muted); }
+
+
+/* ───── 매치봇으로 할 수 있는 일(2026-10-25 확정) ───── */
+
+/* 카드: 「어떻게 하는 건가요」 카드와 같은 모양(흰 상자·1px 선·44 번호 칸) + 카드 아래 스튜디오 화면 그림. 768+ 2×2 */
+.sh-tool { display: grid; gap: 8px; }
+.sh-tool-i { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: var(--ly-pad, 16px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.sh-tool-i > i { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); color: var(--mb-deep); font-style: normal; font-weight: 800; display: grid; place-items: center; }
+.sh-tool-i h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; line-height: 1.4; word-break: keep-all; }
+.sh-tool-i p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--muted); word-break: keep-all; }
+.sh-tool-i img { display: block; width: 100%; height: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; }
+@media (min-width: 768px) { .sh-tool { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 제목 줄: 왼쪽 제목, 오른쪽 「편성 스튜디오 열기」 칩 */
+.sh-tool-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 0 0 var(--ly-h, 12px); }
+html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
+

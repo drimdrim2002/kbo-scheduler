@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="ko">
+<!-- data-lay: 소개 쪽 레이아웃 규칙(show.css "레이아웃 두 단계" 블록)을 켠다. 숫자와 근거·결과 쪽엔 없다(2026-10-25 A 두 단계 확정) -->
+<html lang="ko" data-lay>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,7 +29,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <link rel="stylesheet" href="../app/common/common.css?v=20261024p">
 <link rel="stylesheet" href="../app/replay/replay.css?v=20261024p">
-<link rel="stylesheet" href="show.css?v=20261025t">
+<link rel="stylesheet" href="show.css?v=20261026a">
 </head>
 <body class="sh-body" data-page="index">
 <!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
@@ -73,15 +74,18 @@
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 톺아보기</span></a>
-    <nav class="sh-nav sh-nav-pc" aria-label="PC 메뉴"><a href="../index.html" data-studio>편성 스튜디오</a></nav>
+    <nav class="sh-nav sh-nav-pc" aria-label="PC 메뉴"><a href="../index.html" data-studio>편성 스튜디오(PC)</a></nav>
   </div>
 </header>
 
 <main class="sh-wrap">
-  <!-- ⓪ 대사 첫 화면(드라마 대본 한 장). 영상·캡처·유튜브 링크는 두지 않는다(저작권, 2026-10-22 결정) -->
-  <section class="sh-sec sh-q1" id="hero-q" aria-label="드라마 스토브리그 대사">
-    <!-- 첫 화면(2026-10-25 확정 방향 C): 드라마 대본 한 장. 두 대사 모두 백승수 단장(사용자 확인). 장면 번호·회차·쪽 번호는 모르므로 비워 둔다(지어내지 않음).
-         드라마 정보: SBS 금토드라마, 2019-12-13~2020-02-14, 제56회 백상예술대상 TV 드라마 작품상(OSEN·텐아시아·스포츠칸 보도). 영상·캡처·로고는 쓰지 않는다(2026-10-22 결정) -->
+  <!-- ① 첫 화면 = 문제: 드라마 대본(→ 공평할까요? → 기준은?) → 기준 세 가지 -->
+  <section class="sh-sec sh-story" id="hero" aria-labelledby="hero-h">
+    <div class="sh-chap sh-chap-why">
+    <!-- 첫 화면(2026-10-25 확정, 사용자: 대본 종이와 「공평할까요?」 블록을 합치기 → c): 표제어(사용자 문구) → 대본 한 장. 쪽 제목 h1 「우리 팀 일정, 공평할까요?」는 종이 안 손글씨 메모와 한 줄로. 머리글 "2025 KBO 일정"은 표제어가 그 자리를 맡아 뺐다.
+         두 대사 모두 백승수 단장(사용자 확인). 장면 번호·회차·쪽 번호는 모르므로 비워 둔다. 드라마 정보: SBS 금토드라마, 2019-12-13~2020-02-14, 제56회 백상예술대상 TV 드라마 작품상. 영상·캡처·로고는 쓰지 않는다(2026-10-22 결정) -->
+    <p class="sh-kicker sh-q1-k">드라마 스토브리그 · 단장 회의 장면</p>
+    <h2 class="sh-h2 sh-q1-h">여기에서 매치봇이 탄생했어요</h2>
     <div class="sh-q1c">
       <div class="sh-q1c-paper">
         <i class="sh-q1c-holes" aria-hidden="true"></i>
@@ -89,20 +93,13 @@
         <p class="sh-q1c-scene">S#. 단장 회의</p>
         <dl class="sh-q1c-talk">
           <dt>백승수</dt>
-          <dd><p>서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다.</p><p class="sh-q1c-key"><mark>야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</mark></p><p class="sh-q1c-note"><span aria-hidden="true">↑</span> 여기서 영감을 받았어요</p></dd>
+          <dd><p>서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다.</p><p class="sh-q1c-key"><mark>야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</mark></p><div class="sh-q1c-memo"><span class="sh-q1c-note"><span aria-hidden="true">↑</span> 여기서 영감을 받았어요.</span> <h1 class="sh-h1 sh-q1c-ask" id="hero-h">우리 팀 일정, 공평할까요?</h1> <span class="sh-q1c-next">그렇다면 그 기준은 무엇일까요?</span></div></dd>
         </dl>
-        <p class="sh-q1c-foot">드라마 「스토브리그」 · SBS 금토드라마 · 2019~2020 · 백상예술대상 드라마 작품상</p>
+        <p class="sh-q1c-foot">드라마 스토브리그 · SBS 금토드라마 · 2019~2020 · 백상예술대상 드라마 작품상</p>
       </div>
     </div>
-  </section>
-
-
-  <!-- ① 첫 화면: 문제 배경(대사 → 공평할까요? → 두 가지 → 2025 실제 점 지도) → 매치봇 결과 -->
-  <section class="sh-sec sh-story" id="hero" aria-labelledby="hero-h">
-    <p class="sh-kicker">2025 KBO 일정</p>
-    <h1 class="sh-h1" id="hero-h">우리 팀 일정, 공평할까요?</h1>
-    <p class="sh-lead">모든 구단이 144경기 중 절반을 원정으로 치러서, 전국을 돌며 경기를 해요. 이때 이동 일수·이동거리와 주말·공휴일 홈 경기를 공정하게 나눠야 해요.</p>
     <h2 class="sh-story-h">기준은 세 가지예요</h2>
+    <p class="sh-lead">모든 구단이 144경기 중 절반을 원정으로 치러서, 전국을 돌며 경기를 해요. 이때 이동 일수·이동거리와 주말·공휴일 홈 경기를 공정하게 나눠야 해요. 2025년 기준으로는 아래와 같아요.</p>
     <!-- 기준 세 가지(2026-10-25 확정, 이동 일수 → 이동거리 → 주말·공휴일): 이전 아이콘 카드 + 가장 적은~많은 구단 막대(가운데 눈금 = 구단 평균, 실제라 주황) -->
     <div class="sh-why sh-why3">
       <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="13" rx="3"/><path d="M4 11h16M9 4v7M15 4v7"/><circle cx="8" cy="19.5" r="1.5"/><circle cx="16" cy="19.5" r="1.5"/></svg></i><div><b>이동 일수</b><span>가까워도 옮길 때마다 짐을 싸고 숙소를 바꿔요.</span><div class="sh-why-bar" data-bar="moves" data-unit="일" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.movesGap">6</span>일</b><br><span class="sh-nw">짐 싸고 숙소 바꾸기 <span data-n="why.movesGap">6</span>번 더</span></span></div></div>
@@ -110,6 +107,17 @@
       <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="13" y="13" width="4" height="4" rx="1"/></svg></i><div><b>주말·공휴일 홈 경기</b><span>토·일엔 평일보다 한 경기에 관중이 <span data-n="why.fanGap">5,200</span>명쯤 더 와요.</span><div class="sh-why-bar" data-bar="holidayWeight" data-unit="경기" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.holGap">6</span>경기</b><br><span class="sh-nw">관중 <span data-n="why.fans">약 3.1만</span> 명</span> · <span class="sh-nw">입장 수입 <span data-n="why.won">2억~4</span>억 원</span></span></div></div>
     </div>
     <details class="sh-why-how"><summary>가정은 이렇게 해봤어요</summary><p>2025년 1차 일정(3/22~8/31) 기준이에요. 버스 시간은 시속 80km로 셌어요. 관중은 KBO 2024 요일별 평균(토·일 17,722명, 화~목 12,558명)이고 금요일은 빼서 적게 잡았어요. 입장료는 2025 입장 수입 2,049억 원 ÷ 관중 1,231만 명 = 1인당 약 1만 6천 원이에요. 홈 구단 몫은 72%(원정 28%, 1993년에 정한 비율, 2015년 보도 기준)이고, 주말 홈이 적은 만큼 주말 원정에서 받는 몫을 빼면 아래쪽 값이에요.</p></details>
+    </div>
+  </section>
+
+  <!-- ② 매치봇의 답(2026-10-26 단락 구조 b 확정): 매치봇 첫 소개(마스코트 말풍선) → 실제 2025(점 지도, 「매치봇이 만들면?」 전환) → 매치봇 결과(범위 막대·질문 접기).
+       사용자: 소개 전에 "매치봇이 만들면?"이 먼저 나옴 → 순서 정리. 첫 블록(대본·기준)이 쪽의 절반이던 것을 나눔 -->
+  <section class="sh-sec" id="answer" aria-labelledby="intro-h">
+    <div class="sh-chap sh-chap-intro">
+    <h2 class="sh-h2" id="intro-h">그래서 매치봇을 만들었어요</h2>
+    <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot"/></svg><p class="sh-say-msg">안녕하세요, 저는 매치봇이에요. 일정을 만드는 최적화 엔진이에요. 2025 KBO와 같은 대진·같은 규칙으로 일정을 다시 만들어서, 세 가지 기준이 얼마나 고르게 나뉘는지 실제와 견줘 볼게요.</p></div>
+    </div>
+    <div class="sh-chap sh-chap-real">
     <h2 class="sh-story-h">실제 2025 일정은요</h2>
     <p class="sh-lead sh-sc-how">점 하나가 구단 하나예요. <b>오른쪽</b>일수록 많이 다니고, <b>아래</b>일수록 주말·공휴일 홈 경기가 적어요. 오른쪽 아래가 가장 손해예요. <span id="h1-sc-note">2025년엔 KIA가 가장 많이 다니면서 주말·공휴일 홈 경기도 적어서 가장 손해였고, 두산은 그 반대였어요.</span></p>
     <div class="sh-card sh-viz">
@@ -162,7 +170,9 @@
       <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn" data-kakao-key="dd04ee384353180b67c19cfab63bb763">카카오맵으로 보기</button></div>
       <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 매치봇 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
     </div>
-    <h2 class="sh-story-h" id="res-h">그래서 매치봇이 다시 만들어 봤어요</h2>
+    </div>
+    <div class="sh-chap sh-chap-res">
+    <h2 class="sh-story-h" id="res-h">매치봇이 다시 만든 일정은요</h2>
     <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><p class="sh-small sh-say-msg" style="margin:0 0 10px">같은 대진, 같은 규칙(개막전 구장·어린이날 구장·올스타 휴식·홈/원정 시리즈 4번 연속 금지)으로 매치봇이 찾은 일정이에요. 출발점 <span data-n="engine.seeds">8</span>개로 돌려 가장 좋았던 결과예요. 열 개 구단에게 얼마나 공평한지 실제와 견줘 보세요. <a class="sh-link" href="compare.html#qa-h">매치봇이 받은 조건 보기 →</a></p></div>
     <!-- 결과 비교(2026-10-25 확정): 같은 눈금 위에 KBO(주황)·매치봇(파랑) 구단 범위 막대. 점 = 구단, 막대가 짧을수록 고르다. 총 이동거리는 길이 막대 -->
     <div class="sh-card sh-res sh-res-b">
@@ -172,12 +182,15 @@
       <div class="sh-res-brow"><b class="sh-res-msg" data-n="msg.total">이동거리를 13% 줄였어요</b><div class="sh-res-bars" data-rbar="total" role="img"></div></div>
       <p class="sh-res-key"><span class="r">KBO 실제</span><span class="e">매치봇</span> 점 하나가 구단 하나예요</p>
     </div>
-    <p class="sh-small" style="margin:10px 0 0">KBO = KBO가 2024년 12월에 발표한 2025 정규시즌 1차 일정(3/22~8/31, 구단마다 135경기). 나머지 9경기는 비로 취소된 경기와 함께 8월에 따로 발표돼서 빼고 견줬어요. 매치봇 = 같은 규칙·같은 계산 방식으로 만든 일정.</p>
     <!-- 매치봇에게 묻기(2026-10-25 확정): 질문 칩 + 매치봇 말풍선. 답 끝에 숫자와 근거 쪽 이어 보기 링크(SHOW.QA_MORE)가 붙어 따로 버튼을 두지 않는다. 질문·답은 show.js SHOW.QA(숫자와 근거 쪽과 같음), 답은 1인칭으로 바꿔 말한다 -->
     <div class="sh-ask" data-qa="ask">
-      <h2 class="sh-story-h">이 숫자, 어떻게 나왔는지 물어보세요</h2>
-      <div class="sh-ask-q" role="group" aria-label="질문 고르기"></div>
-      <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><div class="sh-say-msg sh-ask-a" aria-live="polite"></div></div>
+      <!-- 질문 접기(2026-10-25 확정 c: 사용자 "휴대폰에서 너무 큼 → 결과 블록에 합치고 접기"). 결과 카드 맨 아래 줄처럼 붙고, 누르면 .sh-ask.open -->
+      <button type="button" class="sh-ask-toggle" aria-expanded="false" aria-controls="ask-body"><span>이 숫자, 어떻게 나왔는지 물어보세요</span><i aria-hidden="true"></i></button>
+      <div class="sh-ask-body" id="ask-body">
+        <div class="sh-ask-q" role="group" aria-label="질문 고르기"></div>
+        <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-done"/></svg><div class="sh-say-msg sh-ask-a" aria-live="polite"></div></div>
+      </div>
+    </div>
     </div>
   </section>
 
@@ -191,6 +204,13 @@
     <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-think"/></svg><p class="sh-lead sh-say-msg">저는 일단 일정을 대충 맞춰 봐요. 그리고 나름의 기술로 카드 몇 장을 바꿔 보면서 이동거리를 줄여 봐요. 이렇게 찾아낸 개선만 모아서 40초로 보여 드릴게요.</p></div>
     <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 팀 전체 이동거리예요. 내려갈수록 좋아요. 카드 1장은 시리즈(3연전) 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 방금 바뀐 내용을 설명해요.<span> 위의 칩 네 개는 매치봇이 차례로 맞추는 목표예요. '이동 일수'는 구단이 다른 구장으로 옮겨 간 날의 수예요(2025 실제 <span data-n="real.moves">32~38</span>일).</span></p>
     <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">화면에 들어오면 탐색 과정을 불러와요.</div></div></div>
+    <!-- 어떻게 하는 건가요(2026-10-25 사용자: 「매치봇은 이렇게 고쳐 나가요」의 하위 단계로) -->
+    <h2 class="sh-story-h" id="how">어떻게 하는 건가요?</h2>
+    <div class="sh-steps">
+      <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 만들기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 방법은 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈 시리즈나 원정 시리즈가 4번 연속 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 주말·공휴일 홈 경기 수를 고르게 하는 것. 매치봇은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
+      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 쉬지 않고</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 날짜 두 칸의 시리즈를 통째로 바꾸는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 매치봇의 엔진은 오픈소스 OptaPlanner예요.</p></div></div>
+    </div>
   </section>
 
   <!-- ④ 직접 해보기 -->
@@ -247,16 +267,20 @@
     </form>
   </section>
 
-  <!-- ⑤ 어떻게 하는 건가요 -->
-  <section class="sh-sec" id="how" aria-labelledby="how-h">
-    <h2 class="sh-h2" id="how-h">어떻게 하는 건가요?</h2>
-    <div class="sh-steps">
-      <div class="sh-step"><i aria-hidden="true">1</i><div><h3>일정 만들기는 '조합 최적화' 문제예요</h3><p>225개 시리즈를 45개 날짜 칸에 넣는 방법은 전부 따져 볼 수 없을 만큼 많아요. 간호사 근무표, 택배 배송 경로, 공장 생산 순서도 모두 같은 종류의 문제이고, 산업공학이 오래 다뤄 온 주제예요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">2</i><div><h3>꼭 지킬 규칙과, 되도록 좋게 할 목표</h3><p>반드시 지켜야 하는 규칙이 있어요. 한 구단이 하루 두 경기를 할 수 없고, 잠실은 두산·LG가 함께 쓰며, 홈 시리즈나 원정 시리즈가 4번 연속 이어지면 안 돼요. 그 안에서 되도록 좋게 만들고 싶은 목표가 있어요. 총 이동거리를 줄이고, 구단별 이동거리와 주말·공휴일 홈 경기 수를 고르게 하는 것. 매치봇은 규칙을 어기지 않는 일정 중에서 목표가 가장 좋은 일정을 찾아요.</p></div></div>
-      <div class="sh-step"><i aria-hidden="true">3</i><div><h3>작은 수정을 쉬지 않고</h3><p>대충 맞는 일정에서 시작해, 시리즈 두 개를 맞바꾸거나 날짜 두 칸의 시리즈를 통째로 바꾸는 작은 수정을 끊임없이 시도하고 더 나아지는 수정만 남겨요. 가끔은 일부러 조금 나빠지는 수정도 받아들여서 막다른 길에서 빠져나오고요. 이런 방법을 '메타휴리스틱'이라고 부르고, 위의 재생기가 바로 그 과정이에요. 매치봇의 엔진은 오픈소스 OptaPlanner예요.</p></div></div>
+
+
+  <!-- 매치봇으로 할 수 있는 일(2026-10-25 확정 a): 편성 스튜디오 기능 네 단계. 결과 → 과정 → 도구 → 만든 사람 순서. 그림은 /studio/ 화면을 1440×790으로 찍어 잘라 640px로 -->
+  <section class="sh-sec" id="tool" aria-labelledby="tool-h">
+    <!-- 제목 + 오른쪽 「편성 스튜디오 열기(PC)」 칩(만든 사람 카드 「둘러보기」와 같은 알약). 휴대폰에서도 보이고, 누르면 "PC에서 열 수 있어요" 알림(show.js fixStudioLinks, 사용자: 안 보이면 스튜디오가 없다고 생각할 것) -->
+    <div class="sh-tool-top"><h2 class="sh-h2" id="tool-h">매치봇으로 할 수 있는 일</h2><a class="sh-chip" href="../index.html" data-studio data-pc-note><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M1.5 5.5h13"/><circle cx="3.5" cy="4" r=".5" fill="currentColor"/><circle cx="5.2" cy="4" r=".5" fill="currentColor"/></svg>편성 스튜디오 열기(PC)</a></div>
+    <p class="sh-lead">매치봇은 일정을 한 번 만들어 주는 데서 끝나지 않아요. 일정에 필요한 정보를 넣고, 허용 범위를 바꿔 가며 여러 번 돌려 보고, 결과를 그림으로 확인할 수 있어요.</p>
+    <div class="sh-tool">
+      <div class="sh-tool-i"><i aria-hidden="true">1</i><div><h3>일정 정보 넣기</h3><p>구단과 구장 사이 거리, 시리즈, 개막전·어린이날·올스타 휴식 같은 고정 일정을 넣어요. 엑셀 파일이나 구글 시트로 한 번에 가져올 수도 있어요.</p><img src="studio-1-data.png" alt="편성 스튜디오의 데이터 준비 화면. 시리즈 표와 구단쌍 경기 수 행렬" width="640" loading="lazy"></div></div>
+      <div class="sh-tool-i"><i aria-hidden="true">2</i><div><h3>허용 범위 정하기</h3><p>구단별 이동거리 차이를 몇 km까지 봐줄지, 이동 일수와 주말·공휴일 홈 경기 차이는 얼마까지 괜찮은지 정해요.</p><img src="studio-2-tol.png" alt="구단별 총 이동거리와 이동 횟수 차트. 평균선과 허용 범위 띠, 범위를 넘은 구단 표시" width="640" loading="lazy"></div></div>
+      <div class="sh-tool-i"><i aria-hidden="true">3</i><div><h3>여러 시나리오로 돌리기</h3><p>조건과 생각 시간을 바꿔 가며 엔진을 다시 돌리고, 나온 일정들을 견줘 봐요.</p><img src="studio-3-run.png" alt="편성 실행 화면. 실행 시간과 시작 방식 고르기" width="640" loading="lazy"></div></div>
+      <div class="sh-tool-i"><i aria-hidden="true">4</i><div><h3>결과를 그림으로 보기</h3><p>달력·구단 지표·탐색 과정 재생으로 결과를 확인하고, 마음에 안 드는 경기는 고정한 뒤 다시 돌려요.</p><img src="studio-4-result.png" alt="결과 화면. 주마다 시리즈가 놓인 달력" width="640" loading="lazy"></div></div>
     </div>
   </section>
-
 
   <!-- ⑥ 만든 사람(개발자+서비스 한 카드). 개발자 줄 이름은 필명 Brown(2026-10-25 사용자). 아바타 maker.png = 사용자 캐리커처(마커 그림)를 종이 배경만 지워 480px로(2026-10-23). 회사명은 넣지 않기로(개인 프로젝트 바닥글과 어긋나서) -->
   <section class="sh-sec" id="maker" aria-labelledby="maker-h">
@@ -299,6 +323,6 @@
     <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
   </div>
 </footer>
-<script src="show.js?v=20261025t"></script>
+<script src="show.js?v=20261026a"></script>
 </body>
 </html>

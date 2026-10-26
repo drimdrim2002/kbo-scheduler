@@ -471,6 +471,8 @@
     $$('a[data-studio]').forEach((a) => {
       const hash = (a.getAttribute('href') || '').replace(/^[^#]*/, '');
       a.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + hash);
+      // 휴대폰·태블릿(1024px 아래)에서는 스튜디오를 열지 않고 알림만(스튜디오는 PC 화면 전용). 링크는 보이게 둬서 스튜디오가 있다는 걸 알린다
+      if (a.hasAttribute('data-pc-note')) a.addEventListener('click', (e) => { if (window.innerWidth < 1024) { e.preventDefault(); toast('편성 스튜디오는 PC에서 열 수 있어요'); } });
     });
   }
 
@@ -484,12 +486,21 @@
   }
   SHOW.checkScroll = checkScroll;
 
+  /** 질문 접기: 결과 카드 맨 아래 단추(.sh-ask-toggle)를 누르면 .sh-ask.open */
+  function setupFolds() {
+    $$('.sh-ask-toggle').forEach((t) => t.addEventListener('click', () => {
+      const box = t.closest('.sh-ask'), on = !box.classList.contains('open');
+      box.classList.toggle('open', on); t.setAttribute('aria-expanded', String(on));
+    }));
+  }
+
   // ───────── 쪽별 ─────────
   const pages = {};
 
   /** 소개 / */
   pages.index = function () {
     renderQa();
+    setupFolds();
     load(SHOW.api.compare, (err, cmp) => {
       if (err || !cmp || !cmp.real || !cmp.engine) { mark('show', 'compare-error'); checkScroll(); return; }
       const v = view(cmp.real, cmp.engine);
