@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 A · 5 / 5 시리즈 규칙 — 규칙과 결과만 확인</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .rule { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--blue-line); font-size: 12.5px; }
+  .rule:last-child { border-bottom: 0; }
+  .rule .k { color: var(--text-2); width: 110px; flex: none; }
+  .rule .sel2 { border: 1px solid var(--line-2); background: #fff; border-radius: 4px; padding: 2px 8px; font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  table.mx { border-collapse: collapse; font-size: 11.5px; }
+  table.mx th, table.mx td { border: 1px solid var(--line); padding: 3px 0; text-align: center; width: 40px; height: 24px; }
+  table.mx th { background: var(--surface-2); font-weight: 600; }
+  table.mx td.h { background: var(--blue-weak); color: var(--blue); font-weight: 600; }
+  table.mx td.a { color: var(--text-3); }
+  table.mx td.z { background: var(--surface-2); color: var(--line-3); }
+</style></head>
+<body>
+<div class="body">
+  <aside class="card">
+    <h2><span class="n">5 / 5</span>시리즈 규칙<span class="pill ok">✓ 문제 없음</span></h2>
+    <p>시리즈는 <b>규칙으로 만들어집니다</b>. 맞대결마다 홈·원정·연전 수가 정해지고, 날짜는 ② 자동 편성이 정합니다. 여기서는 규칙과 결과만 확인합니다.</p>
+    <div class="box blue">
+      <h4>규칙 <span class="r muted xs">바꾸면 「규칙대로 다시 만들기」</span></h4>
+      <div class="rule"><span class="k">맞대결 경기 수</span><span class="sel2">16경기</span><span class="muted">홈 8 · 원정 8 (한 시즌)</span></div>
+      <div class="rule"><span class="k">1차 편성</span><span class="sel2">15경기</span><span class="muted">홈 9 · 원정 6 (또는 반대)</span></div>
+      <div class="rule"><span class="k">남은 1경기</span><span>9월 이후 재편성에서 · 홈이 적던 쪽이 홈</span></div>
+      <div class="rule"><span class="k">연전 수</span><span>연전 기간 45개대로 2·3·4연전</span></div>
+      <div style="margin-top:8px"><span class="btn pri big">⚡ 규칙대로 다시 만들기</span></div>
+    </div>
+    <div class="box">
+      <h4>만들어진 시리즈</h4>
+      <div class="line"><span class="k">시리즈 수</span><span class="v"><b>225개</b> · 2연전 5 · 3연전 215 · 4연전 5</span></div>
+      <div class="line"><span class="k">맞대결</span><span class="v">45쌍 모두 15경기 <span class="stat ok">맞음</span></span></div>
+      <div class="line"><span class="k">연전 수 맞추기</span><span class="v">기간 × 5 = 시리즈 <span class="stat ok">맞음</span></span></div>
+      <div class="line"><span class="k">잠실(두산·LG)</span><span class="v">홈 3연전 43개 ≤ 기간 43 <span class="stat ok">맞음</span></span></div>
+      <div style="margin-top:8px"><a class="small">▦ 시리즈 225개 표 보기 (모든 표 보기)</a></div>
+    </div>
+    <div class="box ok"><b>✓ 지금 상태</b> &nbsp;225개 · 맞대결 경기 수 맞음 · 연전 수 맞음</div>
+    <div class="box"><b>다음</b> &nbsp;모두 「문제 없음」이면 <b>다음: 검토·실행</b>에서 편성할 수 없는 입력이 있는지 한 번 더 점검하고 자동 편성을 돌립니다.</div>
+  </aside>
+  <main class="main">
+    <div class="head"><b>규칙대로 만들어진 결과</b><span class="desc">맞대결마다 1차 편성 경기 수 · 구단별 홈·원정 · 연전 수</span></div>
+    <div class="body2">
+      <div class="grid2">
+        <div class="blk"><h3>맞대결마다 1차 편성 경기 수 <span class="muted">행이 홈 · 15 = 9 + 6</span></h3><div id="mx"></div></div>
+        <div>
+          <div class="blk"><h3>구단별 홈·원정 <span class="muted">1차 편성 135경기</span></h3><div id="tm"></div></div>
+          <div class="blk"><h3>연전 수 맞추기 <span class="muted">연전 기간 × 구장 5</span></h3><div>
+            <table class="t"><tr><th></th><th class="num">연전 기간</th><th class="num">× 5</th><th class="num">시리즈</th><th></th></tr>
+            <tr><td>2연전</td><td class="num">1</td><td class="num">5</td><td class="num">5</td><td><span class="stat ok">맞음</span></td></tr>
+            <tr><td>3연전</td><td class="num">43</td><td class="num">215</td><td class="num">215</td><td><span class="stat ok">맞음</span></td></tr>
+            <tr><td>4연전</td><td class="num">1</td><td class="num">5</td><td class="num">5</td><td><span class="stat ok">맞음</span></td></tr></table>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, T = C.TEAMS.map((t) => t.name);
+  C.chrome({ at: 5, prev: '연전 기간', next: '검토·실행', mode: '새로 입력하기', sum: '새로 입력하기 · 5 / 5 시리즈 규칙',
+    steps: [{ name: '구단 정보', role: '확인' }, { name: '시즌 기간', role: '적기' }, { name: '특별한 날', role: '달력에 표시' }, { name: '연전 기간', role: '규칙 + 달력에서 고치기' }, { name: '시리즈 규칙', role: '확인' }] });
+  let h = '<table class="mx"><tr><th>홈 \\ 원정</th>' + T.map((t) => '<th>' + t + '</th>').join('') + '<th>홈 합</th></tr>';
+  const home = [];
+  T.forEach((a, i) => { let sum = 0; h += '<tr><th>' + a + '</th>'; T.forEach((b, j) => { if (i === j) { h += '<td class="z">–</td>'; return; } const major = ((j - i + 10) % 2 === 1) ? i < j : i > j; const g = major ? 9 : 6; sum += g; h += '<td class="' + (major ? 'h' : 'a') + '">' + g + '</td>'; }); home.push(sum); h += '<td><b>' + sum + '</b></td></tr>'; });
+  document.getElementById('mx').innerHTML = h + '</table><div class="xs muted" style="margin-top:6px">파란 칸이 홈 9경기 쪽. 같은 두 구단의 두 칸을 더하면 15입니다.</div>';
+  let t = '<table class="t"><tr><th>구단</th><th class="num">홈 경기</th><th class="num">원정 경기</th><th class="num">홈 시리즈</th><th></th></tr>';
+  T.forEach((a, i) => { t += '<tr><td>' + a + '</td><td class="num">' + home[i] + '</td><td class="num">' + (135 - home[i]) + '</td><td class="num">' + Math.round(home[i] / 3) + '</td><td>' + (home[i] >= 66 && home[i] <= 69 ? '<span class="stat ok">고름</span>' : '') + '</td></tr>'; });
+  document.getElementById('tm').innerHTML = t + '</table><div class="xs muted" style="margin-top:6px">남은 1경기(재편성)는 홈이 적던 쪽이 홈이라 시즌 전체로는 홈 72 · 원정 72가 됩니다.</div>';
+</script>
+</body></html>

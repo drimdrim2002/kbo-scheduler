@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>① 데이터 준비 입력 흐름 — 추천안과 대안 비교</title>
+<style>
+  :root { --navy: #0A1E3C; --blue: #1F5FD6; --blue-weak: #EAF1FD; --line: #E2E5EA; --text: #172033; --text-2: #435067; --text-3: #5F697D; --ok: #13703F; --ok-bg: #E5F3EA; --warn: #8A5300; --warn-bg: #FFF3D9; --bad: #B3261E; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--text); background: #F3F4F6; }
+  header { background: var(--navy); color: #fff; padding: 28px 40px; }
+  header h1 { margin: 0 0 6px; font-size: 24px; }
+  header p { margin: 0; color: #C9D4E6; max-width: 900px; }
+  nav.toc { background: #fff; border-bottom: 1px solid var(--line); padding: 10px 40px; display: flex; gap: 18px; font-size: 13px; position: sticky; top: 0; z-index: 2; }
+  nav.toc a { color: var(--text-2); text-decoration: none; }
+  nav.toc a.rec { color: var(--blue); font-weight: 600; }
+  main { padding: 28px 40px 60px; max-width: 1500px; margin: 0 auto; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 24px 28px; margin-bottom: 28px; }
+  section.rec { border: 2px solid var(--blue); }
+  h2 { margin: 0 0 4px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+  h2 .tag { font-size: 12px; padding: 2px 10px; border-radius: 10px; background: var(--blue); color: #fff; font-weight: 600; }
+  h2 .tag.alt { background: #EEF0F3; color: var(--text-2); }
+  h2 .tag.now { background: var(--warn-bg); color: var(--warn); }
+  .lead { color: var(--text-2); margin: 0 0 16px; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .shots.one { grid-template-columns: 1fr; max-width: 1100px; }
+  figure { margin: 0; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; }
+  figcaption { font-size: 12.5px; color: var(--text-2); margin-top: 6px; display: flex; gap: 8px; align-items: center; }
+  figcaption a { color: var(--blue); font-size: 12px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .cols > div { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; font-size: 13px; }
+  .cols h4 { margin: 0 0 6px; font-size: 13px; }
+  .cols ul { margin: 0; padding-left: 18px; color: var(--text-2); }
+  .cols li { margin: 3px 0; }
+  .good h4 { color: var(--ok); } .bad h4 { color: var(--bad); } .who h4 { color: var(--blue); }
+  table.cmp { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.cmp th { background: #F8F9FB; }
+  table.cmp td.rec { background: var(--blue-weak); }
+  .steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 14px; }
+  .steps span { border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font-size: 12.5px; background: #F8F9FB; }
+  .steps span b { color: var(--blue); margin-right: 4px; }
+  .steps span em { font-style: normal; color: var(--text-3); font-size: 11px; margin-left: 6px; }
+  .q { background: var(--warn-bg); border: 1px solid #EDCB84; border-radius: 6px; padding: 12px 16px; font-size: 13px; }
+  .q ul { margin: 6px 0 0; padding-left: 18px; }
+  code { font: 12px "SF Mono", Menlo, monospace; background: #F2F5FA; padding: 1px 5px; border-radius: 3px; }
+</style></head>
+<body>
+<header>
+  <h1>편성 스튜디오 ① 데이터 준비 — 입력 흐름 컨셉 시안</h1>
+  <p>「단계 띠를 보면 입력하는 곳인지, 입력된 것을 보여 주는 곳인지 모르겠다」는 지적에서 출발했습니다. 지금 9단계를 분석하고, <b>추천안 1개(표준)</b>와 방향이 다른 <b>대안 3개</b>를 그림으로 비교합니다. 모두 2025 실제 설정으로 그린 정적 시안이며, 실제 스튜디오 코드는 바꾸지 않았습니다. 2026-10-26.</p>
+</header>
+<nav class="toc"><a href="#now">지금 흐름의 문제</a><a href="#a" class="rec">★ 추천안 A · 5단계, 입력과 확인을 가름</a><a href="#b">대안 B · 달력 한 장</a><a href="#c">대안 C · 질문형</a><a href="#d">대안 D · 엑셀 중심</a><a href="#cmp">한눈에 비교</a><a href="#q">확인이 필요한 것</a></nav>
+<main>
+
+<section id="now">
+  <h2><span class="tag now">지금</span>9단계 — 무엇이 문제인가</h2>
+  <p class="lead">구단 정보 → 시즌 기본 설정 → 공휴일 → 휴식일 경기 → 휴식기 → 연전 기간 → 시리즈 → 특별 경기 → 다음. 띠에는 아홉 칸이 똑같이 나란히 있지만, 사람이 적는 칸과 단추로 만들어지는 칸과 확인만 하는 칸이 섞여 있습니다.</p>
+  <div class="steps">
+    <span><b>1</b>구단 정보<em>확인 (가끔 고침)</em></span><span><b>2</b>시즌 기본 설정<em>적기 — 그런데 결과 화면처럼 보임</em></span><span><b>3</b>공휴일<em>단추 한 번</em></span><span><b>4</b>휴식일 경기<em>보통 1줄</em></span><span><b>5</b>휴식기<em>보통 2줄</em></span><span><b>6</b>연전 기간<em>단추로 만듦 · 핵심인데 표만</em></span><span><b>7</b>시리즈<em>단추로 만듦 · 225줄 표</em></span><span><b>8</b>특별 경기<em>단추 둘</em></span><span><b>9</b>다음<em>단계가 아님</em></span>
+  </div>
+  <div class="shots">
+    <figure><img src="shots/now-2-season.png" alt=""><figcaption>2 / 9 시즌 기본 설정 — 입력 칸은 위 한 줄, 화면 대부분이 결과(달력)라 「보여 주는 화면」으로 읽힘</figcaption></figure>
+    <figure><img src="shots/now-6-slots.png" alt=""><figcaption>6 / 9 연전 기간 — 핵심 입력인데 45줄 숫자 표뿐. 어떤 규칙으로 만들어졌는지, 개막 2연전이 왜 2연전인지 보이지 않음</figcaption></figure>
+    <figure><img src="shots/now-7-series.png" alt=""><figcaption>7 / 9 시리즈 — 225줄 표가 주인공. 「이게 입력인가?」 규칙(맞대결 16경기)은 설정 깊숙이</figcaption></figure>
+    <figure><img src="shots/now-new-6-slots.png" alt=""><figcaption>새로 입력하기 6 / 9 — 빈 표와 단추 하나. 달력도, 규칙도 없이 「규칙대로 자동 채우기」만</figcaption></figure>
+  </div>
+  <div class="cols">
+    <div class="bad"><h4>문제 1 · 입력과 확인이 한 띠에 섞임</h4><ul><li>아홉 칸이 같은 모양이라 어디서 손을 대야 하는지 모름</li><li>사람이 실제로 적는 것은 시즌 기본 설정 4칸 + 특별한 날 몇 줄뿐</li><li>「다음」이 9 / 9로 세어져 단계가 부풀려 보임</li></ul></div>
+    <div class="bad"><h4>문제 2 · 작은 표 넷이 따로 단계</h4><ul><li>공휴일·휴식일 경기·휴식기·특별 경기는 모두 「날짜에 붙는 표시」인데 네 화면에 흩어짐</li><li>5/5 어린이날 하나가 공휴일(3) + 휴식일 경기(4) + 휴식기 5/8(5) + 구장 지정(8) 네 곳에 걸림</li><li>대부분 「다음」만 누르는 단계</li></ul></div>
+    <div class="bad"><h4>문제 3 · 핵심(연전 기간)이 약함</h4><ul><li>규칙이 보이지 않고 「규칙대로 자동 채우기」 단추만 있음</li><li>달력 없이 표에서 셀을 두 번 눌러 고침</li><li>시리즈는 규칙으로 만들어지는 결과인데 225줄 표가 먼저 보임</li></ul></div>
+  </div>
+</section>
+
+<section id="a" class="rec">
+  <h2><span class="tag">★ 추천안 A · 표준</span>5단계 — 입력과 확인을 가르고, 특별한 날은 달력 하나, 연전 기간은 규칙 + 달력</h2>
+  <p class="lead">사용자 답변을 모두 반영한 구성입니다. 띠의 칸마다 <b>무엇을 하는 곳인지</b>(확인 · 적기 · 달력에 표시 · 규칙 + 달력에서 고치기 · 확인)를 작은 글씨로 붙여, 띠만 봐도 입력할 곳과 확인할 곳이 갈립니다. 구단 정보(1단계)는 지금 그대로입니다.</p>
+  <div class="steps">
+    <span><b>1 / 5</b>구단 정보<em>확인 · 지금 그대로</em></span><span><b>2 / 5</b>시즌 기간<em>적기 · 개막일·1차 편성 종료일·시즌 종료일·휴식 요일</em></span><span><b>3 / 5</b>특별한 날<em>달력에 표시 · 공휴일 + 휴식일 경기 + 경기 없는 기간 + 날짜가 정해진 경기</em></span><span><b>4 / 5</b>연전 기간<em>규칙으로 만들고 달력에서 고치기</em></span><span><b>5 / 5</b>시리즈 규칙<em>확인 · 규칙과 결과 요약만, 225줄 표는 모든 표 보기로</em></span>
+  </div>
+  <div class="shots">
+    <figure><img src="shots/a-4-slots.png" alt=""><figcaption><b>4 / 5 연전 기간 (핵심 화면)</b> — 왼쪽에 규칙(기본 3연전 · 개막 토·일 2연전 · 남는 날 2·4 · 휴식기 뒤 4연전)과 「규칙대로 다시 만들기」, 가운데 달력에 묶음을 그려 누르면 연전 수 바꾸기·나누기·합치기 <a href="a-4-slots.html">열기</a></figcaption></figure>
+    <figure><img src="shots/a-3-days.png" alt=""><figcaption><b>3 / 5 특별한 날</b> — 달력 하나에 공휴일(○)·휴식일 경기(주황 테두리)·경기 없는 기간(빗금)·정해진 경기(남색 테두리). 날을 누르면 오른쪽에서 네 가지를 켜고 끔 <a href="a-3-days.html">열기</a></figcaption></figure>
+    <figure><img src="shots/a-2-season.png" alt=""><figcaption><b>2 / 5 시즌 기간</b> — 적는 칸 넷을 크게, 칸마다 「적음 ✓」. 달력은 아래 「이렇게 됩니다」로 작게 <a href="a-2-season.html">열기</a></figcaption></figure>
+    <figure><img src="shots/a-5-series.png" alt=""><figcaption><b>5 / 5 시리즈 규칙</b> — 규칙(맞대결 16 · 1차 편성 15 · 홈 9/6)과 결과 요약(맞대결 표 · 구단별 홈·원정 · 연전 수 맞추기)만. 225줄 표는 링크 <a href="a-5-series.html">열기</a></figcaption></figure>
+  </div>
+  <div class="cols">
+    <div class="good"><h4>장점</h4><ul><li>띠의 칸이 9 → 5, 칸마다 역할이 적혀 「여기서 뭘 하나」가 바로 보임</li><li>적는 화면(2)은 적는 화면답게, 만들어지는 화면(4·5)은 규칙이 먼저 보임</li><li>어린이날처럼 한 날짜에 겹치는 것을 한 화면에서 봄</li><li>연전 기간을 달력에서 고치고, 고친 곳은 규칙을 다시 돌려도 지켜짐</li><li>지금 구조(왼쪽 카드 + 가운데)와 주소·점검 도구를 거의 그대로 씀</li></ul></div>
+    <div class="bad"><h4>단점</h4><ul><li>특별한 날 화면이 네 종류를 담아 처음엔 범례를 읽어야 함</li><li>달력에서 묶음을 고치는 조작(나누기·합치기)을 새로 만들어야 함</li><li>시리즈 225줄을 직접 손보던 사람은 「모든 표 보기」로 한 번 더 가야 함</li></ul></div>
+    <div class="who"><h4>누구에게</h4><ul><li>해마다 같은 틀로 편성하는 KBO 담당자 — 바뀐 것만 적고 나머지는 확인</li><li>처음 보는 사람 — 다섯 칸의 역할 글씨가 안내가 됨</li><li>전문가 — 「모든 표 보기」는 그대로</li></ul></div>
+  </div>
+</section>
+
+<section id="b">
+  <h2><span class="tag alt">대안 B</span>달력 한 장 — 시즌 달력 하나에 적고, 보고, 고치고, 확인</h2>
+  <p class="lead">구단 정보 다음은 화면 하나뿐입니다. 왼쪽에 시즌 기간과 규칙을 적고, 가운데 큰 달력에 특별한 날과 연전 기간이 함께 그려지고, 오른쪽에서 경기일 합·시리즈를 확인합니다. 단계가 아니라 「층(공휴일·휴식기·연전 기간…)」을 켜고 끕니다.</p>
+  <div class="shots one"><figure><img src="shots/b-calendar.png" alt=""><figcaption><b>2 / 2 시즌 달력</b> — 모든 것이 한 장에. 5/5 어린이날 묶음을 누르면 그 날의 표시와 연전 수를 함께 고침 <a href="b-calendar.html">열기</a></figcaption></figure></div>
+  <div class="cols">
+    <div class="good"><h4>장점</h4><ul><li>무엇을 바꾸면 무엇이 달라지는지 한 화면에서 바로 보임</li><li>「다음」을 누를 일이 없음 — 익숙해지면 가장 빠름</li><li>어린이날처럼 여러 표시가 겹치는 날을 자연스럽게 다룸</li></ul></div>
+    <div class="bad"><h4>단점</h4><ul><li>처음 보는 사람에게는 빽빽함 — 무엇부터 할지 순서가 없음</li><li>1440 폭에서 왼쪽·가운데·오른쪽 셋이 모두 좁음</li><li>빈 상태(새로 입력)에서는 달력이 텅 비어 안내가 어려움</li></ul></div>
+    <div class="who"><h4>누구에게</h4><ul><li>이미 흐름을 아는 담당자가 해마다 손보는 경우</li><li>달력 보는 것이 익숙한 팬·기자</li><li>처음 입력하는 사람에게는 맞지 않음</li></ul></div>
+  </div>
+</section>
+
+<section id="c">
+  <h2><span class="tag alt">대안 C</span>질문형 — 한 번에 한 질문, 답하면 달력이 그려짐</h2>
+  <p class="lead">「개막일은 언제인가요?」 「경기가 없는 기간이 있나요?」처럼 열두 질문에 차례로 답합니다. 왼쪽에 답한 것이 쌓이고(「고치기」), 오른쪽에 답한 대로 달력이 그려집니다. 마지막 두 질문에서 연전 기간과 맞대결 규칙을 확인합니다.</p>
+  <div class="shots one"><figure><img src="shots/c-questions.png" alt=""><figcaption><b>질문 7 / 12</b> — 「경기가 없는 기간이 있나요?」 있어요를 고르면 그 자리에서 기간을 적고, 경기일 합이 바로 계산됨 <a href="c-questions.html">열기</a></figcaption></figure></div>
+  <div class="cols">
+    <div class="good"><h4>장점</h4><ul><li>입력과 확인이 섞일 여지가 없음 — 질문은 늘 「적는 것」</li><li>처음 하는 사람에게 가장 쉬움, 빈 상태에서 특히 좋음</li><li>「없어요」를 고르면 그 뒤가 어떻게 되는지 설명이 붙음</li></ul></div>
+    <div class="bad"><h4>단점</h4><ul><li>열두 번 「다음」 — 해마다 같은 값을 넣는 담당자에게는 지루함</li><li>기존 데이터를 「보는」 모드가 어색함(답한 것 목록을 다시 훑어야 함)</li><li>연전 기간처럼 달력을 넓게 봐야 하는 것은 질문 카드에 안 맞음</li></ul></div>
+    <div class="who"><h4>누구에게</h4><ul><li>처음 써 보는 사람, 체험용·시연용</li><li>해마다 쓰는 담당자에게는 맞지 않음</li><li>추천안 A의 「새로 입력」 첫 회에만 붙이는 변형도 가능</li></ul></div>
+  </div>
+</section>
+
+<section id="d">
+  <h2><span class="tag alt">대안 D</span>엑셀 중심 — 서식을 내려받아 채우고, 올린 뒤 확인 화면에서 고침</h2>
+  <p class="lead">엑셀 서식(시트 4개: 구단 정보 · 시즌 기간과 특별한 날 · 연전 기간 · 맞대결 규칙)을 내려받아 채우고 올립니다. 스튜디오는 시트마다 검사해 「확인할 것」을 보여 주고, 작은 것은 그 자리에서 고칩니다.</p>
+  <div class="shots one"><figure><img src="shots/d-excel.png" alt=""><figcaption><b>3 / 3 확인하고 고치기</b> — 시트 ② 12번째 줄(6/3 임시 공휴일)이 법정 공휴일 목록에 없어 「확인」, 나머지는 맞음. 아래에 올린 파일대로 달력 <a href="d-excel.html">열기</a></figcaption></figure></div>
+  <div class="cols">
+    <div class="good"><h4>장점</h4><ul><li>KBO 담당자가 이미 엑셀로 일함 — 익숙한 도구로 한 번에</li><li>여러 해·여러 안을 파일로 보관·비교하기 쉬움</li><li>스튜디오 화면은 「확인」 하나로 단순해짐</li></ul></div>
+    <div class="bad"><h4>단점</h4><ul><li>엑셀 안에서는 안내도 검사도 없음 — 틀린 것을 올린 뒤에야 앎</li><li>연전 기간 45줄을 엑셀로 적는 것은 규칙으로 만드는 것보다 어려움(서식에 「비워 두면 규칙으로 만듦」이 필요)</li><li>도구 둘을 오감, 공개 사이트 첫 방문자에게는 문턱</li></ul></div>
+    <div class="who"><h4>누구에게</h4><ul><li>데이터를 엑셀로 관리하는 담당자, 여러 해를 한 번에 다루는 경우</li><li>처음 보는 사람·팬에게는 맞지 않음</li><li>추천안 A에 「엑셀로 한꺼번에 넣기」 입구로 붙이는 편이 나음(지금도 가져오기가 있음)</li></ul></div>
+  </div>
+</section>
+
+<section id="cmp">
+  <h2>한눈에 비교</h2>
+  <table class="cmp">
+    <tr><th style="width:170px"></th><th>★ 추천안 A · 5단계</th><th>B · 달력 한 장</th><th>C · 질문형</th><th>D · 엑셀 중심</th></tr>
+    <tr><td>입력 / 확인이 갈리는가</td><td class="rec">띠의 칸마다 역할 표시(확인·적기·달력·규칙)</td><td>층을 켜고 끄는 것으로 — 갈리지 않음</td><td>질문은 모두 입력, 마지막 둘이 확인</td><td>엑셀이 입력, 화면이 확인</td></tr>
+    <tr><td>단계 수</td><td class="rec">5 (「다음」은 단계가 아님)</td><td>2</td><td>12 질문</td><td>3</td></tr>
+    <tr><td>특별한 날</td><td class="rec">달력 하나 + 날 눌러 네 가지 켜고 끔</td><td>같은 달력 위의 층</td><td>질문 6·7·8·9·10</td><td>시트 ②에 줄로</td></tr>
+    <tr><td>연전 기간</td><td class="rec">규칙 카드 + 달력에서 묶음 고치기</td><td>같은 달력 위의 층, 묶음 눌러 고침</td><td>질문 11에서 달력 확인</td><td>시트 ③ 45줄(비우면 규칙)</td></tr>
+    <tr><td>시리즈</td><td class="rec">규칙·결과 요약만, 표는 링크</td><td>오른쪽 확인 칸 한 줄</td><td>질문 12</td><td>시트 ④ 규칙 3줄</td></tr>
+    <tr><td>처음 쓰는 사람</td><td class="rec">좋음</td><td>어려움</td><td>가장 좋음</td><td>어려움</td></tr>
+    <tr><td>해마다 쓰는 담당자</td><td class="rec">좋음</td><td>가장 빠름</td><td>지루함</td><td>좋음</td></tr>
+    <tr><td>지금 코드에서 바꿀 양</td><td class="rec">중간 — 9단계 정의를 5개로, 달력 편집 새로</td><td>큼 — 화면 배치가 다름</td><td>큼 — 새 화면 유형</td><td>중간 — 가져오기 확장 + 확인 화면</td></tr>
+  </table>
+</section>
+
+<section id="q">
+  <h2>확인이 필요한 것 (KBO 관행 — 추측하지 않고 묻습니다)</h2>
+  <div class="q">
+    <ul>
+      <li><b>연전 기간 규칙</b>: 주중 화·수·목, 주말 금·토·일 3연전이 기본이고 월요일 휴식이 맞는지. 시안의 「기본 연전 수 3연전」 규칙 한 줄이 충분한지, 아니면 「주중/주말 따로」가 필요한지.</li>
+      <li><b>개막 2연전</b>: 2025는 토요일 개막이라 토·일 2연전이 자동으로 나옵니다. 개막이 금요일이면 금·토·일 3연전이 되는데, 그래도 2연전으로 고정해야 하는지(그렇다면 규칙에 「개막은 2연전」을 따로 둡니다).</li>
+      <li><b>개막 2연전 뒤 흐름</b>: 3/24(월) 휴식 → 3/25(화)부터 3연전이 맞는지.</li>
+      <li><b>올스타 휴식기</b>: 2025 데이터는 7/11(금)~7/16(수) 6일, 뒤에 7/17(목)~7/20(일) 4연전입니다. 해마다 길이가 같은지, 휴식기 뒤 4연전이 관행인지.</li>
+      <li><b>맞대결 경기 수</b>: 「16경기, 홈 8·원정 8」은 시즌 전체이고, 지금 데이터의 1차 편성은 15경기(홈 9·원정 6, 또는 반대)이며 남은 1경기는 9월 이후 재편성에서 홈이 적던 쪽이 홈입니다. 시리즈 규칙 화면에 이 두 줄을 그대로 보여 주면 되는지.</li>
+      <li><b>어린이날</b>: 5/5가 월요일이면 경기, 5/8(목) 하루 휴식 — 해마다 같은 관행인지, 아니면 그 해 달력에 따라 다른지.</li>
+      <li><b>임시 공휴일</b>(선거일 등)에 경기를 하는지 — 공휴일로 표시만 하고 경기는 하는 것으로 두었습니다.</li>
+    </ul>
+  </div>
+</section>
+</main>
+</body></html>
