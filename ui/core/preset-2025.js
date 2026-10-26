@@ -1,5 +1,5 @@
 /*
- * KBO 공통 코어 — 2025 프리셋 (자동 생성 파일: node web/tools/build-preset.js)
+ * KBO 공통 코어 — 2025 프리셋 (자동 생성 파일: node tools/build-preset.js <input_2025.json>)
  * input_2025.json 원본, 2025 기본 설정·이벤트, 구장 사전, 구단 색상.
  */
 (function (root, factory) {

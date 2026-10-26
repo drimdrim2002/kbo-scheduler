@@ -6,8 +6,9 @@
 
 | 파일 | 내용 | 요구사항 |
 | :--- | :--- | :--- |
-| `preset-2025.js` | `input_2025.json` 원본, 2025 기본 설정·이벤트, 구장 사전, 구단 색. `node tools/build-preset.js <input_2025.json>`로 다시 만든다. | FR-S8, FR-E4, FR-T2 |
-| `calendar-gen.js` | 날짜 유틸, 슬롯 자동 생성, 시리즈 목록 생성, 내장 공휴일 | §5.2.1, FR-S6, FR-S7 |
+| `preset-2025.js` | `input_2025.json` 원본, 2025 기본 설정(공휴일 가중치·올스타 시작일)·이벤트(개막전·어린이날 모두 홈 구장 지정 5곳), 구장 사전, 구단 색. 프로젝트의 연전 기간 휴일 값은 공휴일 표대로 다시 매긴다(엔진 원본 값은 `ENGINE_INPUT_2025`). `node tools/build-preset.js <input_2025.json>`로 다시 만든다. | FR-S8, FR-E4, FR-T2 |
+| `calendar-gen.js` | 날짜 유틸, 슬롯 자동 생성, 시리즈 목록 생성, 내장 공휴일(2025~2028). 공휴일 가중치 합(`slotWeights`·`applyWeights`, 주말 하루 1 · 공휴일 weight 기본 2 · 어린이날 3), 묶음에서 휴식기·휴식일 경기 만들기(`deriveRestDays`), 규칙대로 채우기 설정(`ruleSettings`: 휴식 요일 공휴일 · 올스타 휴식기) | §5.2.1, FR-S6, FR-S7 |
+| `xlsx-lite.js` | 바깥 라이브러리 없는 .xlsx 쓰기(압축 없는 zip · 날짜 서식 · 수식)와 읽기(deflate zip · 공유 문자열 · 수식 값). 압축 풀기는 호출하는 쪽이 넘긴다(브라우저 `DecompressionStream`, Node `zlib`) | ① 엑셀 서식 |
 | `score.js` | `ScoreFormulas.evaluate` 1:1 포팅, 위반 설명, 구단 지표, Soft 분해 | §6.1, §6.2 |
 | `reschedule.js` | 경기 상태, 잔여·취소 집계, 재편성 묶음, RH/RS 채점, 재편성 탐색 | §5.8, §6.3 |
 | `mock-solver.js` | Late Acceptance 로컬서치, 완전 매칭 구성 휴리스틱, time-slicing 드라이버, Worker 진입점 | §7.2 |

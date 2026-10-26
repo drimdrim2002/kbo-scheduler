@@ -56,3 +56,5 @@ c-cal-teams|step=1&open=teams&tour=0
 c-cal-old-g|step=1&g=new&gs=3&tour=0
 c-all|step=1&g=all
 c-cal-xl|step=1&modal=calxl&tour=0
+c-tour-1|step=1&tour=1
+c-tour-3|step=1&tour=3

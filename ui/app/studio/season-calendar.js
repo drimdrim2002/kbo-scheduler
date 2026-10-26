@@ -111,7 +111,7 @@
     if (r.len > 4) { S.toast('연전은 2~4일입니다. ' + r.len + '일은 묶을 수 없어 그대로 두었습니다 — 둘로 나눠 끌어 주세요.', 'warn', 5000); return false; }
     if (r.len < 2) { S.toast((r.cut ? r.cut + '에서 끊겨 ' : '') + '하루만으로는 연전을 만들 수 없습니다. 2~4일을 끌어 주세요.', 'warn', 4500); return false; }
     const ok = calCommit('연전 묶음 만들기: ' + bundleText(r.from, r.len), (list) => { list.push({ d: r.from, len: r.len }); });
-    if (ok) { C.day = r.from; C.slotAt = r.from; S.toast(bundleText(r.from, r.len) + ' 묶음을 만들었습니다' + (r.cut && Math.abs(b - a) + 1 > r.len ? ' (' + r.cut + '에서 끊음)' : '') + '. 경기일 합 ' + S.gameDaysCheck().have + '일 / ' + S.gameDaysCheck().need + '일.', 'ok', 4000); }
+    if (ok) { C.day = r.from; C.slotAt = null; S.toast(bundleText(r.from, r.len) + ' 묶음을 만들었습니다' + (r.cut && Math.abs(b - a) + 1 > r.len ? ' (' + r.cut + '에서 끊음)' : '') + '. 경기일 합 ' + S.gameDaysCheck().have + '일 / ' + S.gameDaysCheck().need + '일.', 'ok', 4000); }
     return ok;
   }
   function setLen(i, n) {
@@ -517,7 +517,7 @@
         return '<button class="gs-tbtn' + (sel ? ' on' : '') + (clash ? ' dim' : '') + '" data-act="cal-home-team" data-team="' + esc(t.name) + '" aria-pressed="' + sel + '" style="--tc:' + esc(t.color || '#555') + '" title="' + esc(t.stadium + (clash ? ' — 같은 구장 구단을 이미 골랐습니다' : '')) + '"><i></i>' + esc(t.name) + '</button>';
       }).join('') + '</div>';
       const shared = app().sharedStadiums();
-      s += '<div class="sc-note">' + (shared.size ? Array.from(shared).map(([x, n]) => esc(x.replace(/종합운동장$/, '')) + '은 ' + esc(n.join('·')) + ' 중 하나만').join(' · ') + '. ' : '') + (e && e.type === 'OPENING' ? '개막전 ' : '') + (dlabel(d)) + ' · ' + (b ? esc(bundleText(b.d, b.len)) : '') + '</div>';
+      if (shared.size) s += '<div class="sc-note">' + Array.from(shared).map(([x, n]) => esc(x.replace(/종합운동장$/, '')) + '은 ' + esc(n.join('·')) + ' 중 하나만 고릅니다').join(' · ') + '.</div>';
       if (e && picked.length < half()) s += '<div class="sc-warn">' + icon('info') + '<span>' + (half() - picked.length) + '곳 더 고를 수 있습니다' + (e.type === 'CHILDREN' ? ' — 어린이날은 ' + half() + '곳을 모두 골라야 서버 자동 편성도 같은 구단으로 지킵니다' : '') + '.</span></div>';
     }
     if (ms.length) s += '<div class="sc-warn">' + icon('warn') + '<span>예전 방식 「대진 지정」 ' + ms.length + '경기가 이 날에 있습니다(' + esc(ms.map((x) => x.away + '–' + x.home).slice(0, 3).join(', ')) + (ms.length > 3 ? ' …' : '') + '). <button class="lnk" data-act="cal-ev-convert">홈 구장 지정으로 바꾸기</button></span></div>';
@@ -647,7 +647,7 @@
     ok('묶음 지우기 → 44개 · 132일 · 4/8~4/10 휴식기 · 그 묶음 시리즈만 일정 미정, 나머지는 같은 묶음에 그대로', st().calendar.length === 44 && gd() === 132 && /04-08~04-10/.test(blk()) && moved && /132 \/ 135일/.test(q('#scCount').textContent) && /3일 남음/.test(q('#scCount').textContent));
     // 4. 끌어서 묶음 만들기 (4/8 화 ~ 4/10 목)
     drag('2025-04-08', '2025-04-10', ['2025-04-09']);
-    ok('끌기 4/8~4/10 → 3연전 묶음 · 135일 · 휴식기에서 빠짐', !!bAt('2025-04-08') && bAt('2025-04-08').consecutive === 3 && gd() === 135 && !/04-08/.test(blk()) && st().calendar.length === 45);
+    ok('끌기 4/8~4/10 → 3연전 묶음 · 135일 · 휴식기에서 빠짐 · 말풍선은 누를 때만', !!bAt('2025-04-08') && bAt('2025-04-08').consecutive === 3 && gd() === 135 && !/04-08/.test(blk()) && st().calendar.length === 45 && !q('#scPop') && C.day === dn('2025-04-08'));
     undoN(1);
     ok('실행 취소 한 번 → 끌기 전(132일)', gd() === 132 && !bAt('2025-04-08'));
     undoN(1);
@@ -770,6 +770,24 @@
       res = await S.calXlOpen(X.write(se), '규칙.xlsx'); flush();
       ok('엑셀: 연전 기간 줄을 모두 비우면 규칙대로(묶음 45개)', res.errors === 0 && res.next.list.length === 45 && /규칙대로 채웁니다/.test(res.sheets.find((x) => x.key === 'slots').notes.join()));
       S.ui.calxl = null; S.go({ modal: null });
+    }
+    // 12. 따라 하기(처음 한 번, 2025 예시 데이터로 4단계) — 마치면 바꾼 것을 되돌린다
+    if (S.calTour) {
+      const depth0 = app().store.undoStack.length, cal0 = JSON.stringify(st().calendar), plan0 = JSON.stringify(st().plan);
+      const card = () => (q('#guide .ct-card') || { textContent: '' }).textContent;
+      click('.sc-right [data-act="cal-tour"]'); flush();
+      ok('따라 하기 1 / 4: 4/8~4/10 묶음을 비워 두고(132일) 테두리 + 카드 「끌어서 연전 묶음 만들기」', C.tour && C.tour.step === 1 && !bAt('2025-04-08') && gd() === 132 && /따라 하기 1 \/ 4/.test(card()) && /끌어서/.test(card()) && !!q('#guide .ct-ring'));
+      drag('2025-04-08', '2025-04-10', ['2025-04-09']);
+      ok('따라 하기 2 / 4: 끌어서 만들면 다음 단계 「묶음을 눌러 연전 수 바꾸기」', C.tour.step === 2 && /2 \/ 4/.test(card()) && gd() === 135);
+      tap('2025-04-09'); click('#scPop [data-act="cal-len"][data-n="2"]'); flush();
+      ok('따라 하기 3 / 4: 연전 수를 바꾸면 「날을 눌러 홈 구장 지정」', C.tour.step === 3 && /3 \/ 4/.test(card()) && gd() === 134);
+      tap('2025-05-05');
+      ok('따라 하기 4 / 4: 5/5를 누르면 「경기일 합 135 맞추기」', C.tour.step === 4 && /4 \/ 4/.test(card()) && /경기일 합 135/.test(card()));
+      tap('2025-04-08'); click('#scPop [data-act="cal-len"][data-n="3"]'); flush();
+      ok('따라 하기: 135로 맞추면 「다 했습니다」', C.tour.step === 5 && /다 했습니다/.test(card()));
+      click('#guide [data-act="tour-end"]'); flush();
+      ok('따라 하기 마치기 → 바꾼 것을 되돌림(묶음·시리즈 배정 그대로) · 다시 뜨지 않게 기억', !C.tour && !q('#guide .ct-card') && app().store.undoStack.length === depth0 && JSON.stringify(st().calendar) === cal0 && JSON.stringify(st().plan) === plan0 && S.guideStore('cal-tour').get().seen === true);
+      S.guideStore('cal-tour').reset();
     }
     // 12. 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
     tap('2025-07-17');
