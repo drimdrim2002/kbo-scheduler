@@ -468,13 +468,15 @@
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
-    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단을 누르면 고칠 수 있고, 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
+    const stepwise = !!(S.g1 && (S.g1.mode === 'new' || S.g1.mode === 'view')); // 단계별 화면이면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
+    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
     s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
     s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
         const sh = shared.get(t.stadium);
         const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
-        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
+        const hint = i === sel ? (stepwise ? '왼쪽 카드에서 고치는 중' : '오른쪽에서 고치는 중') : '눌러서 고치기';
+        return '<tr class="' + (i === sel ? 'sel' : '') + '" data-act="team-sel" data-row="' + i + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '<span class="tm-edit-hint">' + (i === sel ? icon('left') : icon('edit')) + hint + '</span></td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     if (app().roadApi) {
       const dm = st.distanceMatrix.filter((d) => d.from !== d.to);

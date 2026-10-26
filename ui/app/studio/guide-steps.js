@@ -176,7 +176,9 @@
     const a = app(), busy = a.roadBusy && (a.roadBusy === 'all' || a.roadBusy.has(t.name));
     const dist = (o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v">' + (o.est ? '<span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : o.road ? '<span class="tag road" title="카카오모빌리티 길찾기(자동차)로 받은 도로거리">도로</span>' : '') +
       '<input class="input xs mono gs-km" data-in="team-dist" data-from="' + esc(t.name) + '" data-to="' + esc(o.n) + '" value="' + (o.d == null ? '' : Number(o.d).toFixed(1)) + '" inputmode="decimal" aria-label="' + esc(t.name + ' → ' + o.n + ' 거리(km)') + '"></span></div>';
-    return '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
+    const pickRow = '<div class="gs-pickteam" role="radiogroup" aria-label="고칠 구단">' + st.teams.map((x, k) => '<button class="gs-tbtn' + (k === i ? ' on' : '') + '" data-act="team-sel" data-row="' + k + '" role="radio" aria-checked="' + (k === i) + '" style="--tc:' + esc(x.color || '#555') + '"><i></i>' + esc(x.name) + '</button>').join('') + '</div>';
+    return '<div class="gs-sub">고칠 구단 <small>단추나 가운데 표·지도에서 고릅니다</small></div>' + pickRow +
+      '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
       '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + ro('위도', t.latitude.toFixed(4)) + ro('경도', t.longitude.toFixed(4)) + '</div></div>' +
       (kakaoMap ? (picking
         ? '<div class="gs-find pick">' + icon('move') + ' 오른쪽 지도에서 새 구장 자리를 누르세요. 누른 곳의 위도·경도로 채웁니다. <button class="btn xs" data-act="g1-map-pick-off">취소</button></div>'
@@ -277,6 +279,8 @@
       if (G.lastTab != null && S.ui.tab !== G.lastTab) { const k = tasks().findIndex((x) => x.tab === S.ui.tab); if (k >= 0) { G.i = k + 1; store.set({ at: G.i }); } }
       const t = cur();
       if (t.tab) S.ui.tab = t.tab;
+      // 구단 정보: 처음부터 첫 구단을 골라 카드에 고치는 칸이 보이게 한다(「여기서 고친다」가 바로 보이도록)
+      if (t.tab === 'teams' && app().state.teams.length) { const c = S.ui.cell; if (!c || c.sheet !== 'teams' || !app().state.teams[c.row]) S.ui.cell = { sheet: 'teams', row: 0, col: 'name' }; }
       G.lastTab = S.ui.tab;
       let main;
       if (t.id === 'next') main = nextMain();
@@ -320,7 +324,7 @@
       // 한글 입력 중(마지막 글자 조합 중)의 Enter는 조합을 끝내는 키라 건너뛴다 — 맥 Chrome은 조합 Enter 뒤에 보통 Enter를 한 번 더 보낸다
       if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
       const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select' || S.ui.edit || S.ui.cell) return false;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || S.ui.edit || (S.ui.cell && S.ui.cell.sheet !== 'teams')) return false; // 구단 정보는 늘 한 구단이 골라져 있으니 막지 않는다
       if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); if (G.i < N()) show(G.i + 1); return true; }
       if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); if (G.i > 1) show(G.i - 1); return true; }
       return false;
@@ -361,7 +365,19 @@
       ok('단계별: 처음 방문 → 「어떻게 시작할까요?」 두 선택(새로 입력 / 기존 데이터 보기), 그 밖의 것은 없음', G.mode === null && qa('.gs-pick').length === 2 && !!q('.gs-pick[data-v="new"]') && !!q('.gs-pick[data-v="view"]') && noExtras() && !q('.gs-card') && /g=ask/.test(hashOf()) && /어떻게 시작할지/.test(q('.step[data-step="1"] .step-sum').textContent), 'mode ' + G.mode + ' · picks ' + qa('.gs-pick').length + ' · extras ' + !noExtras() + ' · hash ' + hashOf() + ' · sum ' + q('.step[data-step="1"] .step-sum').textContent);
       // 2. 기존 데이터 보기 → 1 / 9 구단 정보 → 2 시즌 기본 설정(예시 데이터 값 그대로)
       click('.gs-pick[data-v="view"]'); flush();
-      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 구단 정보 · 10구단 · 들어 있는 것/바꾸려면 · 표 안내', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'teams' && card0().getAttribute('data-page') === 'teams' && !!q('.gs-view') && !!q('.gs-edit') && /10구단/.test(card0().textContent) && /구장이 바뀌었는지/.test(document.body.textContent) && !q('.gs-team') && noExtras() && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
+      ok('단계별: 「기존 데이터를 볼게요」 → 1 / ' + N() + ' 구단 정보 · 10구단 · 들어 있는 것/바꾸려면 · 표 안내', G.mode === 'view' && G.i === 1 && !S.isBlank() && S.ui.tab === 'teams' && card0().getAttribute('data-page') === 'teams' && !!q('.gs-view') && !!q('.gs-edit') && /10구단/.test(card0().textContent) && /구장이 바뀌었는지/.test(document.body.textContent) && !!q('.gs-team') && /고치기 SSG/.test(card0().textContent) && noExtras() && /g=view&gs=1/.test(hashOf()), 'mode ' + G.mode + ' · i ' + G.i + ' · tab ' + S.ui.tab + ' · hash ' + hashOf());
+      // 카드에서 바로 고르기: 첫 구단이 골라져 있고, 구단 단추 10개 · 표 줄에 「눌러서 고치기」(고른 줄은 「고치는 중」)
+      const btns = () => qa('.gs-card .gs-pickteam .gs-tbtn');
+      const pick0 = btns().length === 10 && btns()[0].classList.contains('on') && q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[0] && qa('.pane.main .tm-edit-hint').length === 10 && /왼쪽 카드에서 고치는 중/.test(q('.pane.main tbody tr.sel .tm-edit-hint').textContent) && /눌러서 고치기/.test(qa('.pane.main .tm-edit-hint')[1].textContent) && q('#teamMapHost .kmap-active').getAttribute('data-id') === '0';
+      click('.gs-card .gs-pickteam .gs-tbtn[data-row="3"]'); flush();
+      const pick3 = /고치기 KT/.test(card0().textContent) && btns()[3].classList.contains('on') && q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[3];
+      click('.pane.main tbody tr[data-row="5"] td.rn'); flush();
+      const rowPick = /고치기 한화/.test(card0().textContent);
+      ok('단계별: 구단 정보 — 첫 구단이 골라진 채 시작 · 카드의 구단 단추 10개로 바꿈 · 표 줄(번호 칸 포함) 눌러도 바뀜 · 줄에 「눌러서 고치기」', pick0 && pick3 && rowPick, 'pick0 ' + pick0 + ' · pick3 ' + pick3 + ' · row ' + rowPick);
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true })); flush();
+      const altOk = G.i === I('season');
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true })); flush();
+      ok('단계별: 구단이 골라져 있어도 Alt+→ / Alt+← 로 단계 이동', altOk && G.i === 1, 'i ' + G.i);
       click('.footer [data-act="g1-next"]'); flush();
       ok('단계별: 다음 → 2 시즌 기본 설정 · 2025 값 그대로 · 요약 상자 없음 · 「다음: 공휴일」', G.i === I('season') && S.ui.tab === 'season' && /개막 3\/22\(토\)/.test(card0().textContent) && q('.form-grid input[data-k="seasonStart"]').value === fmt.date('2025-03-22') && !q('.season-subs') && !q('.gs-card .gs-acts') && qa('.gs-steps li').length === N() && /다음: 공휴일/.test(q('.footer .btn.primary').textContent) && /2 \/ 9/.test(q('.gs-pos').textContent));
       const order = [];
