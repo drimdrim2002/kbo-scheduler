@@ -251,7 +251,9 @@
     project.reschedule = Object.assign(clone(preset.DEFAULT_RESCHEDULE), project.reschedule || {});
     project.teams = (project.teams || []).map((t, i) => Object.assign({ color: (preset.TEAM_COLORS[t.name] || '#555555') }, t, { index: i }));
     project.distanceMatrix = (project.distanceMatrix || []).map((d) => Object.assign({ from: d.from, to: d.to, distance: Number(d.distance), estimated: !!d.estimated }, d.source === 'ROAD' ? { source: 'ROAD' } : {}));
-    project.calendar = (project.calendar || []).map((c, i) => ({ index: i, datetime: c.datetime, consecutive: c.consecutive | 0, weekend: c.weekend | 0, holiday: c.holiday | 0 }));
+    // 공휴일 가중치: 예전 저장 데이터(weight 없음)는 2로 읽는다. 연전 기간의 주말·휴일 가중치는 공휴일 표에서 다시 매긴다
+    project.settings.holidays = (project.settings.holidays || []).map((h) => (typeof h === 'string' ? { date: h, name: '공휴일', weight: KBO.CalendarGen.HOLIDAY_WEIGHT } : Object.assign({}, h, { weight: h.weight != null && Number.isFinite(Number(h.weight)) ? Number(h.weight) : KBO.CalendarGen.HOLIDAY_WEIGHT })));
+    project.calendar = KBO.CalendarGen.applyWeights((project.calendar || []).map((c, i) => ({ index: i, datetime: c.datetime, consecutive: c.consecutive | 0, weekend: c.weekend | 0, holiday: c.holiday | 0 })), project.settings);
     project.matches = (project.matches || []).map((m, i) => { const o = { index: i, home: m.home, away: m.away, consecutive: m.consecutive | 0, pinned: !!m.pinned }; if (m.eventId) o.eventId = m.eventId; return o; });
     const M = project.matches.length;
     const planArr = new Array(M).fill(-1);

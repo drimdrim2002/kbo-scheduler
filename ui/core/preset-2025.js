@@ -668,19 +668,22 @@
       { start: '2025-07-11', end: '2025-07-16', label: '올스타 브레이크' }
     ],
     // §5.2.1 검증 기준: 1차 편성 기간에 영향을 주는 공휴일은 5/5·6/6·8/15다.
-    // 5/6(대체공휴일)은 5/5 슬롯 안이라 가중치에 영향이 없다. 6/3(임시공휴일)은 원본 데이터에 반영되지 않아 제외했다.
+    // 6/3(임시공휴일)은 원본 데이터에 반영되지 않아 제외했다.
+    // weight = 홈 경기 공정성에서 이 날의 가치(주말 하루 = 1). 기본값 공휴일 2 · 어린이날 3은 KBO 확인 필요
     holidays: [
-      { date: '2025-05-05', name: '어린이날·부처님오신날' },
-      { date: '2025-05-06', name: '대체공휴일' },
-      { date: '2025-06-06', name: '현충일' },
-      { date: '2025-08-15', name: '광복절' },
-      { date: '2025-10-03', name: '개천절' },
-      { date: '2025-10-05', name: '추석 연휴' },
-      { date: '2025-10-06', name: '추석' },
-      { date: '2025-10-07', name: '추석 연휴' },
-      { date: '2025-10-08', name: '추석 대체공휴일' },
-      { date: '2025-10-09', name: '한글날' }
+      { date: '2025-05-05', name: '어린이날·부처님오신날', weight: 3 },
+      { date: '2025-05-06', name: '대체공휴일', weight: 2 },
+      { date: '2025-06-06', name: '현충일', weight: 2 },
+      { date: '2025-08-15', name: '광복절', weight: 2 },
+      { date: '2025-10-03', name: '개천절', weight: 2 },
+      { date: '2025-10-05', name: '추석 연휴', weight: 2 },
+      { date: '2025-10-06', name: '추석', weight: 2 },
+      { date: '2025-10-07', name: '추석 연휴', weight: 2 },
+      { date: '2025-10-08', name: '추석 대체공휴일', weight: 2 },
+      { date: '2025-10-09', name: '한글날', weight: 2 }
     ],
+    // 올스타 휴식기 시작 금요일(금~수 6일). 「규칙대로 채우기」가 쓴다
+    allStarStart: '2025-07-11',
     gamesPerPair: 16,
     initialGamesPerPair: 15,
     homeGamesMajor: 9,
@@ -700,11 +703,19 @@
     blackouts: [], units: [], plan: []
   };
 
+  /**
+   * 2025 홈 구장 지정: 개막전(3/22)·어린이날(5/5) 모두 그 날 홈 경기를 해야 하는 구단 5곳(구장 지정).
+   * 개막전 홈 구장은 2025 공식 일정표(잠실 LG·문학 SSG·수원 KT·대구 삼성·광주 KIA)와 엔진 입력 initialPlan이 같다.
+   * 상대는 자동 편성이 정한다. teams는 화면에서 고른 구단(잠실은 두산·LG 중 하나), stadiums는 채점에 쓰는 구장.
+   */
   function presetEvents() {
-    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22'));
-    const events = opening.map((p, i) => ({ id: 'ev-open-' + (i + 1), type: 'OPENING', name: '개막전', slot: 0, date: '2025-03-22', mode: 'MATCH', home: p.home, away: p.away }));
-    events.push({ id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 13, date: '2025-05-05', mode: 'STADIUM', stadiums: ['잠실종합운동장', '고척돔야구장', '한화이글스파크', '창원NC파크', '사직야구장'] });
-    return events;
+    const stadiumOf = (n) => ENGINE_INPUT_2025.teams.find((t) => t.name === n).stadium;
+    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22')).map((p) => p.home);
+    const children = ['두산', '키움', '한화', 'NC', '롯데'];
+    return [
+      { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2025-03-22', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf) },
+      { id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 13, date: '2025-05-05', mode: 'STADIUM', teams: children, stadiums: children.map(stadiumOf) }
+    ];
   }
 
   /** input_2025.json initialPlan → 매치 인덱스별 슬롯 (BaseballApp.setInitialPlan과 같은 FIFO 키 매칭) */
@@ -735,11 +746,10 @@
     const plan = planFromInitialPlan(input);
     const events = presetEvents();
     const matches = input.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive, pinned: false }));
-    // 개막전 대진 고정 (BaseballApp.setInitialPlan과 동일)
+    // 개막전 홈 구장 지정: 그 날 홈인 시리즈를 고정한다(서버 자동 편성은 어린이날만 알므로 고정으로 지킨다)
     for (const ev of events) {
-      if (ev.mode !== 'MATCH') continue;
-      const mi = matches.findIndex((m, i) => m.home === ev.home && m.away === ev.away && plan[i] === ev.slot);
-      if (mi >= 0) { matches[mi].pinned = true; matches[mi].eventId = ev.id; }
+      if (ev.mode !== 'STADIUM' || ev.type === 'CHILDREN') continue;
+      matches.forEach((m, i) => { if (plan[i] === ev.slot && ev.teams.includes(m.home)) { m.pinned = true; m.eventId = ev.id; } });
     }
     return {
       meta: { schemaVersion: 1, season: 2025, name: '2025 정규시즌 1차안', updatedAt: new Date().toISOString() },
@@ -747,7 +757,7 @@
       distanceMatrix: input.distanceMatrix.map((d) => ({ from: d.from, to: d.to, distance: d.distance, estimated: false })),
       settings: clone(DEFAULT_SETTINGS),
       events,
-      calendar: clone(input.calendar),
+      calendar: KBO.CalendarGen ? KBO.CalendarGen.applyWeights(clone(input.calendar), DEFAULT_SETTINGS) : clone(input.calendar), // 휴일 가중치는 공휴일 표대로 다시 매긴다(엔진 원본 값은 ENGINE_INPUT_2025)
       matches,
       plan: plan.map((c, m) => ({ match: m, calendar: c })),
       games: [],

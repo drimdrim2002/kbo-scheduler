@@ -118,9 +118,11 @@
       if (slot < 0) continue;
       const stadiums = (ev.stadiums || []).filter((s) => stadiumIndexByName.has(s));
       const groups = stadiums.map((s) => teams.map((t, i) => (t.stadium === s ? i : -1)).filter((i) => i >= 0));
+      // 엔진 호환 기준의 의무 구단: 어린이날은 설정의 어린이날 홈 구단, 그 밖에는 화면에서 고른 구단(teams) — 없으면 지정 구장의 연고 구단 모두
+      const picked = (ev.teams || []).map((n) => teamIndex.get(n)).filter((i) => i != null);
       const obligation = ev.type === 'CHILDREN'
         ? obligationNames.map((n) => teamIndex.get(n)).filter((i) => i != null)
-        : [].concat(...groups);
+        : picked.length ? picked : [].concat(...groups);
       h0e.push({ eventId: ev.id, name: ev.name, slot, stadiums, groups, obligation });
     }
     const holidays = [];

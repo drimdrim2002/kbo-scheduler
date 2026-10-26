@@ -19,11 +19,52 @@ function eq(a, b, msg) { const sa = JSON.stringify(a), sb = JSON.stringify(b); i
 
 const project = () => Preset.buildProject();
 
-test('AC-2 슬롯 자동 생성이 input_2025.json calendar 45개와 일치', () => {
+test('AC-2 슬롯 자동 생성이 input_2025.json calendar 45개와 일치 (휴일 값은 공휴일 가중치 합)', () => {
   const r = CalendarGen.generateSlots(Preset.DEFAULT_SETTINGS);
   const exp = Preset.ENGINE_INPUT_2025.calendar;
   eq(r.slots.length, 45, '슬롯 수');
-  r.slots.forEach((s, i) => eq([s.datetime, s.consecutive, s.weekend, s.holiday], [exp[i].datetime, exp[i].consecutive, exp[i].weekend, exp[i].holiday], '슬롯 ' + i));
+  const hw = CalendarGen.holidayWeights(Preset.DEFAULT_SETTINGS);
+  r.slots.forEach((s, i) => eq([s.datetime, s.consecutive, s.weekend, s.holiday], [exp[i].datetime, exp[i].consecutive, exp[i].weekend, CalendarGen.slotWeights(CalendarGen.slotDays(exp[i])[0], exp[i].consecutive, hw).holiday], '슬롯 ' + i));
+  // 묶음 값 = 든 날 가중치 합: 금·토·일 2, 화·수·목 0, 어린이날 월·화·수 3 + 2, 현충일(금)·광복절(금) 2 + 토 1 + 일 1
+  const at = (d) => r.slots.find((x) => x.datetime.startsWith(d)).holiday;
+  eq([at('2025-03-22'), at('2025-03-25'), at('2025-03-28'), at('2025-05-05'), at('2025-06-06'), at('2025-08-15'), at('2025-07-17')], [2, 0, 2, 5, 4, 4, 2], '가중치 합');
+  // 예전 저장 데이터(weight 없음)는 2로 읽는다
+  eq(CalendarGen.slotWeights(CalendarGen.slotDays(exp[13])[0], 3, CalendarGen.holidayWeights({ holidays: [{ date: '2025-05-05', name: '어린이날' }, '2025-05-06'] })).holiday, 4, 'weight 없음 = 2');
+});
+
+test('연전 묶음이 곧 경기일: 2025 묶음 45개에서 휴식일 경기·휴식기를 만들면 지금 설정과 같다', () => {
+  const set = Preset.DEFAULT_SETTINGS, cal = Preset.ENGINE_INPUT_2025.calendar;
+  const d = CalendarGen.deriveRestDays(cal, set);
+  eq(d.restExceptions, set.restExceptions, '휴식일 경기');
+  eq(d.blackouts.map((b) => [b.start, b.end, b.label]), set.blackouts.map((b) => [b.start, b.end, b.label]), '휴식기');
+  // 1차 편성 종료일 뒤(재편성 기간)는 휴식기로 만들지 않는다
+  assert(d.blackouts.every((b) => b.end <= set.initialEnd), '재편성 기간 제외');
+  // 묶음 하나(4/8 화~4/10 목)를 지우면 그 3일이 휴식기, 월요일에 묶음을 그리면 휴식일 경기
+  const cut = cal.filter((c) => !c.datetime.startsWith('2025-04-08')).concat([{ datetime: '2025-04-14 00:00:00', consecutive: 2 }]);
+  const d2 = CalendarGen.deriveRestDays(cut, set);
+  assert(d2.blackouts.some((b) => b.start === '2025-04-08' && b.end === '2025-04-10'), '지운 묶음 → 휴식기');
+  assert(d2.restExceptions.includes('2025-04-14'), '월요일 묶음 → 휴식일 경기');
+});
+
+test('규칙대로 채우기: 휴식 요일 공휴일(그 날 경기·목 휴식) + 올스타 휴식기(금~수) → 2025 45개 · 135일', () => {
+  const set = Object.assign({}, Preset.DEFAULT_SETTINGS, { restExceptions: [], blackouts: [] });
+  const rs = CalendarGen.ruleSettings(set);
+  eq(rs.restExceptions, ['2025-05-05']);
+  eq(rs.blackouts.map((b) => [b.start, b.end]), [['2025-05-08', '2025-05-08'], ['2025-07-11', '2025-07-16']]);
+  const g = CalendarGen.generateSlots(rs).slots, exp = Preset.ENGINE_INPUT_2025.calendar;
+  eq(g.length, 45); eq(CalendarGen.lengthHistogram(g), { 2: 1, 3: 43, 4: 1 });
+  eq(g.reduce((a, c) => a + c.consecutive, 0), 135);
+  assert(g.every((c, i) => c.datetime === exp[i].datetime && c.consecutive === exp[i].consecutive), '2025 실제 연전 기간과 같음');
+  eq(CalendarGen.defaultAllStarStart(2025), '2025-07-11', '올스타 기본: 7월 둘째 금요일');
+});
+
+test('내장 공휴일: 2027·2028 음력·대체공휴일, 기본 가중치(어린이날 3 · 나머지 2)', () => {
+  const y27 = CalendarGen.builtinHolidays(2027).map((h) => h.date);
+  for (const d of ['2027-05-13', '2027-08-16', '2027-09-14', '2027-09-15', '2027-09-16', '2027-10-04', '2027-10-11']) assert(y27.includes(d), d);
+  const y28 = CalendarGen.builtinHolidays(2028).map((h) => h.date);
+  for (const d of ['2028-05-02', '2028-10-02', '2028-10-03', '2028-10-04', '2028-10-05']) assert(y28.includes(d), d);
+  const w = (y, d) => CalendarGen.builtinHolidays(y).find((h) => h.date === d).weight;
+  eq([w(2027, '2027-05-05'), w(2027, '2027-06-06'), w(2025, '2025-05-05')], [3, 2, 3]);
 });
 
 test('§5.2.1 구간 분할 규칙', () => {
@@ -84,6 +125,10 @@ test('AC-1 JS 채점기 = Java ScoreFormulas.evaluate (엔진 호환 모드, 골
     const cal = spec.initialPlan ? base : spec.calendar.map((c) => (c === 9999 ? -1 : c));
     const p = project();
     p.settings.holidayTolerance = 1.5; // 골든 값은 엔진 상수(1.5)로 만들었다. 프리셋 기본값(1.0)과 분리
+    // 골든 값은 엔진 입력 input_2025.json 그대로(휴일 등급 원본, 어린이날 구장 지정만)로 만들었다.
+    // 화면의 휴일 값은 공휴일 가중치 합이고 개막전은 구장 지정이므로, 엔진 원본으로 되돌려 비교한다
+    p.calendar = JSON.parse(JSON.stringify(Preset.ENGINE_INPUT_2025.calendar));
+    p.events = p.events.filter((e) => e.type !== 'OPENING');
     p.settings.h0eMode = 'ENGINE';
     p.plan = cal.map((c, m) => ({ match: m, calendar: c }));
     const ctx = Score.createContext(Score.buildInput(p));

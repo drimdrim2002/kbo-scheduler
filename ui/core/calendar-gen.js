@@ -100,17 +100,105 @@
     return [2].concat(new Array(q).fill(3));
   }
 
-  /** §5.2.1 규칙 3·4: 주말·휴일 가중치 */
+  /** 공휴일 가중치 기본값(주말 하루 = 1 기준). 어린이날은 3, 나머지 공휴일은 2 — 기본값은 KBO 확인 필요 */
+  const HOLIDAY_WEIGHT = 2;
+  function defaultHolidayWeight(name) { return /어린이날/.test(String(name || '')) ? 3 : HOLIDAY_WEIGHT; }
+  /** 날짜(일 번호) → 공휴일 가중치. 저장값에 weight가 없으면 2로 읽는다 */
+  function holidayWeights(settings) {
+    const map = new Map();
+    for (const h of settings.holidays || []) {
+      const d = dayNum(typeof h === 'string' ? h : h.date);
+      if (!Number.isFinite(d)) continue;
+      const w = typeof h === 'object' && h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Number(h.weight)) : HOLIDAY_WEIGHT;
+      map.set(d, w);
+    }
+    return map;
+  }
+
+  /**
+   * 주말 여부와 휴일 가중치(홈 경기 공정성용). 묶음 값 = 든 날의 가중치 합.
+   * 하루 가중치 = 공휴일이면 그 날 가중치, 아니면 토·일 1, 평일 0(주말에 겹친 공휴일은 둘 중 큰 값).
+   * holidays: Map(날짜 → 가중치) 또는 Set(날짜, 가중치 2).
+   */
   function slotWeights(startDay, consecutive, holidays) {
     let weekend = 0;
-    let hasHoliday = false;
+    let holiday = 0;
     for (let i = 0; i < consecutive; i++) {
-      const wd = weekday(startDay + i);
-      if (wd === 0 || wd === 6) weekend = 1;
-      if (holidays.has(startDay + i)) hasHoliday = true;
+      const d = startDay + i;
+      const wd = weekday(d);
+      const we = wd === 0 || wd === 6 ? 1 : 0;
+      if (we) weekend = 1;
+      const hw = holidays && holidays.has(d) ? (holidays.get ? holidays.get(d) : HOLIDAY_WEIGHT) : 0;
+      holiday += Math.max(we, hw);
     }
-    const holiday = weekend ? (hasHoliday ? 3 : 2) : (hasHoliday ? 2 : 0);
     return { weekend, holiday };
+  }
+
+  /** 연전 기간마다 주말·휴일 가중치를 설정(공휴일 표)대로 다시 매긴다. 같은 배열을 고쳐서 돌려준다 */
+  function applyWeights(calendar, settings) {
+    const hw = holidayWeights(settings);
+    for (const c of calendar || []) { const w = slotWeights(dayNum(c.datetime), c.consecutive, hw); c.weekend = w.weekend; c.holiday = w.holiday; }
+    return calendar;
+  }
+
+  /**
+   * 연전 묶음이 곧 경기일: 묶음과 휴식 요일에서 휴식기·휴식일 경기를 만든다(개막일~1차 편성 종료일 안에서만 — 그 뒤는 재편성 기간).
+   * 휴식 요일이 아닌데 묶음이 없는 날 → 휴식기(사이에 낀 휴식 요일은 이어서 한 기간), 휴식 요일인데 묶음이 있는 날 → 휴식일 경기.
+   * 반환: { restExceptions: ['YYYY-MM-DD'], blackouts: [{ start, end, label }] } — 예전 휴식기와 겹치면 그 이름을 쓴다.
+   */
+  function deriveRestDays(calendar, settings) {
+    const out = { restExceptions: [], blackouts: [] };
+    const a = dayNum(settings.seasonStart), b = dayNum(settings.initialEnd);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a > b) return out;
+    const rest = new Set(settings.restWeekdays || [1]);
+    const covered = new Set();
+    for (const c of calendar || []) { const s = dayNum(c.datetime); for (let k = 0; k < c.consecutive; k++) covered.add(s + k); }
+    for (const d of Array.from(covered).sort((x, y) => x - y)) if (d >= a && d <= b && rest.has(weekday(d))) out.restExceptions.push(isoDate(d));
+    const old = (settings.blackouts || []).map((x) => ({ a: dayNum(x.start), b: dayNum(x.end || x.start), label: x.label || '' }));
+    let cur = null;
+    const close = () => { if (!cur) return; const o = old.find((x) => x.label && x.a <= cur.b && x.b >= cur.a); out.blackouts.push({ start: isoDate(cur.a), end: isoDate(cur.b), label: o ? o.label : (cur.b - cur.a >= 3 ? '휴식기' : '경기 없는 날') }); cur = null; };
+    for (let d = a; d <= b; d++) {
+      if (covered.has(d)) { close(); continue; }
+      if (rest.has(weekday(d))) continue; // 휴식 요일은 원래 쉬는 날: 앞뒤 휴식기를 잇기만 한다
+      if (cur) cur.b = d; else cur = { a: d, b: d };
+    }
+    close();
+    return out;
+  }
+
+  /** 올스타 휴식기 시작 금요일 기본값: 그 해 7월 둘째 금요일(2025 → 7/11) */
+  function defaultAllStarStart(year) {
+    const first = dayNum(year + '-07-01');
+    const fri = first + ((5 - weekday(first) + 7) % 7);
+    return isoDate(fri + 7);
+  }
+
+  /**
+   * 「규칙대로 채우기」에 쓰는 설정: 2025 공식 일정표로 확인한 관행.
+   *  - 기본: 화·수·목 / 금·토·일 3연전, 휴식 요일(월) 쉼. 개막은 늘 토요일 → 토·일 2연전(규칙에서 저절로 나옴)
+   *  - 휴식 요일에 든 공휴일: 그 날 경기, 그 주 목요일 휴식(어린이날 월·화·수 3연전 → 목 휴식 → 금·토·일)
+   *  - 올스타 휴식기: 시작 금요일(allStarStart)부터 6일(금~수) 쉬고, 뒤 목~일 4연전(규칙에서 저절로 나옴)
+   * 지금 묶음에서 만든 휴식기·휴식일 경기는 쓰지 않는다(묶음이 없는 날이 모두 휴식기로 보이기 때문).
+   */
+  function ruleSettings(settings) {
+    const s = Object.assign({}, settings);
+    const a = dayNum(settings.seasonStart), b = dayNum(settings.initialEnd);
+    const rest = new Set(settings.restWeekdays || [1]);
+    const rex = [], black = [];
+    if (Number.isFinite(a) && Number.isFinite(b)) {
+      for (const d of holidaySet(settings)) {
+        if (d < a || d > b || !rest.has(weekday(d))) continue;
+        rex.push(isoDate(d));
+        const thu = d + ((4 - weekday(d) + 7) % 7);
+        if (thu <= b) black.push({ start: isoDate(thu), end: isoDate(thu), label: fmtShort(d) + ' 휴식일 경기 뒤 휴식' });
+      }
+      const as = settings.allStarStart || (Number.isFinite(a) ? defaultAllStarStart(isoDate(a).slice(0, 4)) : '');
+      const asd = dayNum(as);
+      if (Number.isFinite(asd) && asd >= a && asd <= b) black.push({ start: isoDate(asd), end: isoDate(Math.min(b, asd + 5)), label: '올스타 휴식기' });
+    }
+    s.restExceptions = rex.sort();
+    s.blackouts = black;
+    return s;
   }
 
   /**
@@ -121,7 +209,7 @@
     const start = dayNum((range && range.start) || settings.seasonStart);
     const end = dayNum((range && range.end) || settings.initialEnd);
     const isGame = gameDayPredicate(settings, range);
-    const holidays = holidaySet(settings);
+    const holidays = holidayWeights(settings);
     const runs = [];
     let cur = null;
     for (let d = start; d <= end; d++) {
@@ -380,7 +468,10 @@
   /** 내장 공휴일(법정 공휴일 + 대체공휴일). 음력 공휴일은 수록 연도만 제공한다. */
   const LUNAR = {
     2025: [['2025-01-28', '설날 연휴'], ['2025-01-29', '설날'], ['2025-01-30', '설날 연휴'], ['2025-03-03', '삼일절 대체공휴일'], ['2025-05-05', '부처님오신날'], ['2025-05-06', '대체공휴일'], ['2025-10-05', '추석 연휴'], ['2025-10-06', '추석'], ['2025-10-07', '추석 연휴'], ['2025-10-08', '추석 대체공휴일']],
-    2026: [['2026-02-16', '설날 연휴'], ['2026-02-17', '설날'], ['2026-02-18', '설날 연휴'], ['2026-03-02', '삼일절 대체공휴일'], ['2026-05-24', '부처님오신날'], ['2026-05-25', '대체공휴일'], ['2026-08-17', '광복절 대체공휴일'], ['2026-09-24', '추석 연휴'], ['2026-09-25', '추석'], ['2026-09-26', '추석 연휴'], ['2026-10-05', '개천절 대체공휴일']]
+    2026: [['2026-02-16', '설날 연휴'], ['2026-02-17', '설날'], ['2026-02-18', '설날 연휴'], ['2026-03-02', '삼일절 대체공휴일'], ['2026-05-24', '부처님오신날'], ['2026-05-25', '대체공휴일'], ['2026-08-17', '광복절 대체공휴일'], ['2026-09-24', '추석 연휴'], ['2026-09-25', '추석'], ['2026-09-26', '추석 연휴'], ['2026-10-05', '개천절 대체공휴일']],
+    // 2027·2028: 검색으로 확인한 값(달력 사이트 등). 인사혁신처 고시로 최종 확인 필요. 시즌 밖인 설날은 아직 넣지 않았다
+    2027: [['2027-05-13', '부처님오신날'], ['2027-08-16', '광복절 대체공휴일'], ['2027-09-14', '추석 연휴'], ['2027-09-15', '추석'], ['2027-09-16', '추석 연휴'], ['2027-10-04', '개천절 대체공휴일'], ['2027-10-11', '한글날 대체공휴일']],
+    2028: [['2028-05-02', '부처님오신날'], ['2028-10-02', '추석 연휴'], ['2028-10-03', '추석'], ['2028-10-04', '추석 연휴'], ['2028-10-05', '개천절 대체공휴일']]
   };
 
   function builtinHolidays(year) {
@@ -390,12 +481,15 @@
     for (const [d, name] of LUNAR[year] || []) {
       map.set(d, map.has(d) ? map.get(d) + '·' + name : name);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0] < b[0] ? -1 : 1).map(([date, name]) => ({ date, name }));
+    return Array.from(map.entries()).sort((a, b) => a[0] < b[0] ? -1 : 1).map(([date, name]) => ({ date, name, weight: defaultHolidayWeight(name) }));
   }
+  /** 내장 공휴일 표에 음력 공휴일·대체공휴일이 들어 있는 연도 */
+  const HOLIDAY_YEARS = Object.keys(LUNAR).map(Number);
 
   KBO.Dates = { dayNum, isoDate, weekday, month, fmtDate, fmtShort, engineDatetime, addDays, expandRanges, WEEKDAY_KO, DAY_MS };
   KBO.CalendarGen = {
     gameDayPredicate, splitRun, slotWeights, generateSlots, slotDays, slotLabel, slotIndexOfDate,
-    roundRobin, partitionLengths, generateSeries, lengthHistogram, builtinHolidays, holidaySet
+    roundRobin, partitionLengths, generateSeries, lengthHistogram, builtinHolidays, holidaySet,
+    HOLIDAY_WEIGHT, HOLIDAY_YEARS, defaultHolidayWeight, holidayWeights, applyWeights, deriveRestDays, defaultAllStarStart, ruleSettings
   };
 });
