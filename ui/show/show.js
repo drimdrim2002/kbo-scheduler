@@ -366,6 +366,8 @@
     const bh = $('.rp-board-h .rp-muted', box); if (bh) bh.textContent = bh.textContent.replace(/(?:연전 기간|슬롯) (\d+)개/, '날짜 $1칸'); // 모듈 기본은 "연전 기간 45개"
     const sh = $('.rp-score-h b', box); if (sh) sh.textContent = '이동거리 곡선'; // 모듈 기본은 "점수 곡선"
     $$('.rp-lv', box).forEach((el) => { const nm = el.querySelector('.rp-lv-name'), l = Number(el.getAttribute('data-l')); if (nm && LEVEL_NAMES[l]) nm.textContent = LEVEL_NAMES[l]; });
+    // 화면 낭독용 그림 이름도 보여주는 문 용어로(모듈 기본은 편성 스튜디오와 같은 "구단 간 이동 횟수 차이 추이")
+    $$('[aria-label]', box).forEach((el) => { const v = el.getAttribute('aria-label'); const w = v.replace(/구단 간 이동 횟수/g, '구단별 이동 일수').replace(/구단 간/g, '구단별'); if (w !== v) el.setAttribute('aria-label', w); });
     // 칩 값: 0이면 "다 맞췄어요 ✓", 아니면 "아직 N"
     const uc = p.updateCursor.bind(p);
     p.updateCursor = () => {
