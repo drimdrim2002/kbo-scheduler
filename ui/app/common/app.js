@@ -553,11 +553,10 @@
         s.matches[m].pinned = true;
         s.matches[m].eventId = e.id;
       }
-      // 홈 구장 지정: fix 'home'(홈 구장만 지정)은 고정하지 않는다 — 서버가 그 연전 기간의 홈 의무 구단으로 직접 지킨다.
-      // fix 'pairs'(대진까지 고정)는 고른 대진(pairs)의 시리즈를 그 연전 기간에 고정한다. 대진이 없는 예전 데이터(fix 없음, 어린이날 말고)는
-      // 고른 구단이 그 기간에 홈인 시리즈를 고정한다(그 구단의 홈 시리즈가 그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다).
+      // 홈 구장 지정은 fix 'pairs'(대진까지 고정)일 때만 시리즈를 고정한다. 'home'·없음(예전 데이터)은 고정하지 않는다 — 서버가 그 연전 기간의 홈 의무 구단으로 직접 지킨다.
+      // 고른 대진(pairs)이 있으면 그 시리즈를, 없으면 고른 구단이 그 기간에 홈인 시리즈를 고정한다(그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다).
       for (const e of s.events) {
-        if (e.mode !== 'STADIUM' || !(e.teams || []).length || e.fix === 'home' || (e.type === 'CHILDREN' && e.fix !== 'pairs')) continue;
+        if (e.mode !== 'STADIUM' || !(e.teams || []).length || e.fix !== 'pairs') continue;
         const slot = Score.resolveEventSlot(e, s.calendar);
         if (slot < 0) continue;
         const L = s.calendar[slot].consecutive;

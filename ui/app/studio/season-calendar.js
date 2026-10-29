@@ -678,10 +678,10 @@
     if (!evs.length) return '아직 없음';
     return evs.map((e) => fmt.short(e.date) + ' ' + e.name + ' ' + S.evTeams(e).length + '곳' + (e.fix === 'pairs' ? '(대진 고정)' : '')).join(' · ');
   };
-  /** 「다음: 검토·실행」 전에: 대진까지 고정한 홈 구장 지정과 예전 대진 지정은 그 시리즈를 고정한다(app.applyEvents) */
+  /** 「다음: 검토·실행」 전에: 대진까지 고정(fix 'pairs')한 홈 구장 지정과 예전 대진 지정만 그 시리즈를 고정한다(app.applyEvents). 홈 구장만·fix 없음은 서버가 지킨다 */
   S.calBeforeNext = function () {
     const st = app().state;
-    if (st.events.some((e) => e.mode === 'MATCH' || (e.mode === 'STADIUM' && e.fix !== 'home' && !(e.type === 'CHILDREN' && e.fix !== 'pairs') && (e.teams || []).length))) app().applyEvents({ silent: true, label: '홈 구장 지정 시리즈 고정' });
+    if (st.events.some((e) => e.mode === 'MATCH' || (e.mode === 'STADIUM' && e.fix === 'pairs' && (e.teams || []).length))) app().applyEvents({ silent: true, label: '홈 구장 지정 시리즈 고정' });
   };
 
   // ───────── 동작 ─────────
@@ -887,8 +887,8 @@
     S.flowGo(4);
     click('.ck-card [data-act="cal-next"]'); flush();
     ok('묶음을 나누면 4 확인에 「다시 만듭니다」 → 「다음: ② 검토·실행」이 시리즈를 규칙대로 다시 만들고(묶음 46 × 5 = 230개) ② · 사전 점검 진행 불가 0', !before.ok && S.ui.step === 2 && st().matches.length === 230 && S.calSeriesState().ok && app().preflight().counts.block === 0, before.text + ' · ' + st().matches.length);
-    S.go({ step: 1 }); undoN(3);
-    ok('실행 취소 세 번(시리즈 고정·시리즈·나누기) → 나누기 전 · 시리즈 그대로', st().calendar.length === 45 && S.calSeriesState().ok && Array.from(app().derived().plan).every((c, m) => c === p0[m]));
+    S.go({ step: 1 }); undoN(2);
+    ok('실행 취소 두 번(시리즈·나누기 — 홈 구장만 지정인 개막전·어린이날은 고정하지 않음) → 나누기 전 · 시리즈 그대로', st().calendar.length === 45 && S.calSeriesState().ok && Array.from(app().derived().plan).every((c, m) => c === p0[m]));
     // 10. 홈 구장 지정(3단계): 5/5 어린이날 · 3/22 개막전 · 잠실은 하나만 · 5곳 넘으면 거부 · 대진까지 고정 / 홈 구장만 지정
     S.flowGo(3);
     const evAt = (iso) => st().events.find((e) => e.mode === 'STADIUM' && e.date === iso);

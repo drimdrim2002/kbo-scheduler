@@ -66,11 +66,12 @@
       p.teams = clone(src.teams); p.distanceMatrix = clone(src.distanceMatrix);
       for (const k of RULE_KEYS) if (src.settings[k] !== undefined) p.settings[k] = clone(src.settings[k]);
       // 격년 홈 73/71: 바로 앞 해 것이 있으면 반대로(해마다 바뀐다)
+      // 2025 예시처럼 격년 홈이 없는 해에서 가져오면 코어 기본값(defaultHomeTotals, 있으면)을 쓴다 — 2025 자체에는 넣지 않는다
       const ht = src.settings.homeTotals, srcYear = +(src.settings.seasonYear || src.meta.season || 0);
       if (ht && Array.isArray(ht.moreTeams)) {
-        p.settings.homeTotals = clone(ht);
-        if (!o.teamsFrom && srcYear === y - 1) p.settings.homeTotals.moreTeams = p.teams.map((t) => t.name).filter((n) => !ht.moreTeams.includes(n));
-      }
+        if (!o.teamsFrom && srcYear === y - 1) p.settings.homeTotals = CalendarGen.flipHomeTotals ? CalendarGen.flipHomeTotals(clone(ht), p.teams) : Object.assign(clone(ht), { moreTeams: p.teams.map((t) => t.name).filter((n) => !ht.moreTeams.includes(n)) });
+        else p.settings.homeTotals = clone(ht);
+      } else if (!o.teamsFrom && CalendarGen.defaultHomeTotals && y > 2025) p.settings.homeTotals = CalendarGen.defaultHomeTotals(y, p.teams);
     }
     Object.assign(p.settings, {
       seasonYear: y, seasonStart: '', initialEnd: '', seasonEnd: '',
