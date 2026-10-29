@@ -13,7 +13,6 @@ import java.util.stream.IntStream;
 import org.optaplanner.core.api.score.buildin.bendablelong.BendableLongScore;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
-import org.optaplanner.examples.baseball.domain.Constants;
 import org.optaplanner.examples.baseball.domain.Match;
 import org.optaplanner.examples.baseball.domain.Team;
 import org.optaplanner.examples.baseball.score.ScoreFormulas;
@@ -41,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * The best start wins. A start depends only on {@code (seed, start index)}, so the result is
  * deterministic even when starts run in parallel.
  * <p>
- * Opening day and Children's Day are pinned only after every regular slot is assigned.
+ * Opening day and the home-designated 3-game slots are pinned only after every regular slot is assigned.
  * The finished solution has hard scores 0/0 and no unassigned series.
  */
 public final class BaseballSolutionInitializer {
@@ -98,7 +97,7 @@ public final class BaseballSolutionInitializer {
     }
 
     /**
-     * @param seed master seed. Start {@code k} draws its Children's Day matchings, Phase A tie-breaks,
+     * @param seed master seed. Start {@code k} draws its home-designation matchings, Phase A tie-breaks,
      *        construction noise, and local-search moves from a generator seeded by {@code (seed, k)}.
      */
     public static void initialize(BaseballSolution solution, long seed) {
@@ -136,23 +135,17 @@ public final class BaseballSolutionInitializer {
             teamByIndex[team.getIndex()] = team;
         }
         boolean[] jamsil = sharedStadiumTeams(teams);
-        int[] childHomes = obligationHomes(teams);
-        int[] childAways = obligationAways(teams, childHomes);
-        requireOneSharedStadiumHome(jamsil, childHomes);
 
         Calendar[] bySlot = calendarsBySlot(calendars);
         int slotCount = bySlot.length;
         Calendar opening = null;
         Calendar fourGame = null;
-        Calendar children = null;
+        List<Anchor> anchors = new ArrayList<>();
         int threeSlots = 0;
         for (int slot = 0; slot < slotCount; slot++) {
             Calendar calendar = bySlot[slot];
-            if (calendar.isChildrenDay()) {
-                if (children != null) {
-                    throw new IllegalStateException("more than one Children's Day slot");
-                }
-                children = calendar;
+            if (calendar.getConsecutive() == 3 && calendar.getHomeObligationMask() != 0) {
+                anchors.add(anchor(calendar, jamsil));
             }
             switch (calendar.getConsecutive()) {
                 case 2 -> {
@@ -172,12 +165,12 @@ public final class BaseballSolutionInitializer {
                         "unsupported series length " + calendar.getConsecutive() + " at slot " + slot);
             }
         }
-        if (opening == null || fourGame == null || children == null || children.getConsecutive() != 3) {
-            throw new IllegalStateException("calendar is missing the 2-game, 4-game, or Children's Day slot");
+        if (opening == null || fourGame == null) {
+            throw new IllegalStateException("calendar is missing the 2-game or 4-game slot");
         }
-        int roundCount = threeSlots - 1;
+        int roundCount = threeSlots - anchors.size();
         if (roundCount <= 0) {
-            throw new IllegalStateException("no 3-game rounds left after Children's Day");
+            throw new IllegalStateException("no free 3-game rounds left after the home-designated slots");
         }
 
         Deque<Match>[][][] buckets = bucketMatches(matches);
@@ -189,9 +182,12 @@ public final class BaseballSolutionInitializer {
         if (openingRound.edges.length != SERIES_PER_DAY || fourRound.edges.length != SERIES_PER_DAY) {
             throw new IllegalStateException("2-game and 4-game series must each form one round of " + SERIES_PER_DAY);
         }
+        // 2연전·4연전 기간은 시리즈 목록이 대진을 정한다. 홈 구장 지정은 확인만 한다
+        requireHomes(opening, openingRound);
+        requireHomes(fourGame, fourRound);
 
-        Problem problem = new Problem(teamByIndex, jamsil, childHomes, childAways, bySlot, opening.getSlotIndex(),
-                fourGame.getSlotIndex(), children.getSlotIndex(), baseRemaining, openingRound, fourRound, roundCount);
+        Problem problem = new Problem(teamByIndex, jamsil, anchors.toArray(Anchor[]::new), bySlot,
+                opening.getSlotIndex(), fourGame.getSlotIndex(), baseRemaining, openingRound, fourRound, roundCount);
 
         IntStream startIndexes = IntStream.range(0, settings.starts());
         if (settings.parallel()) {
@@ -217,7 +213,7 @@ public final class BaseballSolutionInitializer {
         }
 
         assign(buckets, bySlot, best.schedule);
-        pin(matches, opening, children);
+        pin(matches, bySlot, problem);
         requireBucketsEmpty(buckets);
 
         BendableLongScore score = ScoreFormulas.evaluate(teams, calendars, matches);
@@ -231,7 +227,7 @@ public final class BaseballSolutionInitializer {
             }
         }
         LOGGER.info("Constructed initial solution from seed {} in {} ms: {} of {} starts feasible, best start {} "
-                + "(children's matching {}), score {}", seed, (System.nanoTime() - startNanos) / 1_000_000L,
+                + "(home-designation matching {}), score {}", seed, (System.nanoTime() - startNanos) / 1_000_000L,
                 feasibleStarts, settings.starts(), best.start, best.childPermutation, score);
     }
 
@@ -261,23 +257,27 @@ public final class BaseballSolutionInitializer {
     }
 
     /**
-     * @return the 3-game rounds ({@code roundCount} free rounds followed by the Children's Day round),
-     *         or null when this matching or the decomposition fails
+     * @return the 3-game rounds ({@code roundCount} free rounds followed by one round per home-designated
+     *         slot, in slot order), or null when a designated matching or the decomposition fails
      */
     private static Round[] decomposeAttempt(Problem problem, int permIndex, SplittableRandom random) {
         int[][] remaining = copy(problem.baseRemaining);
-        int[] awayPerm = nthPermutation(problem.childAways, permIndex);
-        int[] childEdges = new int[SERIES_PER_DAY];
-        for (int i = 0; i < SERIES_PER_DAY; i++) {
-            int home = problem.childHomes[i];
-            int away = awayPerm[i];
-            if (remaining[home][away] <= 0) {
+        Round[] anchorRounds = new Round[problem.anchors.length];
+        for (int a = 0; a < problem.anchors.length; a++) {
+            Anchor anchor = problem.anchors[a];
+            int[] edges;
+            if (anchor.aways != null) {
+                // 홈 5구단 지정: 원정 5구단을 순열로 짝짓는다(첫 지정 기간은 runStart가 뽑은 순열)
+                int perm = a == 0 ? permIndex : random.nextInt(CHILD_PERMUTATIONS);
+                edges = fullObligationEdges(remaining, anchor, perm);
+            } else {
+                edges = partialObligationEdges(remaining, problem.jamsil, anchor.mask, random);
+            }
+            if (edges == null) {
                 return null;
             }
-            remaining[home][away]--;
-            childEdges[i] = pack(home, away);
+            anchorRounds[a] = toRound(edges, problem.teamByIndex, problem.jamsil, true);
         }
-        Round childRound = toRound(childEdges, problem.teamByIndex, problem.jamsil, true);
 
         List<Round> rounds = new ArrayList<>(problem.roundCount);
         int[] nodes = {0};
@@ -291,9 +291,53 @@ public final class BaseballSolutionInitializer {
                 }
             }
         }
-        Round[] result = rounds.toArray(new Round[problem.roundCount + 1]);
-        result[problem.roundCount] = childRound;
+        Round[] result = rounds.toArray(new Round[problem.roundCount + anchorRounds.length]);
+        System.arraycopy(anchorRounds, 0, result, problem.roundCount, anchorRounds.length);
         return result;
+    }
+
+    /** Designated homes against the {@code permIndex}-th ordering of the other five. Consumes {@code remaining}. */
+    private static int[] fullObligationEdges(int[][] remaining, Anchor anchor, int permIndex) {
+        int[] awayPerm = nthPermutation(anchor.aways, permIndex);
+        int[] edges = new int[SERIES_PER_DAY];
+        for (int i = 0; i < SERIES_PER_DAY; i++) {
+            int home = anchor.homes[i];
+            int away = awayPerm[i];
+            if (remaining[home][away] <= 0) {
+                restore(remaining, Arrays.copyOf(edges, i));
+                return null;
+            }
+            remaining[home][away]--;
+            edges[i] = pack(home, away);
+        }
+        return edges;
+    }
+
+    /**
+     * A round in which no designated team plays away: one shared-stadium home first, then the rest as in
+     * Phase A. Consumes {@code remaining} on success.
+     */
+    private static int[] partialObligationEdges(int[][] remaining, boolean[] jamsil, int obligation,
+            SplittableRandom random) {
+        int[] nodes = {0};
+        for (int edge : jamsilCandidates(remaining, jamsil, random)) {
+            int home = unpackHome(edge);
+            int away = unpackAway(edge);
+            if ((obligation & bit(away)) != 0) {
+                continue;
+            }
+            remaining[home][away]--;
+            int[] edges = new int[SERIES_PER_DAY];
+            edges[0] = edge;
+            if (completeRound(remaining, jamsil, obligation, bit(home) | bit(away), edges, 1, nodes, random)) {
+                return edges;
+            }
+            remaining[home][away]++;
+            if (nodes[0] > DECOMPOSE_NODE_LIMIT) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static boolean decompose(int[][] remaining, boolean[] jamsil, Team[] teamByIndex, List<Round> rounds,
@@ -312,7 +356,7 @@ public final class BaseballSolutionInitializer {
             int[] edges = new int[SERIES_PER_DAY];
             edges[0] = edge;
             int used = bit(home) | bit(away);
-            if (completeRound(remaining, jamsil, used, edges, 1, nodes, random)) {
+            if (completeRound(remaining, jamsil, 0, used, edges, 1, nodes, random)) {
                 rounds.add(toRound(edges, teamByIndex, jamsil, true));
                 if (decompose(remaining, jamsil, teamByIndex, rounds, roundCount, nodes, random)) {
                     return true;
@@ -326,8 +370,9 @@ public final class BaseballSolutionInitializer {
         return false;
     }
 
-    private static boolean completeRound(int[][] remaining, boolean[] jamsil, int used, int[] edges, int count,
-            int[] nodes, SplittableRandom random) {
+    /** @param forbiddenAway teams that must not play away in this round (home-designated), as index bits */
+    private static boolean completeRound(int[][] remaining, boolean[] jamsil, int forbiddenAway, int used, int[] edges,
+            int count, int[] nodes, SplittableRandom random) {
         nodes[0]++;
         if (nodes[0] > DECOMPOSE_NODE_LIMIT) {
             return false;
@@ -336,12 +381,13 @@ public final class BaseballSolutionInitializer {
             return true;
         }
         int pivot = lowestUnset(used);
-        for (int edge : edgeCandidates(remaining, jamsil, pivot, used, random)) {
+        for (int edge : edgeCandidates(remaining, jamsil, forbiddenAway, pivot, used, random)) {
             int home = unpackHome(edge);
             int away = unpackAway(edge);
             remaining[home][away]--;
             edges[count] = edge;
-            if (completeRound(remaining, jamsil, used | bit(home) | bit(away), edges, count + 1, nodes, random)) {
+            if (completeRound(remaining, jamsil, forbiddenAway, used | bit(home) | bit(away), edges, count + 1, nodes,
+                    random)) {
                 return true;
             }
             remaining[home][away]++;
@@ -354,8 +400,8 @@ public final class BaseballSolutionInitializer {
     // ************************************************************************
 
     /**
-     * Orders one start's rounds over the slots. Round ids {@code 0..roundCount-1} are free,
-     * {@code roundCount} is Children's Day, then opening and the 4-game round. A permutation
+     * Orders one start's rounds over the slots. Round ids {@code 0..roundCount-1} are free, then one
+     * round per home-designated 3-game slot, then opening and the 4-game round. A permutation
      * {@code perm[p]} is the round in free slot {@code freeSlots[p]}.
      */
     private static final class Sequencer {
@@ -383,10 +429,11 @@ public final class BaseballSolutionInitializer {
         private Sequencer(Problem problem, Round[] threeGameRounds) {
             this.problem = problem;
             int free = problem.roundCount;
-            roundTotal = free + 3;
+            int anchored = problem.anchors.length;
+            roundTotal = free + anchored + 2;
             rounds = Arrays.copyOf(threeGameRounds, roundTotal);
-            rounds[free + 1] = problem.openingRound;
-            rounds[free + 2] = problem.fourRound;
+            rounds[free + anchored] = problem.openingRound;
+            rounds[free + anchored + 1] = problem.fourRound;
             slotCount = problem.bySlot.length;
             freeSlots = problem.freeSlots;
             homeMask = new int[roundTotal];
@@ -413,9 +460,11 @@ public final class BaseballSolutionInitializer {
             weightedCost = new double[roundTotal * roundTotal];
             template = new int[slotCount];
             Arrays.fill(template, -1);
-            template[problem.childSlot] = free;
-            template[problem.openingSlot] = free + 1;
-            template[problem.fourSlot] = free + 2;
+            for (int a = 0; a < anchored; a++) {
+                template[problem.anchors[a].slot] = free + a;
+            }
+            template[problem.openingSlot] = free + anchored;
+            template[problem.fourSlot] = free + anchored + 1;
             seq = template.clone();
         }
 
@@ -805,16 +854,21 @@ public final class BaseballSolutionInitializer {
         }
     }
 
+    /**
+     * A home-designated 3-game slot. {@code aways} is set only when all five homes are designated:
+     * the round is then one of 120 orderings of the other five teams.
+     */
+    private record Anchor(int slot, int mask, int[] homes, int[] aways) {
+    }
+
     /** Immutable facts shared by every start. */
     private static final class Problem {
         private final Team[] teamByIndex;
         private final boolean[] jamsil;
-        private final int[] childHomes;
-        private final int[] childAways;
+        private final Anchor[] anchors;
         private final Calendar[] bySlot;
         private final int openingSlot;
         private final int fourSlot;
-        private final int childSlot;
         private final int[][] baseRemaining;
         private final Round openingRound;
         private final Round fourRound;
@@ -824,17 +878,14 @@ public final class BaseballSolutionInitializer {
         private final int[] holidayBySlot;
         private final int[] holidaySlots;
 
-        private Problem(Team[] teamByIndex, boolean[] jamsil, int[] childHomes, int[] childAways, Calendar[] bySlot,
-                int openingSlot, int fourSlot, int childSlot, int[][] baseRemaining, Round openingRound,
-                Round fourRound, int roundCount) {
+        private Problem(Team[] teamByIndex, boolean[] jamsil, Anchor[] anchors, Calendar[] bySlot, int openingSlot,
+                int fourSlot, int[][] baseRemaining, Round openingRound, Round fourRound, int roundCount) {
             this.teamByIndex = teamByIndex;
             this.jamsil = jamsil;
-            this.childHomes = childHomes;
-            this.childAways = childAways;
+            this.anchors = anchors;
             this.bySlot = bySlot;
             this.openingSlot = openingSlot;
             this.fourSlot = fourSlot;
-            this.childSlot = childSlot;
             this.baseRemaining = baseRemaining;
             this.openingRound = openingRound;
             this.fourRound = fourRound;
@@ -842,8 +893,14 @@ public final class BaseballSolutionInitializer {
             int slotCount = bySlot.length;
             freeSlots = new int[roundCount];
             int free = 0;
+            boolean[] fixed = new boolean[slotCount];
+            fixed[openingSlot] = true;
+            fixed[fourSlot] = true;
+            for (Anchor anchor : anchors) {
+                fixed[anchor.slot] = true;
+            }
             for (int slot = 0; slot < slotCount; slot++) {
-                if (slot == openingSlot || slot == fourSlot || slot == childSlot) {
+                if (fixed[slot]) {
                     continue;
                 }
                 if (bySlot[slot].getConsecutive() != 3) {
@@ -900,10 +957,17 @@ public final class BaseballSolutionInitializer {
         }
     }
 
-    private static void pin(List<Match> matches, Calendar opening, Calendar children) {
+    /** Pins the opening slot and every home-designated 3-game slot. */
+    private static void pin(List<Match> matches, Calendar[] bySlot, Problem problem) {
+        boolean[] pinned = new boolean[bySlot.length];
+        pinned[problem.openingSlot] = true;
+        for (Anchor anchor : problem.anchors) {
+            pinned[anchor.slot] = true;
+        }
         for (Match match : matches) {
             Calendar calendar = match.getCalendar();
-            match.setPinned(calendar == opening || calendar == children);
+            int slot = calendar == null ? -1 : calendar.getSlotIndex();
+            match.setPinned(slot >= 0 && slot < pinned.length && bySlot[slot] == calendar && pinned[slot]);
         }
     }
 
@@ -1067,47 +1131,44 @@ public final class BaseballSolutionInitializer {
         return jamsil;
     }
 
-    private static int[] obligationHomes(List<Team> teams) {
+    private static Anchor anchor(Calendar calendar, boolean[] jamsil) {
+        int mask = calendar.getHomeObligationMask();
+        if ((mask & ~FULL_MASK) != 0 || Integer.bitCount(mask) > SERIES_PER_DAY) {
+            throw new IllegalStateException("slot " + calendar.getSlotIndex() + " designates more than "
+                    + SERIES_PER_DAY + " home teams");
+        }
         List<Integer> homes = new ArrayList<>();
-        for (Team team : teams) {
-            if (team.isChildrenDayHome()) {
-                homes.add(team.getIndex());
-            }
-        }
-        if (homes.size() != SERIES_PER_DAY) {
-            throw new IllegalStateException("Children's Day home obligation is not " + SERIES_PER_DAY + " teams");
-        }
-        homes.sort(Integer::compareTo);
-        return toArray(homes);
-    }
-
-    private static int[] obligationAways(List<Team> teams, int[] childHomes) {
-        boolean[] home = new boolean[TEAM_COUNT];
-        for (int index : childHomes) {
-            home[index] = true;
-        }
         List<Integer> aways = new ArrayList<>();
-        for (Team team : teams) {
-            if (!home[team.getIndex()]) {
-                aways.add(team.getIndex());
+        int jamsilHomes = 0;
+        for (int team = 0; team < TEAM_COUNT; team++) {
+            if ((mask & bit(team)) != 0) {
+                homes.add(team);
+                if (jamsil[team]) {
+                    jamsilHomes++;
+                }
+            } else {
+                aways.add(team);
             }
         }
-        if (aways.size() != SERIES_PER_DAY) {
-            throw new IllegalStateException("Children's Day away group is not " + SERIES_PER_DAY + " teams");
+        if (jamsilHomes > 1) {
+            throw new IllegalStateException("slot " + calendar.getSlotIndex()
+                    + " designates both shared-stadium teams as home");
         }
-        aways.sort(Integer::compareTo);
-        return toArray(aways);
+        if (homes.size() < SERIES_PER_DAY) {
+            return new Anchor(calendar.getSlotIndex(), mask, toArray(homes), null);
+        }
+        if (jamsilHomes != 1) {
+            throw new IllegalStateException("slot " + calendar.getSlotIndex()
+                    + " designates five homes without a shared-stadium team");
+        }
+        return new Anchor(calendar.getSlotIndex(), mask, toArray(homes), toArray(aways));
     }
 
-    private static void requireOneSharedStadiumHome(boolean[] jamsil, int[] childHomes) {
-        int count = 0;
-        for (int home : childHomes) {
-            if (jamsil[home]) {
-                count++;
-            }
-        }
-        if (count != 1) {
-            throw new IllegalStateException("Children's Day homes must include exactly one shared-stadium team");
+    private static void requireHomes(Calendar calendar, Round round) {
+        int mask = calendar.getHomeObligationMask();
+        if ((mask & ~round.homeMask) != 0) {
+            throw new IllegalStateException("the " + calendar.getConsecutive() + "-game series do not give every "
+                    + "designated team a home series at slot " + calendar.getSlotIndex());
         }
     }
 
@@ -1170,7 +1231,7 @@ public final class BaseballSolutionInitializer {
         return sortedEdges(keys, count);
     }
 
-    private static int[] edgeCandidates(int[][] remaining, boolean[] jamsil, int pivot, int used,
+    private static int[] edgeCandidates(int[][] remaining, boolean[] jamsil, int forbiddenAway, int pivot, int used,
             SplittableRandom random) {
         long[] keys = new long[2 * TEAM_COUNT];
         int count = 0;
@@ -1178,10 +1239,10 @@ public final class BaseballSolutionInitializer {
             if (other == pivot || (used & bit(other)) != 0) {
                 continue;
             }
-            if (!jamsil[pivot] && remaining[pivot][other] > 0) {
+            if (!jamsil[pivot] && remaining[pivot][other] > 0 && (forbiddenAway & bit(other)) == 0) {
                 keys[count++] = edgeKey(remaining, pack(pivot, other), random);
             }
-            if (!jamsil[other] && remaining[other][pivot] > 0) {
+            if (!jamsil[other] && remaining[other][pivot] > 0 && (forbiddenAway & bit(pivot)) == 0) {
                 keys[count++] = edgeKey(remaining, pack(other, pivot), random);
             }
         }

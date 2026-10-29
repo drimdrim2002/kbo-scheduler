@@ -325,7 +325,6 @@ final class JobManager {
     static JSONObject knobsWithDefaults(JSONObject problem) {
         JSONObject k = ProblemCodec.knobs(problem);
         JSONObject out = Json.obj("distanceToleranceKm", 300.0, "holidayTolerance", ProblemCodec.WEB_DEFAULT_HOLIDAY_TOLERANCE, "moveTolerance", 2.0,
-                "childrenDayHomeTeams", Json.arr(java.util.List.of("두산", "키움", "한화", "NC", "롯데")),
                 "unavailableHomeSlots", new JSONArray());
         if (k.get("distanceToleranceKm") != null) {
             out.put("distanceToleranceKm", Json.asDouble(k.get("distanceToleranceKm"), 300.0));
@@ -336,9 +335,10 @@ final class JobManager {
         if (k.get("moveTolerance") != null) {
             out.put("moveTolerance", Json.asDouble(k.get("moveTolerance"), 2.0));
         }
-        if (k.get("obligationTeams") != null) {
-            out.put("childrenDayHomeTeams", k.get("obligationTeams"));
-        }
+        // 홈 구장 지정은 보낸 값이 아니라 실제로 적용되는 연전 기간별 홈 의무 구단(이벤트·예전 obligationTeams·기본값을 푼 결과)
+        BaseballSolution solution = ProblemCodec.toSolution(problem);
+        out.put("homeDesignations", ProblemCodec.homeDesignations(solution));
+        out.put("childrenDayHomeTeams", ProblemCodec.childrenDayTeams(solution));
         return out;
     }
 
@@ -354,7 +354,7 @@ final class JobManager {
         double km = Json.asDouble(k.get("distanceToleranceKm"), 300.0);
         // 일상어 제목. ui/show/show.js tolWord와 같은 구간
         String word = km <= 150 ? "이동거리 거의 똑같게" : km <= 450 ? "이동거리 비슷하게" : "이동거리 달라도 괜찮게";
-        return word + " · 어린이날 홈 " + teams + " · 시드 " + seed;
+        return word + (teams.length() > 0 ? " · 어린이날 홈 " + teams : "") + " · 시드 " + seed;
     }
 
     private static String cacheKey(JSONObject problem, SolveOptions options, boolean fullPlan) {

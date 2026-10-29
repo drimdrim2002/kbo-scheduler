@@ -1,8 +1,11 @@
 package org.optaplanner.examples.baseball.web;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -12,6 +15,8 @@ import org.json.simple.JSONObject;
 import org.optaplanner.examples.baseball.app.BaseballApp;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
+import org.optaplanner.examples.baseball.domain.Constants;
+import org.optaplanner.examples.baseball.domain.HomeObligations;
 import org.optaplanner.examples.baseball.domain.Match;
 import org.optaplanner.examples.baseball.domain.ScoreSettings;
 import org.optaplanner.examples.baseball.domain.Team;
@@ -72,14 +77,14 @@ final class ProblemCodec {
         return a;
     }
 
-    /** 배정 없는(모든 calendar null) 문제를 만들고, settings의 손잡이(허용오차·어린이날 홈 구단)를 적용한다. */
+    /** 배정 없는(모든 calendar null) 문제를 만들고, settings의 손잡이(허용오차)와 홈 구장 지정을 적용한다. */
     static BaseballSolution toSolution(JSONObject problem) {
         BaseballSolution solution = BaseballApp.makeSolution(engineInput(problem));
         applySettings(solution, problem);
         return solution;
     }
 
-    /** UI settings: distanceToleranceKm(기본 300), holidayTolerance(1.5), moveTolerance(2), obligationTeams(어린이날 홈 5구단). */
+    /** UI settings: distanceToleranceKm(기본 300), holidayTolerance(1.5), moveTolerance(2). 홈 구장 지정은 {@link #applyHomeDesignations}. */
     static void applySettings(BaseballSolution solution, JSONObject problem) {
         JSONObject settings = Json.object(problem.get("settings"));
         if (settings == null) {
@@ -94,27 +99,231 @@ final class ProblemCodec {
             throw new IllegalArgumentException("허용오차 값이 범위를 벗어났습니다(이동거리 0~5000km, 휴일·이동 횟수 0 초과 100 이하).");
         }
         solution.setSettings(ScoreSettings.ofKm(distanceKm, holiday, move));
+        applyHomeDesignations(solution, problem, settings);
+    }
+
+    /**
+     * 홈 구장 지정 → 연전 기간별 홈 의무 구단({@link Calendar#getHomeObligationMask()}). 브라우저 채점기 엔진 호환 기준
+     * ({@code ui/core/score.js engineObligations})과 같은 규칙이다.
+     * <ul>
+     * <li>{@code events[]} 중 {@code mode: 'STADIUM'}의 {@code teams}(없으면 {@code pairs[].home})를, 그 날짜가 든 연전 기간에 모은다.
+     * 「대진까지 고정」({@code fix: 'pairs'})도 같다 — 화면이 그 시리즈를 고정해 보내고, 서버는 그 홈 구단도 지켜졌는지 본다.</li>
+     * <li>어린이날({@code type: 'CHILDREN'})은 {@code teams}가 일부(구단 수/2 미만)만 고른 것이 아니면 {@code settings.obligationTeams}가
+     * 있을 때 그것을 쓴다(공유 링크·예전 화면은 obligationTeams만 고친다).</li>
+     * <li>STADIUM 이벤트가 하나도 없으면 예전대로: 시즌 해 5/5가 든 연전 기간에 obligationTeams(없으면 기본 5구단).</li>
+     * </ul>
+     */
+    static void applyHomeDesignations(BaseballSolution solution, JSONObject problem, JSONObject settings) {
+        List<Team> teams = solution.getTeamList();
+        List<Calendar> calendars = solution.getCalendarList();
+        int half = teams.size() / 2;
+        Map<String, Team> teamByName = new HashMap<>();
+        for (Team t : teams) {
+            teamByName.put(t.getName(), t);
+        }
+        List<String> obligationTeams = null;
         JSONArray obligation = Json.array(settings.get("obligationTeams"));
         if (obligation != null && !obligation.isEmpty()) {
             Set<String> names = new LinkedHashSet<>();
             for (Object o : obligation) {
                 names.add(Json.asString(o, ""));
             }
-            Set<String> known = new LinkedHashSet<>();
-            for (Team t : solution.getTeamList()) {
-                known.add(t.getName());
-            }
-            if (!known.containsAll(names)) {
+            if (!teamByName.keySet().containsAll(names)) {
                 throw new IllegalArgumentException("어린이날 홈 구단에 모르는 구단이 있습니다: " + names);
             }
-            int half = solution.getTeamList().size() / 2;
             if (names.size() != half) {
                 throw new IllegalArgumentException("어린이날 홈 구단은 " + half + "개여야 합니다(지금 " + names.size() + "개).");
             }
-            for (Team t : solution.getTeamList()) {
-                t.setChildrenDayHome(names.contains(t.getName()));
+            obligationTeams = new ArrayList<>(names);
+        }
+        List<JSONObject> stadiumEvents = new ArrayList<>();
+        JSONArray events = Json.array(problem.get("events"));
+        if (events != null) {
+            for (Object e : events) {
+                JSONObject ev = Json.object(e);
+                if (ev != null && "STADIUM".equals(Json.asString(ev.get("mode"), ""))) {
+                    stadiumEvents.add(ev);
+                }
             }
         }
+        if (stadiumEvents.isEmpty()) {
+            HomeObligations.applyChildrenDay(teams, calendars,
+                    obligationTeams != null ? obligationTeams : Constants.HOME_OBLIGATION_CHILDREN);
+            return;
+        }
+        HomeObligations.clear(calendars);
+        Map<Calendar, Set<String>> bySlot = new LinkedHashMap<>();
+        Map<Calendar, String> labelBySlot = new HashMap<>();
+        for (JSONObject ev : stadiumEvents) {
+            List<String> names = eventTeams(ev);
+            if ("CHILDREN".equals(Json.asString(ev.get("type"), "")) && obligationTeams != null
+                    && (names.isEmpty() || names.size() >= half)) {
+                names = obligationTeams;
+            }
+            if (names.isEmpty()) {
+                continue;
+            }
+            Calendar slot = eventSlot(ev, calendars);
+            if (slot == null) {
+                continue;
+            }
+            String label = eventLabel(ev, slot);
+            for (String n : names) {
+                if (!teamByName.containsKey(n)) {
+                    throw new IllegalArgumentException(label + " 홈 구장 지정에 모르는 구단이 있습니다: " + n);
+                }
+            }
+            bySlot.computeIfAbsent(slot, k -> new LinkedHashSet<>()).addAll(names);
+            labelBySlot.putIfAbsent(slot, label);
+        }
+        List<Match> matches = solution.getMatchList();
+        for (Map.Entry<Calendar, Set<String>> entry : bySlot.entrySet()) {
+            Calendar slot = entry.getKey();
+            Set<String> names = entry.getValue();
+            String label = labelBySlot.get(slot);
+            if (names.size() > half) {
+                throw new IllegalArgumentException(label + " 홈 구장 지정이 " + names.size() + "구단입니다. 한 연전 기간에 홈 경기는 "
+                        + half + "곳까지입니다: " + String.join("·", names));
+            }
+            Map<String, String> byStadium = new HashMap<>();
+            for (String n : names) {
+                String stadium = teamByName.get(n).getStadium();
+                String other = byStadium.putIfAbsent(stadium, n);
+                if (other != null) {
+                    throw new IllegalArgumentException(label + " " + stadium + "을(를) " + other + "·" + n
+                            + "이(가) 같이 씁니다. 한 연전 기간에 한 구장에서 홈 경기는 하나라 둘 중 한 구단만 지정할 수 있습니다.");
+                }
+            }
+            int length = slot.getConsecutive();
+            for (String n : names) {
+                boolean hasHome = false;
+                for (Match m : matches) {
+                    if (m.getConsecutive() == length && n.equals(m.getHome().getName())) {
+                        hasHome = true;
+                        break;
+                    }
+                }
+                if (!hasHome) {
+                    throw new IllegalArgumentException(label + " " + n + "의 " + length + "연전 홈 시리즈가 없습니다. "
+                            + length + "연전 기간은 시리즈 목록의 " + length + "연전이 대진을 정하므로, 연전 묶음을 다시 만들거나 대진을 고정해 주세요.");
+                }
+            }
+            if (length == 3 && names.size() == half) {
+                List<String> shared = sharedStadiumWithoutHome(teams, names);
+                if (!shared.isEmpty()) {
+                    throw new IllegalArgumentException(label + " 홈 " + half + "곳을 모두 지정할 때는 같이 쓰는 구장(" + String.join("·", shared)
+                            + ") 구단 중 하나가 들어가야 합니다(그 구장은 연전 기간마다 홈 경기가 하나씩 있습니다).");
+                }
+            }
+            slot.setHomeObligationMask(HomeObligations.maskOf(teams, names));
+        }
+    }
+
+    private static List<String> eventTeams(JSONObject ev) {
+        List<String> names = new ArrayList<>();
+        JSONArray teams = Json.array(ev.get("teams"));
+        if (teams != null) {
+            for (Object t : teams) {
+                String n = Json.asString(t, "");
+                if (!n.isEmpty()) {
+                    names.add(n);
+                }
+            }
+        }
+        if (names.isEmpty()) {
+            JSONArray pairs = Json.array(ev.get("pairs"));
+            if (pairs != null) {
+                for (Object p : pairs) {
+                    JSONObject pair = Json.object(p);
+                    String n = pair == null ? "" : Json.asString(pair.get("home"), "");
+                    if (!n.isEmpty()) {
+                        names.add(n);
+                    }
+                }
+            }
+        }
+        return names;
+    }
+
+    /** 화면 {@code Score.resolveEventSlot}과 같다: date가 든 연전 기간, 없으면 slot 번호. */
+    private static Calendar eventSlot(JSONObject ev, List<Calendar> calendars) {
+        String date = Json.asString(ev.get("date"), "");
+        if (date.length() >= 10) {
+            try {
+                Calendar byDate = HomeObligations.slotContaining(calendars, LocalDate.parse(date.substring(0, 10)));
+                if (byDate != null) {
+                    return byDate;
+                }
+            } catch (DateTimeParseException ignored) {
+                // 날짜가 이상하면 slot 번호로
+            }
+        }
+        long slot = Json.asLong(ev.get("slot"), -1L);
+        for (Calendar c : calendars) {
+            if (c.isRegular() && c.getSlotIndex() == slot) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    private static String eventLabel(JSONObject ev, Calendar slot) {
+        String name = Json.asString(ev.get("name"), "");
+        String date = Json.asString(ev.get("date"), "");
+        if (date.isEmpty()) {
+            date = slot.getStartTime().toLocalDate().toString();
+        }
+        return (name.isEmpty() ? "" : name + " ") + "(" + date + ")";
+    }
+
+    /** 같이 쓰는 구장마다 그 구장 구단이 names에 하나도 없으면 그 구단들. */
+    private static List<String> sharedStadiumWithoutHome(List<Team> teams, Set<String> names) {
+        Map<String, List<String>> byStadium = new LinkedHashMap<>();
+        for (Team t : teams) {
+            byStadium.computeIfAbsent(t.getStadium(), k -> new ArrayList<>()).add(t.getName());
+        }
+        List<String> out = new ArrayList<>();
+        for (List<String> group : byStadium.values()) {
+            if (group.size() > 1 && group.stream().noneMatch(names::contains)) {
+                out.addAll(group);
+            }
+        }
+        return out;
+    }
+
+    /** 적용된 홈 구장 지정: 연전 기간 시작일 → 홈 의무 구단(구단 목록 순). 캐시 키·결과 손잡이에 쓴다. */
+    static JSONObject homeDesignations(BaseballSolution solution) {
+        List<Team> sorted = new ArrayList<>(solution.getTeamList());
+        sorted.sort(Comparator.comparingInt(Team::getIndex));
+        JSONObject out = new JSONObject();
+        for (Calendar c : solution.getCalendarList()) {
+            if (c.isRegular() && c.getHomeObligationMask() != 0) {
+                List<String> names = new ArrayList<>();
+                for (Team t : sorted) {
+                    if (c.requiresHome(t)) {
+                        names.add(t.getName());
+                    }
+                }
+                out.put(c.getStartTime().toLocalDate().toString(), Json.arr(names));
+            }
+        }
+        return out;
+    }
+
+    /** 시즌 해 5/5가 든 연전 기간의 홈 의무 구단(공유 화면의 「어린이날 홈」). 없으면 빈 배열. */
+    static JSONArray childrenDayTeams(BaseballSolution solution) {
+        List<Calendar> calendars = solution.getCalendarList();
+        LocalDate first = null;
+        for (Calendar c : calendars) {
+            if (c.isRegular() && (first == null || c.getStartTime().toLocalDate().isBefore(first))) {
+                first = c.getStartTime().toLocalDate();
+            }
+        }
+        Calendar children = first == null ? null
+                : HomeObligations.slotContaining(calendars, Constants.CHILDREN_DAY.atYear(first.getYear()));
+        JSONObject designations = homeDesignations(solution);
+        Object teams = children == null ? null : designations.get(children.getStartTime().toLocalDate().toString());
+        return teams == null ? new JSONArray() : (JSONArray) teams;
     }
 
     /** 캐시 키·재현에 쓰는 손잡이 값만 뽑는다. */
@@ -122,7 +331,7 @@ final class ProblemCodec {
         JSONObject settings = Json.object(problem.get("settings"));
         JSONObject out = new JSONObject();
         if (settings != null) {
-            for (String k : new String[] {"distanceToleranceKm", "holidayTolerance", "moveTolerance", "obligationTeams"}) {
+            for (String k : new String[] {"distanceToleranceKm", "holidayTolerance", "moveTolerance"}) {
                 if (settings.get(k) != null) {
                     out.put(k, settings.get(k));
                 }

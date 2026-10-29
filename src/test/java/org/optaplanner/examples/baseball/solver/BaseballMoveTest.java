@@ -105,6 +105,46 @@ class BaseballMoveTest {
         }
     }
 
+    /** 홈 구장 지정 기간(어린이날)을 고정하지 않고 보내면 그 기간도 움직이되, 지정 구단을 원정으로 보내는 이동은 거른다. */
+    @Test
+    @Timeout(120)
+    void unpinnedHomeDesignatedSlotMovesOnlyWhileTheDesignatedTeamsStayHome() throws Exception {
+        BaseballSolution solution = load2025();
+        BaseballSolutionInitializer.initialize(solution, 0L,
+                new BaseballSolutionInitializer.Settings(8, 2, 0, 1, true));
+        Calendar children = solution.getCalendarList().get(13);
+        assertThat(children.getHomeObligationMask()).isNotZero();
+        for (Match match : solution.getMatchList()) {
+            if (match.getCalendar() == children) {
+                match.setPinned(false);
+            }
+        }
+        RoundNeighborhood neighborhood = RoundNeighborhood.of(solution);
+        assertThat(neighborhood.movable[13]).isTrue();
+        List<SeriesReassignmentMove> touching = new ArrayList<>();
+        for (int other : neighborhood.movableSlots) {
+            if (other != 13) {
+                touching.addAll(neighborhood.structuralKempe(Math.min(13, other), Math.max(13, other)));
+            }
+        }
+        assertFilterAgrees(solution, touching, true);
+        int obligationRejected = 0;
+        for (SeriesReassignmentMove move : touching) {
+            List<Match> moved = move.matches();
+            long designatedAway = 0L;
+            for (int i = 0; i < moved.size(); i++) {
+                if (move.targets().get(i) == children && children.requiresHome(moved.get(i).getAway())) {
+                    designatedAway++;
+                }
+            }
+            if (designatedAway > 0) {
+                assertThat(move.preserves(solution)).as("%s", move).isFalse();
+                obligationRejected++;
+            }
+        }
+        assertThat(obligationRejected).isPositive();
+    }
+
     private static void assertFilterAgrees(BaseballSolution solution, List<SeriesReassignmentMove> moves,
             boolean expectRejections) {
         BaseballEasyScoreCalculator calculator = new BaseballEasyScoreCalculator();
