@@ -302,6 +302,30 @@ test('시리즈 생성(2027 원칙): 1차 편성 홈을 비우면 개막 대진�
   eq(g3.errors, []); eq(g3.matches.filter((m, i) => g3.plan[i] === 0).map((m) => m.home).sort(), OPENING_HOSTS_2027.slice().sort());
 });
 
+test('시리즈 생성(2027 원칙): 사용자가 바꾼 개막 대진 여러 개 — 잠실 한 구단만 개막전 홈이면 늘 성공(68/67·대진·겹침 없음), 아니면 잠실 오류', () => {
+  const teams = Preset.ENGINE_INPUT_2025.teams, names = teams.map((t) => t.name), cal = P27.calendar();
+  const r = MockSolver.rng(31);
+  let ok = 0, err = 0;
+  for (let k = 0; k < 60; k++) {
+    const order = names.slice().sort(() => r() - 0.5);
+    const hosts = order.slice(0, 5), vis = order.slice(5);
+    const pairs = hosts.map((h, i) => ({ home: h, away: vis[i] }));
+    const one = ['두산', 'LG'].filter((x) => hosts.includes(x)).length === 1;
+    for (const ht of [CalendarGen.defaultHomeTotals(2027, teams, { moreTeams: hosts }), CalendarGen.defaultHomeTotals(2027, teams, { initial: false })]) {
+      const g = CalendarGen.generateSeries(teams, cal, { settings: Object.assign({}, P27.DEFAULT_SETTINGS, { homeTotals: ht }), events: [{ type: 'OPENING', mode: 'STADIUM', teams: hosts, pairs, fix: 'pairs' }] });
+      if (!one) { assert(/잠실종합운동장을\(를\) 같이 쓰는 두산·LG/.test(g.errors[0] || ''), JSON.stringify(pairs) + ' ' + g.errors[0]); err++; continue; } // 둘 다 개막전 홈·원정, 또는 홈 합이 경기일보다 많음
+      eq(g.errors, [], JSON.stringify(pairs));
+      const h = homeByTeam(g.matches);
+      assert(names.every((x) => h[x] === (hosts.includes(x) ? 68 : 67)), '68/67 ' + JSON.stringify(h));
+      eq(g.matches.filter((m, i) => g.plan[i] === 0).map((m) => m.away + '@' + m.home).sort(), pairs.map((x) => x.away + '@' + x.home).sort());
+      const jam = new Map(); g.matches.forEach((m, i) => { if (m.home === '두산' || m.home === 'LG') jam.set(g.plan[i], (jam.get(g.plan[i]) || 0) + 1); });
+      assert(Array.from(jam.values()).every((c) => c === 1), '잠실 겹침');
+      ok++;
+    }
+  }
+  assert(ok > 0 && err > 0, ok + ' / ' + err);
+});
+
 test('시리즈 생성: 2025 데이터 — homeTotals가 없으면 예전 방식 그대로, 2025 개막전 홈 구단으로 73/71 원칙도 동작', () => {
   const slots = CalendarGen.generateSlots(Preset.DEFAULT_SETTINGS).slots;
   const legacy = CalendarGen.generateSeries(Preset.ENGINE_INPUT_2025.teams, slots, { initialGamesPerPair: 15, homeGamesMajor: 9 });
