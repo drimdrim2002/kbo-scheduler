@@ -237,13 +237,12 @@
       '<button class="btn sm" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식</button>' +
       '<button class="btn sm" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기</button>' +
       '<span class="sep" style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>' +
-      (S.isBlank()
-        ? '<button class="btn sm" data-act="reset-ask" data-kind="example"' + (locked ? ' disabled' : '') + ' title="2025 실제 일정(기본 제공)을 다시 불러옵니다">' + icon('db') + '2025 예시 데이터 불러오기</button>'
-        : '<button class="btn sm reset-btn" data-act="reset-ask" data-kind="blank"' + (locked ? ' disabled' : '') + ' title="표를 모두 비우고 빈 상태에서 처음부터 입력합니다(구단 정보는 남김)">' + icon('plus') + '처음부터 입력하기</button>') +
+      // 처음부터 입력하기·예시 데이터 다시 불러오기는 시즌 연도 고르기(연도 카드)로 합쳤다
+      '<button class="btn sm" data-act="year-pick"' + (locked ? ' disabled' : '') + ' title="연도 카드에서 그 해를 처음부터 다시 하거나 기본 제공 데이터로 다시 불러옵니다">' + icon('cal') + '시즌 연도 · 처음부터 다시</button>' +
       (S.guideButton ? S.guideButton() : '') +
       '<span class="last">' + (li
         ? S.stat('ok', '적용됨') + '<span>' + esc(li.source) + ' · ' + esc(li.sheets) + ' · ' + esc(li.time) + '</span>' + (li.kind === 'gsheet' ? '<button class="btn xs" data-act="import-gsheet-reload">' + icon('redo') + '다시 불러오기</button>' : '') + S.mock()
-        : S.isBlank() ? '<span class="muted">현재 데이터: 직접 입력(처음부터) · 구단 정보만 들어 있음</span>' : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>' + S.mock()) + '</span>' +
+        : '<span class="muted">현재 데이터: ' + S.seasonYear() + ' 시즌 · ' + (S.isBlank() ? '직접 입력(처음부터) · 구단 정보만 들어 있음' : S.builtinOf && S.builtinOf(S.seasonYear()) && !S.repo.has(S.seasonYear()) ? S.builtinOf(S.seasonYear()).label + '(' + S.builtinOf(S.seasonYear()).tag + ')' : '이 브라우저에 저장한 데이터') + '</span>') + '</span>' +
       '</div>';
   }
 

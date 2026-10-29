@@ -213,6 +213,8 @@
     out.next.teams = tch;
     const ign = sheets.filter((x) => !Object.values(SHEET).includes(norm(x.name))).map((x) => x.name);
     if (ign.length) out.ignored = ign;
+    // 다른 해 서식은 받지 않는다(날짜가 모두 그 해라, 지금 해에 반영하면 저장도 그 해로 섞인다) — 위쪽 연도 칸에서 그 해로 바꾼 뒤 올린다
+    if (year !== S.seasonYear()) rs.errors.unshift({ loc: SHEET.season + ' · 시즌 연도', why: '이 파일은 ' + year + ' 시즌 서식입니다. 지금은 ' + S.seasonYear() + ' 시즌입니다 — 위쪽 「' + S.seasonYear() + ' 시즌 ▾」에서 ' + year + ' 시즌으로 바꾼 뒤 올려 주세요.' });
     out.errors = out.sheets.reduce((a, x) => a + x.errors.length, 0);
     return out;
   };

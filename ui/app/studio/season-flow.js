@@ -361,6 +361,20 @@
     } else { click('.ck-ed [data-act="fl-ht-off"]'); flush(); }
     click('.ck-card [data-act="cal-next"]'); flush();
     ok('「다음: ② 검토·실행」 → 시리즈 규칙대로 225개 · ② · 개막전은 홈 구장만(고정 없음)', S.ui.step === 2 && st().matches.length === 225 && !st().matches.some((m) => m.pinned) && S.flowStatus().allDone, st().matches.length + ' · ' + S.flowStatus().stop);
+    // 이 흐름으로 만든 2027로 자동 편성(브라우저 시험용 엔진, 4초): 사전 점검 진행 불가 0 · 개막전 홈 구장(홈 구장만 지정)을 지키는지
+    const pf = app().preflight().counts;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const solver0 = Object.assign({}, st().settings.solver);
+    app().setEngineConfig({ kind: 'MOCK', useWorker: false });
+    app().updateSolverSettings({ timeLimitSec: 4, unimprovedSec: 4 }); flush();
+    click('[data-act="run-start"]');
+    for (let k = 0; k < 80 && app().isRunning(); k++) await wait(100); // 끝까지(4초) 돌린다
+    if (app().isRunning()) { app().stop(); await wait(300); }
+    flush();
+    const vio = app().derived().ex.violations, h0e = vio.filter((v) => v.code === 'H0-e' && v.slot === 0);
+    ok('2027(흐름으로 만든 데이터) → ② 사전 점검 진행 불가 0 · 자동 편성(시험용 엔진) 뒤 ③ · 3/27 개막전 지정 구장 홈 경기 위반 ' + h0e.length + '건', pf.block === 0 && S.ui.step === 3, '위반 ' + vio.length + '건 · H0-e 개막 ' + h0e.length);
+    S.flowMockH0e = h0e.length; // 노트용(서버 엔진은 C 커밋 뒤 홈 의무로 지킨다)
+    app().undo(); app().updateSolverSettings(solver0); flush();
     S.autosave.flush();
     S.flowPickYear(); flush();
     ok('연도 카드 2027: 이 브라우저에 저장됨 · 4단계 모두 완료', /이 브라우저에 저장됨/.test(q('.yc[data-year="2027"]').textContent) && /4단계 모두 완료/.test(q('.yc[data-year="2027"]').textContent));

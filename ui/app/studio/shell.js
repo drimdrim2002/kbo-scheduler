@@ -181,19 +181,20 @@
     if (ry !== S.seasonYear()) return resetOtherYear(kind, ry);
     const cnt = (n, unit) => '<b>' + n + '</b>' + unit;
     const now = '연전 기간 ' + cnt(st.calendar.length, '개') + ' · 시리즈 ' + cnt(st.matches.length, '개') + ' · 특별 경기 ' + cnt(st.events.length, '개') + ' · 공휴일 ' + cnt(st.settings.holidays.length, '일') + ' · 휴식일 경기 ' + cnt(st.settings.restExceptions.length, '일') + ' · 휴식기 ' + cnt(st.settings.blackouts.length, '개');
-    const blank = kind === 'blank';
-    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '">' +
-      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
+    const blank = kind === 'blank', y = S.seasonYear(), b = S.builtinOf && S.builtinOf(y);
+    const title = blank ? y + ' 시즌 처음부터 입력하기' : y === 2025 ? '2025 예시 데이터 다시 불러오기' : y + ' 시즌 ' + (b ? b.tag : '기본 제공') + ' 데이터로 다시';
+    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + esc(title) + '">' +
+      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + esc(title) + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
       '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">' +
       (blank
         ? '<p class="small" style="margin:0">지금 들어 있는 표를 모두 비우고, 빈 상태에서 시즌 정보를 처음부터 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 연전 기간·시리즈 같은 큰 표는 단추로 만듭니다.</p>' +
-          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 공휴일 · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 특별 경기 · 경기 기록 · 중간 저장</dd>' +
-          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단 정보」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
+          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 홈 구장 지정 · 경기 기록 · 중간 저장</dd>' +
+          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 1 구단 정보에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다. 공휴일은 ' + y + '년 법정 공휴일로 다시 넣습니다.</dd>' +
           '<dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>'
-        : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
-          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
+        : (y === 2025 ? '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' : '<p class="small" style="margin:0">' + esc(b ? b.label + '(' + b.tag + ')' : '기본 제공 데이터') + '을(를) 다시 불러옵니다.</p>') +
+          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 ' + esc(y === 2025 ? '2025 실제 일정' : b ? b.label : '기본 제공 데이터') + '으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
       '<div class="confirm-box">' + icon('info') + '<span>실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div>' +
-      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 달력에서 개막일부터 적습니다.' : '불러온 뒤에는 시즌 달력에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
+      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 달력에서 개막일부터 적습니다.' : '불러온 뒤에는 시즌 달력에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '다시 불러오기') + '</button></span></div></div>';
   };
   /** 지금 열지 않은 해를 처음부터 다시 · 기본 제공 데이터로 다시: 그 해로 바꾼 뒤 비운다(지금 해는 저장해 둠) */
   function resetOtherYear(kind, y) {

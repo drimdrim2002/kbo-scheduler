@@ -260,15 +260,17 @@
       const errs0 = window.__studioErrors.length;
       const st = () => S.app.state;
       S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null, menu: null, cell: null, edit: null });
-      click('.band [data-act="reset-ask"][data-kind="blank"]'); flush();
-      ok('초기화: 띠 단추 → 확인 창(비우는 것·남기는 것)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단 정보/.test(document.querySelector('.reset-modal').textContent));
+      ok('모든 표 보기 띠: 「처음부터 입력하기」 대신 「시즌 연도 · 처음부터 다시」(연도 카드로 합침)', !document.querySelector('.band [data-act="reset-ask"]') && !!document.querySelector('.band [data-act="year-pick"]'));
+      S.g1.mode = 'resume'; S.go({ step: 1 });
+      click('.fl-foot [data-act="year-reset"]'); flush();
+      ok('초기화: 어디까지 했는지 「2025 처음부터 다시」 → 확인 창(비우는 것·남기는 것 · 공휴일은 법정 공휴일로)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단 정보/.test(document.querySelector('.reset-modal').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       const blankInfo = () => ['blank ' + S.isBlank(), 'cal ' + st().calendar.length, 'm ' + st().matches.length, 'ev ' + st().events.length, 'hol ' + st().settings.holidays.length, 'rex ' + st().settings.restExceptions.length, 'blk ' + st().settings.blackouts.length, 'start "' + st().settings.seasonStart + '"', 'teams ' + st().teams.length, 'dist ' + st().distanceMatrix.length, 'tab ' + S.ui.tab, 'modal ' + S.ui.modal, 'inputs ' + document.querySelectorAll('.form-grid input[data-k]').length].join(' · ');
       const blankNow = () => S.isBlank() && !st().calendar.length && !st().matches.length && !st().events.length && st().settings.holidays.length === 12 && !st().settings.restExceptions.length && !st().settings.blackouts.length && st().settings.seasonStart === '' && st().teams.length === 10 && st().distanceMatrix.length === 100;
       ok('초기화: 표 비움(구단 10·거리 100은 남김 · 그 해 법정 공휴일 12일은 미리 넣음) → ① 2단계(시즌 기간·연전 묶음)', blankNow() && S.g1.mode === 'flow' && S.g1.fs === 2 && !S.ui.modal && !!document.querySelector('.sc-strip'), blankInfo());
       S.g1.mode = 'all'; S.go({ step: 1, tab: 'season' });
       ok('초기화: 모든 표 보기 — 시즌 기본 설정 날짜 칸 3개 비어 있음', document.querySelectorAll('.form-grid input[data-k]').length === 3 && Array.from(document.querySelectorAll('.form-grid input[data-k]')).every((i) => i.value === ''));
-      ok('초기화: 띠는 「2025 예시 데이터 불러오기」·현재 데이터 직접 입력', !!document.querySelector('.band [data-act="reset-ask"][data-kind="example"]') && /직접 입력/.test(document.querySelector('.band .last').textContent));
+      ok('초기화: 띠의 현재 데이터 「2025 시즌 · 직접 입력」', /2025 시즌 · 직접 입력/.test(document.querySelector('.band .last').textContent));
       S.app.undo(); flush();
       ok('초기화: 실행 취소 → 2025 데이터 복귀', !S.isBlank() && st().calendar.length === 45 && hard() === 3);
       S.app.redo(); flush();
@@ -308,8 +310,9 @@
       ok('초기화 흐름 전체 콘솔 오류 0', window.__studioErrors.length === errs0, String(window.__studioErrors.slice(errs0).join(' | ')).slice(0, 120));
       // 예시 데이터 다시 불러오기
       S.g1.mode = 'all'; S.go({ step: 1, tab: 'slots', cell: null, edit: null });
-      click('.band [data-act="reset-ask"][data-kind="example"]'); flush();
-      ok('띠 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
+      S.g1.mode = 'resume'; S.go({ step: 1 });
+      click('.fl-foot [data-act="year-builtin"]'); flush();
+      ok('어디까지 했는지 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       ok('2025 예시 데이터 다시 불러오기 → 시연용 위반 3·중간 저장 1 · ①로', !S.isBlank() && hard() === 3 && st().snapshots.length === 1 && st().games.length > 0 && S.ui.step === 1 && S.g1.mode !== 'all');
     }

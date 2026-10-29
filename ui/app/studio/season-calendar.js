@@ -964,6 +964,19 @@
       res = await S.calXlOpen(X.write(se), '규칙.xlsx'); flush();
       ok('엑셀: 연전 기간 줄을 모두 비우면 규칙대로(묶음 45개)', res.errors === 0 && res.next.list.length === 45 && /규칙대로 채웁니다/.test(res.sheets.find((x) => x.key === 'slots').notes.join()));
       S.ui.calxl = null; S.go({ modal: null });
+      // 다른 해 서식(2025)을 2027에서 올리면 받지 않는다 — 2025 저장본도 그대로
+      click('.ck-card .sc-xl [data-act="cal-xl-down"]'); flush();
+      const b25 = S.lastXlBytes;
+      S.autosave.dirty = true; S.autosave.flush();
+      const rec25 = JSON.stringify(S.repo.load(2025).project.calendar), had27 = S.repo.has(2027);
+      S.switchYear(2027, S.builtinOf(2027) ? { quiet: true, to: 'stay', project: S.newYearProject(2027) } : { quiet: true, to: 'stay' }); flush();
+      res = await S.calXlOpen(b25, '2025 서식.xlsx'); flush();
+      const refused = res.errors >= 1 && /2025 시즌 서식입니다/.test(res.sheets.find((x) => x.key === 'season').errors[0].why) && q('.cx-modal [data-act="cal-xl-apply"]').disabled;
+      S.ui.calxl = null; S.go({ modal: null });
+      S.switchYear(2025, { quiet: true, to: 'stay' }); flush();
+      if (!had27) S.repo.remove(2027);
+      ok('엑셀: 2027을 열고 2025 서식을 올리면 「이 파일은 2025 시즌 서식입니다」 · 반영 잠김 · 2025 저장본 그대로', refused && JSON.stringify(S.repo.load(2025).project.calendar) === rec25 && S.seasonYear() === 2025 && st().calendar.length === 45);
+      S.flowGo(2);
     }
     // 화면 안 · 페이지 스크롤 0 (말풍선 열린 채로도)
     S.flowGo(2);
