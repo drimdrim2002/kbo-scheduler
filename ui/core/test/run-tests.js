@@ -155,6 +155,216 @@ test('AC-3 시리즈 생성: 같이 쓰는 구장(잠실 두산·LG) 홈 k연전
   for (const k of Object.keys(mh)) assert(mh[k] <= (sh[k] || 0) * half, k + '연전 자리');
 });
 
+// ───────── 2027 시즌 원칙 ─────────
+const P27 = K.Preset2027;
+const OPENING_HOSTS_2027 = ['KT', '삼성', 'KIA', 'LG', 'SSG'];
+const HT_A = () => CalendarGen.defaultHomeTotals(2027, Preset.ENGINE_INPUT_2025.teams, { moreTeams: OPENING_HOSTS_2027 }); // (가) 홈 73 = 개막전 홈 구단
+/** 2027 기본 데이터에 홈 73/71을 바꿔 끼우고 시리즈를 원칙대로 다시 만든다 */
+function project2027(ht) {
+  const p = P27.buildProject();
+  if (ht !== undefined) p.settings.homeTotals = ht;
+  const g = CalendarGen.generateSeries(p.teams, p.calendar, CalendarGen.seriesOptions(p));
+  p.matches = g.matches.map((m) => Object.assign({ pinned: false }, m));
+  p.plan = g.plan.map((c, m) => ({ match: m, calendar: c }));
+  return { p, g };
+}
+function homeByTeam(matches) { const h = {}; for (const m of matches) h[m.home] = (h[m.home] || 0) + m.consecutive; return h; }
+
+test('휴식 요일 공휴일 경기(playOnRest): 없으면 어린이날만, false는 그대로, 켜면 그 날 경기 · 그 주 목 휴식', () => {
+  eq([CalendarGen.holidayPlaysOnRest({ date: '2025-05-05', name: '어린이날·부처님오신날' }), CalendarGen.holidayPlaysOnRest({ date: '2027-08-16' }), CalendarGen.holidayPlaysOnRest('2026-05-05'), CalendarGen.holidayPlaysOnRest({ date: '2025-05-05', playOnRest: false }), CalendarGen.holidayPlaysOnRest({ date: '2027-08-16', playOnRest: true })], [true, false, true, false, true]);
+  // 2025: 5/5(월)을 끄면 그 날 쉬고 목 휴식도 없다
+  const off = CalendarGen.ruleSettings(Object.assign({}, Preset.DEFAULT_SETTINGS, { holidays: Preset.DEFAULT_SETTINGS.holidays.map((h) => (h.date === '2025-05-05' ? Object.assign({}, h, { playOnRest: false }) : h)) }));
+  eq(off.restExceptions, []); eq(off.blackouts.map((b) => b.start), ['2025-07-11']);
+  // 내장 공휴일 표도 playOnRest를 채운다
+  eq(CalendarGen.builtinHolidays(2027).filter((h) => h.playOnRest).map((h) => h.date), ['2027-05-05']);
+});
+
+test('2027 규칙대로 채우기 = 첨부 일정: 45개(개막 2연전 3/27~28 · 3연전 43 · 후반기 4연전 7/15~18) · 135일 · 9/5 종료 · 올스타 7/9~14', () => {
+  const set = Object.assign({}, P27.DEFAULT_SETTINGS, { restExceptions: [], blackouts: [] });
+  const rs = CalendarGen.ruleSettings(set);
+  eq(rs.restExceptions, [], '8/16(월) 대체공휴일 기본 경기 없음');
+  eq(rs.blackouts.map((b) => [b.start, b.end, b.label]), [['2027-07-09', '2027-07-14', '올스타 휴식기']]);
+  const g = CalendarGen.generateSlots(rs).slots;
+  eq(g.map((c) => [c.datetime.slice(5, 10), c.consecutive]), P27.SLOTS_2027, '첨부 일정과 같은 연전 기간');
+  eq(g.length, 45); eq(CalendarGen.lengthHistogram(g), { 2: 1, 3: 43, 4: 1 });
+  eq(g.reduce((a, c) => a + c.consecutive, 0), 135);
+  eq(K.Dates.addDays(g[44].datetime.slice(0, 10), 2), '2027-09-05', '1차 편성 종료 9/5(일)');
+  eq(g.findIndex((c) => c.datetime.startsWith('2027-05-04')), 11, '어린이날 5/4~6 3연전');
+  // 올스타 휴식기 길이도 설정
+  eq(CalendarGen.ruleSettings(Object.assign({}, set, { allStarDays: 4 })).blackouts[0].end, '2027-07-12');
+  // 8/16을 켜면 그 날 경기 · 8/19(목) 휴식
+  const on = CalendarGen.ruleSettings(Object.assign({}, set, { holidays: set.holidays.map((h) => (h.date === '2027-08-16' ? Object.assign({}, h, { playOnRest: true }) : h)) }));
+  eq(on.restExceptions, ['2027-08-16']); assert(on.blackouts.some((b) => b.start === '2027-08-19'), '8/19 휴식');
+  // 묶음에서 만든 휴식기·휴식일 경기 = 기본 설정
+  const d = CalendarGen.deriveRestDays(P27.calendar(), P27.DEFAULT_SETTINGS);
+  eq(d.restExceptions, P27.DEFAULT_SETTINGS.restExceptions); eq(d.blackouts, P27.DEFAULT_SETTINGS.blackouts);
+});
+
+test('2027 기본 데이터: 설정 · 공휴일 가중치 · 개막전(대진 고정)·어린이날 홈 구장 지정 · 구단 정보는 2025 것', () => {
+  const p = P27.buildProject();
+  const s = p.settings;
+  eq([s.seasonYear, s.seasonStart, s.initialEnd, s.restWeekdays, s.allStarStart, s.allStarDays, s.seriesMinLength], [2027, '2027-03-27', '2027-09-05', [1], '2027-07-09', 6, 3]);
+  eq(s.holidays.find((h) => h.date === '2027-05-05').weight, 3); eq(s.holidays.find((h) => h.date === '2027-08-16').playOnRest, false);
+  eq(p.calendar.length, 45); eq(p.calendar[11].holiday, 3, '어린이날 묶음 값');
+  eq(p.teams.map((t) => t.name), Preset.ENGINE_INPUT_2025.teams.map((t) => t.name));
+  const op = p.events.find((e) => e.type === 'OPENING'), ch = p.events.find((e) => e.type === 'CHILDREN');
+  eq([op.date, op.fix, op.teams.slice().sort(), op.pairs.map((x) => x.away + '@' + x.home)], ['2027-03-27', 'pairs', OPENING_HOSTS_2027.slice().sort(), ['한화@KT', 'NC@삼성', '롯데@KIA', '키움@LG', '두산@SSG']]);
+  eq([ch.date, ch.slot, ch.fix, ch.teams.slice().sort()], ['2027-05-05', 11, 'home', ['NC', '두산', '롯데', '키움', '한화'].sort()]);
+  eq(s.homeTotals, P27.HOME_TOTALS_2027);
+  eq(p.reschedule.start, '2027-09-06');
+  // 저장소 검증·정규화를 통과
+  const v = Store.validateProject(JSON.parse(JSON.stringify(p)));
+  assert(v.ok, JSON.stringify(v.errors));
+});
+
+test('격년 홈 73/71 기본값: 홀수 해 한화·SSG·KT·롯데·두산, 짝수 해는 나머지 · 다음 해로 뒤집기 · 합 검사', () => {
+  const teams = Preset.ENGINE_INPUT_2025.teams;
+  const y27 = CalendarGen.defaultHomeTotals(2027, teams), y28 = CalendarGen.defaultHomeTotals(2028, teams);
+  eq(y27.moreTeams.slice().sort(), ['KT', 'SSG', '두산', '롯데', '한화'].sort());
+  eq(y28.moreTeams.slice().sort(), ['KIA', 'LG', 'NC', '삼성', '키움'].sort());
+  eq(CalendarGen.flipHomeTotals(y27, teams).moreTeams, y28.moreTeams);
+  eq([y27.more, y27.less], [{ total: 73, initial: 68 }, { total: 71, initial: 67 }]);
+  eq(CalendarGen.defaultHomeTotals(2027, teams, { initial: false }).more, { total: 73 });
+  const t = CalendarGen.homeTotalsTargets(teams, { homeTotals: y27, gamesPerPair: 16, initialGamesPerPair: 15 });
+  eq(t.errors, []); eq(t.targets.find((x) => x.team === '한화'), { team: '한화', total: 73, initial: 68 });
+  const bad = CalendarGen.homeTotalsTargets(teams, { homeTotals: { moreTeams: ['한화', 'SSG'], more: { total: 73 }, less: { total: 71 } }, gamesPerPair: 16 });
+  assert(/리그 전체 경기 수/.test(bad.errors[0]), bad.errors[0]);
+});
+
+test('시리즈 생성(2027 원칙, 홈 73 = 개막전 홈 구단): 1차 편성 홈 68/67 · 맞대결 15(9:6, 개막 대진 8:7) · 개막 대진 → 홈 바꾼 4연전 · 잠실 겹침 없음', () => {
+  const { p, g } = project2027(HT_A());
+  eq(g.errors, []);
+  eq(CalendarGen.lengthHistogram(g.matches), { 2: 5, 3: 215, 4: 5 });
+  const home = homeByTeam(g.matches);
+  for (const t of p.teams) eq(home[t.name], OPENING_HOSTS_2027.includes(t.name) ? 68 : 67, t.name + ' 1차 편성 홈');
+  const pair = {};
+  for (const m of g.matches) pair[m.home + '|' + m.away] = (pair[m.home + '|' + m.away] || 0) + m.consecutive;
+  const op = p.events.find((e) => e.type === 'OPENING').pairs;
+  for (const k of Object.keys(pair)) {
+    const [h, a] = k.split('|');
+    eq(pair[k] + pair[a + '|' + h], 15, '맞대결 15 ' + k);
+    const isOpen = op.some((x) => (x.home === h && x.away === a) || (x.home === a && x.away === h));
+    assert(isOpen ? [8, 7].includes(pair[k]) : [9, 6].includes(pair[k]), '홈 나눔 ' + k + ' ' + pair[k]);
+  }
+  // 개막 연전 기간 = 기본 대진, 4연전 = 같은 두 구단 홈 바꿈
+  eq(g.matches.filter((m, i) => g.plan[i] === 0).map((m) => m.away + '@' + m.home).sort(), op.map((x) => x.away + '@' + x.home).sort());
+  eq(g.matches.filter((m) => m.consecutive === 4).map((m) => m.home + '@' + m.away).sort(), op.map((x) => x.away + '@' + x.home).sort());
+  eq(g.homeTargets.find((x) => x.team === 'KT'), { team: 'KT', initial: 68, total: 73, remaining: 5, openingHost: true });
+  eq(g.homeTargets.find((x) => x.team === '한화').remaining, 4);
+  // 개막 연전 말고는 3연전 이상, 잠실(두산·LG) 같은 연전 기간 홈 겹침 없음
+  assert(g.matches.every((m, i) => m.consecutive >= 3 || g.plan[i] === 0), '3연전 이상');
+  const jam = new Map();
+  g.matches.forEach((m, i) => { if (m.home === '두산' || m.home === 'LG') jam.set(g.plan[i], (jam.get(g.plan[i]) || 0) + 1); });
+  assert(Array.from(jam.values()).every((c) => c === 1), '잠실 겹침');
+  eq(jam.size, 45, '잠실은 연전 기간마다 꼭 한 구단 홈(67 + 68 = 135)');
+  // 구성적 초기해: H0-a/c/d 위반 없음, 개막전 대진은 고정
+  p.events = p.events.filter((e) => e.type === 'OPENING');
+  const ex = Score.scoreProject(p);
+  eq(ex.byCode['H0-a'].amount + ex.byCode['H0-c'].amount + ex.byCode['H0-d'].amount + ex.byCode['H0-e'].amount, 0, 'H0-a/c/d/e');
+});
+
+test('시리즈 생성(2027 원칙): 맞지 않는 조합은 알기 쉬운 오류 — 홈 73 한화·SSG·KT·롯데·두산 + 개막전 홈 KT·삼성·KIA·LG·SSG, 2연전, 잠실', () => {
+  const { g } = project2027(CalendarGen.defaultHomeTotals(2027, Preset.ENGINE_INPUT_2025.teams));
+  eq(g.matches.length, 0);
+  const e = g.errors[0];
+  assert(/두산·한화·롯데은\(는\) 개막전 원정/.test(e) && /LG·삼성·KIA은\(는\) 개막전 홈/.test(e) && /개막전 홈 구단\(KT·삼성·KIA·LG·SSG\)으로 바꾸거나/.test(e), e);
+  // 기본 데이터(지금 홈 73 목록)는 시리즈 없이 만들어진다
+  eq(P27.buildProject().matches.length, 0);
+  // 개막 연전 말고 2연전이 있으면
+  const p = P27.buildProject();
+  const cal = p.calendar.slice(0, 1).concat([{ datetime: '2027-03-30 00:00:00', consecutive: 2 }, { datetime: '2027-04-01 00:00:00', consecutive: 4 }], p.calendar.slice(3));
+  const g2 = CalendarGen.generateSeries(p.teams, cal, Object.assign(CalendarGen.seriesOptions(p), { settings: Object.assign({}, p.settings, { homeTotals: HT_A() }) }));
+  assert(/개막 연전 말고는 3연전 이상이어야 합니다: 3\/30\(화\) 2연전/.test(g2.errors[0]), g2.errors[0]);
+  // 잠실 두 구단이 모두 개막전 원정
+  const p3 = P27.buildProject();
+  const op = p3.events.find((e) => e.type === 'OPENING');
+  op.pairs = [{ home: 'KT', away: '두산' }, { home: '삼성', away: 'LG' }, { home: 'KIA', away: '롯데' }, { home: '키움', away: '한화' }, { home: 'SSG', away: 'NC' }];
+  const g3 = CalendarGen.generateSeries(p3.teams, p3.calendar, Object.assign(CalendarGen.seriesOptions(p3), { settings: Object.assign({}, p3.settings, { homeTotals: CalendarGen.defaultHomeTotals(2027, p3.teams, { initial: false }) }) }));
+  assert(/두산·LG이\(가\) 둘 다 개막전 원정/.test(g3.errors[0]), g3.errors[0]);
+});
+
+test('시리즈 생성(2027 원칙): 1차 편성 홈을 비우면 개막 대진에서 정함(68/67), 개막전 지정이 없어도 · 홈 구장만 지정해도', () => {
+  const nb = () => CalendarGen.defaultHomeTotals(2027, Preset.ENGINE_INPUT_2025.teams, { initial: false });
+  const { g } = project2027(nb());
+  eq(g.errors, []);
+  const h = homeByTeam(g.matches);
+  for (const t of Object.keys(h)) eq(h[t], OPENING_HOSTS_2027.includes(t) ? 68 : 67, t);
+  eq(g.homeTargets.filter((x) => x.remaining === 6).map((x) => x.team).sort(), ['두산', '롯데', '한화'].sort());
+  // 개막전 홈 구장만 지정(fix 'home', 대진 없음): 홈 구단은 그대로, 상대는 자동
+  const p = P27.buildProject();
+  const op = p.events.find((e) => e.type === 'OPENING'); delete op.pairs; op.fix = 'home';
+  const g2 = CalendarGen.generateSeries(p.teams, p.calendar, Object.assign(CalendarGen.seriesOptions(p), { settings: Object.assign({}, p.settings, { homeTotals: HT_A() }) }));
+  eq(g2.errors, []);
+  eq(g2.matches.filter((m, i) => g2.plan[i] === 0).map((m) => m.home).sort(), OPENING_HOSTS_2027.slice().sort());
+  // 개막전 지정 없음: 홈 73 구단이 개막전 홈이 된다
+  p.events = [];
+  const g3 = CalendarGen.generateSeries(p.teams, p.calendar, Object.assign(CalendarGen.seriesOptions(p), { settings: Object.assign({}, p.settings, { homeTotals: HT_A() }) }));
+  eq(g3.errors, []); eq(g3.matches.filter((m, i) => g3.plan[i] === 0).map((m) => m.home).sort(), OPENING_HOSTS_2027.slice().sort());
+});
+
+test('시리즈 생성: 2025 데이터 — homeTotals가 없으면 예전 방식 그대로, 2025 개막전 홈 구단으로 73/71 원칙도 동작', () => {
+  const slots = CalendarGen.generateSlots(Preset.DEFAULT_SETTINGS).slots;
+  const legacy = CalendarGen.generateSeries(Preset.ENGINE_INPUT_2025.teams, slots, { initialGamesPerPair: 15, homeGamesMajor: 9 });
+  const viaOpts = CalendarGen.generateSeries(Preset.ENGINE_INPUT_2025.teams, slots, CalendarGen.seriesOptions(project()));
+  eq(viaOpts.matches, legacy.matches, '설정을 넘겨도 homeTotals가 없으면 같은 결과'); eq(viaOpts.plan, legacy.plan);
+  const hosts25 = ['LG', 'SSG', 'KT', '삼성', 'KIA'];
+  const set = Object.assign({}, Preset.DEFAULT_SETTINGS, { homeTotals: CalendarGen.defaultHomeTotals(2025, Preset.ENGINE_INPUT_2025.teams, { moreTeams: hosts25 }) });
+  const g = CalendarGen.generateSeries(Preset.ENGINE_INPUT_2025.teams, slots, { settings: set, events: project().events });
+  eq(g.errors, []);
+  const h = homeByTeam(g.matches);
+  for (const t of Object.keys(h)) eq(h[t], hosts25.includes(t) ? 68 : 67, t);
+  eq(g.matches.filter((m, i) => g.plan[i] === 0).map((m) => m.home).sort(), hosts25.slice().sort());
+});
+
+test('미편성 경기 홈: homeTotals대로(홈 73 → 미편성 홈 5, 홈 71 → 4) · 1차 편성을 비운 방식은 3~6 · 취소가 있어도 전체 홈 수 유지', () => {
+  const check = (p, want) => {
+    const t = Reschedule.computeTargets(p);
+    assert(t.homeTotals && t.homeTotals.ok, t.homeTotals && t.homeTotals.message);
+    eq(t.totals.remaining, 45);
+    const rem = {}; for (const n of t.needs) rem[n.home] = (rem[n.home] || 0) + n.remaining;
+    for (const tm of p.teams) eq(rem[tm.name] || 0, want(tm.name), tm.name + ' 미편성 홈');
+    const home = {}; for (const g of Reschedule.computeGames(p).filter((x) => x.source === 'INITIAL')) home[g.home] = (home[g.home] || 0) + 1;
+    for (const tm of p.teams) eq(home[tm.name] + (rem[tm.name] || 0), p.settings.homeTotals.moreTeams.includes(tm.name) ? 73 : 71, tm.name + ' 전체 홈');
+    return t;
+  };
+  const a = project2027(HT_A()).p;
+  check(a, (n) => (OPENING_HOSTS_2027.includes(n) ? 5 : 4));
+  const b = project2027(CalendarGen.defaultHomeTotals(2027, Preset.ENGINE_INPUT_2025.teams, { initial: false })).p;
+  const want = { 한화: 6, 롯데: 6, 두산: 6, SSG: 5, KT: 5, NC: 4, 키움: 4, LG: 3, 삼성: 3, KIA: 3 };
+  check(b, (n) => want[n]);
+  // 취소 경기는 원래 홈으로 다시 편성되므로 미편성 홈 수는 그대로
+  const games = Reschedule.computeGames(a);
+  for (const g of [games[10], games[300]]) Reschedule.setGameStatus(a, g, 'CANCELLED', 'RAIN');
+  const t = check(a, (n) => (OPENING_HOSTS_2027.includes(n) ? 5 : 4));
+  eq(Reschedule.buildUnits(t).reduce((s, u) => s + u.games, 0), 47);
+  // homeTotals가 없으면(2025) 예전 규칙 그대로
+  eq(Reschedule.computeTargets(project()).homeTotals, null);
+});
+
+test('저장소 정규화: 예전 저장 데이터에 새 필드 기본값(playOnRest·seriesMinLength·allStarDays·그 해 올스타 시작일), homeTotals 모양 맞춤·검증', () => {
+  const old = project();
+  delete old.settings.seriesMinLength; delete old.settings.allStarDays;
+  old.settings.holidays = old.settings.holidays.map((h) => { const c = Object.assign({}, h); delete c.playOnRest; return c; });
+  const n = Store.normalize(old);
+  eq(n.settings.holidays.filter((h) => h.playOnRest).map((h) => h.date), ['2025-05-05']);
+  eq([n.settings.seriesMinLength, n.settings.allStarDays, 'homeTotals' in n.settings], [3, 6, false]);
+  // 2027 프로젝트에 올스타 시작일이 없으면 2025 값이 아니라 2027 기본값
+  const p27 = P27.buildProject(); delete p27.settings.allStarStart;
+  eq(Store.normalize(p27).settings.allStarStart, '2027-07-09');
+  // homeTotals: 숫자는 정수로, 이상한 값은 지움
+  const q = project(); q.settings.homeTotals = { moreTeams: ['한화', 3], more: { total: '73', initial: 68.2 }, less: { total: 71 } };
+  eq(Store.normalize(q).settings.homeTotals, { moreTeams: ['한화'], more: { total: 73, initial: 68 }, less: { total: 71 } });
+  q.settings.homeTotals = 'x'; assert(!('homeTotals' in Store.normalize(q).settings), '이상한 값은 지움');
+  const bad = project(); bad.settings.homeTotals = { moreTeams: ['없는팀'] };
+  bad.events.push({ id: 'e', type: 'OPENING', mode: 'STADIUM', stadiums: [], pairs: [{ home: 'KT', away: 'KT' }] });
+  const v = Store.validateProject(bad);
+  eq(v.errors.map((e) => e.path).sort(), ['events[2].pairs[0]', 'settings.homeTotals.moreTeams[0]']);
+  // 2027 프로젝트 저장 → 복원 왕복
+  const { p } = project2027(HT_A());
+  const v2 = Store.validateProject(JSON.parse(JSON.stringify(Store.normalize(p))));
+  assert(v2.ok); eq(v2.project.settings, Store.normalize(p).settings); eq(v2.project.events, Store.normalize(p).events);
+});
+
 test('AC-1 JS 채점기 = Java ScoreFormulas.evaluate (엔진 호환 모드, 골든 값)', () => {
   const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'golden-scores.json'), 'utf8'));
   const plans = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'plans.json'), 'utf8'));
