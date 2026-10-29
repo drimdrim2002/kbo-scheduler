@@ -482,7 +482,7 @@
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
-    const stepwise = !!(S.g1 && S.g1.mode === 'cal' && S.g1.open === 'teams'); // 구단 정보 펼침이면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
+    const stepwise = !!(S.g1 && S.g1.mode === 'flow' && S.g1.fs === 1); // 1 구단 정보 단계면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
     let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
     s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
     s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +

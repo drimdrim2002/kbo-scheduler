@@ -418,7 +418,10 @@
   };
   App.prototype.generateSeriesPreview = function () {
     const st = this.state;
-    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: st.settings.initialGamesPerPair, homeGamesMajor: st.settings.homeGamesMajor });
+    // 격년 홈 73/71·3연전 이상·개막전 대진(events)도 넘긴다(코어에 seriesOptions가 있으면 그것으로)
+    if (CalendarGen.seriesOptions) return CalendarGen.generateSeries(st.teams, st.calendar, CalendarGen.seriesOptions(st));
+    const s = st.settings;
+    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, gamesPerPair: s.gamesPerPair, homeTotals: s.homeTotals, seriesMinLength: s.seriesMinLength, events: st.events, settings: s });
   };
   App.prototype.regenerateSeries = function () {
     const g = this.generateSeriesPreview();
@@ -550,13 +553,36 @@
         s.matches[m].pinned = true;
         s.matches[m].eventId = e.id;
       }
-      // 홈 구장 지정(개막전 등, 어린이날 말고): 고른 구단이 그 연전 기간에 홈인 시리즈를 고정한다.
-      // 서버 자동 편성은 어린이날 홈 구단만 알기 때문에, 나머지는 고정으로 지킨다. 그 구단의 홈 시리즈가 그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다.
+      // 홈 구장 지정: fix 'home'(홈 구장만 지정)은 고정하지 않는다 — 서버가 그 연전 기간의 홈 의무 구단으로 직접 지킨다.
+      // fix 'pairs'(대진까지 고정)는 고른 대진(pairs)의 시리즈를 그 연전 기간에 고정한다. 대진이 없는 예전 데이터(fix 없음, 어린이날 말고)는
+      // 고른 구단이 그 기간에 홈인 시리즈를 고정한다(그 구단의 홈 시리즈가 그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다).
       for (const e of s.events) {
-        if (e.mode !== 'STADIUM' || e.type === 'CHILDREN' || !(e.teams || []).length) continue;
+        if (e.mode !== 'STADIUM' || !(e.teams || []).length || e.fix === 'home' || (e.type === 'CHILDREN' && e.fix !== 'pairs')) continue;
         const slot = Score.resolveEventSlot(e, s.calendar);
         if (slot < 0) continue;
         const L = s.calendar[slot].consecutive;
+        if (e.fix === 'pairs' && Array.isArray(e.pairs) && e.pairs.length) {
+          for (const pr of e.pairs) {
+            if (!pr.home || !pr.away) continue;
+            const cands = s.matches.map((m, i) => i).filter((i) => s.matches[i].home === pr.home && s.matches[i].away === pr.away);
+            if (!cands.length) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' 시리즈 없음'); continue; }
+            let m = cands.find((i) => s.plan[i].calendar === slot);
+            if (m == null) m = cands.find((i) => s.matches[i].consecutive === L && !s.matches[i].pinned);
+            if (m == null) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' ' + L + '연전 시리즈 없음'); continue; }
+            const from = s.plan[m].calendar;
+            if (from !== slot) {
+              for (let n = 0; n < s.matches.length; n++) {
+                if (n === m || s.plan[n].calendar !== slot || s.matches[n].pinned) continue;
+                const mm = s.matches[n];
+                if ([mm.home, mm.away].some((t) => t === pr.home || t === pr.away)) { s.plan[n].calendar = from; break; }
+              }
+              s.plan[m].calendar = slot;
+            }
+            s.matches[m].pinned = true;
+            s.matches[m].eventId = e.id;
+          }
+          continue;
+        }
         const busy = () => { const b = new Set(); s.matches.forEach((mm, i) => { if (s.plan[i].calendar === slot && mm.pinned) { b.add(mm.home); b.add(mm.away); } }); return b; };
         for (const h of e.teams) {
           let m = s.matches.findIndex((mm, i) => mm.home === h && s.plan[i].calendar === slot);

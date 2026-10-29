@@ -332,7 +332,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -351,7 +351,7 @@
     }
     else {
       o.step = u.step;
-      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 시즌 달력: tab 없음(open=teams·day=·slot=), 모든 표 보기: tab=
+      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계 흐름: tab 없음(pick=year·resume=1·fs=·day=·slot=), 모든 표 보기: tab=
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
@@ -392,7 +392,7 @@
     if (o.set) u.setTab = o.set;
     u.inspOff = o.insp === '0';
     u.demo = o.demo || null;
-    if (S.g1Route) S.g1Route(o); // ① 시즌 달력 한 화면(기본) · tab= 이면 모든 표 보기. 예전 g=·gs=·guide=는 시즌 달력으로
+    if (S.g1Route) S.g1Route(o); // ① 단계 흐름(연도·어디까지·fs=1~4) · tab= 이면 모든 표 보기. 예전 open=teams·g=·gs=는 단계로
   };
 
   // ───────── 스크롤 점검 (NFR-W4, AC-P2) ─────────

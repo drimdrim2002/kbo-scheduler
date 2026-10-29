@@ -232,6 +232,9 @@
       }
       if (n.events) {
         const keepIds = new Map(s.events.filter((e) => e.mode === 'STADIUM').map((e) => [e.date, e.id]));
+        // 엑셀 서식에는 지정 방식이 없다: 같은 날 지정의 방식(대진까지 고정·홈 구장만)과 남은 구단의 대진은 그대로 둔다
+        const keepFix = new Map(s.events.filter((e) => e.mode === 'STADIUM').map((e) => [e.date, { fix: e.fix || 'home', pairs: e.pairs }]));
+        n.events = n.events.map((e) => { const k = keepFix.get(e.date) || { fix: 'home' }; const o = Object.assign({}, e, { fix: k.fix }); if (k.fix === 'pairs') o.pairs = (k.pairs || []).filter((p) => (e.teams || []).includes(p.home)); return o; });
         const drop = new Set(s.events.filter((e) => e.mode === 'STADIUM').map((e) => e.id));
         s.events = s.events.filter((e) => e.mode !== 'STADIUM').concat(n.events.map((e) => Object.assign({ id: keepIds.get(e.date) || 'ev-' + e.type.toLowerCase() + '-' + e.date }, e, { mode: 'STADIUM' })));
         const now = new Map(s.events.map((e) => [e.id, e]));

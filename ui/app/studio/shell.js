@@ -26,6 +26,8 @@
       const sum = '연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length;
       if (errs) return { kind: 'warn', text: '칸 오류 ' + errs, summary: sum, next: '칸 오류 ' + errs };
       if (!st.calendar.length || !st.matches.length) return { kind: 'todo', text: '작성 중', summary: sum, next: !st.calendar.length ? '연전 기간 없음' : '시리즈 없음' };
+      const fl = S.flowStatus ? S.flowStatus() : null; // ① 단계 흐름: 네 단계가 모두 끝나야 완료
+      if (fl && !fl.allDone) return { kind: 'todo', text: '작성 중', summary: sum, next: fl.stop + '단계 「' + fl.steps[fl.stop - 1].name + '」' };
       return { kind: 'ok', text: '완료', summary: sum, next: '입력 완료' };
     }
     if (n === 2) {
