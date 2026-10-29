@@ -1546,3 +1546,4 @@ svg.mc text { font-family: var(--font); }
 .ck-foot .btn.primary { margin-left: 4px; }
 .stepview.fl .gs-body { display: flex; flex-direction: column; gap: 10px; }
 .stepview.fl .gs-body > .gs-why { margin: 0; }
+.ck-err { margin-top: 8px; }

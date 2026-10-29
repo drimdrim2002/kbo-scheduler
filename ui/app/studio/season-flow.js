@@ -95,6 +95,7 @@
       row(2, '2 시즌 기간·연전 묶음', esc(s.seasonStart ? '개막 ' + fmt.date(s.seasonStart) + ' ~ 1차 편성 ' + fmt.date(s.initialEnd) + ' · 시즌 종료 ' + fmt.date(s.seasonEnd) + ' · 묶음 ' + st.calendar.length + '개(2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ') · 경기일 ' + gd.have + ' / ' + gd.need + '일' : '개막일을 아직 고르지 않았습니다'), fix(2)) +
       row(3, '3 공휴일·홈 구장', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
       row(4, '시리즈(규칙대로 자동)', esc('맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + '(홈 ' + s.homeGamesMajor + '·원정 ' + (s.initialGamesPerPair - s.homeGamesMajor) + ') + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + ht + ' · ' + sr.text), '<span class="ck-btns"><button class="btn sm" data-act="fl-edit-rules">' + (F.edit === 'rules' ? '닫기' : '고치기') + '</button><button class="btn sm" data-act="g1-all" data-tab="series">표 보기</button></span>') +
+      (S.cal.seriesError ? '<div class="sc-warn ck-err">' + icon('warn') + '<span><b>시리즈를 만들 수 없습니다.</b> ' + esc(S.cal.seriesError) + '</span></div>' : '') +
       (F.edit === 'rules' ? rulesEditor() : '') +
       '<div class="fl-foot ck-foot"><span>' + esc(S.savedText()) + '</span><button class="btn sm" data-act="repo-export">' + icon('download') + '파일로 내려받기</button><span class="sc-xl"><button class="btn sm" data-act="cal-xl-down" title="구단 정보 · 시즌 기간과 공휴일 · 연전 기간 · 홈 구장 지정 시트 4개">' + icon('sheet') + '엑셀 서식 내려받기</button><button class="btn sm" data-act="cal-xl-up">' + icon('upload') + '채운 엑셀 올리기</button></span>' +
       '<button class="btn primary" data-act="cal-next">다음: ' + S.CIRCLED[2] + ' 검토·실행' + icon('right') + '</button></div>' +
@@ -288,9 +289,9 @@
     G.mode = 'resume'; S.go({ step: 1, ops: null });
     ok('어디까지 했는지: 2025 예시 → 네 단계 모두 완료 · 단계마다 한 줄 + 보기 · 연도 고르기·처음부터 다시·예시 다시 불러오기 · 주소 resume=1', /모두 준비돼 있습니다/.test(q('.fl-card h2').textContent) && qa('.rr.done').length === 4 && !!q('.fl-foot [data-act="year-reset"]') && !!q('.fl-foot [data-act="year-builtin"]') && /resume=1/.test(S.lastHash) && /4단계 모두 완료/.test(q('.step[data-step="1"] .step-sum').textContent));
     // 새 연도 2027(기본 제공이 있으면 처음부터 다시)
-    S.switchYear(2027, { quiet: true, to: 'resume' }); flush();
-    if (st().settings.seasonStart) { S.resetAll({ quiet: true, stay: true }); S.flowGo(1); }
-    ok('2027 새로 입력 → 바로 1 구단 정보 · 2025 구단 정보를 가져왔습니다 · 「바뀐 정보가 있나요?」 · 단계 띠 1 지금 여기', G.mode === 'flow' && G.fs === 1 && (/가장 최근\(2025\)/.test(q('.gs-card').textContent) || S.builtinOf(2027)) && /바뀐 정보가 있나요/.test(q('.fb-step.here').textContent));
+    // 2027 기본 제공(코어 KBO.Preset2027)이 있어도 「새로 입력」 길을 본다: 새 연도 프로젝트로 연다
+    S.switchYear(2027, S.builtinOf(2027) ? { quiet: true, to: 'resume', project: S.newYearProject(2027) } : { quiet: true, to: 'resume' }); flush();
+    ok('2027 새로 입력 → 바로 1 구단 정보 · 2025 구단 정보를 가져왔습니다 · 「바뀐 정보가 있나요?」 · 단계 띠 1 지금 여기', G.mode === 'flow' && G.fs === 1 && /가장 최근\(2025\)/.test(q('.gs-card').textContent) && /바뀐 정보가 있나요/.test(q('.fb-step.here').textContent));
     click('.gs-card [data-act="fl-teams-same"]'); flush();
     ok('「없어요」 → 2단계 · 개막일 후보 3/20 · 3/27(추천) · 4/3 · 나머지는 자동(접힘) · 연도 칸 「2027 시즌」', G.fs === 2 && S.calOpeningChoices().join() === '2027-03-20,2027-03-27,2027-04-03' && /3\/27\(토\) 추천/.test(q('.fl-open-ask').textContent) && !!q('.sc-dash') && /2027 시즌/.test(q('.tb-year').textContent));
     S.flowTour.start('season'); flush();
@@ -347,12 +348,17 @@
     ok('따라 하기(3단계) 1 / 1 · 단계를 떠나면 닫힘(데이터 그대로) · 4 확인 — 1~3 ✓ · 시리즈는 「다음」 때', daysCard && !S.flowTour.cur && G.fs === 4 && qa('.ck-row .ck-i.done').length === 3 && /다음」 때 규칙대로 만듭니다/.test(q('.ck-card').textContent));
     // 4 확인: 맞대결·격년 홈 73/71 고치기
     click('.ck-card [data-act="fl-edit-rules"]'); flush();
+    if (q('.ck-ed [data-act="fl-ht-off"]')) { click('.ck-ed [data-act="fl-ht-off"]'); flush(); } // 코어가 2027 기본값을 채워 두었으면 비우고 다시
     click('.ck-ed [data-act="fl-ht-on"]'); flush();
-    for (const n of ['한화', 'SSG', 'KT', '롯데', '두산']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
+    for (const n of ['한화', 'SSG', 'KT', '롯데', '두산', 'LG']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
     const ht = st().settings.homeTotals;
-    ok('4 확인 「고치기」: 격년 홈 73 / 71 쓰기 → 홈 73 구단 5곳(한화·SSG·KT·롯데·두산) · 1차 편성 홈 68/67', !!ht && ht.more.total === 73 && ht.less.total === 71 && ht.more.initial === 68 && ht.less.initial === 67 && ht.moreTeams.join() === 'SSG,두산,KT,한화,롯데', ht && ht.moreTeams.join());
-    const ok73 = !!CalendarGen.seriesOptions; // 코어가 격년 홈을 만들 줄 알 때만 시리즈까지 본다
-    if (!ok73) { click('.ck-ed [data-act="fl-ht-off"]'); flush(); }
+    ok('4 확인 「고치기」: 격년 홈 73 / 71 쓰기 → 홈 73 구단 5곳까지(6번째 LG는 거부) · 1차 편성 홈 68/67', !!ht && ht.more.total === 73 && ht.less.total === 71 && ht.more.initial === 68 && ht.less.initial === 67 && ht.moreTeams.join() === 'SSG,두산,KT,한화,롯데', ht && ht.moreTeams.join());
+    if (CalendarGen.seriesOptions) {
+      // 코어가 격년 홈으로 시리즈를 만들 때: 홈 73 구단과 개막전 홈 구단이 맞지 않으면 4 확인에 남아 이유를 보여 준다 → 개막전 홈 구단을 홈 73으로 맞추면 통과
+      click('.ck-card [data-act="cal-next"]'); flush();
+      ok('시리즈를 만들 수 없으면(홈 73 구단 ≠ 개막전 홈) 4 확인에 남아 코어의 이유를 보여 줌', S.ui.step === 1 && G.fs === 4 && !!q('.ck-err') && /시리즈를 만들 수 없습니다/.test(q('.ck-err').textContent));
+      for (const n of ['두산', '한화', '롯데', '삼성', 'KIA', 'LG']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
+    } else { click('.ck-ed [data-act="fl-ht-off"]'); flush(); }
     click('.ck-card [data-act="cal-next"]'); flush();
     ok('「다음: ② 검토·실행」 → 시리즈 규칙대로 225개 · ② · 개막전은 홈 구장만(고정 없음)', S.ui.step === 2 && st().matches.length === 225 && !st().matches.some((m) => m.pinned) && S.flowStatus().allDone, st().matches.length + ' · ' + S.flowStatus().stop);
     S.autosave.flush();

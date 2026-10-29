@@ -519,7 +519,7 @@
     if ((e.key === 'Delete' || e.key === 'Backspace') && C.slotAt != null && fs() === 2) { const b = bundles().find((x) => x.d === C.slotAt); if (b) { e.preventDefault(); removeBundle(b.i); return true; } }
     return false;
   };
-  S.calOnReset = function () { C.day = null; C.slotAt = null; C.edit = null; C.relay = null; C.pickOpen = false; C.other = false; };
+  S.calOnReset = function () { C.day = null; C.slotAt = null; C.edit = null; C.relay = null; C.pickOpen = false; C.other = false; C.seriesError = null; };
   /** 사전 점검 「입력 위치로」 등: 그 단계의 그 부분을 잠깐 강조한다. 반환: 갈 단계(2·3) */
   S.calFocus = function (tab) {
     const st = app().state;
@@ -739,10 +739,12 @@
   /** 「다음: ② 검토·실행」: 묶음이 바뀌어 시리즈가 맞지 않으면(경기일 합이 맞을 때) 규칙대로 다시 만들고, 대진 고정을 걸고 ②로 */
   S.calNext = function () {
     const sr = seriesState();
+    C.seriesError = null;
     if (!sr.ok && S.gameDaysCheck().ok && !S.locked()) {
       const g = app().generateSeriesPreview();
-      if (!g.errors.length && app().regenerateSeries()) S.toast('묶음에 맞춰 시리즈 ' + app().state.matches.length + '개를 규칙대로 만들었습니다(맞대결 ' + set().initialGamesPerPair + '경기). 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
-      else if (g.errors.length) S.toast(g.errors[0], 'warn', 7000);
+      // 시리즈를 만들 수 없으면(예: 격년 홈 73 구단과 개막전 홈 구단이 맞지 않음) 4 확인에 남아 이유와 고칠 곳을 보여 준다
+      if (g.errors.length) { C.seriesError = g.errors[0]; S.toast('시리즈를 만들 수 없어 넘어가지 않았습니다. 4 확인에서 이유를 보세요.', 'warn', 6000); S.flowGo(4); return; }
+      if (app().regenerateSeries()) S.toast('묶음에 맞춰 시리즈 ' + app().state.matches.length + '개를 규칙대로 만들었습니다(맞대결 ' + set().initialGamesPerPair + '경기). 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
     }
     S.calBeforeNext();
     S.go({ step: 2, ops: null, sel: null, edit: null });
