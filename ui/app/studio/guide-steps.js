@@ -18,12 +18,14 @@
   S.g1Route = function (o) {
     if (o.step && +o.step !== 1) return;
     if (o.g === 'all' || (o.tab && !o.g)) G.mode = 'all';
+    else if (o.pick === 'year' || (!o.year && !o.open && !o.day && !o.slot && !o.g && !(S.flowYearChosen && S.flowYearChosen()))) G.mode = 'year'; // 맨 먼저 시즌 연도
     else G.mode = 'cal';
     G.open = o.open === 'teams' ? 'teams' : null;
     if (S.calRoute) S.calRoute(o);
   };
   /** 주소에 적을 것 */
   S.g1Hash = function (o) {
+    if (G.mode === 'year') { delete o.tab; o.pick = 'year'; return; }
     if (G.mode !== 'cal') return;
     delete o.tab;
     if (G.open) o.open = G.open;
@@ -39,6 +41,19 @@
     G.open = tab === 'teams' || tab === 'distance' ? 'teams' : null;
     if (S.calFocus) S.calFocus(tab);
     S.go({ step: 1, ops: null, sel: null, modal: null, drawer: null });
+  };
+
+  /** 연도를 바꾼 뒤(season-year.js S.switchYear): to = 'resume'(어디까지 했는지) · 'flow'(처음 단계) · 'stay'(화면 그대로) */
+  S.flowOnYear = function (y, to) {
+    if (to === 'stay') { if (G.mode === 'year') G.mode = 'cal'; return; }
+    G.mode = 'cal'; G.open = null;
+    Object.assign(S.ui, { step: 1, ops: null });
+  };
+  /** 상단 띠의 연도 칸: 연도 고르기로(지금 연도는 저장해 두고 넘어감) */
+  S.flowPickYear = function () {
+    S.autosave.flush();
+    G.mode = 'year'; G.open = null;
+    S.go({ step: 1, ops: null, modal: null, drawer: null, cell: null, edit: null });
   };
 
   /** 구단 정보 단계: 표에서 고른 구단의 구단명·구장·위도·경도를 카드에서 고친다. 구장 칸에서 Enter = 구장 위치 찾기 */
@@ -152,16 +167,20 @@
   S.guideUI = {
     renderStep1(R) {
       if (G.mode === 'all') return null;
+      if (G.mode === 'year') return S.renderYearScreen();
       if (G.open === 'teams') return teamsScreen(R);
       return R.calendar();
     },
     /** 하단: 시즌 달력이면 안내 한 줄 · 실행 취소 · 「다음: 검토·실행」 */
     footer() {
-      if (S.ui.step !== 1 || S.ui.ops || G.mode !== 'cal') return null;
+      if (S.ui.step !== 1 || S.ui.ops) return null;
+      if (G.mode === 'year') return S.yearFooter();
+      if (G.mode !== 'cal') return null;
       return S.calFooter ? S.calFooter() : null;
     },
     /** 스테퍼 ①의 요약 줄 */
     stepSummary() {
+      if (G.mode === 'year') return '시즌 연도를 고르면 시작합니다';
       if (G.mode !== 'cal' || !S.calSummary) return null;
       return S.calSummary();
     },
@@ -191,6 +210,7 @@
       const qa = (sel) => document.querySelectorAll(sel);
       const card0 = () => q('.gs-card');
       // 구단 정보: 시즌 달력의 접힌 요약 → 「펼쳐서 고치기」 → 예전 1단계 화면(왼쪽 카드 + 구단 표·지도) → 「달력으로 돌아가기」
+      if (S.yearSelftest) await S.yearSelftest({ ok, click, flush });
       G.mode = 'cal'; G.open = null; S.go({ step: 1, ops: null, cell: null, edit: null });
       ok('구단 정보: 시즌 달력 왼쪽 위 접힌 요약(10구단 · 거리 90개) + 「펼쳐서 고치기」', !!q('.sc-teams') && /10구단/.test(q('.sc-teams').textContent) && /거리 90개/.test(q('.sc-teams').textContent) && !!q('.sc-teams [data-act="g1-teams"]'));
       click('.sc-teams [data-act="g1-teams"]'); flush();

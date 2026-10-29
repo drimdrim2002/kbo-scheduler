@@ -284,7 +284,7 @@
     if (!app.guard()) return false;
     const ok = app.commit(label, (s) => {
       for (const k of SWAP_KEYS) s[k] = next[k];
-      s.meta = Object.assign({}, s.meta, { name: next.meta.name, blank: !!next.meta.blank, updatedAt: new Date().toISOString() });
+      s.meta = Object.assign({}, s.meta, { name: next.meta.name, blank: !!next.meta.blank, flow: next.meta.flow || null, updatedAt: new Date().toISOString() });
       s.snapshots = next.snapshots || [];
     }, ['all']);
     if (!ok) return false;
@@ -293,12 +293,14 @@
   }
   /** 처음부터 입력하기: 표를 모두 비운다(실행 취소 가능). 시즌 기본 설정 화면으로 간다. */
   // 「새로 입력」 선택(guide-steps.js)이 부를 때는 quiet로, 띠·메뉴의 「처음부터 입력하기(초기화)」는 확인 창을 거쳐 부른다.
+  // 새 흐름(season-year.js)에서는 그 해를 처음부터 다시: 구단 정보·규칙 값은 지금 것 그대로, 그 해 법정 공휴일은 미리 넣는다.
   S.resetAll = function (opts) {
     const o = opts || {};
-    if (!swapProject(S.emptyProject(), '처음부터 입력하기(초기화)')) return false;
+    const next = S.newYearProject ? S.newYearProject(S.seasonYear(), { teamsFrom: S.app.state }) : S.emptyProject();
+    if (!swapProject(next, '처음부터 입력하기(초기화)')) return false;
     S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단 정보는 그대로 · ' + S.fmt.clock(new Date()) });
-    if (!o.quiet) S.toast('표를 모두 비웠습니다. 시즌 기본 설정부터 차례로 적어 주세요. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
-    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null });
+    if (!o.quiet) S.toast(S.seasonYear() + ' 시즌을 처음부터 다시 입력합니다. 구단 정보는 그대로 두었습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(S.seasonYear(), 'flow'); S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null }); }
     if (S.guideOnReset) S.guideOnReset(); // 단계별 화면이면 1단계로
     return true;
   };
@@ -308,7 +310,19 @@
     if (!swapProject(S.seedProject(), '2025 예시 데이터 다시 불러오기')) return false;
     S.importHistory.push({ kind: 'preset', source: '2025 실제 일정 (기본 제공)', detail: '다시 불러옴 · ' + S.fmt.clock(new Date()) });
     if (!o.quiet) S.toast('2025 실제 일정을 다시 불러왔습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
-    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'slots', modal: null, menu: null, drawer: null });
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(2025, 'resume'); S.go({ step: 1, ops: null, tab: 'slots', modal: null, menu: null, drawer: null }); }
+    return true;
+  };
+  /** 기본 제공 데이터로 다시(2025는 예시 데이터, 2027은 예상 일정). 실행 취소 가능 */
+  S.loadBuiltin = function (y, opts) {
+    if (+y === 2025) return S.loadExample(opts);
+    const b = S.builtinOf && S.builtinOf(y), o = opts || {};
+    if (!b) return false;
+    const p = b.build();
+    p.meta = Object.assign({}, p.meta, { season: +y }); p.settings = Object.assign({}, p.settings, { seasonYear: +y });
+    if (!swapProject(p, y + ' ' + b.tag + ' 데이터로 다시')) return false;
+    if (!o.quiet) S.toast(b.label + '(' + b.tag + ')을 다시 불러왔습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(+y, 'resume'); S.go({ step: 1, ops: null, modal: null, menu: null, drawer: null }); }
     return true;
   };
 
@@ -343,15 +357,18 @@
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
       if (u.sel) o.sel = u.sel;
     }
+    if (S.flowYearChosen && S.flowYearChosen()) o.year = S.seasonYear();
     if (S.dev()) o.dev = 1;
     if (u.modal) o.modal = u.modal;
     if (u.drawer) { o.drawer = u.drawer; }
     if (u.inspOff) o.insp = '0';
-    const str = Object.keys(o).map((k) => k + '=' + encodeURIComponent(o[k])).join('&');
+    const str = S.lastHash = Object.keys(o).map((k) => k + '=' + encodeURIComponent(o[k])).join('&');
     try { history.replaceState(null, '', location.pathname + location.search + '#' + str); } catch (e) { /* file:// 일부 환경 */ }
   };
   S.applyRoute = function (o) {
     const u = S.ui;
+    // year=: 그 시즌을 연다(주소를 고쳐 쓴 때). 시작할 때는 S.start가 먼저 연다
+    if (o.year && S.booted && S.switchYear && +o.year !== S.seasonYear() && +o.year > 2000) S.switchYear(+o.year, { boot: true, quiet: true, to: 'stay' });
     if (o.ops) {
       u.ops = ['games', 'reschedule', 'route'].includes(o.ops) ? o.ops : 'games';
       if (u.ops === 'route' && !S.feature('A6')) u.ops = 'games';

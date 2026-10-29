@@ -1402,3 +1402,32 @@ svg.mc text { font-family: var(--font); }
 .ct-hint { margin-right: auto; font-size: var(--fs-xs); color: #9FB2D2; }
 .ct-card .btn:not(.primary) { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .35); }
 .ct-acts .btn.primary { margin-left: auto; }
+
+/* ───────── ① 단계 흐름: 시즌 연도(상단 띠) · 연도 고르기 · 어디까지 했는지 ───────── */
+.tb-year { height: 30px; padding: 0 10px 0 13px; margin: 0 2px 0 4px; border-radius: 6px; border: 1px solid #fff; background: #fff; color: var(--navy); font: 800 18px/1 var(--font); letter-spacing: -.4px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.tb-year .i { width: 12px; height: 12px; opacity: .7; }
+.tb-year:hover { background: var(--blue-weak); }
+.tb-year.empty { background: transparent; color: #FFD66B; border: 1px dashed #FFD66B; font-size: 14px; font-weight: 700; padding: 0 12px; }
+.fl-center { display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; background: var(--bg); height: 100%; box-sizing: border-box; }
+.fl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgba(10, 30, 60, .07); padding: 24px 26px 20px; width: 820px; max-width: 100%; box-sizing: border-box; }
+.fl-card.wide { width: 1000px; }
+.fl-kick { color: var(--blue); font-weight: 700; font-size: var(--fs-s); }
+.fl-card h2 { margin: 6px 0 6px; font-size: 22px; letter-spacing: -.4px; color: var(--navy); }
+.fl-sub { margin: 0 0 16px; color: var(--text-2); line-height: 1.6; }
+.fl-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--text-2); font-size: var(--fs-s); }
+.fl-foot > span:first-child { flex: 1; }
+.yc-grid { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 12px; }
+.yc { border: 1px dashed #C6CCD6; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 7px; min-height: 196px; box-sizing: border-box; }
+.yc.has { border: 1px solid var(--ok-line); }
+.yc.saved { border: 1px solid var(--blue-line); }
+.yc.cur { border: 2px solid var(--blue); padding: 13px 15px; }
+.yc-y { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--navy); line-height: 1.1; display: flex; align-items: baseline; gap: 4px; }
+.yc-y small { font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--text-2); }
+.yc-now { margin-left: auto; font-size: var(--fs-xs); font-weight: 700; color: var(--blue); letter-spacing: 0; }
+.yc-stat { align-self: flex-start; display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-weight: 600; padding: 1px 7px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); color: var(--mock); }
+.yc-stat.ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }
+.yc-stat.blue { background: var(--blue-weak); border-color: var(--blue-line); color: var(--blue); }
+.yc-stat .i { width: 11px; height: 11px; }
+.yc-what { font-size: var(--fs-s); line-height: 1.6; color: var(--text); flex: 1; }
+.yc-go { justify-content: center; height: 34px; }
+.yc-more { font-size: var(--fs-xs); color: var(--mock); text-align: center; }
