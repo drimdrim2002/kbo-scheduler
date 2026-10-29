@@ -1,0 +1,23 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>2 · 시즌 기간·연전 묶음 — 개막일을 고른 뒤(따라 하기)</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="flow.css"></head><body><div class="body" style="position:relative"></div><script src="../input-flow-concepts/concept.js"></script><script src="flow.js"></script><script>
+const y = 2027, S = Flow.ruleSeason(y, '2027-03-27'); S.events = [];
+const sl = Concept.slots(S), h = Concept.hist(sl), D = Concept.D, have = Flow.sum(sl);
+Flow.chrome({ at: 2, year: 2027, sub: { 1: '✓ 그대로', 2: '✓ 경기일 ' + have + ' / 135일', 3: '아직', 4: '아직' }, st: { 2: 'cur' }, prev: '1 구단 정보', hint: '<b>2 / 4 시즌 기간·연전 묶음</b> — 달력을 보고 고칠 곳만 끌어서 고칩니다', next: '다음: 3 공휴일·홈 구장' });
+const sel = sl.findIndex((s) => D.iso(s.start) === '2027-07-15');
+document.querySelector('.body').innerHTML =
+  '<aside class="card" style="width:360px"><div class="kick">2 / 4단계</div><h2>시즌 기간·연전 묶음 <span class="stat ok">✓ 135일</span></h2>' +
+  '<div class="ask ok"><div class="q"><span class="no">✓</span>시즌 연도</div><div class="a"><span class="sel">2027 ▾</span></div></div>' +
+  '<div class="ask ok"><div class="q"><span class="no">✓</span>개막일</div><div class="a chips"><span class="chip on">3/27(토)</span><span class="chip">바꾸기…</span></div></div>' +
+  '<div class="box"><h4>자동으로 채운 것 <span class="r xs"><a>고치기</a></span></h4>' +
+  '<div class="line"><span class="k">1차 편성 종료일</span><span class="v">' + D.fmt(D.dn(S.initialEnd)) + ' <span class="auto">경기일 135일이 되는 날</span></span></div>' +
+  '<div class="line"><span class="k">시즌 종료일</span><span class="v">10/31(일) <span class="auto">기본</span></span></div>' +
+  '<div class="line"><span class="k">휴식 요일</span><span class="v">월 <span class="auto">기본</span></span></div>' +
+  '<div class="line"><span class="k">올스타 휴식기</span><span class="v">7/9(금)~7/14(수) <span class="auto">7월 둘째 금요일</span></span></div>' +
+  '<div class="line"><span class="k">월요일 공휴일</span><span class="v">8/16(월) 경기 · 8/19(목) 휴식</span></div></div>' +
+  '<div class="box"><h4>연전 규칙 <span class="r"><span class="stat ok">2025 공식 일정표로 확인</span></span></h4><div class="small muted">화·수·목 / 금·토·일 3연전 · 월 휴식 · 개막 토·일 2연전 · 올스타 뒤 목~일 4연전</div></div>' +
+  '</aside>' +
+  '<main class="main"><div class="head"><b>2027 시즌 달력</b><span class="desc">3월~9월 · 1차 편성 기간</span><span class="stat ok" style="font-size:13px;padding:3px 10px">경기일 ' + have + ' / 135일 ✓</span><span class="small muted">2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ' · 묶음 ' + sl.length + '개</span></div>' +
+  '<div class="body2"><div style="display:flex;justify-content:flex-end;margin-bottom:6px">' + Concept.legend([['game', '경기일'], ['ss', '묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일(빨강)'], ['sel', '고른 묶음']]) + '</div>' +
+  Concept.strip({ S, year: y, from: 3, to: 9, slots: sl, big: true, sel, layers: { range: 0, event: 0 } }) +
+  '<div class="small muted" style="margin-top:10px;display:flex;gap:18px"><span>⟷ 날짜를 <b>끌면</b> 연전 묶음(2·3·4연전)</span><span>▣ 묶음을 <b>누르면</b> 연전 수 바꾸기 · 나누기 · 지우기</span><span>묶음이 없는 날 = 경기 없는 날</span></div></div></main>' +
+  Flow.coach({ n: 2, of: 3, title: '달력을 훑어보고, 고칠 곳만 고치세요', text: '연전 묶음 ' + sl.length + '개를 규칙대로 깔았고 경기일은 ' + have + '일로 맞습니다. 예: 올스타 휴식기 뒤 7/15(목)~7/18(일) 4연전을 눌러 보세요 — 연전 수를 바꾸거나 나눌 수 있습니다.', x: 838, y: 330, side: 't' }) + Flow.ring(852, 266, 164, 52);
+</script></body></html>

@@ -1,0 +1,45 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>① 데이터 준비 단계 흐름 시안</title>
+<style>
+body{font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#172033;background:#F3F4F6;margin:0}
+main{max-width:1240px;margin:0 auto;padding:28px 24px 60px}
+h1{font-size:24px;margin:0 0 6px;color:#0A1E3C} h2{font-size:18px;margin:34px 0 8px;color:#0A1E3C}
+.lead{color:#435067;margin:0 0 16px}
+.box{background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:14px 18px;margin:10px 0}
+.flow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.flow span{background:#fff;border:1px solid #D2D7DF;border-radius:16px;padding:4px 12px;font-weight:600}
+.flow span.b{border-color:#1F5FD6;color:#1F5FD6}
+figure{margin:12px 0 22px;background:#fff;border:1px solid #E2E5EA;border-radius:8px;overflow:hidden}
+figure img{display:block;width:100%}
+figcaption{padding:10px 16px;border-top:1px solid #E2E5EA;color:#435067}
+figcaption b{color:#0A1E3C}
+ul{margin:4px 0;padding-left:20px} li{margin:3px 0}
+.q{background:#FFF3D9;border-color:#EDCB84}
+a{color:#1F5FD6}
+</style></head><body><main>
+<h1>① 데이터 준비 — 단계 흐름 시안</h1>
+<p class="lead">2026-10-29 사용자와 정한 것: ① 안을 4단계로 나누고, 지금 어느 단계인지 늘 보이게, 비어 있으면 그 자리에서 따라 하기로 안내, 다시 들어오면 「어디까지 했는지」 한 장부터. 데이터는 이 브라우저에 저장(DB는 나중에). 정적 시안이라 실제 화면은 아직 바꾸지 않았습니다.</p>
+<div class="box"><b>순서</b><div class="flow"><span>1 구단 정보</span>→<span class="b">2 시즌 기간·연전 묶음 (같이)</span>→<span class="b">3 공휴일·홈 구장 (같은 달력)</span>→<span>4 확인</span>→<span>② 검토·실행</span></div>
+<ul><li><b>단계 띠</b>: 위 ①~④ 아래에 ① 안의 4단계를 늘 보여 줍니다. 단계마다 상태 한 줄(「✓ 경기일 135 / 135일」, 「개막일을 골라 주세요」)과 <b>「지금 여기」</b>. 끝난 단계는 초록, 지금은 파랑.</li>
+<li><b>2단계는 손이 거의 안 가게</b>: 정할 것은 시즌 연도와 개막일(토요일 중 고르기)뿐. 1차 편성 종료일은 「경기일 135일이 되는 날」로, 올스타 휴식기는 7월 둘째 금요일로, 연전 묶음은 2025 공식 일정표 관행대로 자동. 고칠 곳만 달력에서 끕니다.</li>
+<li><b>3단계는 2단계가 끝난 뒤 같은 달력에서</b>: 공휴일 표(가중치)와 날을 눌러 홈 구장 지정. 공휴일을 바꿔 묶음 규칙이 달라지면 「묶음에 반영할까요?」를 묻습니다.</li>
+<li><b>데이터가 이미 있으면</b> 단계를 하나씩 눌러 확인합니다(4 확인 화면의 「고치기」).</li></ul></div>
+
+<h2>0 · 다시 왔을 때 — 어디까지 했는지</h2>
+<figure><a href="s0-resume.html"><img src="shots/s0-resume.png" alt=""></a><figcaption><b>들어오자마자 이 한 장.</b> 단계마다 완료/진행 중/아직과 들어 있는 것 한 줄, 멈춘 단계에 「이어서 하기」. 마지막으로 고친 때와 「이 브라우저에 저장됨」. 새 시즌·예시 데이터도 여기서.</figcaption></figure>
+<h2>1 · 구단 정보</h2>
+<figure><a href="s1-teams.html"><img src="shots/s1-teams.png" alt=""></a><figcaption><b>질문 하나: 「올해 구장이 바뀐 구단이 있나요?」</b> 없으면 그대로 「다음」. 있으면 지금 구단 정보 화면(구장 찾기·지도·거리)에서 고칩니다. 아래 「다음 단계」 상자로 뒤에 무엇이 오는지 미리 보여 줍니다.</figcaption></figure>
+<h2>2 · 시즌 기간·연전 묶음 — 비어 있을 때 (따라 하기 1 / 3)</h2>
+<figure><a href="s2-empty.html"><img src="shots/s2-empty.png" alt=""></a><figcaption><b>2027 새 시즌.</b> 연도를 고르면 주말·공휴일이 달력에 먼저 보이고, 개막일은 토요일 세 개 중 고르기(추천 표시). 나머지는 「자동」으로 접혀 있습니다. 따라 하기 카드가 지금 할 일 하나만 가리킵니다. 「다음」은 개막일을 고르기 전까지 흐립니다.</figcaption></figure>
+<h2>2 · 시즌 기간·연전 묶음 — 개막일을 고른 뒤 (따라 하기 2 / 3)</h2>
+<figure><a href="s2-filled.html"><img src="shots/s2-filled.png" alt=""></a><figcaption><b>3/27(토)를 누르면 끝.</b> 1차 편성 종료일 9/5(일)(경기일 135일이 되는 날), 올스타 7/9~7/14, 8/16(월) 대체공휴일 경기·8/19(목) 휴식까지 자동으로 채우고 묶음 45개 · 135일. 자동으로 채운 것은 「자동」 표시와 이유를 붙여 보여 줍니다. 고칠 곳만 끌거나 누릅니다.</figcaption></figure>
+<h2>3 · 공휴일·홈 구장 — 같은 달력에서 (따라 하기 3 / 3)</h2>
+<figure><a href="s3-days.html"><img src="shots/s3-days.png" alt=""></a><figcaption><b>왼쪽에서 확인할 두 가지</b>: 공휴일 표(그 해 법정 공휴일 자동 · 가중치)와 홈 구장 지정 목록(개막전 ✓ · 어린이날 고르는 중 3 / 5). 달력에서 날을 누르면 오른쪽에서 그 날 홈 구단을 고릅니다.</figcaption></figure>
+<h2>4 · 확인 — 다음은 ② 검토·실행</h2>
+<figure><a href="s4-check.html"><img src="shots/s4-check.png" alt=""></a><figcaption><b>한 장에 모두.</b> 단계별 요약과 「고치기」(그 단계로), 시리즈는 규칙대로 자동으로 만들었다는 한 줄. 데이터가 이미 있는 사람도 여기서 하나씩 눌러 확인합니다.</figcaption></figure>
+
+<div class="box q"><b>여쭤볼 것</b><ul>
+<li>단계 띠(① 아래 4칸)가 지금 어디인지 충분히 보이나요? 아니면 왼쪽 세로 목록이 나을까요?</li>
+<li>2단계에서 개막일을 고르면 바로 묶음을 깔까요(시안), 아니면 「규칙대로 채우기」를 한 번 누르게 할까요?</li>
+<li>따라 하기는 단계마다 처음 한 번씩(시안: 2단계 1·2, 3단계 3)이면 될까요?</li>
+<li>원하시면 이 표준안에서 한 부분씩만 다른 대안(예: 단계 표시 방식, 2단계 입력 방식)을 2~3개 더 만들어 비교해 드립니다.</li></ul></div>
+</main></body></html>

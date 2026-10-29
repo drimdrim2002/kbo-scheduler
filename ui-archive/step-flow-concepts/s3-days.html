@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>3 · 공휴일·홈 구장 — 같은 달력에서(따라 하기)</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="flow.css"></head><body><div class="body" style="position:relative"></div><script src="../input-flow-concepts/concept.js"></script><script src="flow.js"></script><script>
+const y = 2027, S = Flow.ruleSeason(y, '2027-03-27'), D = Concept.D;
+S.events = [{ date: '2027-03-27', name: '개막전' }];
+const sl = Concept.slots(S), have = Flow.sum(sl);
+Flow.chrome({ at: 3, year: 2027, sub: { 1: '✓ 그대로', 2: '✓ 경기일 135 / 135일', 3: '공휴일 ✓ · 홈 구장 1 / 2', 4: '아직' }, prev: '2 시즌 기간·연전 묶음', hint: '<b>3 / 4 공휴일·홈 구장</b> — 공휴일은 왼쪽 표에서, 홈 구장은 달력에서 날을 눌러 고릅니다', next: '다음: 4 확인' });
+const W = (h) => (/어린이날/.test(h.name) ? 3 : 2);
+const hol = S.holidays.filter((h) => h.date >= '2027-03-01' && h.date <= '2027-10-31');
+const T = ['SSG', '두산', 'LG', 'KT', '키움', '한화', '삼성', 'KIA', 'NC', '롯데'], pick = ['두산', '키움', '한화'];
+document.querySelector('.body').innerHTML =
+  '<aside class="card" style="width:330px;gap:10px"><div class="kick">3 / 4단계</div><h2>공휴일·홈 구장</h2>' +
+  '<p class="small">연전 묶음(2단계)이 깔린 같은 달력에서, 날짜에 붙는 두 가지를 정합니다.</p>' +
+  '<div class="ask ok"><div class="q"><span class="no">✓</span>공휴일과 가중치 <span class="r xs"><a>＋ 줄 추가</a></span></div><div class="a"><table class="t" style="font-size:12px"><tr><th>날짜</th><th>이름</th><th class="num">가중치</th></tr>' +
+  hol.slice(0, 7).map((h) => '<tr><td class="mono">' + D.fmt(D.dn(h.date)) + '</td><td>' + h.name + '</td><td class="num">' + W(h) + '</td></tr>').join('') + '<tr><td colspan="3" class="muted xs">외 ' + (hol.length - 7) + '일 · 2027 법정 공휴일을 자동으로 넣었습니다</td></tr></table></div>' +
+  '<div class="why">가중치 = 홈 경기 공정성에서 이 날의 가치(주말 하루 1). <span class="stat warn">기본값은 KBO 확인 필요</span></div></div>' +
+  '<div class="ask now"><div class="q"><span class="no">2</span>홈 구장 지정 <span class="stat blue">1 / 2</span></div><div class="a">' +
+  '<div class="line"><span class="k">3/27(토) 개막전</span><span class="v"><span class="stat ok">✓ 5곳</span></span></div><div class="line"><span class="k">5/5(수) 어린이날</span><span class="v"><span class="stat blue">고르는 중 3 / 5</span></span></div></div>' +
+  '<div class="why">달력에서 날을 누르면 오른쪽에서 그 날 홈 경기 구단 5곳을 고릅니다. 상대는 자동 편성이 정합니다.</div></div>' +
+  '</aside>' +
+  '<main class="main" style="margin-right:0;border-radius:6px 0 0 6px"><div class="head"><b>2027 시즌 달력</b><span class="desc">연전 묶음은 2단계에서 · 여기서는 날을 누릅니다</span><span class="stat ok" style="font-size:13px;padding:3px 10px">경기일 135 / 135일 ✓</span></div>' +
+  '<div class="body2"><div style="display:flex;justify-content:flex-end;margin-bottom:6px">' + Concept.legend([['game', '경기일'], ['hol', '공휴일(빨강)'], ['ev', '홈 구장 지정'], ['sel', '고른 날']]) + '</div>' +
+  Concept.strip({ S, year: y, from: 3, to: 9, slots: sl, big: true, onCell: (n) => (D.iso(n) === '2027-05-05' ? 'pick' : ''), layers: { range: 0 } }) +
+  '<div class="small muted" style="margin-top:10px">○ 날을 <b>누르면</b> 홈 구장 지정 · 빨간 동그라미 = 공휴일(가중치는 왼쪽 표)</div></div></main>' +
+  '<aside class="card" style="width:280px;border-left:1px solid var(--line);border-right:0"><div class="box blue"><h4>고른 날 · 5/5(수) <span class="r xs muted">어린이날 · 가중치 3</span></h4><div class="line"><span class="k">연전</span><span class="v">5/4(화)~5/6(목) 3연전</span></div>' +
+  '<div style="margin-top:8px"><span class="tog"><i class="on"></i><b>홈 구장 지정</b></span> <span class="stat blue">3 / 5곳</span><div class="xs muted" style="margin:4px 0 6px">이 날 홈 경기를 해야 하는 구단을 고릅니다.</div>' +
+  '<div style="display:flex;flex-wrap:wrap;gap:4px">' + T.map((t) => '<span class="btn sm"' + (pick.includes(t) ? ' style="background:var(--navy);color:#fff;border-color:var(--navy)"' : t === 'LG' ? ' style="opacity:.45"' : '') + '>' + t + '</span>').join('') + '</div><div class="xs muted" style="margin-top:6px">잠실은 두산·LG 중 하나만 고릅니다.</div></div></div>' +
+  '<div class="box warn"><h4>공휴일을 바꾸면</h4><div class="xs">연전 묶음 규칙(월요일 공휴일 경기 등)이 달라질 수 있어 「묶음에 반영할까요?」를 묻습니다.</div></div></aside>' +
+  Flow.ring(1166, 108, 266, 106) +
+  Flow.coach({ n: 3, of: 3, title: '어린이날 홈 구장 5곳을 마저 고르세요', text: '두산·키움·한화를 골랐습니다. NC·롯데처럼 두 곳을 더 누르면 3단계가 끝나고 「다음: 4 확인」으로 갑니다.', x: 850, y: 140, side: 'rt' });
+</script></body></html>

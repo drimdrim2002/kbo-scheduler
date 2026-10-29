@@ -1,0 +1,81 @@
+/* ① 데이터 준비 단계 흐름 시안 — 공통(../input-flow-concepts/concept.css 위에 얹는다) */
+/* ① 안의 단계 띠: 단계마다 이름 + 상태 한 줄. 지금 단계는 파랑, 끝난 단계는 초록 */
+.flow { flex: none; display: flex; align-items: stretch; gap: 0; background: #fff; border-bottom: 1px solid var(--line); padding: 0 14px; height: 58px; }
+.flow .lead { display: flex; flex-direction: column; justify-content: center; padding-right: 16px; margin-right: 6px; border-right: 1px solid var(--line); white-space: nowrap; }
+.flow .lead b { font-size: 13px; color: var(--navy); }
+.flow .lead small { font-size: 11px; color: var(--text-3); }
+.fs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; position: relative; color: var(--text-2); }
+.fs + .fs::before { content: ''; position: absolute; left: -6px; top: 50%; width: 12px; height: 12px; border-top: 1px solid var(--line-3); border-right: 1px solid var(--line-3); transform: translateY(-50%) rotate(45deg); background: #fff; }
+.fs i { font-style: normal; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-3); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex: none; background: #fff; }
+.fs div { min-width: 0; }
+.fs b { display: block; font-size: 13px; white-space: nowrap; color: var(--text); }
+.fs small { display: block; font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs.done i { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-line); }
+.fs.done small { color: var(--ok); }
+.fs.cur { background: var(--blue-weak); box-shadow: inset 0 -3px 0 var(--blue); }
+.fs.cur i { background: var(--blue); color: #fff; border-color: var(--blue); }
+.fs.cur b { color: var(--navy); }
+.fs.cur small { color: var(--blue); font-weight: 600; }
+.fs.half i { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-line); }
+.fs.todo b { color: var(--text-3); font-weight: 500; }
+.flow .tail { display: flex; align-items: center; gap: 12px; padding-left: 12px; white-space: nowrap; font-size: 12px; }
+.flow .tail a { color: var(--text-2); }
+.here { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--blue); background: #fff; border: 1px solid var(--blue-line); border-radius: 10px; padding: 1px 8px; margin-left: 4px; }
+
+/* 이 단계 카드 */
+.card .kick { font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: .3px; }
+.card h2 { font-size: 18px; }
+.ask { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; }
+.ask.now { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+.ask.ok { border-color: var(--ok-line); background: #FAFDFB; }
+.ask .q { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: var(--navy); }
+.ask .q .no { width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.ask.ok .q .no { background: var(--ok); }
+.ask .q .stat { margin-left: auto; }
+.ask .a { margin-top: 8px; }
+.ask .why { margin-top: 6px; font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line-2); border-radius: 16px; padding: 5px 12px; font-size: 13px; background: #fff; white-space: nowrap; }
+.chip.rec { border-color: var(--blue); color: var(--blue); font-weight: 700; }
+.chip.on { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
+.chip small { font-weight: 400; font-size: 11px; opacity: .8; margin-left: 4px; }
+.sel { display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--line-3); border-radius: 6px; padding: 6px 12px; font-size: 16px; font-weight: 700; background: #fff; }
+.auto { font-size: 10.5px; color: var(--text-3); border: 1px solid var(--line); background: var(--surface-2); border-radius: 3px; padding: 0 5px; font-weight: 400; }
+.fold { border: 1px dashed var(--line-2); border-radius: 6px; padding: 7px 10px; font-size: 12px; color: var(--text-2); line-height: 1.55; }
+.fold b { color: var(--text); }
+
+/* 따라 하기 카드(빈 상태 안내) */
+.coach { position: absolute; z-index: 9; width: 300px; background: var(--navy); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.55; box-shadow: 0 10px 30px rgba(10,30,60,.3); }
+.coach .h { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #B7CBF2; }
+.coach .h .dots { display: inline-flex; gap: 3px; } .coach .h .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.3); } .coach .h .dots i.on { background: #fff; } .coach .h .dots i.done { background: #7FB3FF; }
+.coach .h span.x { margin-left: auto; opacity: .7; }
+.coach h4 { margin: 4px 0 2px; font-size: 14px; }
+.coach p { margin: 0; color: #DDE6F5; }
+.coach .acts { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.coach .acts .btn { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+.coach::before { content: ''; position: absolute; width: 12px; height: 12px; background: var(--navy); transform: rotate(45deg); }
+.coach.l::before { left: -6px; top: 18px; } .coach.rt::before { right: -6px; top: 18px; } .coach.t::before { top: -6px; left: 24px; } .coach.b::before { bottom: -6px; left: 24px; }
+.ring { position: absolute; z-index: 8; border: 2px dashed var(--blue); border-radius: 8px; box-shadow: 0 0 0 4px rgba(31,95,214,.18); pointer-events: none; }
+
+/* 다시 왔을 때: 어디까지 했는지 */
+.resume { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.rcard { width: 760px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(10,30,60,.08); padding: 22px 26px 18px; }
+.rcard .kick { font-size: 12px; font-weight: 700; color: var(--blue); }
+.rcard h2 { margin: 4px 0 4px; font-size: 22px; color: var(--navy); }
+.rcard .sub { color: var(--text-2); margin: 0 0 14px; }
+.rrow { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+.rrow i { font-style: normal; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-3); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+.rrow.done i { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-line); }
+.rrow.cur { border-color: var(--blue); background: var(--blue-weak); }
+.rrow.cur i { background: var(--blue); color: #fff; border-color: var(--blue); }
+.rrow .t { min-width: 0; flex: 1; }
+.rrow .t b { font-size: 14px; display: block; }
+.rrow .t small { color: var(--text-2); font-size: 12px; }
+.rrow .btn { flex: none; }
+.rfoot { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-3); }
+.rfoot .btn.pri { margin-left: auto; padding: 8px 16px; font-size: 13.5px; }
+
+/* 바닥 */
+.foot .hint { flex: 1; text-align: center; color: var(--text-2); }
+.foot .hint b { color: var(--navy); }
+.btn.dis { opacity: .5; }
