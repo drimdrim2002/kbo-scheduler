@@ -7,9 +7,9 @@ const Y = [];
 for (let y = 2025; y <= last; y++) Y.push(y);
 const info = {
   2025: card(2025, 'has', '<span class="stat ok">✓ 데이터 있음</span><br>2025 실제 일정(기본 제공) · 4단계 모두 완료. 단계를 하나씩 눌러 확인합니다.', '<span class="btn">열기</span>'),
-  2026: card(2026, 'new', '<span class="stat todo">데이터 없음</span><br>새로 입력합니다. 구단 정보는 2025 것을 가져와 「바뀐 구장이 있나요?」만 묻습니다.', '<span class="btn">새로 입력</span>'),
+  2026: card(2026, 'new', '<span class="stat todo">데이터 없음</span><br>새로 입력합니다. 구단 정보는 가장 최근(2025) 것을 가져와 「바뀐 정보가 있나요?」만 묻습니다.', '<span class="btn">새로 입력</span>'),
   2027: card(2027, 'cont', '<span class="stat blue">이 브라우저에 저장됨</span><br>3단계 「공휴일·홈 구장」에서 멈춤 · 마지막으로 고친 때 10/27(화) 오후 2:32', '<span class="btn pri">이어서 하기 ›</span>'),
-  2028: card(2028, 'new', '<span class="stat todo">데이터 없음</span><br>새로 입력합니다. 구단 정보는 가장 최근(2027) 것을 가져옵니다.', '<span class="btn">새로 입력</span>')
+  2028: card(2028, 'new', '<span class="stat todo">데이터 없음</span><br>새로 입력합니다. 구단 정보는 가장 최근(2027) 것을 가져와 「바뀐 정보가 있나요?」를 묻습니다.', '<span class="btn">새로 입력</span>')
 };
 document.querySelector('.body').outerHTML = '<div class="resume"><div class="rcard" style="width:1000px">' +
   '<div class="kick">① 데이터 준비 · 맨 먼저</div><h2>몇 년 시즌을 편성할까요?</h2>' +

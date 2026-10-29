@@ -1,10 +1,11 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>1 · 구단 정보</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="flow.css"></head><body><div class="body" style="position:relative"></div><script src="../input-flow-concepts/concept.js"></script><script src="flow.js"></script><script>
-Flow.chrome({ at: 1, year: 2027, sub: { 1: '확인 중 · 10구단', 2: '아직', 3: '아직', 4: '아직' }, hint: '<b>1 / 4 구단 정보</b> — 구장이 바뀐 구단이 없으면 그대로 「다음」', next: '다음: 2 시즌 기간·연전 묶음' });
+Flow.chrome({ at: 1, year: 2027, sub: { 1: '바뀐 정보가 있나요?', 2: '아직', 3: '아직', 4: '아직' }, hint: '<b>1 / 4 구단 정보</b> — 2025 구단 정보를 가져왔습니다. 바뀐 정보가 없으면 그대로 「다음」', next: '다음: 2 시즌 기간·연전 묶음' });
 const T = Concept.TEAMS, ll = { SSG: [37.4370, 126.6932], 두산: [37.5122, 127.0719], LG: [37.5122, 127.0719], KT: [37.2997, 127.0097], 키움: [37.4983, 126.8671], 한화: [36.3166, 127.4290], 삼성: [35.8411, 128.6815], KIA: [35.1682, 126.8891], NC: [35.2226, 128.5826], 롯데: [35.1940, 129.0615] };
 document.querySelector('.body').innerHTML =
-  '<aside class="card"><div class="kick">1 / 4단계</div><h2>구단 정보 <span class="stat ok">✓ 그대로 써도 됩니다</span></h2>' +
-  '<p>구단과 구장, 구장 위치입니다. 구장 사이 이동거리를 이 위치로 계산합니다. KBO 10구단은 거의 바뀌지 않으므로 <b>구장이 바뀐 해만</b> 고칩니다(예: 잠실 공사로 임시 구장).</p>' +
-  '<div class="ask ok"><div class="q"><span class="no">✓</span>올해 구장이 바뀐 구단이 있나요?</div><div class="a chips"><span class="chip on">없음 — 그대로</span><span class="chip">있음 — 고칠게요</span></div><div class="why">「있음」을 누르면 표에서 구단을 골라 구장 이름을 적고 Enter — 위치와 거리를 다시 계산합니다.</div></div>' +
+  '<aside class="card"><div class="kick">1 / 4단계</div><h2>2027 시즌 구단 정보</h2>' +
+  '<div class="box blue" style="padding:8px 12px"><b>가장 최근(2025) 구단 정보를 가져왔습니다.</b><div class="small muted">10구단 · 구장 · 위치 · 구장 간 거리 90개</div></div>' +
+  '<p>구장 사이 이동거리는 구장 위치로 계산합니다. 구단 이름·구장·위치가 바뀐 해만 고칩니다(예: 잠실 공사로 임시 구장).</p>' +
+  '<div class="ask now"><div class="q"><span class="no">1</span>바뀐 정보가 있나요? <span class="stat blue">지금</span></div><div class="a chips"><span class="chip">없어요 — 그대로</span><span class="chip">있어요 — 고칠게요</span></div><div class="why">「없어요」 → 바로 2단계로. 「있어요」 → 따라 하기가 고치는 법을 차례로 알려 드립니다.</div></div>' +
   '<div class="box"><h4>지금 들어 있는 것</h4><div class="line"><span class="k">구단</span><span class="v">10구단</span></div><div class="line"><span class="k">구장 간 거리</span><span class="v">90개 모두(도로거리 45쌍)</span></div><div class="line"><span class="k">같이 쓰는 구장</span><span class="v">잠실(두산·LG)</span></div></div>' +
   '<div class="box blue"><h4>다음 단계</h4><div class="small">2 시즌 기간·연전 묶음 — 시즌 연도와 개막일을 고르면 연전 묶음이 규칙대로 깔립니다.</div></div></aside>' +
   '<main class="main"><div class="head"><b>구단 정보</b><span class="desc">10구단 · 표를 누르면 왼쪽에서 고칩니다</span></div><div class="body2"><table class="t"><tr><th>#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr>' +
