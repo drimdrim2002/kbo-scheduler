@@ -1,7 +1,8 @@
 /*
  * ① 데이터 준비 단계 흐름 시안 — 공통 틀 (정적 시안 전용, 실제 스튜디오 코드와 무관)
  * 사용자 결정(2026-10-29): ① 안은 4단계 — 1 구단 정보 → 2 시즌 기간·연전 묶음(같이, 손이 거의 안 가게) → 3 공휴일·홈 구장(2가 끝난 뒤 같은 달력에서) → 4 확인.
- * 다시 들어오면 「어디까지 했는지」 한 장을 먼저 보여 주고 이어서 한다. 데이터는 이 브라우저에 저장(DB는 나중에).
+ * 맨 먼저 시즌 연도를 고른다(오늘 기준 2년 뒤까지). 고른 연도는 상단 띠에 크게 늘 보이고 모든 단계에 그대로 쓰인다.
+ * 그 해 데이터가 있으면 「어디까지 했는지」 한 장, 없으면 1 구단 정보부터 새로 입력. 데이터는 이 브라우저에 연도별로 저장(DB는 나중에).
  */
 (function () {
   'use strict';
@@ -18,9 +19,9 @@
     }).join('');
     const cur = F.STEPS[o.at - 1];
     document.body.insertAdjacentHTML('afterbegin',
-      '<header class="top"><span class="logo">KBO</span><b>KBO 일정 편성 · ' + (o.year || 2025) + '</b><span class="sub">편성 스튜디오</span><span class="pill ' + (o.pill || 'todo') + '">' + (o.pillText || '작성 중') + '</span><span class="muted">자동 편성 <b>대기</b></span><span class="r">데이터 ▾ &nbsp;&nbsp; 시즌 운영 &nbsp;&nbsp; 설정</span></header>' +
+      '<header class="top"><span class="logo">KBO</span><b>일정 편성</b>' + (o.noYear ? '<span class="yr empty">시즌 연도를 고르세요</span>' : '<span class="yr" title="눌러서 다른 시즌으로">' + (o.year || 2025) + ' 시즌 <i>▾</i></span>') + '<span class="sub">편성 스튜디오</span><span class="pill ' + (o.pill || 'todo') + '">' + (o.pillText || '작성 중') + '</span><span class="muted">자동 편성 <b>대기</b></span><span class="r">데이터 ▾ &nbsp;&nbsp; 시즌 운영 &nbsp;&nbsp; 설정</span></header>' +
       '<nav class="stepper"><span class="st cur"><i>1</i><div><b>데이터 준비</b><small>' + (o.sum || (cur ? o.at + ' / 4 ' + cur.name : '어디까지 했는지')) + '</small></div><span class="pill ' + (o.pill || 'todo') + '">' + (o.pillText || '작성 중') + '</span></span><span class="st"><i>2</i><div><b>검토·실행</b><small>데이터 준비를 마치면 점검합니다</small></div></span><span class="st"><i>3</i><div><b>결과·수정</b><small>자동 편성 뒤</small></div></span><span class="st"><i>4</i><div><b>공정성·배포</b><small>자동 편성 뒤</small></div></span></nav>' +
-      (o.at ? '<div class="flow"><div class="lead"><b>① 데이터 준비</b><small>' + o.at + ' / 4단계</small></div>' + band + '<div class="tail"><a>☰ 어디까지 했는지</a><a>▦ 모든 표 보기</a></div></div>' : ''));
+      (o.at ? '<div class="flow"><div class="lead"><b>' + (o.year || 2025) + ' 시즌 · ① 데이터 준비</b><small>' + o.at + ' / 4단계</small></div>' + band + '<div class="tail"><a>☰ 어디까지 했는지</a><a>▦ 모든 표 보기</a></div></div>' : ''));
     document.body.insertAdjacentHTML('beforeend', '<footer class="foot">' + (o.prev ? '<span class="btn">‹ 이전: ' + o.prev + '</span>' : '<span class="btn dis">‹ 이전</span>') +
       '<span class="hint">' + (o.hint || '') + '</span><span class="r"><span class="muted"><kbd>Ctrl</kbd>+<kbd>Z</kbd> 실행 취소</span><span class="btn pri' + (o.nextDis ? ' dis' : '') + '">' + (o.next || '') + ' ›</span></span></footer>');
   };

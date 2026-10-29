@@ -79,3 +79,19 @@
 .foot .hint { flex: 1; text-align: center; color: var(--text-2); }
 .foot .hint b { color: var(--navy); }
 .btn.dis { opacity: .5; }
+
+/* 시즌 연도: 상단 띠 왼쪽, 로고·제품 이름 바로 뒤에 크게. 모든 화면(①~④·시즌 운영)에서 같은 자리 */
+.top .yr { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 14px; border-radius: 6px; background: #fff; color: var(--navy); font-size: 19px; font-weight: 800; letter-spacing: -.3px; cursor: pointer; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+.top .yr i { font-style: normal; font-size: 11px; color: var(--text-3); font-weight: 400; }
+.top .yr.empty { background: transparent; color: #FFE7A3; font-size: 14px; border: 1px dashed #FFE7A3; box-shadow: none; }
+.top { height: 50px; }
+/* 연도 고르기 화면 */
+.years { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.yc { border: 1px solid var(--line-2); border-radius: 10px; padding: 16px 16px 14px; background: #fff; display: flex; flex-direction: column; gap: 8px; min-height: 196px; }
+.yc .y { font-size: 34px; font-weight: 800; color: var(--navy); letter-spacing: -1px; line-height: 1; }
+.yc .y small { font-size: 15px; font-weight: 600; letter-spacing: 0; color: var(--text-2); margin-left: 4px; }
+.yc .what { font-size: 12.5px; color: var(--text-2); flex: 1; line-height: 1.55; }
+.yc .btn { justify-content: center; padding: 8px 12px; font-size: 13px; }
+.yc.has { border-color: var(--ok-line); }
+.yc.cont { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+.yc.new { border-style: dashed; }
