@@ -300,6 +300,11 @@ test('시리즈 생성(2027 원칙): 1차 편성 홈을 비우면 개막 대진�
   p.events = [];
   const g3 = CalendarGen.generateSeries(p.teams, p.calendar, Object.assign(CalendarGen.seriesOptions(p), { settings: Object.assign({}, p.settings, { homeTotals: HT_A() }) }));
   eq(g3.errors, []); eq(g3.matches.filter((m, i) => g3.plan[i] === 0).map((m) => m.home).sort(), OPENING_HOSTS_2027.slice().sort());
+  // 화면이 settings 없이 낱개 이름으로 넘겨도 같다(homeTotals · seriesMinLength · gamesPerPair · events)
+  const q = P27.buildProject();
+  const viaNames = CalendarGen.generateSeries(q.teams, q.calendar, { initialGamesPerPair: 15, homeGamesMajor: 9, homeTotals: HT_A(), seriesMinLength: 3, gamesPerPair: 16, events: q.events });
+  const viaOpts = CalendarGen.generateSeries(q.teams, q.calendar, Object.assign(CalendarGen.seriesOptions(q), { homeTotals: HT_A(), settings: Object.assign({}, q.settings, { homeTotals: HT_A() }) }));
+  eq(viaNames.errors, []); eq(viaNames.matches, viaOpts.matches); eq(viaNames.plan, viaOpts.plan);
 });
 
 test('시리즈 생성(2027 원칙): 사용자가 바꾼 개막 대진 여러 개 — 잠실 한 구단만 개막전 홈이면 늘 성공(68/67·대진·겹침 없음), 아니면 잠실 오류', () => {

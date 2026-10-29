@@ -492,7 +492,10 @@
     return { targets, errors };
   }
 
-  /** 시리즈 생성에 넘길 값: CalendarGen.generateSeries(st.teams, st.calendar, seriesOptions(st)) */
+  /**
+   * 시리즈 생성에 넘길 값: CalendarGen.generateSeries(st.teams, st.calendar, seriesOptions(st)).
+   * 낱개로 넘겨도 된다: { initialGamesPerPair, homeGamesMajor, gamesPerPair, homeTotals, seriesMinLength, events } — 낱개 값이 settings보다 앞선다
+   */
   function seriesOptions(project) {
     const s = project.settings || {};
     return { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, settings: s, events: project.events || [] };
@@ -552,6 +555,7 @@
     const n = teams.length;
     const G = o.initialGamesPerPair || settings.initialGamesPerPair || 15;
     settings.initialGamesPerPair = G;
+    if (o.gamesPerPair) settings.gamesPerPair = o.gamesPerPair;
     const minLen = Math.max(1, Math.round(Number(o.seriesMinLength || settings.seriesMinLength) || 3));
     const errors = [], warnings = [];
     const fail = (msg) => { if (msg) errors.push(msg); return { matches: [], plan: [], errors, warnings, homeTargets: [] }; };
