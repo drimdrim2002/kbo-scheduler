@@ -53,6 +53,18 @@ module.exports = function (test, h) {
     assert(h0e > 0, 'H0-e 위반이 나와야 함');
   });
 
+  test('REST 엔진: 서버 400 문장을 그대로 오류로 (본문 없으면 HTTP 상태)', async () => {
+    const msg = '2025-05-05 시작 연전 롯데은(는) 홈 구장 지정 구단인데 SSG 원정 시리즈로 고정되어 있습니다. 고정을 풀거나 홈 구장 지정을 바꿔 주세요.';
+    const reply = (status, body) => () => Promise.resolve({ ok: status < 400, status, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)) });
+    const errorOf = (fetchImpl) => new Promise((ok) => {
+      const h = new K.Engine.RestEngineAdapter({ baseUrl: 'http://x', fetchImpl }).solve(project(), { init: 'SCRATCH' });
+      h.on('error', (e) => ok(e.message));
+    });
+    eq(await errorOf(reply(400, JSON.stringify({ error: msg }))), msg, '400 error');
+    eq(await errorOf(reply(429, JSON.stringify({ message: '잠시 뒤에 다시' }))), '잠시 뒤에 다시', 'message 키');
+    eq(await errorOf(reply(502, '<html>')), 'HTTP 502 /api/v1/solve', '본문이 JSON이 아님');
+  });
+
   test('홈 구장 지정: 엔진 호환 의무 구단 풀이(이벤트 우선 · 어린이날 예전 설정 · 이벤트 없으면 5/5)', () => {
     const p = project();
     const names = (ob) => ob.teams.map((i) => p.teams[i].name).sort();
