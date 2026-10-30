@@ -28,17 +28,21 @@
 | `settings.holidays[].playOnRest` | `boolean` | 휴식 요일(월)에 든 공휴일에 경기할지. 켜면 `ruleSettings`가 그 날을 경기일, 그 주 목요일을 휴식으로. 저장값이 없으면 어린이날(5/5)만 켜짐(`holidayPlaysOnRest`). 정규화가 값을 채운다 |
 | `settings.allStarDays` | 정수(기본 6) | 올스타 휴식기 길이(`allStarStart` 금요일부터) |
 | `settings.seriesMinLength` | 정수(기본 3) | 개막 연전 말고는 이 길이 이상(홈 73/71 원칙 시리즈 생성이 검사) |
-| `settings.homeTotals` | `{ moreTeams: [구단], more: { total: 73, initial?: 68 }, less: { total: 71, initial?: 67 } }` | 격년 홈 73/71. 있으면 시리즈 생성과 미편성 홈 결정이 이 원칙을 따른다. 없으면 예전 방식(2025). `initial`을 비우면 1차 편성 홈은 개막 대진에서 정하고 미편성 홈으로 전체를 맞춘다 |
+| `settings.homeTotals` | `{ moreTeams: [구단], more: { total: 73, initial?: 69 }, less: { total: 71, initial?: 66 } }` | 격년 홈 73/71. 홈 73 구단은 개막전 홈 구단과 상관없다. 있으면 시리즈 생성과 미편성 홈 결정이 이 원칙을 따른다. 없으면 예전 방식. `initial`을 비우면 시리즈 생성이 1차 편성 홈을 정하고 미편성 홈으로 전체를 맞춘다 |
+| `settings.fourGameHome` | `'same'`(기본)│`'swap'` | 후반기 첫 4연전 홈. `'same'` = 개막 대진의 두 구단이 개막전 홈 구단 구장에서 다시, `'swap'` = 홈을 바꿔서. 정규화가 값을 채운다 |
 | `events[].pairs` · `events[].fix` | `[{ home, away }]` · `'pairs'`│`'home'` | 개막전 대진(대진까지 고정) 또는 홈 구장만 지정. 시리즈 생성이 개막 연전 기간에 그 대진을 둔다 |
 
 - **시리즈 생성** `generateSeries(teams, calendar, seriesOptions(project))`: `settings.homeTotals`가 있으면 `generateSeriesByHomeTotals`.
   - 연전 묶음은 「개막 2연전 + 4연전 하나 + 나머지 3연전」 또는 「모두 3연전」이어야 한다.
-  - 개막 2연전과 4연전은 같은 두 구단이 홈을 바꿔 치른다. 개막전 홈 구단은 2연전 + 3연전 둘, 상대는 4연전 + 3연전 하나라서 맞대결은 8 : 7이다. 나머지 맞대결은 9 : 6이다.
+  - 개막 2연전과 4연전은 같은 두 구단이 치른다(맞대결 15 = 2 + 4 + 3연전 셋). 나머지 맞대결은 3연전 다섯 개로 9 : 6이다.
+    - `'same'`(기본): 개막전 홈 구단이 2연전·4연전 홈이라 개막 맞대결도 9 : 6(개막전 홈 구단 6 + 3연전 하나, 또는 상대 3연전 셋)이다. 1차 편성 홈은 모두 3의 배수 → 2027 기본 69/66(미편성 홈 4/5).
+    - `'swap'`: 개막전 홈 구단은 2연전 + 3연전 둘, 상대는 4연전 + 3연전 하나라서 개막 맞대결은 8 : 7이다. 1차 편성 홈은 개막전 홈 구단 3k + 2(예: 68), 상대 3k + 1(예: 67).
   - 구단마다 1차 편성 홈이 `initial`이 되도록 다수 홈을 나눈다. 잠실(같이 쓰는 구장)은 처음부터 겹치지 않게 짠다.
   - 반환에 `homeTargets: [{ team, initial, total, remaining, openingHost }]`와 `openingPairs`가 붙는다.
-  - 맞지 않으면 `errors`에 이유와 고칠 곳을 적는다. 예를 들어 이 방식에서는 1차 편성 홈 68(3으로 나눈 나머지 2)은 개막전 홈 구단만, 67(나머지 1)은 개막전 원정 구단만 될 수 있다.
+  - 맞지 않으면 `errors`에 이유와 고칠 곳을 적는다. 예: `'same'`에서 68/67을 주면 「3의 배수만 된다 · 4연전 설정을 홈 바꿈으로」, `'swap'`에서 홈 68 구단이 개막전 원정이면 「홈 68은 개막전 홈 구단만」, 잠실 두 구단이 둘 다 개막전 홈이거나 서로 맞붙지 않고 둘 다 원정이면 잠실 오류.
+  - 2025 데이터에 `defaultHomeTotals(2025, teams)`(`'same'`)를 넣으면 2025 실제 1차 편성 홈(SSG·KT·두산·한화·롯데 69, 나머지 66)이 그대로 나온다.
 - **미편성 홈** `Reschedule.computeTargets`: `homeTotals`가 있으면 구단별 「전체 홈 − 1차 편성 홈(취소 포함)」이 되도록 잔여 경기 홈을 고친다. `remainingHomeRule`은 출발점으로만 쓴다. 결과는 `homeTotals: { ok, message, byTeam }`에 담긴다.
-- **기본값** `defaultHomeTotals(year, teams, { moreTeams?, initial? })`: 홀수 해는 한화·SSG·KT·롯데·두산이 홈 73, 짝수 해는 나머지 다섯 구단이다. `flipHomeTotals(ht, teams)`는 다음 해 값을 만든다.
+- **기본값** `defaultHomeTotals(year, teams, { moreTeams?, initial?, fourGameHome? })`: 홀수 해는 한화·SSG·KT·롯데·두산이 홈 73, 짝수 해는 나머지 다섯 구단이다. 1차 편성 홈은 69/66(`fourGameHome: 'swap'`이면 68/67, `initial: false`면 비움). `flipHomeTotals(ht, teams)`는 다음 해 값을 만든다.
 
 ## 채점 정합성
 

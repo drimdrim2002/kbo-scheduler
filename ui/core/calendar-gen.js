@@ -440,7 +440,9 @@
 
   /**
    * 홈 73/71 기본값. 홀수 해(2025·2027) 홈 73 = 한화·SSG·KT·롯데·두산, 짝수 해는 나머지 다섯 구단(해마다 바뀜).
-   * opts.moreTeams로 홈 73 구단을 직접 줄 수 있다(예: 개막전 홈 구단). 1차 편성 홈(initial)은 opts.initial이 false면 넣지 않는다(시리즈 생성이 개막 대진에서 정함).
+   * opts.moreTeams로 홈 73 구단을 직접 줄 수 있다. 홈 73 구단과 개막전 홈 구단은 서로 상관없다.
+   * 1차 편성 홈(initial) = 69/66(미편성 홈 4/5): 후반기 첫 4연전을 개막전 홈 구단 구장에서 하면(fourGameHome 'same', 기본) 1차 편성 홈은 모두 3의 배수다.
+   * opts.fourGameHome이 'swap'(4연전 홈 바꿈)이면 68/67 — 이때 홈 68 구단 = 개막전 홈 구단이어야 한다. opts.initial이 false면 넣지 않는다(시리즈 생성이 정함).
    * teams: [{ name }] — 이 목록에 있는 이름만 남긴다. 구단 수가 10이 아니면 절반을 위에서부터 고른다.
    */
   const HOME_MORE_ODD = ['한화', 'SSG', 'KT', '롯데', '두산'];
@@ -451,7 +453,7 @@
     let more = o.moreTeams ? o.moreTeams.slice() : (Number(year) % 2 === 1 ? HOME_MORE_ODD.filter((x) => names.includes(x)) : names.filter((x) => !HOME_MORE_ODD.includes(x)));
     if (!o.moreTeams && more.length !== half) more = names.slice(0, half);
     const out = { moreTeams: more, more: { total: 73 }, less: { total: 71 } };
-    if (o.initial !== false) { out.more.initial = 68; out.less.initial = 67; }
+    if (o.initial !== false) { const swap = o.fourGameHome === 'swap'; out.more.initial = swap ? 68 : 69; out.less.initial = swap ? 67 : 66; }
     return out;
   }
 
@@ -494,7 +496,7 @@
 
   /**
    * 시리즈 생성에 넘길 값: CalendarGen.generateSeries(st.teams, st.calendar, seriesOptions(st)).
-   * 낱개로 넘겨도 된다: { initialGamesPerPair, homeGamesMajor, gamesPerPair, homeTotals, seriesMinLength, events } — 낱개 값이 settings보다 앞선다
+   * 낱개로 넘겨도 된다: { initialGamesPerPair, homeGamesMajor, gamesPerPair, homeTotals, fourGameHome, seriesMinLength, events } — 낱개 값이 settings보다 앞선다
    */
   function seriesOptions(project) {
     const s = project.settings || {};
@@ -543,8 +545,10 @@
   /**
    * 홈 73/71 원칙으로 시리즈 만들기 (settings.homeTotals가 있을 때).
    *  - 개막 연전(첫 연전 기간) 말고는 seriesMinLength(기본 3)연전 이상. 묶음 구성은 「개막 2연전 + 4연전 하나 + 나머지 3연전」 또는 「모두 3연전」
-   *  - 개막 2연전과 4연전은 같은 두 구단이 홈을 바꿔 치른다(2 + 4 = 6경기): 개막전 홈 구단은 2연전 홈 + 3연전 둘, 상대는 4연전 홈 + 3연전 하나 → 맞대결 15 = 8 : 7
-   *  - 나머지 맞대결은 3연전 다섯 개를 9 : 6으로(다수 홈). 구단마다 1차 편성 홈이 homeTotals의 initial(예: 68/67)이 되도록 다수 홈을 나눈다
+   *  - 개막 2연전과 후반기 첫 4연전은 같은 두 구단이 치른다(맞대결 15 = 2 + 4 + 3연전 셋). 4연전 홈은 settings.fourGameHome:
+   *      'same'(기본) = 개막전 홈 구단 구장에서 다시 → 개막전 홈 구단 6 + 3연전 하나, 상대 3연전 셋(또는 그 반대로 6 + 0 : 9) = 9 : 6, 1차 편성 홈은 모두 3의 배수(예: 69/66)
+   *      'swap' = 홈을 바꿔 → 개막전 홈 구단 2연전 + 3연전 둘, 상대 4연전 + 3연전 하나 = 8 : 7, 1차 편성 홈은 개막전 홈 구단 3k + 2, 상대 3k + 1(예: 68/67)
+   *  - 나머지 맞대결은 3연전 다섯 개를 9 : 6으로(다수 홈). 구단마다 1차 편성 홈이 homeTotals의 initial(예: 69/66)이 되도록 다수 홈을 나눈다
    *  - 같이 쓰는 구장(잠실 두산·LG)은 같은 연전 기간에 둘 다 홈이 되지 않게 처음부터 짠다
    *  - 개막전 이벤트(type 'OPENING')의 pairs가 있으면 그 대진을, teams(홈 구단)만 있으면 그 구단을 홈으로 개막 연전 기간에 둔다
    * 맞지 않는 조합이면 errors에 이유와 고칠 곳을 적는다.
@@ -581,8 +585,12 @@
     if (G % 3 !== 0) return fail('맞대결 ' + G + '경기는 3연전으로 나눠지지 않습니다. 홈 73/71 원칙은 3의 배수(예: 15)에서만 씁니다.');
     const t = G / 3, majT = Math.ceil(t / 2), minT = t - majT; // 보통 맞대결: 3연전 t개를 majT : minT
     const k = mode === 'PAIRED' ? (G - 6) / 3 : 0; // 개막 맞대결의 3연전 수
-    const hostT = mode === 'PAIRED' ? Math.max(0, Math.min(k, Math.round((G / 2 - 2) / 3))) : 0;
-    const R = mode === 'PAIRED' ? n - 2 : n - 1; // 보통 라운드 수(개막 라운드 제외)
+    const fourSame = mode === 'PAIRED' && String(o.fourGameHome || settings.fourGameHome || 'same') !== 'swap'; // 4연전도 개막전 홈 구단 구장
+    const hostT = mode === 'PAIRED' ? Math.max(0, Math.min(k, Math.round((G / 2 - 2) / 3))) : 0; // 'swap': 개막전 홈 구단의 홈 3연전 수
+    // 'same': 개막 맞대결도 다수 홈을 고른다. 개막전 홈 구단이 다수 홈이면 3연전 hostMajJ개, 상대가 다수 홈이면 visMajJ개를 개막전 홈 구단이 홈
+    const hostMajJ = majT - 2, visMajJ = k - majT;
+    if (fourSame && (hostMajJ < 0 || hostMajJ > k || visMajJ < 0 || visMajJ > k)) return fail('맞대결 ' + G + '경기에서는 후반기 첫 4연전을 개막전 홈 구단 구장에서 할 수 없습니다(맞대결 홈 ' + 3 * majT + ' : ' + 3 * minT + '이 맞지 않음). 4연전 설정을 「홈 바꿈」으로 고르거나 맞대결 경기 수를 바꾸세요.');
+    const R = mode === 'PAIRED' && !fourSame ? n - 2 : n - 1; // 다수 홈을 고르는 라운드 수('swap'이면 개막 라운드 제외)
     // 개막전: 홈 구단과 대진
     const opening = (o.events || []).find((e) => e && e.type === 'OPENING' && e.mode === 'STADIUM');
     const evPairs = [];
@@ -598,12 +606,12 @@
     if (hosts.length > n / 2) return fail('개막전 홈 구단이 ' + hosts.length + '곳입니다. 한 연전 기간에 홈은 ' + (n / 2) + '곳까지입니다.');
     // 1차 편성 홈 목표
     const sp = new Array(n).fill(0); // 개막 맞대결에서 얻는 홈 경기
-    const spHost = 2 + 3 * hostT, spVisitor = 4 + 3 * (k - hostT);
+    const spHost = fourSame ? 0 : 2 + 3 * hostT, spVisitor = fourSame ? 0 : 4 + 3 * (k - hostT);
     const base = 3 * R * minT, step = 3 * (majT - minT);
     let target = tg.targets.map((x) => x.initial);
     const derived = target.every((v) => v == null);
     if (mode === 'PAIRED') {
-      if (!derived && hosts.length < n / 2) {
+      if (!derived && !fourSame && hosts.length < n / 2) {
         // 홈 구단을 다 정하지 않았으면 목표가 「개막전 홈 몫」인 구단으로 채운다
         for (let i = 0; i < n && hosts.length < n / 2; i++) if (!hosts.includes(i) && !used.has(i) && step && (target[i] - spHost - base) % step === 0 && (target[i] - spVisitor - base) % step !== 0) hosts.push(i);
       }
@@ -628,7 +636,7 @@
     const m = target.map((h, i) => (step ? (h - sp[i] - base) / step : (h === sp[i] + base ? 0 : NaN)));
     const bad = m.map((v, i) => (!Number.isInteger(v) || v < 0 || v > R ? i : -1)).filter((i) => i >= 0);
     if (bad.length) {
-      if (mode === 'PAIRED') {
+      if (mode === 'PAIRED' && !fourSame) {
         const wantHost = bad.filter((i) => !hosts.includes(i) && step && Number.isInteger((target[i] - spHost - base) / step));
         const wantVisitor = bad.filter((i) => hosts.includes(i) && step && Number.isInteger((target[i] - spVisitor - base) / step));
         if (wantHost.length || wantVisitor.length) {
@@ -641,20 +649,22 @@
           return fail(msg);
         }
       }
-      return fail('1차 편성 홈 경기 수를 맞출 수 없습니다: ' + nameList(bad.map((i) => names[i] + ' ' + target[i])) + '. 3연전 ' + t + '개로 나누는 맞대결에서는 한 맞대결의 홈이 ' + 3 * majT + ' 또는 ' + 3 * minT + '경기라 구단마다 ' + (sp[bad[0]] + base) + '~' + (sp[bad[0]] + base + step * R) + ' 사이에서 ' + step + '씩만 바뀝니다.');
+      return fail('1차 편성 홈 경기 수를 맞출 수 없습니다: ' + nameList(bad.map((i) => names[i] + ' ' + target[i])) + '. 3연전 ' + t + '개로 나누는 맞대결에서는 한 맞대결의 홈이 ' + 3 * majT + ' 또는 ' + 3 * minT + '경기라 구단마다 ' + (sp[bad[0]] + base) + '~' + (sp[bad[0]] + base + step * R) + ' 사이에서 ' + step + '씩만 바뀝니다.' + (fourSame ? ' 후반기 첫 4연전을 개막전 홈 구단 구장에서 하면 개막 맞대결도 ' + 3 * majT + ' : ' + 3 * minT + '이라 1차 편성 홈은 이 수들만 됩니다. 4연전에서 홈을 바꾸려면 4연전 설정을 「홈 바꿈」으로 고르세요.' : ''));
     }
     // 같이 쓰는 구장
     const groupsBy = new Map();
     teams.forEach((tm, i) => { if (!groupsBy.has(tm.stadium)) groupsBy.set(tm.stadium, []); groupsBy.get(tm.stadium).push(i); });
     const shared = Array.from(groupsBy.values()).filter((g) => g.length > 1);
     if (shared.some((g) => g.length > 2)) return fail('한 구장을 세 구단 이상이 같이 쓰면 홈 73/71 원칙으로 만들 수 없습니다.');
+    // 같이 쓰는 두 구단이 서로 맞붙지 않고 둘 다 개막전 원정이면: 'swap'은 4연전에 둘 다 홈, 'same'은 개막 맞대결 3연전(원정 구단은 셋 중 둘 이상 홈)이 겹친다
+    const bothVisitorsMsg = (g) => teams[g[0]].stadium + '을(를) 같이 쓰는 ' + nameList(g.map((i) => names[i])) + '이(가) 둘 다 개막전 원정이면 ' + (fourSame ? '개막 대진 상대와의 3연전에서 둘 다 홈이 되는 연전 기간이 생깁니다' : '후반기 첫 4연전(홈 바꿈)에 둘 다 홈이 됩니다') + '. 한 구단을 개막전 홈으로 하거나 두 구단을 개막전에서 맞붙이세요.';
     for (const g of shared) {
       const [a, b] = g, st = teams[a].stadium;
       if (target[a] + target[b] > totalGames) return fail(st + '을(를) 같이 쓰는 ' + nameList(g.map((i) => names[i])) + '의 1차 편성 홈 합(' + (target[a] + target[b]) + ')이 경기일 ' + totalGames + '일보다 많습니다.');
       if (mode === 'PAIRED') {
         const pairedTogether = evPairs.some((p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a));
         if (hosts.includes(a) && hosts.includes(b)) return fail(st + '을(를) 같이 쓰는 ' + nameList(g.map((i) => names[i])) + '이(가) 둘 다 개막전 홈입니다. 한 구단만 고르세요.');
-        if (!hosts.includes(a) && !hosts.includes(b) && !pairedTogether && evPairs.length >= n / 2) return fail(st + '을(를) 같이 쓰는 ' + nameList(g.map((i) => names[i])) + '이(가) 둘 다 개막전 원정이면 후반기 첫 4연전(홈 바꿈)에 둘 다 홈이 됩니다. 한 구단을 개막전 홈으로 하거나 두 구단을 개막전에서 맞붙이세요.');
+        if (!hosts.includes(a) && !hosts.includes(b) && !pairedTogether && evPairs.length >= n / 2) return fail(bothVisitorsMsg(g));
       }
     }
     // 개막 대진 채우기: 정한 대진 + 남은 홈 구단에 남은 원정 구단(같이 쓰는 구장 구단끼리 먼저)
@@ -676,7 +686,7 @@
       }
       if (mode === 'PAIRED') for (const g of shared) {
         const [a, b] = g;
-        if (!hosts.includes(a) && !hosts.includes(b) && !openPairs.some((p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a))) return fail(teams[a].stadium + '을(를) 같이 쓰는 ' + nameList(g.map((i) => names[i])) + '이(가) 둘 다 개막전 원정이면 후반기 첫 4연전(홈 바꿈)에 둘 다 홈이 됩니다. 한 구단을 개막전 홈으로 하거나 두 구단을 개막전에서 맞붙이세요.');
+        if (!hosts.includes(a) && !hosts.includes(b) && !openPairs.some((p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a))) return fail(bothVisitorsMsg(g));
       }
     }
     // 라운드(완전 매칭): 원형 방식을 구단 순서만 바꿔 써서 첫 라운드가 개막 대진이 되게 한다
@@ -705,7 +715,7 @@
       lastRound = chosen;
     }
     // 다수 홈 나누기: 보통 라운드의 맞대결마다 다수 홈(3연전 majT개) 구단을 고른다. 구단 i는 m[i]번
-    const regular = rounds.map((r, ri) => ri).filter((ri) => !(mode === 'PAIRED' && ri === 0));
+    const regular = rounds.map((r, ri) => ri).filter((ri) => !(mode === 'PAIRED' && !fourSame && ri === 0));
     let major = null; // major[ri][pi] = 다수 홈 구단
     if (step) {
       const sg = shared[0] || null;
@@ -774,14 +784,16 @@
       if (mode === 'PAIRED' && ri === 0) {
         const s2 = sl.find((si) => lengths[si] === 2), s4 = sl.find((si) => lengths[si] === 4);
         const tri = sl.filter((si) => lengths[si] === 3);
-        const pats = combos(tri.length, hostT);
-        let sharedPat = null;
+        let sharedRef = null;
         pairsR.forEach(([x, y], pi) => {
           const h = hosts.includes(x) ? x : y, v = h === x ? y : x;
+          const hj = fourSame ? (major[0][pi] === h ? hostMajJ : visMajJ) : hostT; // 개막전 홈 구단의 홈 3연전 수
+          const pats = combos(tri.length, hj);
           let pat = pats[pi % pats.length];
-          if (sharedOf(h) || sharedOf(v)) { if (!sharedPat) sharedPat = pat; pat = sharedPat; } // 잠실 두 구단의 3연전 홈이 겹치지 않게 같은 무늬
+          // 잠실 두 구단의 3연전 홈이 겹치지 않게 같은 순서의 앞부분을 쓴다(개막전 홈 쪽 홈 = 앞 hj개, 원정 쪽 홈 = 나머지)
+          if (sharedOf(h) || sharedOf(v)) { if (!sharedRef) sharedRef = tri.map((s, j) => j); pat = sharedRef.slice(0, hj); }
           push(h, v, s2);
-          push(v, h, s4);
+          push(fourSame ? h : v, fourSame ? v : h, s4);
           tri.forEach((si, j) => (pat.includes(j) ? push(h, v, si) : push(v, h, si)));
         });
         return;

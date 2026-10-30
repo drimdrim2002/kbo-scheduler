@@ -273,13 +273,15 @@
   }
 
   /**
-   * 2027 원칙 설정 정리: 연전 최소 길이·올스타 휴식기 길이는 양의 정수, 홈 73/71(homeTotals)은 모양을 맞추고 이상하면 지운다(없으면 예전 방식).
+   * 2027 원칙 설정 정리: 연전 최소 길이·올스타 휴식기 길이는 양의 정수, 후반기 첫 4연전 홈(fourGameHome)은 'same'(기본)·'swap',
+   * 홈 73/71(homeTotals)은 모양을 맞추고 이상하면 지운다(없으면 예전 방식).
    * 저장값에 올스타 시작일이 없으면 2025 기본값 대신 그 해 기본값(7월 둘째 금요일)을 쓴다.
    */
   function normalizeSeasonRules(set, saved) {
     const posInt = (v, d) => { const x = Math.round(Number(v)); return Number.isFinite(x) && x > 0 ? x : d; };
     set.seriesMinLength = posInt(set.seriesMinLength, 3);
     set.allStarDays = posInt(set.allStarDays, KBO.CalendarGen.ALL_STAR_DAYS);
+    set.fourGameHome = set.fourGameHome === 'swap' ? 'swap' : 'same';
     const y = /^(\d{4})-/.exec(String(set.seasonStart || '')) ? +String(set.seasonStart).slice(0, 4) : (set.seasonYear ? +set.seasonYear : null);
     if (saved.allStarStart == null && y && y !== 2025) set.allStarStart = KBO.CalendarGen.defaultAllStarStart(y);
     const ht = set.homeTotals;

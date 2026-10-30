@@ -695,7 +695,7 @@
     // 평준화 허용오차(손잡이). 편차가 이 값 이상이면 감점. 휴일 1.0 = 주말·공휴일 홈 가중치를 정수로 가능한 한 같게
     distanceToleranceKm: 300, holidayTolerance: 1.0, moveTolerance: 2,
     // 개막 연전 말고는 이 길이 이상(홈 73/71 원칙 시리즈 생성이 지킴) · 올스타 휴식기 길이(금~수)
-    seriesMinLength: 3, allStarDays: 6,
+    seriesMinLength: 3, allStarDays: 6, fourGameHome: 'same',
     referenceDate: '',
     longTripKm: 600,
     solver: { timeLimitSec: 10, unimprovedSec: 5, seed: 42, init: 'KEEP' }
@@ -781,8 +781,11 @@
     ['08-20', 3], ['08-24', 3], ['08-27', 3], ['08-31', 3], ['09-03', 3]
   ];
 
-  /** 2027 홈 73/71: 홈 73 구단(1차 편성 홈 68 · 미편성 홈 5), 나머지 홈 71(67 · 4) */
-  const HOME_TOTALS_2027 = { moreTeams: ['한화', 'SSG', 'KT', '롯데', '두산'], more: { total: 73, initial: 68 }, less: { total: 71, initial: 67 } };
+  /**
+   * 2027 홈 73/71: 홈 73 구단(1차 편성 홈 69 · 미편성 홈 4), 나머지 홈 71(66 · 5). 개막전 홈 구단과는 상관없다.
+   * 후반기 첫 4연전을 개막전 홈 구단 구장에서 하므로(fourGameHome 'same') 1차 편성 홈은 3의 배수.
+   */
+  const HOME_TOTALS_2027 = { moreTeams: ['한화', 'SSG', 'KT', '롯데', '두산'], more: { total: 73, initial: 69 }, less: { total: 71, initial: 66 } };
 
   const DEFAULT_SETTINGS_2027 = Object.assign(clone(DEFAULT_SETTINGS), {
     seasonYear: 2027,
@@ -811,6 +814,7 @@
     allStarStart: '2027-07-09',
     allStarDays: 6,
     homeTotals: HOME_TOTALS_2027,
+    fourGameHome: 'same',
     seriesMinLength: 3,
     obligationTeams: ['두산', '키움', '한화', '롯데', 'NC']
   });
