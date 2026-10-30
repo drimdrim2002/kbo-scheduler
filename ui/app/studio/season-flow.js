@@ -400,11 +400,12 @@
     click('.ck-ed .sc-4g [data-v="same"]'); flush();
     ok('후반기 첫 4연전 홈: 기본 「개막전 홈 구단 그대로」(69 / 66) ↔ 「홈 바꿈」(fourGameHome, 68 / 67로 같이) · 확인 줄에 보임', g4a && g4b && st().settings.fourGameHome === 'same' && st().settings.homeTotals.more.initial === 69);
     if (CalendarGen.seriesOptions) {
-      // 코어가 격년 홈으로 시리즈를 만들 때: 홈 73 구단과 개막전 홈 구단이 맞지 않으면 4 확인에 남아 이유를 보여 준다 → 개막전 홈 구단을 홈 73으로 맞추면 통과
+      // 코어가 격년 홈으로 시리즈를 만들 때: 홈 73 구단(한화·SSG·KT·롯데·두산)과 개막전 홈 구단(KT·삼성·KIA·LG·SSG)은 서로 독립(노트 「라」) — 69 / 66 그대로 만든다
+      // 만들 수 없는 조합이면 4 확인에 남아 코어의 이유를 보여 준다: 4연전 홈 「그대로」인데 1차 편성 홈을 68 / 67(홈 바꿈일 때 값)로 넣은 경우
+      app().commit('시험: 1차 편성 홈 68 / 67', (x) => { x.settings.homeTotals.more.initial = 68; x.settings.homeTotals.less.initial = 67; }, ['settings']); flush();
       click('.ck-card [data-act="cal-next"]'); flush();
-      ok('시리즈를 만들 수 없으면(홈 73 구단 ≠ 개막전 홈) 4 확인에 남아 코어의 이유를 보여 줌', S.ui.step === 1 && G.fs === 4 && !!q('.ck-err') && /시리즈를 만들 수 없습니다/.test(q('.ck-err').textContent));
-      for (const n of ['두산', '한화', '롯데', '삼성', 'KIA', 'LG']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
-      click('.ck-ed [data-act="fl-ht-init"][data-v="auto"]'); flush(); // 1차 편성 홈 수는 코어가 개막 대진·4연전 홈 설정으로 정하게
+      ok('시리즈를 만들 수 없으면(4연전 홈 그대로 + 1차 편성 홈 68 / 67) 4 확인에 남아 코어의 이유를 보여 줌', S.ui.step === 1 && G.fs === 4 && !!q('.ck-err') && /시리즈를 만들 수 없습니다/.test(q('.ck-err').textContent));
+      app().undo(); flush();
     } else { click('.ck-ed [data-act="fl-ht-off"]'); flush(); }
     click('.ck-card [data-act="cal-next"]'); flush();
     ok('「다음: ② 검토·실행」 → 시리즈 규칙대로 225개 · ② · 개막전은 홈 구장만(고정 없음)', S.ui.step === 2 && st().matches.length === 225 && !st().matches.some((m) => m.pinned) && S.flowStatus().allDone, st().matches.length + ' · ' + S.flowStatus().stop);
