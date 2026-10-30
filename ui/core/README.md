@@ -43,6 +43,7 @@
   - 2025 데이터에 `defaultHomeTotals(2025, teams)`(`'same'`)를 넣으면 2025 실제 1차 편성 홈(SSG·KT·두산·한화·롯데 69, 나머지 66)이 그대로 나온다.
 - **미편성 홈** `Reschedule.computeTargets`: `homeTotals`가 있으면 구단별 「전체 홈 − 1차 편성 홈(취소 포함)」이 되도록 잔여 경기 홈을 고친다. `remainingHomeRule`은 출발점으로만 쓴다. 결과는 `homeTotals: { ok, message, byTeam }`에 담긴다.
 - **기본값** `defaultHomeTotals(year, teams, { moreTeams?, initial?, fourGameHome? })`: 홀수 해는 한화·SSG·KT·롯데·두산이 홈 73, 짝수 해는 나머지 다섯 구단이다. 1차 편성 홈은 69/66(`fourGameHome: 'swap'`이면 68/67, `initial: false`면 비움). `flipHomeTotals(ht, teams)`는 다음 해 값을 만든다.
+- **격년제 기본값**(새 연도를 만들 때 채움, 이미 있는 값은 덮지 않음): `defaultHomeMoreTeams(year, teams?)` = 홈 73 구단(홀수 해 한화·SSG·KT·롯데·두산 / 짝수 해 LG·NC·KIA·삼성·키움), `defaultChildrenHosts(year, teams?)` = 어린이날 홈 구단(홀수 해 두산·키움·한화·롯데·NC / 짝수 해 LG·SSG·KT·삼성·KIA). 어린이날 대진은 정하지 않는다.
 
 ## 채점 정합성
 

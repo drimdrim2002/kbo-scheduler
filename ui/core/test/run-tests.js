@@ -226,7 +226,7 @@ test('격년 홈 73/71 기본값: 홀수 해 한화·SSG·KT·롯데·두산, �
   const y27 = CalendarGen.defaultHomeTotals(2027, teams), y28 = CalendarGen.defaultHomeTotals(2028, teams);
   eq(y27.moreTeams.slice().sort(), MORE_2027.slice().sort());
   eq(y28.moreTeams.slice().sort(), ['KIA', 'LG', 'NC', '삼성', '키움'].sort());
-  eq(CalendarGen.flipHomeTotals(y27, teams).moreTeams, y28.moreTeams);
+  eq(CalendarGen.flipHomeTotals(y27, teams).moreTeams.slice().sort(), y28.moreTeams.slice().sort());
   eq([y27.more, y27.less], [{ total: 73, initial: 69 }, { total: 71, initial: 66 }]);
   const sw = CalendarGen.defaultHomeTotals(2027, teams, { fourGameHome: 'swap' });
   eq([sw.more, sw.less], [{ total: 73, initial: 68 }, { total: 71, initial: 67 }]);
@@ -235,6 +235,29 @@ test('격년 홈 73/71 기본값: 홀수 해 한화·SSG·KT·롯데·두산, �
   eq(t.errors, []); eq(t.targets.find((x) => x.team === '한화'), { team: '한화', total: 73, initial: 69 });
   const bad = CalendarGen.homeTotalsTargets(teams, { homeTotals: { moreTeams: ['한화', 'SSG'], more: { total: 73 }, less: { total: 71 } }, gamesPerPair: 16 });
   assert(/리그 전체 경기 수/.test(bad.errors[0]), bad.errors[0]);
+});
+
+test('격년제 기본값: 홈 73 구단 · 어린이날 홈 구단(홀수 해 2023·2025·2027 / 짝수 해 2024·2026·2028) = 2025·2027 기본 데이터와 같음', () => {
+  const teams = Preset.ENGINE_INPUT_2025.teams;
+  const sorted = (a) => a.slice().sort();
+  for (const y of [2023, 2025, 2027]) {
+    eq(sorted(CalendarGen.defaultHomeMoreTeams(y)), sorted(MORE_2027), y + ' 홈 73');
+    eq(sorted(CalendarGen.defaultChildrenHosts(y)), sorted(['두산', '키움', '한화', '롯데', 'NC']), y + ' 어린이날');
+  }
+  for (const y of [2024, 2026, 2028]) {
+    eq(sorted(CalendarGen.defaultHomeMoreTeams(y)), sorted(['LG', 'NC', 'KIA', '삼성', '키움']), y + ' 홈 73');
+    eq(sorted(CalendarGen.defaultChildrenHosts(y)), sorted(['LG', 'SSG', 'KT', '삼성', 'KIA']), y + ' 어린이날');
+  }
+  // 2025·2027 기본 데이터와 같다
+  eq(sorted(CalendarGen.defaultChildrenHosts(2025)), sorted(project().events.find((e) => e.type === 'CHILDREN').teams));
+  eq(sorted(CalendarGen.defaultChildrenHosts(2027)), sorted(P27.buildProject().events.find((e) => e.type === 'CHILDREN').teams));
+  eq(sorted(CalendarGen.defaultHomeMoreTeams(2027)), sorted(P27.HOME_TOTALS_2027.moreTeams));
+  eq(sorted(CalendarGen.defaultHomeTotals(2026, teams).moreTeams), sorted(CalendarGen.defaultHomeMoreTeams(2026)));
+  // 짝수 해 어린이날 잠실은 LG 한 구단, 홀수 해는 두산 한 구단
+  eq([CalendarGen.defaultChildrenHosts(2026).filter((x) => x === '두산' || x === 'LG'), CalendarGen.defaultChildrenHosts(2027).filter((x) => x === '두산' || x === 'LG')], [['LG'], ['두산']]);
+  // teams를 주면 그 목록에 있는 구단만, 돌려준 목록을 고쳐도 기본값은 그대로
+  eq(CalendarGen.defaultChildrenHosts(2026, teams.filter((t) => t.name !== 'KIA')).length, 4);
+  CalendarGen.defaultHomeMoreTeams(2026).push('x'); eq(CalendarGen.defaultHomeMoreTeams(2026).length, 5);
 });
 
 test('시리즈 생성(2027 기본): 홈 73 한화·SSG·KT·롯데·두산 → 1차 편성 홈 69, 나머지 66 · 맞대결 15 모두 9:6 · 4연전 = 개막 대진을 같은 홈에서 · 잠실 겹침 없음', () => {

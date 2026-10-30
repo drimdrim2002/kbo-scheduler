@@ -439,18 +439,34 @@
   function nameList(names) { return names.join('·'); }
 
   /**
-   * 홈 73/71 기본값. 홀수 해(2025·2027) 홈 73 = 한화·SSG·KT·롯데·두산, 짝수 해는 나머지 다섯 구단(해마다 바뀜).
+   * 홈 73/71 기본값. 홈 73 구단은 defaultHomeMoreTeams(홀수 해 한화·SSG·KT·롯데·두산, 짝수 해 LG·NC·KIA·삼성·키움).
    * opts.moreTeams로 홈 73 구단을 직접 줄 수 있다. 홈 73 구단과 개막전 홈 구단은 서로 상관없다.
    * 1차 편성 홈(initial) = 69/66(미편성 홈 4/5): 후반기 첫 4연전을 개막전 홈 구단 구장에서 하면(fourGameHome 'same', 기본) 1차 편성 홈은 모두 3의 배수다.
    * opts.fourGameHome이 'swap'(4연전 홈 바꿈)이면 68/67 — 이때 홈 68 구단 = 개막전 홈 구단이어야 한다. opts.initial이 false면 넣지 않는다(시리즈 생성이 정함).
    * teams: [{ name }] — 이 목록에 있는 이름만 남긴다. 구단 수가 10이 아니면 절반을 위에서부터 고른다.
    */
   const HOME_MORE_ODD = ['한화', 'SSG', 'KT', '롯데', '두산'];
+  const HOME_MORE_EVEN = ['LG', 'NC', 'KIA', '삼성', '키움'];
+  const CHILDREN_HOSTS_ODD = ['두산', '키움', '한화', '롯데', 'NC'];
+  const CHILDREN_HOSTS_EVEN = ['LG', 'SSG', 'KT', '삼성', 'KIA'];
+  /** teams가 있으면 그 목록에 있는 이름만 남긴다 */
+  function onlyKnown(list, teams) {
+    if (!teams) return list.slice();
+    const names = teams.map((t) => (typeof t === 'string' ? t : t.name));
+    return list.filter((x) => names.includes(x));
+  }
+  /**
+   * 격년제 기본값(새 연도를 만들 때 채우는 값, 사용자가 바꿀 수 있음 — 이미 있는 값은 화면이 덮지 않는다).
+   * 홈 73 구단: 홀수 해 한화·SSG·KT·롯데·두산, 짝수 해 LG·NC·KIA·삼성·키움.
+   * 어린이날 홈 구단: 홀수 해 두산(잠실)·키움·한화·롯데·NC, 짝수 해 LG(잠실)·SSG·KT·삼성·KIA. 대진(상대)은 기본으로 정하지 않는다.
+   */
+  function defaultHomeMoreTeams(year, teams) { return onlyKnown(Number(year) % 2 === 1 ? HOME_MORE_ODD : HOME_MORE_EVEN, teams); }
+  function defaultChildrenHosts(year, teams) { return onlyKnown(Number(year) % 2 === 1 ? CHILDREN_HOSTS_ODD : CHILDREN_HOSTS_EVEN, teams); }
   function defaultHomeTotals(year, teams, opts) {
     const o = opts || {};
     const names = (teams || []).map((t) => (typeof t === 'string' ? t : t.name));
     const half = names.length >> 1;
-    let more = o.moreTeams ? o.moreTeams.slice() : (Number(year) % 2 === 1 ? HOME_MORE_ODD.filter((x) => names.includes(x)) : names.filter((x) => !HOME_MORE_ODD.includes(x)));
+    let more = o.moreTeams ? o.moreTeams.slice() : defaultHomeMoreTeams(year, names);
     if (!o.moreTeams && more.length !== half) more = names.slice(0, half);
     const out = { moreTeams: more, more: { total: 73 }, less: { total: 71 } };
     if (o.initial !== false) { const swap = o.fourGameHome === 'swap'; out.more.initial = swap ? 68 : 69; out.less.initial = swap ? 67 : 66; }
@@ -923,6 +939,6 @@
     roundRobin, partitionLengths, generateSeries, lengthHistogram, builtinHolidays, holidaySet,
     HOLIDAY_WEIGHT, HOLIDAY_YEARS, defaultHolidayWeight, holidayWeights, applyWeights, deriveRestDays, defaultAllStarStart, ruleSettings,
     holidayPlaysOnRest, ALL_STAR_DAYS,
-    defaultHomeTotals, flipHomeTotals, homeTotalsTargets, seriesOptions, generateSeriesByHomeTotals
+    defaultHomeTotals, defaultHomeMoreTeams, defaultChildrenHosts, flipHomeTotals, homeTotalsTargets, seriesOptions, generateSeriesByHomeTotals
   };
 });
