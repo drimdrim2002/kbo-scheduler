@@ -175,14 +175,20 @@
         const stads = picked.map((n) => st.teams.find((t) => t.name === n).stadium);
         const dup = stads.find((x, j) => stads.indexOf(x) !== j);
         if (dup) { rh.errors.push({ loc: where(hSh, i, '구단'), why: dup + '은(는) ' + st.teams.filter((t) => t.stadium === dup).map((t) => t.name).join('·') + ' 중 하나만 적습니다(같은 날 한 구장에서 홈 경기는 하나).' }); return; }
-        if (!picked.length) { rh.warnings.push({ loc: where(hSh, i, '구단'), why: '구단이 비어 이 줄은 읽지 않습니다.' }); return; }
         const name = norm(r[1]) || (v === set.seasonStart ? '개막전' : v.slice(5) === '05-05' ? '어린이날' : '홈 구장 지정');
         const type = v === set.seasonStart ? 'OPENING' : v.slice(5) === '05-05' ? 'CHILDREN' : 'CUSTOM';
+        if (!picked.length) {
+          // 개막전·어린이날 줄의 구단을 비우면 「지정 없음」(teams: [])으로 읽는다 — 그 밖의 날은 읽지 않는다
+          if (type === 'CUSTOM') { rh.warnings.push({ loc: where(hSh, i, '구단'), why: '구단이 비어 이 줄은 읽지 않습니다.' }); return; }
+          rh.warnings.push({ loc: where(hSh, i, '구단'), why: fmt.date(v) + ' ' + name + ' 구단이 비어 「지정 없음」으로 읽습니다 — ' + S.RULE_HOME_TEXT + '.' });
+          evs.push({ date: v, name, type, teams: [], stadiums: [] });
+          return;
+        }
         if (list && !list.some((x) => dn(v) >= x.d && dn(v) < x.d + x.len)) rh.warnings.push({ loc: where(hSh, i, '날짜'), why: fmt.date(v) + '은(는) 어느 연전 묶음에도 없습니다 — 그 날 경기가 없습니다.' });
         if (picked.length < half) rh.warnings.push({ loc: where(hSh, i, '구단'), why: fmt.date(v) + ' ' + name + ' ' + picked.length + '곳(' + half + '곳 중)입니다.' });
         evs.push({ date: v, name, type, teams: picked.slice().sort((a, b) => names.indexOf(a) - names.indexOf(b)), stadiums: stads });
       });
-      rh.notes.push(evs.length ? evs.map((e) => fmt.short(e.date) + ' ' + e.name + ' ' + e.teams.length + '곳').join(' · ') : '홈 구장 지정 없음');
+      rh.notes.push(evs.length ? evs.map((e) => fmt.short(e.date) + ' ' + e.name + ' ' + (e.teams.length ? e.teams.length + '곳' : '지정 없음')).join(' · ') : '홈 구장 지정 없음');
     }
     out.next.events = evs;
     // ① 구단 정보(구장·위치만 바꾼다 — 구단을 늘리거나 줄이지 않는다)
@@ -213,6 +219,8 @@
     out.next.teams = tch;
     const ign = sheets.filter((x) => !Object.values(SHEET).includes(norm(x.name))).map((x) => x.name);
     if (ign.length) out.ignored = ign;
+    // 다른 해 서식은 받지 않는다(날짜가 모두 그 해라, 지금 해에 반영하면 저장도 그 해로 섞인다) — 위쪽 연도 칸에서 그 해로 바꾼 뒤 올린다
+    if (year !== S.seasonYear()) rs.errors.unshift({ loc: SHEET.season + ' · 시즌 연도', why: '이 파일은 ' + year + ' 시즌 서식입니다. 지금은 ' + S.seasonYear() + ' 시즌입니다 — 위쪽 「' + S.seasonYear() + ' 시즌 ▾」에서 ' + year + ' 시즌으로 바꾼 뒤 올려 주세요.' });
     out.errors = out.sheets.reduce((a, x) => a + x.errors.length, 0);
     return out;
   };
@@ -232,6 +240,9 @@
       }
       if (n.events) {
         const keepIds = new Map(s.events.filter((e) => e.mode === 'STADIUM').map((e) => [e.date, e.id]));
+        // 엑셀 서식에는 지정 방식이 없다: 같은 날 지정의 방식(대진까지 고정·홈 구장만)과 남은 구단의 대진은 그대로 둔다
+        const keepFix = new Map(s.events.filter((e) => e.mode === 'STADIUM').map((e) => [e.date, { fix: e.fix || 'home', pairs: e.pairs }]));
+        n.events = n.events.map((e) => { const k = keepFix.get(e.date) || { fix: 'home' }; const o = Object.assign({}, e, { fix: k.fix }); if (k.fix === 'pairs') o.pairs = (k.pairs || []).filter((p) => (e.teams || []).includes(p.home)); return o; });
         const drop = new Set(s.events.filter((e) => e.mode === 'STADIUM').map((e) => e.id));
         s.events = s.events.filter((e) => e.mode !== 'STADIUM').concat(n.events.map((e) => Object.assign({ id: keepIds.get(e.date) || 'ev-' + e.type.toLowerCase() + '-' + e.date }, e, { mode: 'STADIUM' })));
         const now = new Map(s.events.map((e) => [e.id, e]));

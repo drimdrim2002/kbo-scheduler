@@ -260,16 +260,21 @@
       const errs0 = window.__studioErrors.length;
       const st = () => S.app.state;
       S.go({ ops: null, step: 1, tab: 'slots', drawer: null, modal: null, menu: null, cell: null, edit: null });
-      click('.band [data-act="reset-ask"][data-kind="blank"]'); flush();
-      ok('초기화: 띠 단추 → 확인 창(비우는 것·남기는 것)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단 정보/.test(document.querySelector('.reset-modal').textContent));
+      ok('모든 표 보기 띠: 「처음부터 입력하기」 대신 「시즌 연도 · 처음부터 다시」(연도 카드로 합침)', !document.querySelector('.band [data-act="reset-ask"]') && !!document.querySelector('.band [data-act="year-pick"]'));
+      S.g1.mode = 'resume'; S.go({ step: 1 });
+      click('.fl-foot [data-act="year-reset"]'); flush();
+      ok('초기화: 어디까지 했는지 「2025 처음부터 다시」 → 확인 창(비우는 것·남기는 것 · 공휴일은 법정 공휴일로)', S.ui.modal === 'reset' && /남기는 것/.test(document.querySelector('.reset-modal').textContent) && /구단 정보/.test(document.querySelector('.reset-modal').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
       const blankInfo = () => ['blank ' + S.isBlank(), 'cal ' + st().calendar.length, 'm ' + st().matches.length, 'ev ' + st().events.length, 'hol ' + st().settings.holidays.length, 'rex ' + st().settings.restExceptions.length, 'blk ' + st().settings.blackouts.length, 'start "' + st().settings.seasonStart + '"', 'teams ' + st().teams.length, 'dist ' + st().distanceMatrix.length, 'tab ' + S.ui.tab, 'modal ' + S.ui.modal, 'inputs ' + document.querySelectorAll('.form-grid input[data-k]').length].join(' · ');
-      const blankNow = () => S.isBlank() && !st().calendar.length && !st().matches.length && !st().events.length && !st().settings.holidays.length && !st().settings.restExceptions.length && !st().settings.blackouts.length && st().settings.seasonStart === '' && st().teams.length === 10 && st().distanceMatrix.length === 100;
-      ok('초기화: 표 비움(구단 10·거리 100은 남김) → 시즌 기본 설정 화면', blankNow() && S.ui.tab === 'season' && !S.ui.modal && document.querySelectorAll('.form-grid input[data-k]').length === 3 && Array.from(document.querySelectorAll('.form-grid input[data-k]')).every((i) => i.value === ''), blankInfo());
-      ok('초기화: 띠는 「2025 예시 데이터 불러오기」·현재 데이터 직접 입력', !!document.querySelector('.band [data-act="reset-ask"][data-kind="example"]') && /직접 입력/.test(document.querySelector('.band .last').textContent));
+      const blankNow = () => S.isBlank() && !st().calendar.length && !st().matches.length && st().events.length === (KBO.CalendarGen.defaultChildrenHosts ? 1 : 0) && st().events.every((e) => e.type === 'CHILDREN') && st().settings.holidays.length === 12 && !st().settings.restExceptions.length && !st().settings.blackouts.length && st().settings.seasonStart === '' && st().teams.length === 10 && st().distanceMatrix.length === 100;
+      ok('초기화: 표 비움(구단 10·거리 100은 남김 · 그 해 법정 공휴일 12일은 미리 넣음) → ① 2단계(시즌 기간·연전 묶음)', blankNow() && S.g1.mode === 'flow' && S.g1.fs === 2 && !S.ui.modal && !!document.querySelector('.sc-strip'), blankInfo());
+      S.g1.mode = 'all'; S.go({ step: 1, tab: 'season' });
+      ok('초기화: 모든 표 보기 — 시즌 기본 설정 날짜 칸 3개 비어 있음', document.querySelectorAll('.form-grid input[data-k]').length === 3 && Array.from(document.querySelectorAll('.form-grid input[data-k]')).every((i) => i.value === ''));
+      ok('초기화: 띠의 현재 데이터 「2025 시즌 · 직접 입력」', /2025 시즌 · 직접 입력/.test(document.querySelector('.band .last').textContent));
       S.app.undo(); flush();
       ok('초기화: 실행 취소 → 2025 데이터 복귀', !S.isBlank() && st().calendar.length === 45 && hard() === 3);
       S.app.redo(); flush();
+      S.g1.mode = 'all'; S.go({ step: 1, tab: 'slots' });
       ok('초기화: 다시 실행 → 다시 빈 상태', blankNow(), blankInfo());
       // 빈 상태에서 모든 화면이 오류 없이 그려진다
       const e1 = window.__studioErrors.length;
@@ -284,19 +289,20 @@
       click('.sheet-empty [data-act="row-ins"]'); flush();
       ok('빈 표: 첫 줄 추가 → 1줄·선택됨', st().calendar.length === 1 && S.ui.cell && S.ui.cell.row === 0 && !document.querySelector('.sheet-empty'));
       S.app.undo(); flush();
-      // 빈 상태에서 끝까지: 시즌 달력 한 화면에서 날짜 3개 → 법정 공휴일 → 규칙대로 채우기 → 「다음」(시리즈는 규칙대로)
+      // 빈 상태에서 끝까지(단계 흐름): 띠 「단계별로」 → 어디까지 했는지 → 2단계 개막일(토) 하나 → 묶음 규칙대로 → 3단계 → 4 확인 → 「다음」(시리즈는 규칙대로)
       click('.band [data-act="g1-cal"]'); flush();
       const q = (sel) => document.querySelector(sel);
-      ok('빈 상태: 시즌 달력 — 「0 / 135일」 · 묶음 없음 · 규칙대로 채우기 잠김(날짜 먼저)', !!q('.sc-strip') && /0 \/ 135일/.test(q('#scCount').textContent) && q('.sc-rules [data-act="cal-fill"]').disabled && !document.querySelectorAll('.sc-strip .sd.game').length);
-      const setDate = (k, v) => { const i = q('.sc-season input[data-k="' + k + '"]'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
-      setDate('seasonStart', '2025-03-22'); setDate('initialEnd', '8/31'); setDate('seasonEnd', '2025-10-31');
-      ok('빈 상태: 날짜 3개 → 묶음은 아직 없음(휴식기·휴식일 경기도 없음) · 규칙대로 채우기 켜짐', st().settings.initialEnd === '2025-08-31' && !st().calendar.length && !st().settings.blackouts.length && !q('.sc-rules [data-act="cal-fill"]').disabled);
-      click('.sc-hols [data-act="fill-holidays"]'); flush();
-      ok('법정 공휴일 채우기 → 10일 · 가중치 어린이날 3 · 나머지 2', st().settings.holidays.length === 10 && st().settings.holidays.find((h) => h.date === '2025-05-05').weight === 3 && st().settings.holidays.filter((h) => h.weight === 2).length === 9 && document.querySelectorAll('.sc-hols tbody tr').length === 10);
-      click('.sc-rules [data-act="cal-fill"]'); flush();
+      ok('빈 상태: 띠 「단계별로」 → 어디까지 했는지(2단계 「시즌 기간·연전 묶음」에서 멈춤)', S.g1.mode === 'resume' && /2단계/.test(q('.fl-card h2').textContent) && !!q('.rr.cur [data-act="fl-go"][data-fs="2"]'));
+      click('.rr.cur [data-act="fl-go"]'); flush();
+      ok('빈 상태: 2단계 — 「0 / 135일」 · 묶음 없음 · 개막일 후보 토요일 3개(추천 3/22) · 「다음」 흐림', S.g1.fs === 2 && /0 \/ 135일/.test(q('#scCount').textContent) && !document.querySelectorAll('.sc-strip .sd.game').length && document.querySelectorAll('.fl-open-ask [data-act="cal-open"]').length === 3 && /3\/22\(토\) 추천/.test(q('.fl-open-ask').textContent) && q('.footer [data-act="fl-next"]').disabled);
+      ok('법정 공휴일: 처음부터 다시 할 때 이미 12일(3~10월) · 가중치 어린이날 3 · 나머지 2', st().settings.holidays.length === 12 && st().settings.holidays.find((h) => h.date === '2025-05-05').weight === 3 && st().settings.holidays.filter((h) => h.weight === 2).length === 11);
+      const u0b = S.app.store.undoStack.length;
+      click('.fl-open-ask [data-act="cal-open"][data-date="2025-03-22"]'); flush();
       const cal = st().calendar, exp = S.KBO.Preset.ENGINE_INPUT_2025.calendar;
-      ok('규칙대로 채우기 → 45개 = 2025 실제 연전 기간 · 경기일 135 맞음 · 휴식일 경기 5/5 · 휴식기 5/8·7/11~16', cal.length === 45 && cal.every((c, i) => c.datetime === exp[i].datetime && c.consecutive === exp[i].consecutive) && S.gameDaysCheck().ok && st().settings.restExceptions.join() === '2025-05-05' && st().settings.blackouts.map((x) => x.start + x.end).join() === '2025-05-082025-05-08,2025-07-112025-07-16' && !st().snapshots.length);
-      ok('확인: 시리즈 「「다음」 때 규칙대로 만듭니다」', /다음」 때 규칙대로 만듭니다/.test(q('.sc-check').textContent));
+      ok('개막일 3/22(토)를 누르면 끝 — 1차 편성 종료일 8/31(자동, 경기일 135일이 되는 첫 일요일) · 묶음 45개 = 2025 실제 연전 기간 · 휴식일 경기 5/5 · 휴식기 5/8·7/11~16 · 실행 취소 한 번', S.app.store.undoStack.length === u0b + 1 && st().settings.initialEnd === '2025-08-31' && st().settings.seasonEnd === '2025-10-31' && cal.length === 45 && cal.every((c, i) => c.datetime === exp[i].datetime && c.consecutive === exp[i].consecutive) && S.gameDaysCheck().ok && st().settings.restExceptions.join() === '2025-05-05' && st().settings.blackouts.map((x) => x.start + x.end).join() === '2025-05-082025-05-08,2025-07-112025-07-16', st().settings.initialEnd + ' · ' + cal.length);
+      click('.footer [data-act="fl-next"]'); flush();
+      click('.footer [data-act="fl-next"]'); flush();
+      ok('4 확인: 시리즈 「「다음」 때 규칙대로 만듭니다」', S.g1.fs === 4 && /다음」 때 규칙대로 만듭니다/.test(q('.ck-card').textContent));
       click('.footer [data-act="cal-next"]'); flush();
       ok('「다음: 검토·실행」 → 시리즈 225개 규칙대로 · ② · 사전 점검 진행 불가 0', S.ui.step === 2 && st().matches.length === 225 && S.calSeriesState().ok && S.app.preflight().counts.block === 0, S.app.preflight().items.filter((x) => x.status === 'block').map((x) => x.title + ' ' + x.detail).join(' / '));
       S.go({ step: 2 });
@@ -304,11 +310,11 @@
       ok('초기화 흐름 전체 콘솔 오류 0', window.__studioErrors.length === errs0, String(window.__studioErrors.slice(errs0).join(' | ')).slice(0, 120));
       // 예시 데이터 다시 불러오기
       S.g1.mode = 'all'; S.go({ step: 1, tab: 'slots', cell: null, edit: null });
-      S.ui.menu = 'data'; S.ui.menuPos = { x: 1200, y: 44 }; flush();
-      click('.menu [data-act="reset-ask"][data-kind="example"]'); flush();
-      ok('데이터 메뉴 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
+      S.g1.mode = 'resume'; S.go({ step: 1 });
+      click('.fl-foot [data-act="year-builtin"]'); flush();
+      ok('어디까지 했는지 → 예시 데이터 확인 창', S.ui.modal === 'reset' && /2025 예시 데이터/.test(document.querySelector('.reset-modal h3').textContent));
       click('.reset-modal [data-act="reset-go"]'); flush();
-      ok('2025 예시 데이터 다시 불러오기 → 시연용 위반 3·중간 저장 1', !S.isBlank() && hard() === 3 && st().snapshots.length === 1 && st().games.length > 0 && S.ui.tab === 'slots');
+      ok('2025 예시 데이터 다시 불러오기 → 시연용 위반 3·중간 저장 1 · ①로', !S.isBlank() && hard() === 3 && st().snapshots.length === 1 && st().games.length > 0 && S.ui.step === 1 && S.g1.mode !== 'all');
     }
 
     // 19a. ① 입력 안내 (안내 방식마다 자기 점검을 S.guideUI.selftest로 낸다)

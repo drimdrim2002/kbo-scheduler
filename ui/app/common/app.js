@@ -418,7 +418,10 @@
   };
   App.prototype.generateSeriesPreview = function () {
     const st = this.state;
-    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: st.settings.initialGamesPerPair, homeGamesMajor: st.settings.homeGamesMajor });
+    // 격년 홈 73/71·3연전 이상·개막전 대진(events)도 넘긴다(코어에 seriesOptions가 있으면 그것으로)
+    if (CalendarGen.seriesOptions) return CalendarGen.generateSeries(st.teams, st.calendar, CalendarGen.seriesOptions(st));
+    const s = st.settings;
+    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, gamesPerPair: s.gamesPerPair, homeTotals: s.homeTotals, seriesMinLength: s.seriesMinLength, fourGameHome: s.fourGameHome || 'same', events: st.events, settings: s });
   };
   App.prototype.regenerateSeries = function () {
     const g = this.generateSeriesPreview();
@@ -482,7 +485,7 @@
       } else {
         const unknown = (e.stadiums || []).filter((x) => !st.teams.some((t) => t.stadium === x));
         if (unknown.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 연고 구단이 없는 구장 ' + unknown.join(', ') });
-        if (!(e.stadiums || []).length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
+        if (!(e.stadiums || []).length && !(Array.isArray(e.teams) && !e.teams.length)) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
       }
     }
     const half = st.teams.length >> 1;
@@ -550,13 +553,35 @@
         s.matches[m].pinned = true;
         s.matches[m].eventId = e.id;
       }
-      // 홈 구장 지정(개막전 등, 어린이날 말고): 고른 구단이 그 연전 기간에 홈인 시리즈를 고정한다.
-      // 서버 자동 편성은 어린이날 홈 구단만 알기 때문에, 나머지는 고정으로 지킨다. 그 구단의 홈 시리즈가 그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다.
+      // 홈 구장 지정은 fix 'pairs'(대진까지 고정)일 때만 시리즈를 고정한다. 'home'·없음(예전 데이터)은 고정하지 않는다 — 서버가 그 연전 기간의 홈 의무 구단으로 직접 지킨다.
+      // 고른 대진(pairs)이 있으면 그 시리즈를, 없으면 고른 구단이 그 기간에 홈인 시리즈를 고정한다(그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다).
       for (const e of s.events) {
-        if (e.mode !== 'STADIUM' || e.type === 'CHILDREN' || !(e.teams || []).length) continue;
+        if (e.mode !== 'STADIUM' || !(e.teams || []).length || e.fix !== 'pairs') continue;
         const slot = Score.resolveEventSlot(e, s.calendar);
         if (slot < 0) continue;
         const L = s.calendar[slot].consecutive;
+        if (e.fix === 'pairs' && Array.isArray(e.pairs) && e.pairs.length) {
+          for (const pr of e.pairs) {
+            if (!pr.home || !pr.away) continue;
+            const cands = s.matches.map((m, i) => i).filter((i) => s.matches[i].home === pr.home && s.matches[i].away === pr.away);
+            if (!cands.length) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' 시리즈 없음'); continue; }
+            let m = cands.find((i) => s.plan[i].calendar === slot);
+            if (m == null) m = cands.find((i) => s.matches[i].consecutive === L && !s.matches[i].pinned);
+            if (m == null) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' ' + L + '연전 시리즈 없음'); continue; }
+            const from = s.plan[m].calendar;
+            if (from !== slot) {
+              for (let n = 0; n < s.matches.length; n++) {
+                if (n === m || s.plan[n].calendar !== slot || s.matches[n].pinned) continue;
+                const mm = s.matches[n];
+                if ([mm.home, mm.away].some((t) => t === pr.home || t === pr.away)) { s.plan[n].calendar = from; break; }
+              }
+              s.plan[m].calendar = slot;
+            }
+            s.matches[m].pinned = true;
+            s.matches[m].eventId = e.id;
+          }
+          continue;
+        }
         const busy = () => { const b = new Set(); s.matches.forEach((mm, i) => { if (s.plan[i].calendar === slot && mm.pinned) { b.add(mm.home); b.add(mm.away); } }); return b; };
         for (const h of e.teams) {
           let m = s.matches.findIndex((mm, i) => mm.home === h && s.plan[i].calendar === slot);
@@ -631,6 +656,9 @@
     const ev = this.checkEvents();
     const blocks = ev.filter((x) => x.level === 'block'), warns = ev.filter((x) => x.level === 'warn');
     add('events', blocks.length ? 'block' : warns.length ? 'warn' : 'pass', '특별 경기 충돌', blocks.length + warns.length ? ev.map((x) => x.message).join(' / ') : st.events.length + '개 모두 충돌 없음', 'events');
+    // 개막전·어린이날 홈 구장 지정을 지운 날(teams: [] = 지정 없음): 막지 않고 확인 필요로 알린다
+    const cleared = st.events.filter((e) => e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && Array.isArray(e.teams) && !e.teams.length);
+    if (cleared.length) add('rule-homes', 'warn', '개막전·어린이날 홈 구장 지정', cleared.map((e) => Dates.fmtDate(e.date) + ' ' + e.name).join(', ') + ' 지정 없음 — KBO 원칙(개막전 = 전년도 상위 5팀 홈, 어린이날 = 격년제 편성)과 다릅니다. 편성 시작 때 한 번 더 묻습니다.', 'events');
     const pinMis = st.matches.filter((m, i) => m.pinned && c.plan[i] >= 0 && m.consecutive !== st.calendar[c.plan[i]].consecutive).length;
     if (pinMis) add('pins', 'warn', '고정 시리즈 연전 불일치', pinMis + '개 고정 시리즈가 연전 수가 다른 기간에 있습니다(연전 수 불일치 위반이 남음).', 'result');
     const st0 = { block: 0, warn: 0, pass: 0 };

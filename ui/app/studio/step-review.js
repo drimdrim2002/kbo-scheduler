@@ -193,7 +193,7 @@
       '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices big" role="radiogroup" aria-labelledby="lbl-init">' + S.INIT_MODES.map(initCard).join('') + '</div>' +
         (eff.forced ? '<span class="small muted init-forced">' + icon('info') + '지금 일정에 ' + esc(S.termPlain('hardViol')) + ' ' + nViol + '건이 있어 이번 실행은 「처음부터 새로 짜기」로 합니다. 다듬기는 위반이 없을 때 쓸 수 있습니다.</span>' : '') + '</div>' +
       '</div>' +
-      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. ' + (initV === 'SCRATCH' ? '고정은 개막전·어린이날 시리즈만 유지됩니다.' : '고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.') + '</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
+      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. ' + '고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.' + '</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
   };
 
   /** 개발자 옵션 (W17) — 개발자 모드에서만 DOM에 만든다 */
@@ -332,6 +332,9 @@
   S.startRun = function () {
     if (S.run && S.run.status !== 'DONE') return;
     if (!app().preflight().ok) { S.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
+    // 개막전·어린이날 지정을 지운 채면 시작 전에 한 번 더 묻는다(노트 「사」 — 막지는 않음)
+    if (S.clearedRuleHomes && S.clearedRuleHomes().length && !S.homeRuleRunOk) { S.ui.homeAsk = { kind: 'run' }; S.go({ modal: 'homeRule' }); return; }
+    S.homeRuleRunOk = false;
     const sv = app().state.settings.solver;
     const limit = S.runLimitMs(sv);
     const eff = S.effectiveInit(sv);

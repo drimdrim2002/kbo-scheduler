@@ -192,7 +192,12 @@
       },
       blank: (st) => ({ id: 'ev-' + Date.now().toString(36), type: 'CUSTOM', name: '새 특별 경기', date: firstSlotDate(st), mode: 'STADIUM', stadiums: [(st.teams[0] || {}).stadium].filter(Boolean) }),
       insert(s, at, row) { s.events.splice(at, 0, row); },
-      remove(s, at) { const e = s.events[at]; s.events.splice(at, 1); for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; } },
+      // 개막전·어린이날 구장 지정은 규칙(노트 「사」): 줄을 지우면 teams: []로 남겨 「지정 없음」 — 사전 점검·편성 시작 때 다시 묻는다
+      remove(s, at) {
+        const e = s.events[at];
+        if (e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && (e.teams || e.stadiums || []).length) { e.teams = []; e.stadiums = []; e.fix = 'home'; delete e.pairs; } else s.events.splice(at, 1);
+        for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; }
+      },
       assists: [{ act: 'add-opening', label: '개막전 홈 구장 지정 추가' }, { act: 'add-children', label: '어린이날 구장 지정 추가' }],
       emptyHint: '날짜를 미리 정할 경기입니다. 개막전·어린이날 모두 「구장 지정」(그 날 홈 경기를 해야 하는 구단 5곳, 상대는 자동 편성이 정함)입니다. 시즌 달력에서 날을 눌러 고르는 편이 쉽습니다.'
     }
@@ -237,13 +242,12 @@
       '<button class="btn sm" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식</button>' +
       '<button class="btn sm" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기</button>' +
       '<span class="sep" style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>' +
-      (S.isBlank()
-        ? '<button class="btn sm" data-act="reset-ask" data-kind="example"' + (locked ? ' disabled' : '') + ' title="2025 실제 일정(기본 제공)을 다시 불러옵니다">' + icon('db') + '2025 예시 데이터 불러오기</button>'
-        : '<button class="btn sm reset-btn" data-act="reset-ask" data-kind="blank"' + (locked ? ' disabled' : '') + ' title="표를 모두 비우고 빈 상태에서 처음부터 입력합니다(구단 정보는 남김)">' + icon('plus') + '처음부터 입력하기</button>') +
+      // 처음부터 입력하기·예시 데이터 다시 불러오기는 시즌 연도 고르기(연도 카드)로 합쳤다
+      '<button class="btn sm" data-act="year-pick"' + (locked ? ' disabled' : '') + ' title="연도 카드에서 그 해를 처음부터 다시 하거나 기본 제공 데이터로 다시 불러옵니다">' + icon('cal') + '시즌 연도 · 처음부터 다시</button>' +
       (S.guideButton ? S.guideButton() : '') +
       '<span class="last">' + (li
         ? S.stat('ok', '적용됨') + '<span>' + esc(li.source) + ' · ' + esc(li.sheets) + ' · ' + esc(li.time) + '</span>' + (li.kind === 'gsheet' ? '<button class="btn xs" data-act="import-gsheet-reload">' + icon('redo') + '다시 불러오기</button>' : '') + S.mock()
-        : S.isBlank() ? '<span class="muted">현재 데이터: 직접 입력(처음부터) · 구단 정보만 들어 있음</span>' : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>' + S.mock()) + '</span>' +
+        : '<span class="muted">현재 데이터: ' + S.seasonYear() + ' 시즌 · ' + (S.isBlank() ? '직접 입력(처음부터) · 구단 정보만 들어 있음' : S.builtinOf && S.builtinOf(S.seasonYear()) && !S.repo.has(S.seasonYear()) ? S.builtinOf(S.seasonYear()).label + '(' + S.builtinOf(S.seasonYear()).tag + ')' : '이 브라우저에 저장한 데이터') + '</span>') + '</span>' +
       '</div>';
   }
 
@@ -482,7 +486,7 @@
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
-    const stepwise = !!(S.g1 && S.g1.mode === 'cal' && S.g1.open === 'teams'); // 구단 정보 펼침이면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
+    const stepwise = !!(S.g1 && S.g1.mode === 'flow' && S.g1.fs === 1); // 1 구단 정보 단계면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
     let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
     s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
     s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
