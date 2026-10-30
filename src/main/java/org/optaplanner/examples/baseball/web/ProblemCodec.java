@@ -5,6 +5,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.LinkedHashSet;
@@ -391,6 +392,68 @@ final class ProblemCodec {
             }
         }
         return true;
+    }
+
+    /** 처음부터 짤 때 지키는 사용자 고정 3연전: [[시리즈 id, 연전 기간 id]…](시리즈 id 순). 2·4연전 고정은 결과를 바꾸지 않아 뺀다. */
+    static JSONArray pinnedThreeGameSeries(BaseballSolution solution) {
+        List<Match> sorted = new ArrayList<>(solution.getMatchList());
+        sorted.sort(Comparator.comparingLong(Match::getId));
+        JSONArray out = new JSONArray();
+        for (Match m : sorted) {
+            if (m.isPinned() && m.getCalendar() != null && m.getConsecutive() == 3) {
+                out.add(Json.arr(List.of(m.getId(), m.getCalendar().getId())));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 처음부터 짤 때 지킬 고정 시리즈({@link #applyPlan} 뒤)가 서로 맞는지 본다. 3연전 기간마다 구단은 한 번, 같이 쓰는 구장(잠실)
+     * 홈은 정확히 하나, 홈 구장 지정 구단은 원정이 아니어야 한다. 어긋나면 IllegalArgumentException(400).
+     */
+    static void checkPinnedSeries(BaseballSolution solution) {
+        Map<Calendar, List<Match>> bySlot = new LinkedHashMap<>();
+        for (Match m : solution.getMatchList()) {
+            Calendar c = m.getCalendar();
+            if (m.isPinned() && c != null && c.isRegular() && c.getConsecutive() == 3) {
+                bySlot.computeIfAbsent(c, k -> new ArrayList<>()).add(m);
+            }
+        }
+        Map<String, List<Team>> byStadium = new LinkedHashMap<>();
+        for (Team t : solution.getTeamList()) {
+            byStadium.computeIfAbsent(t.getStadium(), k -> new ArrayList<>()).add(t);
+        }
+        for (Map.Entry<Calendar, List<Match>> e : bySlot.entrySet()) {
+            Calendar slot = e.getKey();
+            String label = slot.getStartTime().toLocalDate() + " 시작 연전";
+            Set<Team> seen = new HashSet<>();
+            Map<String, Team> homeByStadium = new HashMap<>();
+            for (Match m : e.getValue()) {
+                for (Team t : List.of(m.getHome(), m.getAway())) {
+                    if (!seen.add(t)) {
+                        throw new IllegalArgumentException(label + "에 고정한 시리즈 중 " + t.getName()
+                                + "이(가) 두 번 나옵니다. 한 연전 기간에 구단마다 시리즈는 하나라 하나만 고정해 주세요.");
+                    }
+                }
+                Team other = homeByStadium.putIfAbsent(m.getHome().getStadium(), m.getHome());
+                if (other != null) {
+                    throw new IllegalArgumentException(label + "에 " + m.getHome().getStadium() + " 홈 시리즈를 " + other.getName()
+                            + "·" + m.getHome().getName() + " 둘 다 고정했습니다. 한 구장에서 홈 경기는 하나라 하나만 고정해 주세요.");
+                }
+                if (slot.requiresHome(m.getAway())) {
+                    throw new IllegalArgumentException(label + " " + m.getAway().getName() + "은(는) 홈 구장 지정 구단인데 "
+                            + m.getHome().getName() + " 원정 시리즈로 고정되어 있습니다. 고정을 풀거나 홈 구장 지정을 바꿔 주세요.");
+                }
+            }
+            for (Map.Entry<String, List<Team>> st : byStadium.entrySet()) {
+                List<Team> group = st.getValue();
+                if (group.size() > 1 && !homeByStadium.containsKey(st.getKey()) && seen.containsAll(group)) {
+                    throw new IllegalArgumentException(label + "에 " + st.getKey() + "을(를) 쓰는 "
+                            + group.stream().map(Team::getName).reduce((a, b) -> a + "·" + b).orElse("")
+                            + "을(를) 모두 원정으로 고정했습니다. 그 구장은 연전 기간마다 홈 경기가 하나씩 있어 둘 중 한 구단은 홈이어야 합니다.");
+                }
+            }
+        }
     }
 
     /** [{match, calendar}] (시리즈 id 순). */

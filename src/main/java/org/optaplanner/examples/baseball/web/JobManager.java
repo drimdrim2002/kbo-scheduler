@@ -126,7 +126,11 @@ final class JobManager {
         // 문제를 먼저 변환해 본다: 형식 오류는 큐에 넣기 전에 400으로 돌려준다.
         BaseballSolution probe = ProblemCodec.toSolution(problem);
         boolean fullPlan = ProblemCodec.applyPlan(probe, problem, null);
-        String cacheKey = cacheKey(problem, options, fullPlan);
+        boolean fromScratch = "SCRATCH".equals(options.init()) || !fullPlan;
+        if (fromScratch) {
+            ProblemCodec.checkPinnedSeries(probe);
+        }
+        String cacheKey = cacheKey(problem, options, fullPlan, fromScratch ? ProblemCodec.pinnedThreeGameSeries(probe) : null);
         String id = UUID.randomUUID().toString().substring(0, 8);
         SolveJob job = new SolveJob(id, cacheKey, clientIp, problem, options);
         job.unattended = unattended;
@@ -288,12 +292,25 @@ final class JobManager {
         }
     }
 
-    /** 시드마다 새 문제 인스턴스. KEEP이면 보낸 plan에서, 아니면 초기해 생성기로 시작한다. */
+    /**
+     * 시드마다 새 문제 인스턴스. KEEP이면 보낸 plan에서, 아니면 초기해 생성기로 시작한다. 초기해 생성기는 사용자가 고정한
+     * 시리즈(matches[].pinned + plan)를 그 자리에 둔 채 나머지를 새로 짠다.
+     */
     private BaseballSolution problemFor(SolveJob job, long seed) {
         BaseballSolution solution = ProblemCodec.toSolution(job.problem);
         boolean fullPlan = ProblemCodec.applyPlan(solution, job.problem, null);
         if ("SCRATCH".equals(job.options.init()) || !fullPlan) {
-            BaseballSolutionInitializer.initialize(solution, seed);
+            int pinned = ProblemCodec.pinnedThreeGameSeries(solution).size();
+            try {
+                BaseballSolutionInitializer.initialize(solution, seed);
+            } catch (IllegalStateException e) {
+                if (pinned == 0) {
+                    throw e;
+                }
+                LOG.warn("initializer failed with {} pinned 3-game series", pinned, e);
+                throw new IllegalArgumentException("고정한 3연전 시리즈 " + pinned + "개를 그 자리에 둔 채로는 편성을 처음부터 짤 수 없었습니다. "
+                        + "고정을 몇 개 풀고 다시 시도해 주세요.", e);
+            }
         }
         return solution;
     }
@@ -357,8 +374,12 @@ final class JobManager {
         return word + (teams.length() > 0 ? " · 어린이날 홈 " + teams : "") + " · 시드 " + seed;
     }
 
-    private static String cacheKey(JSONObject problem, SolveOptions options, boolean fullPlan) {
+    /** @param scratchPins 처음부터 짤 때 지키는 고정 3연전(없으면 null·빈 배열 — 그때는 예전 키와 같다) */
+    private static String cacheKey(JSONObject problem, SolveOptions options, boolean fullPlan, JSONArray scratchPins) {
         JSONObject key = ProblemCodec.engineInput(problem);
+        if (scratchPins != null && !scratchPins.isEmpty()) {
+            key.put("pinnedSeries", scratchPins);
+        }
         if (fullPlan && "KEEP".equals(options.init())) {
             key.put("plan", problem.get("plan"));
             JSONArray pins = new JSONArray();
