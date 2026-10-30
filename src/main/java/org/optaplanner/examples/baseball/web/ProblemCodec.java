@@ -109,7 +109,8 @@ final class ProblemCodec {
      * <li>{@code events[]} 중 {@code mode: 'STADIUM'}의 {@code teams}(없으면 {@code pairs[].home})를, 그 날짜가 든 연전 기간에 모은다.
      * 「대진까지 고정」({@code fix: 'pairs'})도 같다 — 화면이 그 시리즈를 고정해 보내고, 서버는 그 홈 구단도 지켜졌는지 본다.</li>
      * <li>어린이날({@code type: 'CHILDREN'})은 {@code teams}가 일부(구단 수/2 미만)만 고른 것이 아니면 {@code settings.obligationTeams}가
-     * 있을 때 그것을 쓴다(공유 링크·예전 화면은 obligationTeams만 고친다).</li>
+     * 있을 때 그것을 쓴다(공유 링크·예전 화면은 obligationTeams만 고친다). {@code teams}가 없는 어린이날도 그렇다.</li>
+     * <li>{@code teams: []}(대진 목록도 없음)는 「지정 없음」 — 그 날은 아무것도 지키지 않는다. 어린이날도 같다.</li>
      * <li>STADIUM 이벤트가 하나도 없으면 예전대로: 시즌 해 5/5가 든 연전 기간에 obligationTeams(없으면 기본 5구단).</li>
      * </ul>
      */
@@ -156,8 +157,9 @@ final class ProblemCodec {
         Map<Calendar, String> labelBySlot = new HashMap<>();
         for (JSONObject ev : stadiumEvents) {
             List<String> names = eventTeams(ev);
+            // teams: [] 는 사용자가 지정을 지운 것 — 예전 obligationTeams로 되살리지 않는다(teams가 아예 없을 때만 예전 설정)
             if ("CHILDREN".equals(Json.asString(ev.get("type"), "")) && obligationTeams != null
-                    && (names.isEmpty() || names.size() >= half)) {
+                    && (names.size() >= half || (names.isEmpty() && ev.get("teams") == null))) {
                 names = obligationTeams;
             }
             if (names.isEmpty()) {

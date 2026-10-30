@@ -81,7 +81,8 @@
   /**
    * 엔진 호환 기준(H0-e)의 연전 기간별 홈 의무 구단 — Java ProblemCodec.applyHomeDesignations와 같은 규칙.
    * - STADIUM 이벤트의 teams(없으면 pairs[].home)를 그 날짜가 든 연전 기간에 모은다(대진 고정 fix 'pairs'도 같다).
-   * - 어린이날(CHILDREN)은 teams가 일부(구단 수/2 미만)만 고른 것이 아니면 settings.obligationTeams(구단 수/2개)가 있을 때 그것.
+   * - 어린이날(CHILDREN)은 teams가 일부(구단 수/2 미만)만 고른 것이 아니면 settings.obligationTeams(구단 수/2개)가 있을 때 그것(teams가 없을 때도).
+   * - teams: [](대진 목록도 없음)는 「지정 없음」 — 그 날은 아무것도 지키지 않는다. 어린이날도 같다.
    * - STADIUM 이벤트가 하나도 없으면 예전 방식: 시즌 해 5/5가 든 연전 기간에 obligationTeams(없으면 기본 5구단).
    * @returns [{ slot, teams: [구단 인덱스], eventId, name }] (연전 기간마다 하나)
    */
@@ -106,7 +107,7 @@
     for (const ev of evs) {
       let names = (ev.teams || []).filter(Boolean);
       if (!names.length) names = (ev.pairs || []).map((p) => p && p.home).filter(Boolean);
-      if (ev.type === 'CHILDREN' && oblNames && (!names.length || names.length >= half)) names = oblNames;
+      if (ev.type === 'CHILDREN' && oblNames && (names.length >= half || (!names.length && ev.teams == null))) names = oblNames;
       if (!names.length) continue;
       const slot = resolveEventSlot(ev, cal);
       if (slot < 0) continue;

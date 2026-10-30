@@ -134,6 +134,18 @@ class HomeDesignationTest {
         JSONObject partial = problem(stadiumEvent("CHILDREN", "2025-05-05", List.of("두산", "키움"), null));
         partial.put("settings", Json.obj("obligationTeams", Json.arr(shared)));
         assertThat(ProblemCodec.childrenDayTeams(ProblemCodec.toSolution(partial))).containsExactlyInAnyOrder("두산", "키움");
+
+        // teams가 없으면 예전 설정, teams: []는 사용자가 지운 것 — 예전 설정이 있어도 아무것도 지키지 않는다
+        JSONObject absent = problem(Json.obj("id", "c", "type", "CHILDREN", "name", "어린이날", "date", "2025-05-05", "mode", "STADIUM"));
+        absent.put("settings", Json.obj("obligationTeams", Json.arr(shared)));
+        assertThat(ProblemCodec.childrenDayTeams(ProblemCodec.toSolution(absent))).containsExactlyInAnyOrderElementsOf(shared);
+        JSONObject cleared = problem(stadiumEvent("OPENING", "2025-03-22", OPENING_HOMES, "home"),
+                stadiumEvent("CHILDREN", "2025-05-05", List.of(), "home"));
+        cleared.put("settings", Json.obj("obligationTeams", Json.arr(shared)));
+        BaseballSolution solution = ProblemCodec.toSolution(cleared);
+        assertThat(ProblemCodec.childrenDayTeams(solution)).isEmpty();
+        assertThat(ProblemCodec.homeDesignations(solution)).containsOnlyKeys("2025-03-22");
+        assertThat(initialize(solution, 4L).hardScore(0)).isZero();
     }
 
     @Test

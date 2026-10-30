@@ -62,6 +62,11 @@ module.exports = function (test, h) {
     // 어린이날 일부만 고르면 그 구단만(예전 obligationTeams보다 우선)
     p.events = [{ id: 'c', type: 'CHILDREN', name: '어린이날', date: '2025-05-06', mode: 'STADIUM', teams: ['두산', '한화'] }];
     eq(names(Score.engineObligations(p)[0]), ['두산', '한화'].sort(), '일부 지정');
+    // teams가 없으면 예전 obligationTeams, teams: []는 지운 것 — 아무것도 지키지 않음
+    p.events = [{ id: 'c', type: 'CHILDREN', name: '어린이날', date: '2025-05-05', mode: 'STADIUM' }];
+    eq(names(Score.engineObligations(p)[0]), p.settings.obligationTeams.slice().sort(), 'teams 없음 → 예전 설정');
+    p.events[0].teams = [];
+    eq(Score.engineObligations(p), [], 'teams: [] → 지정 없음');
     // 이벤트가 없으면 5/5가 든 연전 기간에 obligationTeams
     p.events = [];
     const legacy = Score.engineObligations(p);

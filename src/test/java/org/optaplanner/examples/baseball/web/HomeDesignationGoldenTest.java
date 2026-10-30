@@ -58,6 +58,8 @@ class HomeDesignationGoldenTest {
                         Json.obj("home", "KT", "away", "한화"))));
         out.add(Json.obj("name", "pairs-only-and-empty", "events", Json.arr(List.of(pairsOnly,
                 Json.obj("id", "ev-x", "type", "CUSTOM", "name", "빈 지정", "date", "2025-06-10", "mode", "STADIUM", "teams", new JSONArray())))));
+        out.add(Json.obj("name", "children-cleared-with-legacy", "obligationTeams", Json.arr(children),
+                "events", Json.arr(List.of(event("OPENING", "2025-03-22", opening), event("CHILDREN", "2025-05-05", List.of())))));
         return out;
     }
 
