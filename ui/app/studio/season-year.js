@@ -52,7 +52,7 @@
     return before.length ? before[before.length - 1] : have.length ? have[have.length - 1] : null;
   };
   // 새 연도로 가져오는 규칙 값
-  const RULE_KEYS = ['gamesPerPair', 'initialGamesPerPair', 'homeGamesMajor', 'remainingHomeRule', 'roadFactor', 'h0eMode', 'restWeekdays', 'distanceToleranceKm', 'holidayTolerance', 'moveTolerance', 'longTripKm', 'seriesMinLength', 'allStarDays', 'solver', 'obligationTeams'];
+  const RULE_KEYS = ['gamesPerPair', 'initialGamesPerPair', 'homeGamesMajor', 'remainingHomeRule', 'roadFactor', 'h0eMode', 'restWeekdays', 'distanceToleranceKm', 'holidayTolerance', 'moveTolerance', 'longTripKm', 'seriesMinLength', 'fourGameHome', 'allStarDays', 'solver', 'obligationTeams'];
   /**
    * 새 연도 프로젝트: 구단 정보·규칙 값은 가장 최근 해에서, 시즌 날짜·묶음·홈 구장 지정은 비우고 그 해 법정 공휴일(3~10월)을 넣는다.
    * opts.teamsFrom: 구단 정보를 가져올 프로젝트(지금 해를 처음부터 다시 할 때는 지금 데이터)
@@ -65,11 +65,12 @@
     if (src) {
       p.teams = clone(src.teams); p.distanceMatrix = clone(src.distanceMatrix);
       for (const k of RULE_KEYS) if (src.settings[k] !== undefined) p.settings[k] = clone(src.settings[k]);
-      // 격년 홈 73/71: 바로 앞 해 것이 있으면 반대로(해마다 바뀐다)
-      // 2025 예시처럼 격년 홈이 없는 해에서 가져오면 코어 기본값(defaultHomeTotals, 있으면)을 쓴다 — 2025 자체에는 넣지 않는다
+      // 격년 홈 73/71: 코어에 격년제 기본값(defaultHomeMoreTeams)이 있으면 홈 73 구단은 그 해 기본(홀수·짝수 해), 경기 수는 가져온 값
+      // 없으면 바로 앞 해 것을 반대로(해마다 바뀐다). 격년 홈이 없는 해(2025 예시)에서 가져오면 코어 기본값 — 2025 자체에는 넣지 않는다
       const ht = src.settings.homeTotals, srcYear = +(src.settings.seasonYear || src.meta.season || 0);
       if (ht && Array.isArray(ht.moreTeams)) {
-        if (!o.teamsFrom && srcYear === y - 1) p.settings.homeTotals = CalendarGen.flipHomeTotals ? CalendarGen.flipHomeTotals(clone(ht), p.teams) : Object.assign(clone(ht), { moreTeams: p.teams.map((t) => t.name).filter((n) => !ht.moreTeams.includes(n)) });
+        if (!o.teamsFrom && CalendarGen.defaultHomeMoreTeams && y > 2025) p.settings.homeTotals = Object.assign(clone(ht), { moreTeams: CalendarGen.defaultHomeMoreTeams(y, p.teams) });
+        else if (!o.teamsFrom && srcYear === y - 1) p.settings.homeTotals = CalendarGen.flipHomeTotals ? CalendarGen.flipHomeTotals(clone(ht), p.teams) : Object.assign(clone(ht), { moreTeams: p.teams.map((t) => t.name).filter((n) => !ht.moreTeams.includes(n)) });
         else p.settings.homeTotals = clone(ht);
       } else if (!o.teamsFrom && CalendarGen.defaultHomeTotals && y > 2025) p.settings.homeTotals = CalendarGen.defaultHomeTotals(y, p.teams);
     }
@@ -80,6 +81,13 @@
     });
     if (p.settings.allStarDays == null) p.settings.allStarDays = 6;
     p.reschedule = Object.assign(clone(KBO.Preset.DEFAULT_RESCHEDULE), { start: y + '-09-01', end: y + '-10-31' });
+    // 어린이날 홈 구장 지정은 격년제 기본값으로 채운다(코어 defaultChildrenHosts가 있을 때 — 홀수 해 두산·키움·한화·롯데·NC / 짝수 해 LG·SSG·KT·삼성·KIA, 대진은 정하지 않음)
+    // 개막전은 전년도 순위가 정하므로 비워 두고 3단계에서 고른다
+    const order = p.teams.map((t) => t.name), kids = (CalendarGen.defaultChildrenHosts ? CalendarGen.defaultChildrenHosts(y, p.teams) : []).sort((m, n) => order.indexOf(m) - order.indexOf(n));
+    if (kids.length === p.teams.length >> 1) {
+      p.events.push({ id: 'ev-children-' + y, type: 'CHILDREN', name: '어린이날', date: y + '-05-05', mode: 'STADIUM', teams: kids, stadiums: kids.map((n) => p.teams.find((t) => t.name === n).stadium), fix: 'home' });
+      p.settings.obligationTeams = kids.slice();
+    }
     // flow.from: 구단 정보를 가져온 해(「바뀐 정보가 있나요?」를 묻는다). 지금 해를 처음부터 다시 할 때는 묻지 않는다
     p.meta = Object.assign({}, p.meta, { name: y + ' 정규시즌', season: y, blank: true, flow: { from: o.teamsFrom ? null : from, teams: null } });
     return p;
@@ -157,7 +165,9 @@
     const req = requiredHomes(p), dn = Dates.dayNum;
     const rows = req.map((r) => {
       const e = p.events.find((x) => x.mode === 'STADIUM' && dn(x.date) === dn(r.date)) || null;
-      return Object.assign({}, r, { ev: e, n: e ? (e.teams || []).length : 0, done: S.homeComplete(e, p) });
+      // 확인을 받고 지운 지정(teams: [] = 지정 없음)도 끝난 것으로 본다 — 4 확인과 ② 시작 전에 다시 알린다
+      const cleared = !!e && Array.isArray(e.teams) && !e.teams.length;
+      return Object.assign({}, r, { ev: e, n: e ? (e.teams || []).length : 0, cleared, done: cleared || S.homeComplete(e, p) });
     });
     return { rows, done: rows.filter((x) => x.done).length, total: rows.length };
   }

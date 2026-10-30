@@ -192,7 +192,12 @@
       },
       blank: (st) => ({ id: 'ev-' + Date.now().toString(36), type: 'CUSTOM', name: '새 특별 경기', date: firstSlotDate(st), mode: 'STADIUM', stadiums: [(st.teams[0] || {}).stadium].filter(Boolean) }),
       insert(s, at, row) { s.events.splice(at, 0, row); },
-      remove(s, at) { const e = s.events[at]; s.events.splice(at, 1); for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; } },
+      // 개막전·어린이날 구장 지정은 규칙(노트 「사」): 줄을 지우면 teams: []로 남겨 「지정 없음」 — 사전 점검·편성 시작 때 다시 묻는다
+      remove(s, at) {
+        const e = s.events[at];
+        if (e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && (e.teams || e.stadiums || []).length) { e.teams = []; e.stadiums = []; e.fix = 'home'; delete e.pairs; } else s.events.splice(at, 1);
+        for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; }
+      },
       assists: [{ act: 'add-opening', label: '개막전 홈 구장 지정 추가' }, { act: 'add-children', label: '어린이날 구장 지정 추가' }],
       emptyHint: '날짜를 미리 정할 경기입니다. 개막전·어린이날 모두 「구장 지정」(그 날 홈 경기를 해야 하는 구단 5곳, 상대는 자동 편성이 정함)입니다. 시즌 달력에서 날을 눌러 고르는 편이 쉽습니다.'
     }

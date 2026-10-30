@@ -66,21 +66,30 @@
   }
 
   // ───────── 4 확인 ─────────
+  // 격년 홈 1차 편성 홈 기본값(노트 「라」·「바」, 1차 편성 135경기 기준): 후반기 첫 4연전 홈이 개막전 홈 그대로면 69 / 66(미편성 홈 4 / 5), 홈 바꿈이면 68 / 67
+  S.htInitDefault = function (st, four) {
+    st = st || app().state;
+    const init = st.settings.initialGamesPerPair * (st.teams.length - 1), swap = (four || st.settings.fourGameHome) === 'swap', more = Math.ceil(init / 2) + (swap ? 0 : 1);
+    return { more, less: init - more };
+  };
   function rulesEditor() {
     const s = app().state.settings, ht = s.homeTotals, names = app().state.teams.map((t) => t.name), half = names.length >> 1;
     const num = (k, v, label) => '<label class="sc-inl">' + esc(label) + ' <input class="input sm num sc-num" data-in="fl-rule" data-k="' + k + '" value="' + esc(String(v)) + '" inputmode="numeric" aria-label="' + esc(label) + '"></label>';
     const total = (s.gamesPerPair || 16) * (names.length - 1);
     let h = '<div class="ck-ed"><div class="ck-ed-row">' + num('gamesPerPair', s.gamesPerPair, '맞대결') + num('initialGamesPerPair', s.initialGamesPerPair, '그중 1차 편성') + num('homeGamesMajor', s.homeGamesMajor, '1차 편성 홈(많은 쪽)') + num('seriesMinLength', s.seriesMinLength || 3, '연전 최소 길이') + '</div>' +
       '<div class="sc-note">연전 최소 길이: 개막 2연전·후반기 첫 4연전 말고는 이 길이 이상으로 시리즈를 만듭니다(기본 3).</div>' +
+      '<div class="sc-sub">후반기 첫 4연전 홈</div><div class="sc-seg sc-4g" role="radiogroup" aria-label="후반기 첫 4연전 홈">' +
+        [['same', '개막전 홈 구단 그대로'], ['swap', '홈 바꿈']].map(([v, t]) => '<button class="' + ((s.fourGameHome || 'same') === v ? 'on' : '') + '" data-act="fl-4g" data-v="' + v + '" role="radio" aria-checked="' + ((s.fourGameHome || 'same') === v) + '">' + t + (v === 'same' ? ' <small>(기본)</small>' : '') + '</button>').join('') + '</div>' +
+      '<div class="sc-note">개막 대진의 두 구단이 후반기 첫 4연전에서 다시 만납니다. 「그대로」면 개막전 홈 구단의 구장에서(1차 편성 홈 기본 69 / 66), 「홈 바꿈」이면 상대 구장에서 합니다(68 / 67 — 이때 홈 68 구단은 개막전 홈 구단).</div>' +
       '<div class="sc-note">맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + ' + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + '(재편성에서). 1차 편성 경기 수를 바꾸면 필요한 경기일(' + s.initialGamesPerPair + ' × ' + (names.length - 1) + ')도 바뀝니다.</div>';
     if (ht && Array.isArray(ht.moreTeams)) {
       const more = (ht.more && ht.more.total) || Math.ceil(total / 2) + 1, less = (ht.less && ht.less.total) || total - more;
-      const auto = !(ht.more && ht.more.initial != null) && !(ht.less && ht.less.initial != null);
+      const auto = !(ht.more && ht.more.initial != null) && !(ht.less && ht.less.initial != null), d = S.htInitDefault();
       h += '<div class="sc-sub">격년 홈 ' + more + ' / ' + less + '경기 <small>홈 ' + more + ' 구단 ' + ht.moreTeams.length + ' / ' + half + '곳</small></div><div class="sc-home-teams">' +
         app().state.teams.map((t) => '<button class="gs-tbtn' + (ht.moreTeams.includes(t.name) ? ' on' : '') + '" data-act="fl-ht-team" data-team="' + esc(t.name) + '" aria-pressed="' + ht.moreTeams.includes(t.name) + '" style="--tc:' + esc(t.color || '#555') + '"><i></i>' + esc(t.name) + '</button>').join('') + '</div>' +
-        '<div class="sc-note">' + (auto ? '1차 편성 홈 경기 수: <b>자동</b>(개막 대진으로 정하고 나머지는 미편성 경기로 맞춤). <button class="lnk" data-act="fl-ht-init" data-v="fix">68 / 67로 정하기</button>'
+        '<div class="sc-note">' + (auto ? '1차 편성 홈 경기 수: <b>자동</b>(개막 대진으로 정하고 나머지는 미편성 경기로 맞춤). <button class="lnk" data-act="fl-ht-init" data-v="fix">' + d.more + ' / ' + d.less + '로 정하기</button>'
           : '홈 ' + more + ' 구단: 1차 편성 홈 ' + ht.more.initial + ' · 미편성 홈 ' + (more - ht.more.initial) + ' / 홈 ' + less + ' 구단: 1차 편성 홈 ' + ht.less.initial + ' · 미편성 홈 ' + (less - ht.less.initial) + '. <button class="lnk" data-act="fl-ht-init" data-v="auto">1차 편성 홈은 자동으로</button>') +
-        ' · 해마다 바뀝니다(다음 해는 반대로). <button class="lnk" data-act="fl-ht-off">쓰지 않기</button></div>';
+        ' · 해마다 바뀝니다(다음 해는 반대로). 홈 ' + more + ' 구단은 개막전 홈 구단(3 홈 구장)과 따로 고릅니다. <button class="lnk" data-act="fl-ht-off">쓰지 않기</button></div>';
     } else h += '<div class="sc-note">격년 홈 73 / 71경기(구단마다 홈 경기 수가 해마다 번갈아 다름)를 쓰지 않습니다. <button class="lnk" data-act="fl-ht-on">격년 홈 73 / 71 쓰기</button></div>';
     return h + '</div>';
   }
@@ -91,14 +100,14 @@
     const fix = (n) => '<button class="btn sm" data-act="fl-go" data-fs="' + n + '">고치기</button>';
     const dm = st.distanceMatrix.filter((d) => d.from !== d.to).length, shared = Array.from(app().sharedStadiums()).map(([x, n]) => x.replace(/종합운동장$/, '') + '(' + n.join('·') + ')').join(', ');
     const hol = s.holidays.filter((x) => x.date >= (s.seasonStart || y + '-03-01') && x.date <= (s.seasonEnd || y + '-10-31'));
-    const ht = s.homeTotals && Array.isArray(s.homeTotals.moreTeams) ? ' · 격년 홈 ' + ((s.homeTotals.more && s.homeTotals.more.total) || 73) + ' ' + s.homeTotals.moreTeams.join('·') : '';
+    const ht = s.homeTotals && Array.isArray(s.homeTotals.moreTeams) ? ' · 격년 홈 ' + ((s.homeTotals.more && s.homeTotals.more.total) || 73) + ' ' + s.homeTotals.moreTeams.join('·') : '', g4 = ' · 후반기 첫 4연전 ' + (s.fourGameHome === 'swap' ? '홈 바꿈' : '개막전 홈 그대로');
     return '<div class="ck-wrap" data-sk="ck"><div class="fl-card ck-card" aria-label="확인">' +
       '<div class="fl-kick">4 / 4단계 · 확인</div><h2>' + (fs.allDone || (fs.done[0] && fs.done[1] && fs.done[2]) ? y + ' 시즌 데이터가 모두 준비됐습니다' : y + ' 시즌 — 아직 맞지 않는 곳이 있습니다') + '</h2>' +
       '<p class="fl-sub">아래가 맞으면 「다음: ② 검토·실행」을 누릅니다. 고칠 곳이 있으면 그 줄의 「고치기」로 그 단계에 갑니다.</p>' +
       row(1, '1 구단 정보', esc(st.teams.length + '구단 · 구장 간 거리 ' + dm + '개' + (shared ? ' · 같이 쓰는 구장 ' + shared : '')), fix(1)) +
       row(2, '2 시즌 기간·연전 묶음', esc(s.seasonStart ? '개막 ' + fmt.date(s.seasonStart) + ' ~ 1차 편성 ' + fmt.date(s.initialEnd) + ' · 시즌 종료 ' + fmt.date(s.seasonEnd) + ' · 묶음 ' + st.calendar.length + '개(2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ') · 경기일 ' + gd.have + ' / ' + gd.need + '일' : '개막일을 아직 고르지 않았습니다'), fix(2)) +
       row(3, '3 공휴일·홈 구장', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
-      row(4, '시리즈(규칙대로 자동)', esc('맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + '(홈 ' + s.homeGamesMajor + '·원정 ' + (s.initialGamesPerPair - s.homeGamesMajor) + ') + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + ht + ' · ' + sr.text), '<span class="ck-btns"><button class="btn sm" data-act="fl-edit-rules">' + (F.edit === 'rules' ? '닫기' : '고치기') + '</button><button class="btn sm" data-act="g1-all" data-tab="series">표 보기</button></span>') +
+      row(4, '시리즈(규칙대로 자동)', esc('맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + '(홈 ' + s.homeGamesMajor + '·원정 ' + (s.initialGamesPerPair - s.homeGamesMajor) + ') + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + ht + g4 + ' · ' + sr.text), '<span class="ck-btns"><button class="btn sm" data-act="fl-edit-rules">' + (F.edit === 'rules' ? '닫기' : '고치기') + '</button><button class="btn sm" data-act="g1-all" data-tab="series">표 보기</button></span>') +
       (S.cal.seriesError ? '<div class="sc-warn ck-err">' + icon('warn') + '<span><b>시리즈를 만들 수 없습니다.</b> ' + esc(S.cal.seriesError) + '</span></div>' : '') +
       (F.edit === 'rules' ? rulesEditor() : '') +
       '<div class="fl-foot ck-foot"><span>' + esc(S.savedText()) + '</span><button class="btn sm" data-act="repo-export">' + icon('download') + '파일로 내려받기</button><span class="sc-xl"><button class="btn sm" data-act="cal-xl-down" title="구단 정보 · 시즌 기간과 공휴일 · 연전 기간 · 홈 구장 지정 시트 4개">' + icon('sheet') + '엑셀 서식 내려받기</button><button class="btn sm" data-act="cal-xl-up">' + icon('upload') + '채운 엑셀 올리기</button></span>' +
@@ -162,16 +171,29 @@
     'fl-edit-rules': () => { F.edit = F.edit === 'rules' ? null : 'rules'; S.render(); },
     'fl-ht-on': () => {
       const names = app().state.teams.map((t) => t.name), total = (app().state.settings.gamesPerPair || 16) * (names.length - 1), more = total / 2 + 1, less = total / 2 - 1;
-      const init = app().state.settings.initialGamesPerPair * (names.length - 1);
-      app().commit('격년 홈 ' + more + ' / ' + less + ' 쓰기', (s) => { s.settings.homeTotals = { moreTeams: [], more: { total: more, initial: Math.ceil(init / 2) }, less: { total: less, initial: Math.floor(init / 2) } }; }, ['settings']);
+      const d = S.htInitDefault();
+      app().commit('격년 홈 ' + more + ' / ' + less + ' 쓰기', (s) => { s.settings.homeTotals = { moreTeams: [], more: { total: more, initial: d.more }, less: { total: less, initial: d.less } }; }, ['settings']);
       if (CalendarGen.defaultHomeTotals) S.toast('홈 ' + more + ' 구단 5곳을 고르세요(해마다 바뀝니다). 새 해를 만들면 지난해 값을 반대로 가져옵니다.', 'info', 4500);
     },
     'fl-ht-init': (el) => {
-      const st = app().state, init = st.settings.initialGamesPerPair * (st.teams.length - 1);
-      app().commit('격년 홈: 1차 편성 홈 ' + (el.dataset.v === 'auto' ? '자동' : Math.ceil(init / 2) + ' / ' + Math.floor(init / 2)), (s) => {
+      const d = S.htInitDefault();
+      app().commit('격년 홈: 1차 편성 홈 ' + (el.dataset.v === 'auto' ? '자동' : d.more + ' / ' + d.less), (s) => {
         const ht = s.settings.homeTotals;
-        if (el.dataset.v === 'auto') { delete ht.more.initial; delete ht.less.initial; } else { ht.more.initial = Math.ceil(init / 2); ht.less.initial = Math.floor(init / 2); }
+        if (el.dataset.v === 'auto') { delete ht.more.initial; delete ht.less.initial; } else { ht.more.initial = d.more; ht.less.initial = d.less; }
       }, ['settings']);
+    },
+    'fl-4g': (el) => {
+      const v = el.dataset.v;
+      const st = app().state;
+      if ((st.settings.fourGameHome || 'same') === v) return;
+      // 1차 편성 홈을 기본값으로 정해 두었으면 새 방식의 기본값으로 같이 바꾼다(직접 다른 수를 넣었으면 그대로)
+      const was = S.htInitDefault(st), next = S.htInitDefault(st, v), ht = st.settings.homeTotals;
+      const follow = !!(ht && ht.more && ht.less && ht.more.initial === was.more && ht.less.initial === was.less);
+      app().commit('후반기 첫 4연전 홈: ' + (v === 'swap' ? '홈 바꿈' : '개막전 홈 구단 그대로') + (follow ? ' · 1차 편성 홈 ' + next.more + ' / ' + next.less : ''), (s) => {
+        s.settings.fourGameHome = v;
+        if (follow) { s.settings.homeTotals.more.initial = next.more; s.settings.homeTotals.less.initial = next.less; }
+      }, ['settings']);
+      S.toast('바꿨습니다. 시리즈는 「다음」 때 이 값으로 규칙대로 다시 만듭니다.', 'info', 4500);
     },
     'fl-ht-off': () => { app().commit('격년 홈 경기 수 쓰지 않기', (s) => { delete s.settings.homeTotals; }, ['settings']); },
     'fl-ht-team': (el) => {
@@ -345,13 +367,13 @@
     click('.footer [data-act="fl-next"]'); flush();
     const hols = Array.from(qa('.sc-hols tbody tr')).map((tr) => tr.querySelector('.sc-hd').value).join();
     const i816 = st().settings.holidays.findIndex((x) => x.date === '2027-08-16');
-    ok('3단계(2027): 공휴일 5일(5/5·5/13·6/6·8/15·8/16) · 8/16(월) 「월 경기」 꺼짐 · 홈 구장 지정 0 / 2(개막전·어린이날)', G.fs === 3 && hols === '5/5(수),5/13(목),6/6(일),8/15(일),8/16(월)' && !q('.sc-hols [data-act="cal-por"][data-row="' + i816 + '"]').classList.contains('on') && /0 \/ 2/.test(q('.sc-homes h4').textContent), hols);
+    ok('3단계(2027): 공휴일 5일(5/5·5/13·6/6·8/15·8/16) · 8/16(월) 「월 경기」 꺼짐 · 홈 구장 지정 0 / 2(개막전·어린이날 — 코어 격년제 기본값이 있으면 어린이날 두산·키움·한화·롯데·NC가 채워져 1 / 2)', G.fs === 3 && hols === '5/5(수),5/13(목),6/6(일),8/15(일),8/16(월)' && !q('.sc-hols [data-act="cal-por"][data-row="' + i816 + '"]').classList.contains('on') && (CalendarGen.defaultChildrenHosts ? /1 \/ 2/.test(q('.sc-homes h4').textContent) && S.evTeams(st().events.find((e) => e.type === 'CHILDREN')).join() === '두산,키움,한화,NC,롯데' : /0 \/ 2/.test(q('.sc-homes h4').textContent)), hols);
     click('.sc-hols [data-act="cal-por"][data-row="' + i816 + '"]'); flush();
     click('.sc-relay [data-act="cal-relay-go"]'); flush();
     ok('8/16 「월 경기」 켜기 → 반영 → 8/16 경기(휴식일 경기) · 8/19(목) 휴식 · 경기일 135 그대로', st().settings.restExceptions.includes('2027-08-16') && /08-19~08-19/.test(st().settings.blackouts.map((b) => b.start.slice(5) + '~' + b.end.slice(5)).join()) && S.gameDaysCheck().ok);
     app().undo(); app().undo(); flush();
     // 홈 구장 지정: 개막전 KT·삼성·KIA·LG·SSG, 어린이날 두산·키움·한화·롯데·NC
-    const pick = (iso, names) => { click('.sc-homes .sc-hrow[data-d="' + dn(iso) + '"]'); flush(); if (q('.sc-day [data-act="cal-home-on"]')) { click('.sc-day [data-act="cal-home-on"]'); flush(); } for (const n of names) { click('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); flush(); } };
+    const pick = (iso, names) => { click('.sc-homes .sc-hrow[data-d="' + dn(iso) + '"]'); flush(); if (q('.sc-day [data-act="cal-home-on"]')) { click('.sc-day [data-act="cal-home-on"]'); flush(); } const on = (n) => { const x = q('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); return !!x && x.classList.contains('on'); }; for (const n of app().state.teams.map((t) => t.name)) if (on(n) && !names.includes(n)) { click('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); flush(); } for (const n of names) if (!on(n)) { click('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); flush(); } }; // 코어 격년제 기본값으로 어린이날이 채워져 있으면 그대로
     pick('2027-03-27', ['KT', '삼성', 'KIA', 'LG', 'SSG']);
     pick('2027-05-05', ['두산', '키움', '한화', '롯데', 'NC']);
     ok('홈 구장 지정 2 / 2 → 3단계 ✓ · 단계 띠 3 완료', S.flowStatus().done[2] && /2 \/ 2/.test(q('.sc-homes h4').textContent) && st().settings.obligationTeams.join() === '두산,키움,한화,NC,롯데', st().settings.obligationTeams.join() + ' · ' + S.homeStateOf(st()).done);
@@ -365,18 +387,24 @@
     click('.ck-ed [data-act="fl-ht-on"]'); flush();
     for (const n of ['한화', 'SSG', 'KT', '롯데', '두산', 'LG']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
     const ht = st().settings.homeTotals;
-    ok('4 확인 「고치기」: 격년 홈 73 / 71 쓰기 → 홈 73 구단 5곳까지(6번째 LG는 거부) · 1차 편성 홈 68/67', !!ht && ht.more.total === 73 && ht.less.total === 71 && ht.more.initial === 68 && ht.less.initial === 67 && ht.moreTeams.join() === 'SSG,두산,KT,한화,롯데', ht && ht.moreTeams.join());
+    ok('4 확인 「고치기」: 격년 홈 73 / 71 쓰기 → 홈 73 구단 5곳까지(6번째 LG는 거부) · 1차 편성 홈 69/66(미편성 4/5)', !!ht && ht.more.total === 73 && ht.less.total === 71 && ht.more.initial === 69 && ht.less.initial === 66 && /미편성 홈 4/.test(q('.ck-ed').textContent) && /미편성 홈 5/.test(q('.ck-ed').textContent) && ht.moreTeams.join() === 'SSG,두산,KT,한화,롯데', ht && ht.moreTeams.join());
     click('.ck-ed [data-act="fl-ht-init"][data-v="auto"]'); flush();
     const autoInit = st().settings.homeTotals.more.initial == null && /자동/.test(q('.ck-ed').textContent);
     click('.ck-ed [data-act="fl-ht-init"][data-v="fix"]'); flush();
     const minIn = q('.ck-ed input[data-k="seriesMinLength"]'); minIn.value = '5'; minIn.dispatchEvent(new Event('change', { bubbles: true })); flush();
     const minRej = (st().settings.seriesMinLength || 3) === 3;
-    ok('격년 홈: 1차 편성 홈 「자동」(비움) ↔ 68 / 67 · 연전 최소 길이 칸(2~4만 받음)', autoInit && st().settings.homeTotals.more.initial === 68 && minRej && !!minIn);
+    ok('격년 홈: 1차 편성 홈 「자동」(비움) ↔ 69 / 66 · 연전 최소 길이 칸(2~4만 받음)', autoInit && st().settings.homeTotals.more.initial === 69 && minRej && !!minIn);
+    const g4a = (st().settings.fourGameHome || 'same') === 'same' && q('.ck-ed .sc-4g [data-v="same"]').classList.contains('on');
+    click('.ck-ed .sc-4g [data-v="swap"]'); flush();
+    const g4b = st().settings.fourGameHome === 'swap' && /4연전 홈 바꿈/.test(q('.ck-card').textContent) && st().settings.homeTotals.more.initial === 68 && st().settings.homeTotals.less.initial === 67;
+    click('.ck-ed .sc-4g [data-v="same"]'); flush();
+    ok('후반기 첫 4연전 홈: 기본 「개막전 홈 구단 그대로」(69 / 66) ↔ 「홈 바꿈」(fourGameHome, 68 / 67로 같이) · 확인 줄에 보임', g4a && g4b && st().settings.fourGameHome === 'same' && st().settings.homeTotals.more.initial === 69);
     if (CalendarGen.seriesOptions) {
       // 코어가 격년 홈으로 시리즈를 만들 때: 홈 73 구단과 개막전 홈 구단이 맞지 않으면 4 확인에 남아 이유를 보여 준다 → 개막전 홈 구단을 홈 73으로 맞추면 통과
       click('.ck-card [data-act="cal-next"]'); flush();
       ok('시리즈를 만들 수 없으면(홈 73 구단 ≠ 개막전 홈) 4 확인에 남아 코어의 이유를 보여 줌', S.ui.step === 1 && G.fs === 4 && !!q('.ck-err') && /시리즈를 만들 수 없습니다/.test(q('.ck-err').textContent));
       for (const n of ['두산', '한화', '롯데', '삼성', 'KIA', 'LG']) { click('.ck-ed [data-act="fl-ht-team"][data-team="' + n + '"]'); flush(); }
+      click('.ck-ed [data-act="fl-ht-init"][data-v="auto"]'); flush(); // 1차 편성 홈 수는 코어가 개막 대진·4연전 홈 설정으로 정하게
     } else { click('.ck-ed [data-act="fl-ht-off"]'); flush(); }
     click('.ck-card [data-act="cal-next"]'); flush();
     ok('「다음: ② 검토·실행」 → 시리즈 규칙대로 225개 · ② · 개막전은 홈 구장만(고정 없음)', S.ui.step === 2 && st().matches.length === 225 && !st().matches.some((m) => m.pinned) && S.flowStatus().allDone, st().matches.length + ' · ' + S.flowStatus().stop);
@@ -409,7 +437,7 @@
       { where: '연도 고르기', patch: {}, fn: at(() => { G.mode = 'year'; }) },
       { where: '어디까지 했는지', patch: {}, fn: at(() => { G.mode = 'resume'; }) },
       { where: '4 확인 — 맞대결·격년 홈 고치기', patch: {}, fn: at(() => { G.mode = 'flow'; G.fs = 4; F.edit = 'rules'; }) },
-      { where: '4 확인 — 격년 홈 73/71', patch: {}, fn: at(() => { G.mode = 'flow'; G.fs = 4; F.edit = 'rules'; app().state.settings.homeTotals = { moreTeams: ['한화'], more: { total: 73, initial: 68 }, less: { total: 71, initial: 67 } }; }) },
+      { where: '4 확인 — 격년 홈 73/71', patch: {}, fn: at(() => { G.mode = 'flow'; G.fs = 4; F.edit = 'rules'; app().state.settings.homeTotals = { moreTeams: ['한화'], more: { total: 73, initial: 69 }, less: { total: 71, initial: 66 } }; }) },
       { where: '따라 하기 2단계', patch: {}, fn: at(() => { delete app().state.settings.homeTotals; G.mode = 'flow'; G.fs = 2; S.flowTour.cur = { id: 'season', k: 1 }; }) },
       { where: '따라 하기 3단계', patch: {}, fn: at(() => { G.mode = 'flow'; G.fs = 3; S.flowTour.cur = { id: 'days', k: 0 }; }) }
     ];

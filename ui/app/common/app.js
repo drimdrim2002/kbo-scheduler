@@ -421,7 +421,7 @@
     // 격년 홈 73/71·3연전 이상·개막전 대진(events)도 넘긴다(코어에 seriesOptions가 있으면 그것으로)
     if (CalendarGen.seriesOptions) return CalendarGen.generateSeries(st.teams, st.calendar, CalendarGen.seriesOptions(st));
     const s = st.settings;
-    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, gamesPerPair: s.gamesPerPair, homeTotals: s.homeTotals, seriesMinLength: s.seriesMinLength, events: st.events, settings: s });
+    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, gamesPerPair: s.gamesPerPair, homeTotals: s.homeTotals, seriesMinLength: s.seriesMinLength, fourGameHome: s.fourGameHome || 'same', events: st.events, settings: s });
   };
   App.prototype.regenerateSeries = function () {
     const g = this.generateSeriesPreview();
@@ -485,7 +485,7 @@
       } else {
         const unknown = (e.stadiums || []).filter((x) => !st.teams.some((t) => t.stadium === x));
         if (unknown.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 연고 구단이 없는 구장 ' + unknown.join(', ') });
-        if (!(e.stadiums || []).length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
+        if (!(e.stadiums || []).length && !(Array.isArray(e.teams) && !e.teams.length)) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
       }
     }
     const half = st.teams.length >> 1;
@@ -656,6 +656,9 @@
     const ev = this.checkEvents();
     const blocks = ev.filter((x) => x.level === 'block'), warns = ev.filter((x) => x.level === 'warn');
     add('events', blocks.length ? 'block' : warns.length ? 'warn' : 'pass', '특별 경기 충돌', blocks.length + warns.length ? ev.map((x) => x.message).join(' / ') : st.events.length + '개 모두 충돌 없음', 'events');
+    // 개막전·어린이날 홈 구장 지정을 지운 날(teams: [] = 지정 없음): 막지 않고 확인 필요로 알린다
+    const cleared = st.events.filter((e) => e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && Array.isArray(e.teams) && !e.teams.length);
+    if (cleared.length) add('rule-homes', 'warn', '개막전·어린이날 홈 구장 지정', cleared.map((e) => Dates.fmtDate(e.date) + ' ' + e.name).join(', ') + ' 지정 없음 — KBO 원칙(개막전 = 전년도 상위 5팀 홈, 어린이날 = 격년제 편성)과 다릅니다. 편성 시작 때 한 번 더 묻습니다.', 'events');
     const pinMis = st.matches.filter((m, i) => m.pinned && c.plan[i] >= 0 && m.consecutive !== st.calendar[c.plan[i]].consecutive).length;
     if (pinMis) add('pins', 'warn', '고정 시리즈 연전 불일치', pinMis + '개 고정 시리즈가 연전 수가 다른 기간에 있습니다(연전 수 불일치 위반이 남음).', 'result');
     const st0 = { block: 0, warn: 0, pass: 0 };
