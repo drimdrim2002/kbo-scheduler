@@ -142,14 +142,12 @@
     const needs = [];
     const teamHomeTotal = new Array(N).fill(0);
     for (let h = 0; h < N; h++) for (let a = 0; a < N; a++) if (h !== a) teamHomeTotal[h] += pairHome[h][a].played + pairHome[h][a].scheduled + pairHome[h][a].cancelled.length;
+    const extras = [];
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
         const ci = pairHome[i][j], cj = pairHome[j][i];
-        const played = ci.played + cj.played;
-        const scheduled = ci.scheduled + cj.scheduled;
-        const cancelled = ci.cancelled.length + cj.cancelled.length;
-        const need = Math.max(0, target - played - scheduled);
-        let remaining = Math.max(0, need - cancelled);
+        const need = Math.max(0, target - ci.played - cj.played - ci.scheduled - cj.scheduled);
+        const remaining = Math.max(0, need - ci.cancelled.length - cj.cancelled.length);
         // 잔여 경기의 홈 결정(O-1): 이 구단쌍에서 홈 경기가 적은 쪽(또는 많은 쪽)에 하나씩 준다
         const homeCount = [ci.played + ci.scheduled + ci.cancelled.length, cj.played + cj.scheduled + cj.cancelled.length];
         const extra = [0, 0];
@@ -161,11 +159,22 @@
           else pick = hi < hj ? 0 : 1;
           extra[pick]++;
         }
-        pairs.push({ a: names[i], b: names[j], target, played, scheduled, cancelled, need, remaining,
-          byHome: [{ home: names[i], away: names[j], cancelled: ci.cancelled.length, remaining: extra[0] }, { home: names[j], away: names[i], cancelled: cj.cancelled.length, remaining: extra[1] }] });
-        if (ci.cancelled.length + extra[0] > 0) needs.push({ home: names[i], away: names[j], cancelled: ci.cancelled, remaining: extra[0] });
-        if (cj.cancelled.length + extra[1] > 0) needs.push({ home: names[j], away: names[i], cancelled: cj.cancelled, remaining: extra[1] });
+        extras.push({ i, j, extra });
       }
+    }
+    // 홈 73/71(settings.homeTotals)이 있으면 구단별 전체 홈 수가 그대로 되게 잔여 경기 홈을 고친다(위 규칙은 출발점)
+    const homeTotals = settings.homeTotals ? fitHomeTotals(names, settings, extras, teamHomeTotal) : null;
+    for (const { i, j, extra } of extras) {
+      const ci = pairHome[i][j], cj = pairHome[j][i];
+      const played = ci.played + cj.played;
+      const scheduled = ci.scheduled + cj.scheduled;
+      const cancelled = ci.cancelled.length + cj.cancelled.length;
+      const need = Math.max(0, target - played - scheduled);
+      const remaining = Math.max(0, need - cancelled);
+      pairs.push({ a: names[i], b: names[j], target, played, scheduled, cancelled, need, remaining,
+        byHome: [{ home: names[i], away: names[j], cancelled: ci.cancelled.length, remaining: extra[0] }, { home: names[j], away: names[i], cancelled: cj.cancelled.length, remaining: extra[1] }] });
+      if (ci.cancelled.length + extra[0] > 0) needs.push({ home: names[i], away: names[j], cancelled: ci.cancelled, remaining: extra[0] });
+      if (cj.cancelled.length + extra[1] > 0) needs.push({ home: names[j], away: names[i], cancelled: cj.cancelled, remaining: extra[1] });
     }
     const byTeam = names.map((n) => ({ team: n, played: 0, scheduled: 0, cancelled: 0, remaining: 0, need: 0, homeNeed: 0 }));
     for (const p of pairs) {
@@ -192,7 +201,58 @@
       played: pairs.reduce((s, p) => s + p.played, 0),
       scheduled: pairs.reduce((s, p) => s + p.scheduled, 0)
     };
-    return { pairs, byTeam, totals, needs };
+    return { pairs, byTeam, totals, needs, homeTotals };
+  }
+
+  /**
+   * 잔여 경기 홈을 구단별 홈 목표(전체 홈 − 1차 편성 홈, 취소분 포함)에 맞춘다. extras[k].extra = [i의 홈, j의 홈]을 그 자리에서 고친다.
+   * 넘치는 구단에서 모자란 구단까지 「홈 → 원정」 길을 찾아 그 길의 잔여 경기 홈을 한 칸씩 넘긴다(가운데 구단 수는 그대로).
+   * 반환: { ok, message, byTeam: [{ team, total, initial, remainingHome }] }
+   */
+  function fitHomeTotals(names, settings, extras, teamHomeTotal) {
+    const N = names.length;
+    const tg = KBO.CalendarGen.homeTotalsTargets(names.map((n) => ({ name: n })), settings);
+    const out = { ok: false, message: '', byTeam: [] };
+    if (tg.errors.length) { out.message = tg.errors[0]; return out; }
+    const want = tg.targets.map((t, i) => t.total - teamHomeTotal[i]);
+    const have = new Array(N).fill(0);
+    for (const x of extras) { have[x.i] += x.extra[0]; have[x.j] += x.extra[1]; }
+    const sumW = want.reduce((a, b) => a + b, 0), sumH = have.reduce((a, b) => a + b, 0);
+    if (sumW !== sumH) {
+      out.message = '홈 목표로 남은 홈 경기 합(' + sumW + ')이 잔여 경기 수(' + sumH + ')와 다릅니다. 1차 편성 홈 경기 수를 확인하세요.';
+    } else {
+      // 구단 a가 b를 상대로 잔여 홈을 가진 자리: a → b
+      const edgesFrom = (a) => extras.filter((x) => (x.i === a && x.extra[0] > 0) || (x.j === a && x.extra[1] > 0));
+      for (let guard = 0; guard < 1000; guard++) {
+        const src = have.findIndex((h, i) => h > want[i]);
+        if (src < 0) break;
+        const prev = new Map([[src, null]]);
+        const q = [src];
+        let dst = -1;
+        while (q.length && dst < 0) {
+          const a = q.shift();
+          for (const x of edgesFrom(a)) {
+            const b = x.i === a ? x.j : x.i;
+            if (prev.has(b)) continue;
+            prev.set(b, { a, x });
+            if (have[b] < want[b]) { dst = b; break; }
+            q.push(b);
+          }
+        }
+        if (dst < 0) break;
+        for (let b = dst; b !== src;) {
+          const { a, x } = prev.get(b);
+          if (x.i === a) { x.extra[0]--; x.extra[1]++; } else { x.extra[1]--; x.extra[0]++; }
+          b = a;
+        }
+        have[src]--; have[dst]++;
+      }
+      const off = names.filter((n, i) => have[i] !== want[i]);
+      out.ok = !off.length;
+      if (off.length) out.message = '잔여 경기 홈을 홈 목표대로 나누지 못한 구단: ' + off.map((n) => n + '(목표 ' + want[names.indexOf(n)] + ' · 지금 ' + have[names.indexOf(n)] + ')').join(', ') + '.';
+    }
+    out.byTeam = names.map((n, i) => ({ team: n, total: tg.targets[i].total, initial: teamHomeTotal[i], remainingHome: have[i], remainingTarget: want[i] }));
+    return out;
   }
 
   /** n경기를 1~3경기 묶음으로 나눈다 (4 → 2+2, 5 → 3+2) */

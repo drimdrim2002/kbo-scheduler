@@ -6,8 +6,8 @@
 
 | 파일 | 내용 | 요구사항 |
 | :--- | :--- | :--- |
-| `preset-2025.js` | `input_2025.json` 원본, 2025 기본 설정(공휴일 가중치·올스타 시작일)·이벤트(개막전·어린이날 모두 홈 구장 지정 5곳), 구장 사전, 구단 색. 프로젝트의 연전 기간 휴일 값은 공휴일 표대로 다시 매긴다(엔진 원본 값은 `ENGINE_INPUT_2025`). `node tools/build-preset.js <input_2025.json>`로 다시 만든다. | FR-S8, FR-E4, FR-T2 |
-| `calendar-gen.js` | 날짜 유틸, 슬롯 자동 생성, 시리즈 목록 생성, 내장 공휴일(2025~2028). 공휴일 가중치 합(`slotWeights`·`applyWeights`, 주말 하루 1 · 공휴일 weight 기본 2 · 어린이날 3), 묶음에서 휴식기·휴식일 경기 만들기(`deriveRestDays`), 규칙대로 채우기 설정(`ruleSettings`: 휴식 요일 공휴일 · 올스타 휴식기) | §5.2.1, FR-S6, FR-S7 |
+| `preset-2025.js` | `input_2025.json` 원본, 2025 기본 설정(공휴일 가중치·올스타 시작일)·이벤트(개막전·어린이날 모두 홈 구장 지정 5곳), 구장 사전, 구단 색. 프로젝트의 연전 기간 휴일 값은 공휴일 표대로 다시 매긴다(엔진 원본 값은 `ENGINE_INPUT_2025`). `node tools/build-preset.js <input_2025.json>`로 다시 만든다. 2027 기본 데이터 `KBO.Preset2027`(예상 일정 연전 기간 45개 `SLOTS_2027` · 2027 설정 · 개막전 대진 고정·어린이날 홈 구장 지정 · `buildProject()`)도 같은 파일에 있다(원본은 `tools/preset-header.js`). | FR-S8, FR-E4, FR-T2 |
+| `calendar-gen.js` | 날짜 유틸, 슬롯 자동 생성, 시리즈 목록 생성, 내장 공휴일(2025~2028). 공휴일 가중치 합(`slotWeights`·`applyWeights`, 주말 하루 1 · 공휴일 weight 기본 2 · 어린이날 3), 묶음에서 휴식기·휴식일 경기 만들기(`deriveRestDays`), 규칙대로 채우기 설정(`ruleSettings`: 「휴식 요일이어도 경기」가 켜진 공휴일 · 올스타 휴식기). 격년 홈 73/71(`defaultHomeTotals`·`flipHomeTotals`·`homeTotalsTargets`)과 그 원칙의 시리즈 생성(`generateSeriesByHomeTotals`, `seriesOptions`) | §5.2.1, FR-S6, FR-S7 |
 | `xlsx-lite.js` | 바깥 라이브러리 없는 .xlsx 쓰기(압축 없는 zip · 날짜 서식 · 수식)와 읽기(deflate zip · 공유 문자열 · 수식 값). 압축 풀기는 호출하는 쪽이 넘긴다(브라우저 `DecompressionStream`, Node `zlib`) | ① 엑셀 서식 |
 | `score.js` | `ScoreFormulas.evaluate` 1:1 포팅, 위반 설명, 구단 지표, Soft 분해 | §6.1, §6.2 |
 | `reschedule.js` | 경기 상태, 잔여·취소 집계, 재편성 묶음, RH/RS 채점, 재편성 탐색 | §5.8, §6.3 |
@@ -20,6 +20,30 @@
 - 코어 파일은 classic script다(`file://`에서 ES 모듈이 막히므로). 모두 `globalThis.KBO`에 붙고 Node에서도 `require`로 읽힌다. DOM에 의존하지 않는다(Kakao 로더만 호출 시 `document`를 인자로 받는다).
 - Worker는 코어 팩토리 함수를 문자열로 이어 붙인 Blob으로 만든다. `fetch` 없이 `file://`에서도 동작한다.
 - `app/common/`은 DOM을 쓰는 공통 화면 부품이다. 컨트롤러(`app.js`)와 패널(입력·결과·품질·운영), 지도 위젯, `common.css`. 대안은 CSS 변수와 배치로 시각 언어를 바꾼다.
+
+## 2027 시즌 원칙 (설정 · 모두 기본값, 스튜디오에서 바꿀 수 있음)
+
+| 자리 | 모양 | 쓰는 곳 |
+| :--- | :--- | :--- |
+| `settings.holidays[].playOnRest` | `boolean` | 휴식 요일(월)에 든 공휴일에 경기할지. 켜면 `ruleSettings`가 그 날을 경기일, 그 주 목요일을 휴식으로. 저장값이 없으면 어린이날(5/5)만 켜짐(`holidayPlaysOnRest`). 정규화가 값을 채운다 |
+| `settings.allStarDays` | 정수(기본 6) | 올스타 휴식기 길이(`allStarStart` 금요일부터) |
+| `settings.seriesMinLength` | 정수(기본 3) | 개막 연전 말고는 이 길이 이상(홈 73/71 원칙 시리즈 생성이 검사) |
+| `settings.homeTotals` | `{ moreTeams: [구단], more: { total: 73, initial?: 69 }, less: { total: 71, initial?: 66 } }` | 격년 홈 73/71. 홈 73 구단은 개막전 홈 구단과 상관없다. 있으면 시리즈 생성과 미편성 홈 결정이 이 원칙을 따른다. 없으면 예전 방식. `initial`을 비우면 시리즈 생성이 1차 편성 홈을 정하고 미편성 홈으로 전체를 맞춘다 |
+| `settings.fourGameHome` | `'same'`(기본)│`'swap'` | 후반기 첫 4연전 홈. `'same'` = 개막 대진의 두 구단이 개막전 홈 구단 구장에서 다시, `'swap'` = 홈을 바꿔서. 정규화가 값을 채운다 |
+| `events[].pairs` · `events[].fix` | `[{ home, away }]` · `'pairs'`│`'home'` | 개막전 대진(대진까지 고정) 또는 홈 구장만 지정. 시리즈 생성이 개막 연전 기간에 그 대진을 둔다 |
+
+- **시리즈 생성** `generateSeries(teams, calendar, seriesOptions(project))`: `settings.homeTotals`가 있으면 `generateSeriesByHomeTotals`.
+  - 연전 묶음은 「개막 2연전 + 4연전 하나 + 나머지 3연전」 또는 「모두 3연전」이어야 한다.
+  - 개막 2연전과 4연전은 같은 두 구단이 치른다(맞대결 15 = 2 + 4 + 3연전 셋). 나머지 맞대결은 3연전 다섯 개로 9 : 6이다.
+    - `'same'`(기본): 개막전 홈 구단이 2연전·4연전 홈이라 개막 맞대결도 9 : 6(개막전 홈 구단 6 + 3연전 하나, 또는 상대 3연전 셋)이다. 1차 편성 홈은 모두 3의 배수 → 2027 기본 69/66(미편성 홈 4/5).
+    - `'swap'`: 개막전 홈 구단은 2연전 + 3연전 둘, 상대는 4연전 + 3연전 하나라서 개막 맞대결은 8 : 7이다. 1차 편성 홈은 개막전 홈 구단 3k + 2(예: 68), 상대 3k + 1(예: 67).
+  - 구단마다 1차 편성 홈이 `initial`이 되도록 다수 홈을 나눈다. 잠실(같이 쓰는 구장)은 처음부터 겹치지 않게 짠다.
+  - 반환에 `homeTargets: [{ team, initial, total, remaining, openingHost }]`와 `openingPairs`가 붙는다.
+  - 맞지 않으면 `errors`에 이유와 고칠 곳을 적는다. 예: `'same'`에서 68/67을 주면 「3의 배수만 된다 · 4연전 설정을 홈 바꿈으로」, `'swap'`에서 홈 68 구단이 개막전 원정이면 「홈 68은 개막전 홈 구단만」, 잠실 두 구단이 둘 다 개막전 홈이거나 서로 맞붙지 않고 둘 다 원정이면 잠실 오류.
+  - 2025 데이터에 `defaultHomeTotals(2025, teams)`(`'same'`)를 넣으면 2025 실제 1차 편성 홈(SSG·KT·두산·한화·롯데 69, 나머지 66)이 그대로 나온다.
+- **미편성 홈** `Reschedule.computeTargets`: `homeTotals`가 있으면 구단별 「전체 홈 − 1차 편성 홈(취소 포함)」이 되도록 잔여 경기 홈을 고친다. `remainingHomeRule`은 출발점으로만 쓴다. 결과는 `homeTotals: { ok, message, byTeam }`에 담긴다.
+- **기본값** `defaultHomeTotals(year, teams, { moreTeams?, initial?, fourGameHome? })`: 홀수 해는 한화·SSG·KT·롯데·두산이 홈 73, 짝수 해는 나머지 다섯 구단이다. 1차 편성 홈은 69/66(`fourGameHome: 'swap'`이면 68/67, `initial: false`면 비움). `flipHomeTotals(ht, teams)`는 다음 해 값을 만든다.
+- **격년제 기본값**(새 연도를 만들 때 채움, 이미 있는 값은 덮지 않음): `defaultHomeMoreTeams(year, teams?)` = 홈 73 구단(홀수 해 한화·SSG·KT·롯데·두산 / 짝수 해 LG·NC·KIA·삼성·키움), `defaultChildrenHosts(year, teams?)` = 어린이날 홈 구단(홀수 해 두산·키움·한화·롯데·NC / 짝수 해 LG·SSG·KT·삼성·KIA). 어린이날 대진은 정하지 않는다.
 
 ## 채점 정합성
 

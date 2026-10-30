@@ -252,14 +252,44 @@
     project.teams = (project.teams || []).map((t, i) => Object.assign({ color: (preset.TEAM_COLORS[t.name] || '#555555') }, t, { index: i }));
     project.distanceMatrix = (project.distanceMatrix || []).map((d) => Object.assign({ from: d.from, to: d.to, distance: Number(d.distance), estimated: !!d.estimated }, d.source === 'ROAD' ? { source: 'ROAD' } : {}));
     // 공휴일 가중치: 예전 저장 데이터(weight 없음)는 2로 읽는다. 연전 기간의 주말·휴일 가중치는 공휴일 표에서 다시 매긴다
-    project.settings.holidays = (project.settings.holidays || []).map((h) => (typeof h === 'string' ? { date: h, name: '공휴일', weight: KBO.CalendarGen.HOLIDAY_WEIGHT } : Object.assign({}, h, { weight: h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Math.round(Number(h.weight))) : KBO.CalendarGen.HOLIDAY_WEIGHT })));
+    // 「휴식 요일이어도 경기」(playOnRest): 저장값이 없으면 어린이날만 켜짐으로 채운다
+    project.settings.holidays = (project.settings.holidays || []).map((h) => (typeof h === 'string' ? { date: h, name: '공휴일', weight: KBO.CalendarGen.HOLIDAY_WEIGHT, playOnRest: KBO.CalendarGen.holidayPlaysOnRest(h) } : Object.assign({}, h, { weight: h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Math.round(Number(h.weight))) : KBO.CalendarGen.HOLIDAY_WEIGHT, playOnRest: KBO.CalendarGen.holidayPlaysOnRest(h) })));
+    normalizeSeasonRules(project.settings, (p.settings || {}));
     project.calendar = KBO.CalendarGen.applyWeights((project.calendar || []).map((c, i) => ({ index: i, datetime: c.datetime, consecutive: c.consecutive | 0, weekend: c.weekend | 0, holiday: c.holiday | 0 })), project.settings);
+    project.events = project.events.map((e) => {
+      if (!e || typeof e !== 'object') return e;
+      const o = Object.assign({}, e);
+      if (o.fix != null && o.fix !== 'pairs' && o.fix !== 'home') delete o.fix;
+      if (o.pairs != null) o.pairs = Array.isArray(o.pairs) ? o.pairs.filter((x) => x && x.home && x.away).map((x) => ({ home: x.home, away: x.away })) : undefined;
+      if (o.pairs === undefined) delete o.pairs;
+      return o;
+    });
     project.matches = (project.matches || []).map((m, i) => { const o = { index: i, home: m.home, away: m.away, consecutive: m.consecutive | 0, pinned: !!m.pinned }; if (m.eventId) o.eventId = m.eventId; return o; });
     const M = project.matches.length;
     const planArr = new Array(M).fill(-1);
     for (const e of project.plan || []) if (e && e.match >= 0 && e.match < M) planArr[e.match] = (e.calendar == null || e.calendar >= project.calendar.length) ? -1 : e.calendar;
     project.plan = planArr.map((c, m) => ({ match: m, calendar: c }));
     return project;
+  }
+
+  /**
+   * 2027 원칙 설정 정리: 연전 최소 길이·올스타 휴식기 길이는 양의 정수, 후반기 첫 4연전 홈(fourGameHome)은 'same'(기본)·'swap',
+   * 홈 73/71(homeTotals)은 모양을 맞추고 이상하면 지운다(없으면 예전 방식).
+   * 저장값에 올스타 시작일이 없으면 2025 기본값 대신 그 해 기본값(7월 둘째 금요일)을 쓴다.
+   */
+  function normalizeSeasonRules(set, saved) {
+    const posInt = (v, d) => { const x = Math.round(Number(v)); return Number.isFinite(x) && x > 0 ? x : d; };
+    set.seriesMinLength = posInt(set.seriesMinLength, 3);
+    set.allStarDays = posInt(set.allStarDays, KBO.CalendarGen.ALL_STAR_DAYS);
+    set.fourGameHome = set.fourGameHome === 'swap' ? 'swap' : 'same';
+    const y = /^(\d{4})-/.exec(String(set.seasonStart || '')) ? +String(set.seasonStart).slice(0, 4) : (set.seasonYear ? +set.seasonYear : null);
+    if (saved.allStarStart == null && y && y !== 2025) set.allStarStart = KBO.CalendarGen.defaultAllStarStart(y);
+    const ht = set.homeTotals;
+    if (ht == null) { delete set.homeTotals; return; }
+    if (typeof ht !== 'object' || !Array.isArray(ht.moreTeams)) { delete set.homeTotals; return; }
+    const num = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? undefined : Math.round(Number(v)));
+    const side = (x) => { const o = { total: num(x && x.total) }; const ini = num(x && x.initial); if (ini !== undefined) o.initial = ini; return o; };
+    set.homeTotals = { moreTeams: ht.moreTeams.filter((t) => typeof t === 'string'), more: side(ht.more), less: side(ht.less) };
   }
 
   /** 엔진 입력 형식(input_2025.json) → 프로젝트 */
@@ -342,7 +372,14 @@
         if (!e || !['MATCH', 'STADIUM'].includes(e.mode)) err('events[' + i + '].mode', 'MATCH 또는 STADIUM이어야 합니다.');
         if (e && e.mode === 'MATCH' && (!names.has(e.home) || !names.has(e.away))) err('events[' + i + ']', '대진 지정 이벤트의 홈·원정 구단을 확인하세요.');
         if (e && e.mode === 'STADIUM' && !Array.isArray(e.stadiums)) err('events[' + i + '].stadiums', '배열이 필요합니다.');
+        if (e && e.pairs != null && !Array.isArray(e.pairs)) err('events[' + i + '].pairs', '배열이 필요합니다.');
+        (e && Array.isArray(e.pairs) ? e.pairs : []).forEach((x, j) => { if (!x || !names.has(x.home) || !names.has(x.away) || x.home === x.away) err('events[' + i + '].pairs[' + j + ']', '대진의 홈·원정 구단을 확인하세요.'); });
       });
+      const ht = src.settings && src.settings.homeTotals;
+      if (ht != null) {
+        if (typeof ht !== 'object' || !Array.isArray(ht.moreTeams)) err('settings.homeTotals.moreTeams', '홈 경기가 많은 구단 목록(배열)이 필요합니다.');
+        else ht.moreTeams.forEach((t, j) => { if (!names.has(t)) err('settings.homeTotals.moreTeams[' + j + ']', '알 수 없는 구단 "' + t + '"'); });
+      }
       if (src.games != null && !Array.isArray(src.games)) err('games', '배열이 필요합니다.');
       (src.games || []).forEach((g, i) => {
         if (!g || !['PLAYED', 'CANCELLED', 'SCHEDULED'].includes(g.status)) err('games[' + i + '].status', 'PLAYED, CANCELLED, SCHEDULED 중 하나여야 합니다.');
