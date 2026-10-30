@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
-import org.optaplanner.examples.baseball.domain.Constants;
 import org.optaplanner.examples.baseball.domain.Match;
 import org.optaplanner.examples.baseball.score.ScoreFormulas;
 
@@ -32,7 +31,7 @@ final class RoundNeighborhood {
     final long[] pairMask;
     final boolean[] movable;
     final int[] movableSlots;
-    /** Inclusive runs of movable slots. Fixed anchors (2-game, Children's Day, 4-game) split them. */
+    /** Inclusive runs of movable slots. Fixed anchors (2-game, home-designated pinned 3-game, 4-game) split them. */
     final int[][] segments;
 
     private RoundNeighborhood(Calendar[] calendars, Match[][] matches, int[] count, int[] homeMask, long[] pairMask,
@@ -539,8 +538,7 @@ final class RoundNeighborhood {
             if (match.getConsecutive() != calendar.getConsecutive()) {
                 return null;
             }
-            if (calendar.isChildrenDay()
-                    && Constants.HOME_OBLIGATION_CHILDREN.contains(match.getAway().getName())) {
+            if (calendar.requiresHome(match.getAway())) {
                 return null;
             }
             int home = match.getHome().getIndex();

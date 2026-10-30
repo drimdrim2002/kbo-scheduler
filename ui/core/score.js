@@ -79,6 +79,46 @@
   }
 
   /**
+   * 엔진 호환 기준(H0-e)의 연전 기간별 홈 의무 구단 — Java ProblemCodec.applyHomeDesignations와 같은 규칙.
+   * - STADIUM 이벤트의 teams(없으면 pairs[].home)를 그 날짜가 든 연전 기간에 모은다(대진 고정 fix 'pairs'도 같다).
+   * - 어린이날(CHILDREN)은 teams가 일부(구단 수/2 미만)만 고른 것이 아니면 settings.obligationTeams(구단 수/2개)가 있을 때 그것(teams가 없을 때도).
+   * - teams: [](대진 목록도 없음)는 「지정 없음」 — 그 날은 아무것도 지키지 않는다. 어린이날도 같다.
+   * - STADIUM 이벤트가 하나도 없으면 예전 방식: 시즌 해 5/5가 든 연전 기간에 obligationTeams(없으면 기본 5구단).
+   * @returns [{ slot, teams: [구단 인덱스], eventId, name }] (연전 기간마다 하나)
+   */
+  function engineObligations(project, teamIndexOpt) {
+    const teamIndex = teamIndexOpt || new Map((project.teams || []).map((t, i) => [t.name, i]));
+    const cal = project.calendar || [];
+    const half = (project.teams || []).length >> 1;
+    const legacy = (settings) => {
+      const names = settings && settings.obligationTeams;
+      return names && names.length === half && names.every((n) => teamIndex.has(n)) ? names : null;
+    };
+    const oblNames = legacy(project.settings);
+    const toIdx = (names) => names.map((n) => teamIndex.get(n)).filter((i) => i != null);
+    const evs = (project.events || []).filter((e) => e && e.mode === 'STADIUM');
+    if (!evs.length) {
+      if (!cal.length) return [];
+      const first = cal.reduce((a, c) => (dayNum(c.datetime) < dayNum(a.datetime) ? c : a), cal[0]);
+      const slot = resolveEventSlot({ date: String(first.datetime).slice(0, 4) + '-05-05' }, cal);
+      return slot < 0 ? [] : [{ slot, teams: toIdx(oblNames || ENGINE_OBLIGATION), eventId: null, name: '어린이날' }];
+    }
+    const bySlot = new Map();
+    for (const ev of evs) {
+      let names = (ev.teams || []).filter(Boolean);
+      if (!names.length) names = (ev.pairs || []).map((p) => p && p.home).filter(Boolean);
+      if (ev.type === 'CHILDREN' && oblNames && (names.length >= half || (!names.length && ev.teams == null))) names = oblNames;
+      if (!names.length) continue;
+      const slot = resolveEventSlot(ev, cal);
+      if (slot < 0) continue;
+      let entry = bySlot.get(slot);
+      if (!entry) { entry = { slot, teams: [], eventId: ev.id, name: ev.name }; bySlot.set(slot, entry); }
+      for (const t of toIdx(names)) if (entry.teams.indexOf(t) < 0) entry.teams.push(t);
+    }
+    return Array.from(bySlot.values());
+  }
+
+  /**
    * 프로젝트(§8) → 채점 입력. 구조적 복제 가능한 평범한 객체라 Worker로 그대로 보낼 수 있다.
    */
   function buildInput(project, overrides) {
@@ -110,7 +150,6 @@
       pinned: !!m.pinned
     }));
     const mode = o.h0eMode || settings.h0eMode || 'STADIUM';
-    const obligationNames = settings.obligationTeams && settings.obligationTeams.length ? settings.obligationTeams : ENGINE_OBLIGATION;
     const h0e = [];
     for (const ev of project.events || []) {
       if (ev.mode !== 'STADIUM') continue;
@@ -118,12 +157,7 @@
       if (slot < 0) continue;
       const stadiums = (ev.stadiums || []).filter((s) => stadiumIndexByName.has(s));
       const groups = stadiums.map((s) => teams.map((t, i) => (t.stadium === s ? i : -1)).filter((i) => i >= 0));
-      // 엔진 호환 기준의 의무 구단: 어린이날은 설정의 어린이날 홈 구단, 그 밖에는 화면에서 고른 구단(teams) — 없으면 지정 구장의 연고 구단 모두
-      const picked = (ev.teams || []).map((n) => teamIndex.get(n)).filter((i) => i != null);
-      const obligation = ev.type === 'CHILDREN'
-        ? obligationNames.map((n) => teamIndex.get(n)).filter((i) => i != null)
-        : picked.length ? picked : [].concat(...groups);
-      h0e.push({ eventId: ev.id, name: ev.name, slot, stadiums, groups, obligation });
+      h0e.push({ eventId: ev.id, name: ev.name, slot, stadiums, groups });
     }
     const holidays = [];
     for (const h of settings.holidays || []) {
@@ -132,7 +166,7 @@
     }
     const numOr = (v, d) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : d);
     return {
-      teams, stadiumOf, dist, slots, matches, h0eMode: mode, h0e, holidays,
+      teams, stadiumOf, dist, slots, matches, h0eMode: mode, h0e, engineObligation: engineObligations(project, teamIndex), holidays,
       longTripTenths: Math.round((settings.longTripKm || 600) * 10),
       // 평준화 허용오차(손잡이). 엔진 ScoreSettings와 같은 의미·기본값
       distanceToleranceTenths: Math.round(numOr(o.distanceToleranceKm != null ? o.distanceToleranceKm : settings.distanceToleranceKm, DISTANCE_TOLERANCE_TENTHS / 10) * 10),
@@ -157,13 +191,13 @@
       teamsPerDay: N, stadiumsPerDay: N >> 1, seriesPerDay: N >> 1,
       // 재사용 버퍼
       teamMask: new Int32Array(S), stadiumMask: new Int32Array(S), homeMask: new Int32Array(S),
-      seriesCount: new Int32Array(S), lengthMismatch: new Int32Array(S), compatAway: new Int32Array(S),
+      seriesCount: new Int32Array(S), lengthMismatch: new Int32Array(S),
       slotHead: new Int32Array(S), nextInSlot: new Int32Array(M),
       cellCount: new Int32Array(N * S), cellFirst: new Int32Array(N * S),
       stamp: new Int32Array(N * N), stampGen: 1,
       moveCount: new Float64Array(N), distTenths: new Float64Array(N), holidayW: new Float64Array(N),
       h0e: input.h0e || [], h0eMode: input.h0eMode || 'STADIUM',
-      h0eBySlot: null, compatMaskBySlot: new Int32Array(S),
+      h0eBySlot: null, oblMaskBySlot: new Int32Array(S), oblBySlot: new Array(S),
       distanceToleranceTenths: input.distanceToleranceTenths || DISTANCE_TOLERANCE_TENTHS,
       holidayTolerance: input.holidayTolerance || HOLIDAY_TOLERANCE,
       moveTolerance: input.moveTolerance || MOVE_TOLERANCE
@@ -185,12 +219,17 @@
     for (const ev of ctx.h0e) {
       if (ev.slot < 0 || ev.slot >= S) continue;
       (bySlot[ev.slot] || (bySlot[ev.slot] = [])).push(ev);
-      let mask = 0;
-      for (const t of ev.obligation) mask |= 1 << t;
-      ev.obligationMask = mask;
       ev.groupMasks = ev.groups.map((g) => g.reduce((acc, t) => acc | (1 << t), 0));
     }
     ctx.h0eBySlot = bySlot;
+    // 엔진 호환 기준: 연전 기간별 홈 의무 구단 마스크
+    for (const ob of input.engineObligation || []) {
+      if (ob.slot < 0 || ob.slot >= S) continue;
+      let mask = 0;
+      for (const t of ob.teams) mask |= 1 << t;
+      ctx.oblMaskBySlot[ob.slot] = mask;
+      ctx.oblBySlot[ob.slot] = ob;
+    }
     return ctx;
   }
 
@@ -202,21 +241,21 @@
     return (((x + (x >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
   }
 
-  /** H0-e 슬롯 감점 (구장 기준 또는 엔진 호환) */
+  /** H0-e 슬롯 감점 (구장 기준: 지정 구장마다 연고 구단 홈이 없으면 1 / 엔진 호환: 홈 의무 구단의 원정 시리즈마다 1) */
   function h0ePenaltySlot(ctx, s) {
-    const evs = ctx.h0eBySlot[s];
-    if (!evs) return 0;
     let p = 0;
     if (ctx.h0eMode === 'ENGINE') {
-      for (const ev of evs) {
-        for (let m = ctx.slotHead[s]; m >= 0; m = ctx.nextInSlot[m]) {
-          if (ev.obligationMask & (1 << ctx.away[m])) p++;
-        }
+      const mask = ctx.oblMaskBySlot[s];
+      if (!mask) return 0;
+      for (let m = ctx.slotHead[s]; m >= 0; m = ctx.nextInSlot[m]) {
+        if (mask & (1 << ctx.away[m])) p++;
       }
-    } else {
-      const hm = ctx.homeMask[s];
-      for (const ev of evs) for (const gm of ev.groupMasks) if ((hm & gm) === 0) p++;
+      return p;
     }
+    const evs = ctx.h0eBySlot[s];
+    if (!evs) return 0;
+    const hm = ctx.homeMask[s];
+    for (const ev of evs) for (const gm of ev.groupMasks) if ((hm & gm) === 0) p++;
     return p;
   }
 
@@ -294,7 +333,7 @@
       hard0 += Math.abs(popcount(stadiumMask[s]) - ctx.stadiumsPerDay);
       hard0 += Math.abs(seriesCount[s] - ctx.seriesPerDay);
       hard0 += lengthMismatch[s];
-      if (ctx.h0eBySlot[s]) hard0 += h0ePenaltySlot(ctx, s);
+      if (ctx.h0eBySlot[s] || ctx.oblMaskBySlot[s]) hard0 += h0ePenaltySlot(ctx, s);
       if (s > 0 && seriesCount[s - 1] > 0) {
         const gen = ++ctx.stampGen;
         for (let m = slotHead[s - 1]; m >= 0; m = nextInSlot[m]) stamp[pairKey[m]] = gen;
@@ -454,24 +493,24 @@
         }
       }
       // H0-e
-      for (const ev of ctx.h0eBySlot[s] || []) {
-        if (ctx.h0eMode === 'ENGINE') {
-          for (const m of list) {
-            if (ev.obligationMask & (1 << ctx.away[m])) {
-              add({ code: 'H0-e', slot: s, matches: [m], teams: [ctx.away[m]], amount: 1, eventId: ev.eventId,
-                message: slotLabel(s) + ' ' + ev.name + ' — 의무 구단 ' + teamName(ctx.away[m]) + '이(가) 원정 (엔진 호환 기준)' });
-            }
+      const ob = ctx.h0eMode === 'ENGINE' ? ctx.oblBySlot[s] : null;
+      if (ob) {
+        for (const m of list) {
+          if (ctx.oblMaskBySlot[s] & (1 << ctx.away[m])) {
+            add({ code: 'H0-e', slot: s, matches: [m], teams: [ctx.away[m]], amount: 1, eventId: ob.eventId,
+              message: slotLabel(s) + ' ' + ob.name + ' — 홈 구장 지정 구단 ' + teamName(ctx.away[m]) + '이(가) 원정 (엔진 호환 기준)' });
           }
-        } else {
-          ev.groups.forEach((g, gi) => {
-            const homeTeams = list.filter((m) => g.indexOf(ctx.home[m]) >= 0);
-            if (homeTeams.length === 0) {
-              const awayMs = list.filter((m) => g.indexOf(ctx.away[m]) >= 0);
-              add({ code: 'H0-e', slot: s, matches: awayMs, teams: g.slice(), amount: 1, eventId: ev.eventId,
-                message: slotLabel(s) + ' ' + ev.name + ' — ' + ev.stadiums[gi] + ' 연고 구단(' + g.map(teamName).join('·') + ') 중 홈 경기 없음' });
-            }
-          });
         }
+      }
+      for (const ev of ctx.h0eMode === 'ENGINE' ? [] : ctx.h0eBySlot[s] || []) {
+        ev.groups.forEach((g, gi) => {
+          const homeTeams = list.filter((m) => g.indexOf(ctx.home[m]) >= 0);
+          if (homeTeams.length === 0) {
+            const awayMs = list.filter((m) => g.indexOf(ctx.away[m]) >= 0);
+            add({ code: 'H0-e', slot: s, matches: awayMs, teams: g.slice(), amount: 1, eventId: ev.eventId,
+              message: slotLabel(s) + ' ' + ev.name + ' — ' + ev.stadiums[gi] + ' 연고 구단(' + g.map(teamName).join('·') + ') 중 홈 경기 없음' });
+          }
+        });
       }
       // H1
       if (s > 0 && bySlot[s - 1].length > 0) {
@@ -615,7 +654,7 @@
   KBO.Score = {
     DISTANCE_TOLERANCE_TENTHS, MOVE_TOLERANCE, HOLIDAY_TOLERANCE, WEEKDAY_MOVE_TOLERANCE, ENGINE_OBLIGATION,
     HARD_RULES, SOFT_RULES, RULE_BY_CODE,
-    toTenths, planArrayFrom, planListFrom, resolveEventSlot, buildInput, createContext, setH0eMode,
+    toTenths, planArrayFrom, planListFrom, resolveEventSlot, engineObligations, buildInput, createContext, setH0eMode,
     evaluate, explain, compare, toScore, flat, scoreString, isFeasible, scoreProject
   };
 });

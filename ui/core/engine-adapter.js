@@ -166,7 +166,16 @@
     const f = this.opts.fetchImpl || (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : null);
     if (!f) return Promise.reject(new Error('fetch를 쓸 수 없습니다.'));
     return f(this.baseUrl + path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + path); return r.json(); });
+      .then((r) => {
+        if (r.ok) return r.json();
+        // 서버가 준 오류 문장(400 { error } 등)을 그대로 — 없으면 HTTP 상태
+        const fallback = 'HTTP ' + r.status + ' ' + path;
+        return r.text().then((t) => {
+          let msg = '';
+          try { const j = JSON.parse(t); msg = (j && (j.error || j.message)) || ''; } catch (e) { /* 본문이 JSON이 아님 */ }
+          throw new Error(typeof msg === 'string' && msg ? msg : fallback);
+        }, () => { throw new Error(fallback); });
+      });
   };
 
   RestEngineAdapter.prototype.solve = function (problem, options) {

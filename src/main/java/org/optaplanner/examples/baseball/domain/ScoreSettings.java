@@ -2,7 +2,7 @@ package org.optaplanner.examples.baseball.domain;
 
 /**
  * 평준화 허용오차. 문제 사실(problem fact)로 해에 하나 들어간다. 불변이라 계획 복제 때 공유해도 안전하다.
- * 기본값은 {@link Constants.TOLERANCE}와 같다. 어린이날 홈 구단은 {@link Team#isChildrenDayHome()}에 있다.
+ * 기본값은 {@link Constants.TOLERANCE}와 같다. 홈 구장 지정(연전 기간별 홈 의무 구단)은 {@link Calendar#getHomeObligationMask()}에 있다.
  */
 public final class ScoreSettings {
 

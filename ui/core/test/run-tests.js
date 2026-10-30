@@ -556,6 +556,9 @@ test('AC-4 어린이날 구장 기준/엔진 호환', () => {
   eq(Score.explain(ctxE, lg, p).violations.filter((v) => v.code === 'H0-e').length, 1, '엔진 호환: 두산 원정 1건');
 });
 
+// 홈 구장 지정(연전 기간별 홈 의무 구단) — Java 골든 비교. 파일을 따로 둬 다른 시험과 겹치지 않게 한다
+require('./home-designation.test.js')(test, { assert, eq, project, K });
+
 test('NFR-3/FR-M3 상세 재채점 100ms 이내 (225 시리즈)', () => {
   const p = project();
   const t0 = process.hrtime.bigint();

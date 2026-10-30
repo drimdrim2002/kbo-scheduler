@@ -78,13 +78,14 @@ public final class ScoreFormulas {
         return penalty;
     }
 
-    public static long childrensDayAwayPenalty(Calendar calendar, List<Match> matches) {
-        if (!calendar.isChildrenDay()) {
+    /** H0-e: 홈 구장 지정으로 이 연전 기간에 홈이어야 하는 구단이 원정이면 시리즈마다 1. */
+    public static long homeObligationPenalty(Calendar calendar, List<Match> matches) {
+        if (calendar.getHomeObligationMask() == 0) {
             return 0L;
         }
         long penalty = 0L;
         for (Match match : matches) {
-            if (match.getAway().isChildrenDayHome()) {
+            if (calendar.requiresHome(match.getAway())) {
                 penalty++;
             }
         }
@@ -672,7 +673,7 @@ public final class ScoreFormulas {
         private int[] stadiumMask;
         private int[] seriesCount;
         private long[] lengthMismatch;
-        private long[] childrenPenalty;
+        private long[] obligationPenalty;
         private int[] slotHead;
         private int[] nextInSlot;
         private TeamTotals totals;
@@ -718,8 +719,8 @@ public final class ScoreFormulas {
                 if (match.getConsecutive() != calendar.getConsecutive()) {
                     lengthMismatch[slot]++;
                 }
-                if (calendar.isChildrenDay() && away.isChildrenDayHome()) {
-                    childrenPenalty[slot]++;
+                if (calendar.requiresHome(away)) {
+                    obligationPenalty[slot]++;
                 }
                 addRoute(home, slot, match);
                 if (away.getIndex() != home.getIndex()) {
@@ -743,7 +744,7 @@ public final class ScoreFormulas {
                 hard0 += countDeviation(Integer.bitCount(stadiumMask[slot]), STADIUMS_PER_DAY);
                 hard0 += countDeviation(seriesCount[slot], SERIES_PER_DAY);
                 hard0 += lengthMismatch[slot];
-                hard0 += childrenPenalty[slot];
+                hard0 += obligationPenalty[slot];
                 Calendar previous = calendar.getPrev();
                 if (previous != null && previous.isRegular()) {
                     int previousSlot = previous.getSlotIndex();
@@ -880,7 +881,7 @@ public final class ScoreFormulas {
                 int[] newStadiumMask = new int[newSlots];
                 int[] newSeriesCount = new int[newSlots];
                 long[] newLengthMismatch = new long[newSlots];
-                long[] newChildrenPenalty = new long[newSlots];
+                long[] newObligationPenalty = new long[newSlots];
                 int[] newSlotHead = new int[newSlots];
                 Arrays.fill(newSlotHead, -1);
                 if (teamMask != null) {
@@ -888,14 +889,14 @@ public final class ScoreFormulas {
                     System.arraycopy(stadiumMask, 0, newStadiumMask, 0, oldSlots);
                     System.arraycopy(seriesCount, 0, newSeriesCount, 0, oldSlots);
                     System.arraycopy(lengthMismatch, 0, newLengthMismatch, 0, oldSlots);
-                    System.arraycopy(childrenPenalty, 0, newChildrenPenalty, 0, oldSlots);
+                    System.arraycopy(obligationPenalty, 0, newObligationPenalty, 0, oldSlots);
                     System.arraycopy(slotHead, 0, newSlotHead, 0, oldSlots);
                 }
                 teamMask = newTeamMask;
                 stadiumMask = newStadiumMask;
                 seriesCount = newSeriesCount;
                 lengthMismatch = newLengthMismatch;
-                childrenPenalty = newChildrenPenalty;
+                obligationPenalty = newObligationPenalty;
                 slotHead = newSlotHead;
             }
             counts = newCounts;
@@ -926,7 +927,7 @@ public final class ScoreFormulas {
             Arrays.fill(stadiumMask, 0);
             Arrays.fill(seriesCount, 0);
             Arrays.fill(lengthMismatch, 0L);
-            Arrays.fill(childrenPenalty, 0L);
+            Arrays.fill(obligationPenalty, 0L);
             Arrays.fill(slotHead, -1);
             soft0 = 0L;
             hard1 = 0L;

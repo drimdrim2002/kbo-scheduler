@@ -63,7 +63,7 @@ public class BaseballConstraintProvider implements ConstraintProvider {
     private static final BiFunction<Calendar, List<Match>, Long> SERIES_COUNT_DEVIATION =
             (calendar, matches) -> ScoreFormulas.countDeviation(matches.size(), ScoreFormulas.SERIES_PER_DAY);
     private static final BiFunction<Calendar, List<Match>, Long> LENGTH_MISMATCH = ScoreFormulas::seriesLengthMismatch;
-    private static final BiFunction<Calendar, List<Match>, Long> CHILDREN_PENALTY = ScoreFormulas::childrensDayAwayPenalty;
+    private static final BiFunction<Calendar, List<Match>, Long> OBLIGATION_PENALTY = ScoreFormulas::homeObligationPenalty;
 
     private static final Predicate<TeamSummary> HAS_STREAK = summary -> summary.streakPenalty() > 0L;
     private static final ToLongFunction<TeamSummary> STREAK_PENALTY = TeamSummary::streakPenalty;
@@ -89,7 +89,7 @@ public class BaseballConstraintProvider implements ConstraintProvider {
                 day(days, STADIUM_COUNT_DEVIATION, "하루 구장 수 위반"),
                 day(days, SERIES_COUNT_DEVIATION, "하루 시리즈 수 위반"),
                 day(days, LENGTH_MISMATCH, "시리즈 길이 불일치"),
-                day(days, CHILDREN_PENALTY, "어린이날 홈 의무"),
+                day(days, OBLIGATION_PENALTY, "홈 구장 지정 의무"),
                 streak(summaries),
                 consecutiveSameMatchup(factory),
                 minimizeUnassigned(factory),
@@ -116,8 +116,8 @@ public class BaseballConstraintProvider implements ConstraintProvider {
         return day(byDay(regularMatches(factory)), LENGTH_MISMATCH, "시리즈 길이 불일치");
     }
 
-    public Constraint childrensDayHomeObligation(ConstraintFactory factory) {
-        return day(byDay(regularMatches(factory)), CHILDREN_PENALTY, "어린이날 홈 의무");
+    public Constraint homeObligation(ConstraintFactory factory) {
+        return day(byDay(regularMatches(factory)), OBLIGATION_PENALTY, "홈 구장 지정 의무");
     }
 
     public Constraint homeAwayStreakLimit(ConstraintFactory factory) {

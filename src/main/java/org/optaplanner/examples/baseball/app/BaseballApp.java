@@ -562,6 +562,8 @@ public class BaseballApp {
         baseballSolution.setCalendarList(calendarList);
         baseballSolution.setId(0L);
         baseballSolution.setTeamList(teamList);
+        // 홈 구장 지정이 따로 없으면 예전대로 어린이날 기본 홈 구단. 웹은 ProblemCodec이 events로 다시 정한다
+        HomeObligations.applyChildrenDay(teamList, calendarList, Constants.HOME_OBLIGATION_CHILDREN);
 
         return baseballSolution;
     }
