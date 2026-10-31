@@ -207,7 +207,7 @@
       S.go({ step: 6 }); flush();
       const boxes = () => qa('[data-in="pf-cmp"]').filter((c) => c.checked).map((c) => c.dataset.id);
       ok('처음에는 둘이 골라짐', boxes().length === 2);
-      const third = JSON.parse(JSON.stringify(v1)); third.id = 'v-third'; third.name = '순서 다른 버전'; third.objective.order = ['total', 'distance', 'moves', 'holiday'];
+      const third = JSON.parse(JSON.stringify(v1)); third.id = 'v-third'; third.name = '순서 다른 버전'; third.feasible = true; third.objective.order = ['total', 'distance', 'moves', 'holiday'];
       P.versions.put(2027, P.versions.list(2027).concat([third])); flush();
       click('[data-in="pf-cmp"][data-id="v-third"]'); flush();
       ok('3개째 고르면 가장 먼저 고른 것이 빠짐', boxes().length === 2 && boxes().includes('v-third'));
@@ -223,7 +223,8 @@
       ok('지우기 → 비교에서도 빠짐', !P.versions.get(2027, 'v-third') && !P.cmp.includes('v-third'));
       window.prompt = pr; window.confirm = cf;
       // 올린 파일 검사
-      const names = st().teams.map((t) => t.name), chk = (v, y) => P.checkVersion(v, y || 2027, names, 45);
+      const num0 = (x) => Number(x).toLocaleString('ko-KR');
+      const names = st().teams.map((t) => t.name), chk = (v, y) => P.checkVersion(v, y || 2027, names);
       ok('파일 검사: 정상 통과', chk(JSON.parse(JSON.stringify(v1))) === null);
       ok('파일 검사: 빈 것·다른 모양', !!chk(null) && !!chk({ a: 1 }));
       ok('파일 검사: 다른 해는 그 해를 말해 줌', /2027 버전/.test(chk(JSON.parse(JSON.stringify(v1)), 2025)));
@@ -232,6 +233,25 @@
       ok('파일 검사: 순서가 이상함', !!chk(Object.assign({}, v1, { objective: Object.assign({}, v1.objective, { order: ['x'] }) })));
       ok('파일 검사: 숫자 빠짐', !!chk(Object.assign({}, v1, { gaps: {} })));
       ok('파일 검사: 개막전 홈 구단이 다른 버전은 받지 않음', /홈 구단/.test(chk(Object.assign({}, v1, { pairs: [{ home: '한화', away: 'KT' }] }))));
+      ok('파일 검사: 값 칸이 빠진 파일(불러올 때 멈춤)', !!chk(Object.assign({}, v1, { inputs: { calendar: v1.inputs.calendar } })));
+      ok('파일 검사: 같은 경기만 가리킴', !!chk(Object.assign({}, v1, { plan: v1.plan.map((x) => ({ match: 0, calendar: x.calendar })) })));
+      const fake = JSON.parse(JSON.stringify(v1)); fake.gaps.totalKm = 1;
+      ok('올린 파일: 적힌 숫자 대신 일정으로 다시 계산', P.rescoreVersion(fake) === true && fake.gaps.totalKm === v1.gaps.totalKm);
+      const same = JSON.parse(JSON.stringify(v1));
+      ok('올린 파일: 그대로면 숫자가 같음', P.rescoreVersion(same) === false);
+      const nine = JSON.parse(JSON.stringify(v1)); nine.matches.forEach((m) => { m.consecutive = 9; }); P.rescoreVersion(nine);
+      ok('올린 파일: 규칙을 어긴 일정은 그렇게 표시됨', nine.feasible === false);
+      // 비교: 규칙을 어긴 버전 · 허용 차이가 다른 버전
+      const keepList = P.versions.list(2027);
+      const cv = (id, name, more) => Object.assign(JSON.parse(JSON.stringify(v1)), { id, name, feasible: true }, more);
+      const vGood = cv('t-good', '시험 지킴'), vBad = cv('t-bad', '시험 어김', { feasible: false, gaps: Object.assign({}, v1.gaps, { totalKm: 1 }) });
+      const vTol = cv('t-tol', '시험 허용', { objective: Object.assign({}, v1.objective, { distanceGapKm: 300 }) });
+      P.versions.put(2027, keepList.concat([vGood, vBad, vTol]));
+      P.cmpPicked = true; P.cmp = ['t-good', 't-bad']; S.go({ step: 6 }); flush();
+      ok('비교: 규칙을 어긴 버전은 숫자가 좋아도 이기지 않음', /규칙 어김/.test(page()) && /시험 어김」은 반드시 지킬 규칙/.test(page()) && !/이번 실행에서는/.test(page()));
+      P.cmp = ['t-good', 't-tol']; S.render(); flush();
+      ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 차이가 달라/.test(page()));
+      P.versions.put(2027, keepList); P.cmp = []; P.cmpPicked = false;
       // 표·엑셀로 홈 구단이 달라진 경우
       app().commit('시험: 홈 구단 바꿈', (s) => { const e = s.events.find((x) => x.type === 'OPENING'); e.teams = e.teams.map((t) => (t === 'KT' ? '한화' : t)); }, ['events']);
       S.flowGo(3); flush();

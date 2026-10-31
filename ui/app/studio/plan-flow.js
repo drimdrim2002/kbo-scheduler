@@ -69,7 +69,7 @@
     fetch('data/plans/' + id + '.json').then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { P.builtin[id] = j; if (S.booted) S.scheduleRender(); } else failed(); }).catch(failed);
   });
   /** 올린 파일 검사: 문제가 있으면 안내 글, 없으면 null */
-  P.checkVersion = function (v, y, teamNames, slots) {
+  P.checkVersion = function (v, y, teamNames) {
     const bad = '버전 파일이 아니거나 내용이 잘렸습니다.';
     if (!v || typeof v !== 'object' || !v.teams || !v.gaps || !v.objective || !Array.isArray(v.plan) || !Array.isArray(v.matches)) return bad;
     if (v.year != null && v.year !== y) return '이 파일은 ' + v.year + ' 버전이라 ' + y + '에 올릴 수 없습니다.';
@@ -84,10 +84,21 @@
     if (!Object.keys(GOALS).every((id) => Number.isFinite(goalValue(v, id)))) return bad;
     if (!teamNames.every((t) => v.teams[t] && ['km', 'moves', 'hol', 'wk', 'away'].every((k) => Number.isFinite(v.teams[t][k])))) return bad;
     if (!v.matches.length || v.matches.length !== v.plan.length) return bad;
-    const known = new Set(teamNames), n = v.inputs && Array.isArray(v.inputs.calendar) ? v.inputs.calendar.length : slots;
+    // 값을 담았으면 불러올 때 쓰는 칸이 모두 있어야 한다
+    if (v.inputs && !(['teams', 'distanceMatrix', 'calendar', 'events'].every((k) => Array.isArray(v.inputs[k])) && v.inputs.settings && typeof v.inputs.settings === 'object')) return bad;
+    const known = new Set(teamNames), n = (v.inputs || preset27()).calendar.length; // 불러올 때 쓰는 달력과 견준다
     if (!v.matches.every((m) => known.has(m.home) && known.has(m.away) && m.consecutive > 0)) return bad;
     if (!v.plan.every((x) => x.match >= 0 && x.match < v.matches.length && x.calendar >= 0 && x.calendar < n)) return bad;
+    if (new Set(v.plan.map((x) => x.match)).size !== v.matches.length) return bad; // 경기마다 한 번씩
     return null;
+  };
+  /** 올린 파일의 숫자는 믿지 않고 그 일정으로 다시 계산해 넣는다. 파일에 적힌 숫자와 달랐으면 true */
+  P.rescoreVersion = function (v) {
+    const p = JSON.parse(JSON.stringify(app().state));
+    applyVersion(p, v);
+    const d = dataOf(Score.scoreProject(p, {})), differ = JSON.stringify(canon(d.gaps)) !== JSON.stringify(canon(v.gaps));
+    v.teams = d.teams; v.gaps = d.gaps; v.feasible = d.feasible;
+    return differ;
   };
 
   // ───────── 값 묶음 ─────────
@@ -97,12 +108,12 @@
     delete settings.solver; delete settings.objective;
     return JSON.parse(JSON.stringify({ teams: st.teams, distanceMatrix: st.distanceMatrix, calendar: st.calendar, events: st.events, settings }));
   }
+  // 저장·불러오기로 칸 차례가 달라져도 같은 값이므로 칸 이름 순으로 적어 견준다
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { o[k] = canon(v[k]); return o; }, {}) : v);
   function inputSig(st) {
     // 같은 구단을 다른 차례로 적은 것은 같은 값으로 본다(개막전 teams·stadiums 순서가 대진 순서를 따라 바뀜)
     const inp = inputsOf(st);
     for (const e of inp.events) { for (const k of ['teams', 'stadiums']) if (Array.isArray(e[k])) e[k].sort(); if (Array.isArray(e.pairs)) e.pairs = e.pairs.map((x) => x.away + '@' + x.home).sort(); }
-    // 저장·불러오기로 칸 차례가 달라져도 같은 값이므로 칸 이름 순으로 적어 견준다
-    const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { o[k] = canon(v[k]); return o; }, {}) : v);
     const t = JSON.stringify(canon(inp));
     let h = 5381;
     for (let i = 0; i < t.length; i++) h = (h * 33 + t.charCodeAt(i)) | 0;
@@ -617,23 +628,26 @@
     P.name = '';
     return rec;
   }
+  /** 버전의 값과 일정을 프로젝트에 넣는다. 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로 */
+  function applyVersion(s, v) {
+    const b = JSON.parse(JSON.stringify(v.inputs || preset27())), solver = s.settings.solver;
+    s.teams = b.teams; s.distanceMatrix = b.distanceMatrix; s.calendar = b.calendar; s.events = b.events;
+    s.settings = Object.assign(b.settings, { solver, objective: v.objective });
+    s.matches = v.matches.map((m) => Object.assign({ pinned: false }, m));
+    s.plan = v.plan.map((x) => ({ match: x.match, calendar: x.calendar }));
+    s.games = [];
+    const op = s.events.find((e) => e.type === 'OPENING');
+    if (op && v.pairs) {
+      op.pairs = v.pairs; op.teams = v.pairs.map((x) => x.home);
+      op.stadiums = op.teams.map((t) => (s.teams.find((x) => x.name === t) || {}).stadium).filter(Boolean);
+    }
+  }
   function loadVersion(v) {
     if (S.locked && S.locked()) return;
-    // 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로
     const base = v.inputs || preset27(), before = app().state;
     const changed = inputSig(before) !== inputSig(base);
     app().commit('버전 불러오기: ' + v.name, (s) => {
-      const b = JSON.parse(JSON.stringify(base)), solver = s.settings.solver;
-      s.teams = b.teams; s.distanceMatrix = b.distanceMatrix; s.calendar = b.calendar; s.events = b.events;
-      s.settings = Object.assign(b.settings, { solver, objective: v.objective });
-      s.matches = v.matches.map((m) => Object.assign({ pinned: false }, m));
-      s.plan = v.plan.map((x) => ({ match: x.match, calendar: x.calendar }));
-      s.games = [];
-      const op = s.events.find((e) => e.type === 'OPENING');
-      if (op && v.pairs) {
-        op.pairs = v.pairs; op.teams = v.pairs.map((x) => x.home);
-        op.stadiums = op.teams.map((t) => (s.teams.find((x) => x.name === t) || {}).stadium).filter(Boolean);
-      }
+      applyVersion(s, v);
       s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, sig: inputSig(s), calSig: calSig(s) };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 값도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);
@@ -670,7 +684,7 @@
       P.cmp = P.cmp.filter((id) => all.some((v) => v.id === id));
       if (!P.cmpPicked) for (const v of all) if (P.cmp.length < 2 && !P.cmp.includes(v.id)) P.cmp.push(v.id);
       const ver = (v) => { const on = P.cmp.includes(v.id);
-        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b><small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
+        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
           '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => GOALS[id].name.replace(' 균형', '') + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
           '<div class="acts">' + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button><button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>') + '</div></div>'; };
       const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 고름</span></h3><p class="pf-d">두 개를 골라 비교합니다.</p>' + all.map(ver).join('') +
@@ -681,11 +695,15 @@
       const sameOb = JSON.stringify(a.objective) === JSON.stringify(b.objective);
       const cell = (me, other, id) => { const g = GOALS[id], v = goalValue(me, id), w = goalValue(other, id), obm = me.objective; const inT = within(me, id, obm); return '<td class="' + (v < w ? 'good' : '') + '">' + goalShow(me, id) + g.unit + (g.tol ? ' <span class="pf-tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
       const d = decide(a, b, ob);
-      const verdict = !sameOb ? '두 버전의 순서·허용 차이가 달라 순위대로 따지지 않고 숫자만 나란히 둡니다.' : d ? '<b>순위대로 따지면</b> — ' + (ob.order.indexOf(d.id) ? '앞 순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. ' : '') + esc(GOALS[d.id].name) + '에서 <b>이번 실행에서는 「' + esc(d.winner.name) + '」이 ' + num(d.diff, GOALS[d.id].d) + GOALS[d.id].unit + ' ' + (GOALS[d.id].tol ? '작았습니다' : '짧았습니다') + '</b>.' : '<b>순위대로 따지면</b> — 모든 목적식이 같습니다.';
+      const aBad = a.feasible === false, bBad = b.feasible === false;
+      // 반드시 지킬 규칙을 어긴 일정은 숫자가 좋아도 쓸 수 없으므로 순위로 따지지 않는다
+      const verdict = aBad && bBad ? '두 버전 모두 반드시 지킬 규칙을 지키지 못해 순위대로 따지지 않고 숫자만 나란히 둡니다.' : aBad || bBad ? '<b>「' + esc((aBad ? a : b).name) + '」은 반드시 지킬 규칙을 지키지 못해 쓸 수 없습니다.</b> 순위대로 따지지 않고 숫자만 나란히 둡니다.' : !sameOb ? '두 버전의 순서·허용 차이가 달라 순위대로 따지지 않고 숫자만 나란히 둡니다.' : d ? '<b>순위대로 따지면</b> — ' + (ob.order.indexOf(d.id) ? '앞 순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. ' : '') + esc(GOALS[d.id].name) + '에서 <b>이번 실행에서는 「' + esc(d.winner.name) + '」이 ' + num(d.diff, GOALS[d.id].d) + GOALS[d.id].unit + ' ' + (GOALS[d.id].tol ? '작았습니다' : '짧았습니다') + '</b>.' : '<b>순위대로 따지면</b> — 모든 목적식이 같습니다.';
       const tab = P.cmpTab, tg = GOALS[tab];
+      const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
+      const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
       return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols" style="grid-template-columns:400px minmax(0,1fr)">' + list +
-        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>목적식마다 비교</h3><p class="pf-d">순위 순 · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>목적식</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody>' +
-        ob.order.map((id) => '<tr><td><b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + num(ob[GOALS[id].tol]) + GOALS[id].unit : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
+        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>목적식마다 비교</h3><p class="pf-d">순위 순 · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>목적식</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
+        ob.order.map((id) => '<tr><td><b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
         '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + GOALS[id].name.replace(' 균형', '') + '</button>').join('') + '</div><h3>구단별 ' + tg.name.replace(' 균형', '') + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 차이</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
     }
@@ -868,12 +886,13 @@
         f.text().then((t) => {
           let v = null;
           try { v = JSON.parse(t); } catch (e) { v = null; }
-          const y = S.seasonYear(), st = app().state, err = P.checkVersion(v, y, st.teams.map((x) => x.name), st.calendar.length);
+          const y = S.seasonYear(), st = app().state, err = P.checkVersion(v, y, st.teams.map((x) => x.name));
           if (err) { S.toast('올리지 못했습니다 — ' + err, 'bad', 6000); return; }
+          const differ = P.rescoreVersion(v);
           const list = P.versions.list(y);
           v.id = 'v' + Date.now(); v.year = y; v.name = String(v.name || '받은 버전').trim() || '받은 버전'; delete v.builtin; list.push(v);
           if (!P.versions.put(y, list)) { noRoom(); return; }
-          S.toast('「' + v.name + '」을(를) 올렸습니다.', 'ok'); S.render();
+          S.toast('「' + v.name + '」을(를) 올렸습니다.' + (differ ? ' 파일에 적힌 숫자와 달라 일정으로 다시 계산한 숫자를 보여 줍니다.' : ''), differ ? 'warn' : 'ok', differ ? 6000 : undefined); S.render();
         }).catch(() => S.toast('올리지 못했습니다 — 파일을 읽을 수 없습니다.', 'bad', 6000));
       };
       inp.click();
