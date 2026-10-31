@@ -188,7 +188,7 @@
       const orig3 = app().engine.solve;
       app().engine.solve = function (state, opts) { sent3 = opts; return orig3.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
       click('[data-act="pf-run"]');
-      ok('엔진 옵션만 바꿔도 이어서 실행', sent3 && sent3.init === 'KEEP', sent3 && sent3.init);
+      ok('엔진 옵션만 바꾸면 처음부터 실행', sent3 && sent3.init === 'SCRATCH', sent3 && sent3.init);
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig3;
