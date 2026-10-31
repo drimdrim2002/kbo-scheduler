@@ -2,6 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "kbo-studio",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "scripts/run-server.sh",
+        "--port",
+        "8095",
+        "--ui",
+        "ui",
+        "--max-seconds",
+        "180",
+        "--seeds",
+        "10"
+      ],
+      "port": 8095
+    },
+    {
       "name": "kbo-server",
       "runtimeExecutable": "bash",
       "runtimeArgs": [

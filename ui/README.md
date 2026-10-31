@@ -1,5 +1,16 @@
 # final 확정 템플릿 — 표준 + opt-2
 
+## 계획 흐름 (2026-10-31, 시안 `ui-archive/plan-flow-concepts/` 확정)
+
+`app/studio/plan-flow.js`·`plan-flow.css`. 기존 화면 위에 얹었고, `?classic=1`이나 자가 점검(`?selftest=1`)에서는 읽지 않아 예전 화면 그대로다.
+
+- **처음 화면**: 2025 계획 보기(보기 전용, KBO 실제와 비교) / 2027 새 계획 만들기.
+- **단계 띠 4칸**: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교. `S.ui.step`: 1 값 입력·검증, 2 엔진 옵션·실행, 5 현재 결과 분석, 6 실행 결과 비교. 3·4는 기존 ③·④ 화면으로 「일정 자세히 보기」·「구단별 공정성」에서 들어간다.
+- **값 검토**: 2027 추정값(개막일 · 1차 편성 끝 · 올스타 휴식기 · 개막전 홈 · 어린이날 홈)은 `meta.review`에 「맞아요」를 받아야 그 단계가 끝난다(`S.flowStatus`를 감싼다). 「고치기」는 기존 달력. 말풍선은 단계마다 처음 한 번.
+- **엔진 옵션**: 추천 순서 카드·직접 정하기 + 허용 차이 → `settings.objective` `{ order, moveGap, distanceGapKm, holidayGap }`로 서버에 간다. 없으면 엔진은 기존 방식(고정 순서, 평균 ±).
+- **버전**: 기본 제공 `data/plans/*.json`, 사용자가 저장한 것은 이 브라우저(`S.planFlow.versions` — 온라인 저장소로 옮길 때 이것만 바꾼다). 내려받기·올리기 가능.
+- **실행**: 이 브랜치 엔진이 필요하다. `.claude/launch.json`의 `kbo-studio`(8095, 최대 180초, 시도 10번) → `http://localhost:8095/studio/`.
+
 > 브랜치 `wizard-ui/final` (`wizard-ui/std` 87006ee에서 분기, opt-2 커밋을 cherry-pick) · 요구사항 `KBO_WIZARD_UI_REQUIREMENTS.md` §12.2 · 진입점 `index.html`
 > 사용자 선택(2026-10-19): ① 데이터 준비 = **표준**(인스펙터 상단 시각화) · ④ 지표와 ② 실행 옵션 = **opt-2**(대시보드 + 큰 선택 카드) · 시즌 운영 이동 경로 = **표준**(3단 화면).
 > 저장 키 `kbo-wizard:final:`. 스크린샷 이름은 std와 같다(`s5-review`, `s5-dev`, `s7-metrics`, `s7-metrics-table`, `s7-metrics-dev`). 점검: 자가 점검 59/59(1440·1920), 34경로 × 2크기 페이지 스크롤 0·콘솔 오류 0.

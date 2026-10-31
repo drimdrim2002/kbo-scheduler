@@ -1,0 +1,157 @@
+/* 편성 스튜디오 — 처음 화면 · 4칸 단계 · 값 검토 · 엔진 옵션 · 결과 분석 · 실행 결과 비교 (시안 ui-archive/plan-flow-concepts) */
+body.pf-ro { grid-template-rows: var(--top-h) minmax(0, 1fr) var(--foot-h); }
+body.pf-ro #stepper { display: none; }
+body.pf-nores .tb-group .badge { display: none; }
+body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], body.pf-home .tb-year { display: none; }
+.pf-ro-tag { font-size: 11.5px; font-weight: 700; color: #FFE7A3; border: 1px solid #FFE7A3; border-radius: 10px; padding: 1px 9px; }
+.pf-page { flex: 1; min-height: 0; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
+.pf-page > * { flex: none; }
+.pf-grow { flex: 1 0 auto; }
+.pf-cols { display: grid; gap: 12px; align-items: start; }
+.pf-sec { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.pf-sec > h3 { margin: 0; font-size: 15px; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+.pf-sec > h3 .r { margin-left: auto; font-weight: 400; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+.pf-d { margin: 2px 0 10px; color: var(--text-2); font-size: 12.5px; }
+.pf-tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid; vertical-align: 1px; white-space: nowrap; }
+.pf-tag.est { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+.pf-tag.got { color: var(--text-2); border-color: var(--line-2); background: var(--surface-2); }
+.pf-tag.ok { color: var(--ok); border-color: var(--ok-line); background: var(--ok-bg); }
+.pf-tag.blue { color: var(--blue); border-color: var(--blue-line); background: var(--blue-weak); }
+.pf-tag.over { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+.pf-note { font-size: 12px; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 6px; margin-top: 10px; }
+.pf-note.ok { border-color: var(--ok-line); background: var(--ok-bg); }
+.pf-note.warn { border-color: var(--warn-line); background: var(--warn-bg); }
+.pf-note.blue { border-color: var(--blue-line); background: var(--blue-weak); }
+.pf-link { background: none; border: 0; padding: 0; color: var(--blue); cursor: pointer; font: inherit; }
+
+/* 처음 화면 */
+.pf-start { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: 16px; overflow: auto; }
+.pf-start h1 { margin: 0; font-size: 26px; color: var(--navy); letter-spacing: -.5px; }
+.pf-start .lead { margin: -8px 0 0; color: var(--text-2); font-size: 14px; }
+.pf-choices { display: grid; grid-template-columns: repeat(2, 540px); gap: 18px; align-items: stretch; }
+.pf-ch { background: #fff; border: 1px solid var(--line-2); border-radius: 12px; padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 24px rgba(10,30,60,.06); }
+.pf-ch.go { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak), 0 8px 24px rgba(10,30,60,.08); }
+.pf-ch .kick { font-size: 12px; font-weight: 700; color: var(--text-3); } .pf-ch.go .kick { color: var(--blue); }
+.pf-ch .y { font-size: 46px; font-weight: 800; color: var(--navy); letter-spacing: -1.5px; line-height: 1; }
+.pf-ch .y small { font-size: 18px; letter-spacing: 0; margin-left: 6px; color: var(--text-2); font-weight: 700; }
+.pf-ch .what { font-size: 14px; color: var(--text-2); margin: 0; }
+.pf-ch ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pf-ch li { display: flex; gap: 8px; font-size: 13px; padding: 7px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); align-items: center; }
+.pf-ch li b { color: var(--navy); min-width: 134px; flex: none; }
+.pf-ch .grow { flex: 1; }
+.pf-ch .acts { display: flex; gap: 8px; } .pf-ch .acts .btn { flex: 1; justify-content: center; height: 44px; font-size: 15px; }
+.pf-kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.pf-kpi .k { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.pf-kpi .v { font-size: 22px; font-weight: 800; color: var(--ok); }
+.pf-kpi .s { font-size: 12px; color: var(--text-3); }
+
+/* 값 검토 줄 */
+.pf-rv { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; }
+.pf-rv + .pf-rv { margin-top: 8px; }
+.pf-rv b.t { font-size: 14px; color: var(--navy); }
+.pf-rv .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.pf-rv .v2 { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+.pf-rv .why { font-size: 12px; color: var(--text-2); margin-top: 3px; } .pf-rv .why em { font-style: normal; color: var(--text-3); }
+.pf-rv .acts { display: flex; gap: 6px; align-items: center; }
+.pf-rv.ok { border-color: var(--ok-line); background: #FAFDFB; }
+.pf-rv.cur { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+.pf-chip { display: inline-block; background: var(--navy); color: #fff; border-radius: 12px; padding: 1px 9px; font-size: 12.5px; font-weight: 700; margin-right: 3px; }
+.btn.pf-okb { color: var(--ok); border-color: var(--ok-line); background: var(--ok-bg); font-weight: 700; }
+.pf-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pf-num { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.pf-num .k { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.pf-num .v { font-size: 20px; font-weight: 800; color: var(--navy); } .pf-num .v small { font-size: 12px; font-weight: 600; }
+.pf-num .s { font-size: 11.5px; color: var(--text-3); }
+
+/* 엔진 옵션 */
+.pf-orders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.pf-oc { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.pf-oc.on { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+.pf-oc h4 { margin: 0 0 2px; font-size: 14.5px; color: var(--navy); display: flex; gap: 6px; align-items: center; }
+.pf-oc p { margin: 0 0 8px; font-size: 12px; color: var(--text-2); }
+.pf-oc ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.75; }
+.pf-mv { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: 1px; }
+.pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
+.pf-mv button:disabled { opacity: .3; cursor: default; }
+.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr) 140px; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pf-sl:first-of-type { border-top: 0; }
+.pf-sl .k b { display: block; color: var(--navy); font-size: 14px; } .pf-sl .k small { color: var(--text-2); font-size: 11.5px; }
+.pf-ax { position: relative; height: 58px; }
+.pf-ax .ln { position: absolute; left: 0; right: 0; top: 24px; height: 2px; background: var(--line-2); }
+.pf-ax .win { position: absolute; top: 10px; height: 30px; background: rgba(19,112,63,.12); border: 1px solid var(--ok-line); border-radius: 6px; }
+.pf-ax .dot { position: absolute; top: 18px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--blue); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--blue); }
+.pf-ax .dot.g { background: #C9CFD9; box-shadow: 0 0 0 1px #9AA3B2; top: 34px; width: 10px; height: 10px; margin-left: -5px; }
+.pf-ax .tk { position: absolute; top: 46px; font-size: 10.5px; color: var(--text-3); transform: translateX(-50%); }
+.pf-ax input[type=range] { position: absolute; left: 0; right: 0; top: 14px; width: 100%; margin: 0; background: transparent; }
+.pf-sl .v2 { text-align: right; }
+.pf-sl .v2 input { width: 76px; font: 700 15px var(--font, inherit); text-align: right; border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; }
+.pf-sl .v2 small { display: block; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.pf-runbar { display: flex; gap: 12px; align-items: center; }
+.pf-runbar .grow { flex: 1; }
+.pf-time { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; color: var(--text-2); }
+.pf-time button { border: 1px solid var(--line-2); background: #fff; border-radius: 12px; padding: 1px 10px; font: inherit; cursor: pointer; }
+.pf-time button.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* 타일 · 띠 · 막대 */
+.pf-hero { display: flex; align-items: center; gap: 18px; background: var(--ok-bg); border: 1px solid var(--ok-line); border-radius: 10px; padding: 14px 18px; }
+.pf-hero .big { font-size: 34px; font-weight: 800; color: var(--ok); letter-spacing: -1px; line-height: 1; } .pf-hero .big small { font-size: 15px; margin-left: 2px; }
+.pf-hero h2 { margin: 0; font-size: 19px; color: var(--navy); } .pf-hero p { margin: 2px 0 0; color: var(--text-2); }
+.pf-hero .r { margin-left: auto; }
+.pf-hero.run { background: var(--blue-weak); border-color: var(--blue-line); } .pf-hero.run .big { color: var(--blue); font-size: 24px; }
+.pf-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pf-tile { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; position: relative; }
+.pf-tile.win { border-color: var(--ok-line); background: #FAFDFB; }
+.pf-rk { font-size: 11px; font-weight: 800; color: #fff; background: var(--navy); border-radius: 10px; padding: 0 7px; line-height: 18px; display: inline-block; }
+.pf-tile .pf-rk { position: absolute; top: 10px; right: 12px; }
+.pf-tile .k { font-size: 12.5px; color: var(--text-2); font-weight: 700; } .pf-tile .k small { display: block; font-weight: 400; color: var(--text-3); font-size: 11px; }
+.pf-tile .v { font-size: 26px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; margin-top: 2px; } .pf-tile .v small { font-size: 13px; font-weight: 600; }
+.pf-tile .old { font-size: 14px; color: var(--text-3); font-weight: 400; margin-right: 6px; }
+.pf-tile .s { font-size: 11.5px; color: var(--text-3); }
+.pf-tile .d { font-size: 12px; font-weight: 700; color: var(--ok); }
+.pf-meter { height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); margin: 6px 0 3px; overflow: hidden; }
+.pf-meter i { display: block; height: 100%; background: var(--ok); } .pf-meter i.over { background: var(--bad); }
+.pf-tb { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.pf-rw { display: grid; grid-template-columns: 44px 1fr 74px 62px; gap: 8px; align-items: center; font-size: 12px; }
+.pf-tb.two .pf-rw { grid-template-columns: 44px 1fr 128px 62px; }
+.pf-rw .t { font-weight: 700; }
+.pf-rw .tr { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; }
+.pf-rw .tol { position: absolute; top: 0; bottom: 0; background: rgba(19,112,63,.10); border-left: 1px dashed var(--ok); border-right: 1px dashed var(--ok); }
+.pf-rw .bar { position: absolute; left: 0; top: 3px; height: 8px; border-radius: 2px; background: var(--blue); }
+.pf-rw .bar.g { background: #C9CFD9; top: 0; height: 6px; } .pf-tb.two .bar:not(.g) { top: 7px; height: 6px; }
+.pf-rw .n { text-align: right; font-family: var(--mono); font-size: 11.5px; } .pf-rw .dv { text-align: right; font-size: 11.5px; color: var(--text-3); }
+.pf-rules { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.pf-rl { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+.pf-rl i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+.pf-rl.bad i { background: var(--bad); }
+table.pf-t { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.pf-t th, table.pf-t td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.pf-t th:first-child, table.pf-t td:first-child { text-align: left; }
+table.pf-t thead th { font-size: 12px; color: var(--text-3); font-weight: 600; background: var(--surface-2); }
+table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { color: var(--warn); font-weight: 700; }
+
+/* 한 장 대시보드 */
+.pf-save { display: flex; gap: 8px; align-items: center; }
+.pf-save input { flex: 1; border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
+.pf-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; gap: 10px; align-items: stretch; }
+.pf-dash .pf-sec { padding: 12px 14px; }
+.pf-dash .pf-heat { grid-row: 1 / 3; grid-column: 3; }
+.pf-dash .pf-rw { font-size: 11px; } .pf-dash .pf-rw .tr { height: 12px; } .pf-dash .pf-rw .bar { top: 3px; height: 6px; }
+table.pf-h { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+table.pf-h th, table.pf-h td { padding: 6px; text-align: center; border-bottom: 1px solid #fff; }
+table.pf-h th { font-size: 11px; color: var(--text-3); font-weight: 600; background: var(--surface-2); } table.pf-h td:first-child { text-align: left; font-weight: 700; }
+table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff; border-top: 1px solid var(--line); }
+.pf-leg { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-2); margin-top: 8px; } .pf-leg i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.pf-big3 { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.pf-b { display: grid; grid-template-columns: 120px 1fr 80px; gap: 8px; align-items: center; font-size: 12px; }
+.pf-b .tr { height: 14px; background: var(--surface-2); border-radius: 3px; position: relative; } .pf-b .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--blue); } .pf-b.g .tr i { background: #C9CFD9; }
+.pf-b .n { text-align: right; font-family: var(--mono); font-size: 11.5px; }
+
+/* 버전 */
+.pf-ver { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; }
+.pf-ver + .pf-ver { margin-top: 8px; }
+.pf-ver.on { border-color: var(--blue); background: #F7FAFF; }
+.pf-ver b { color: var(--navy); font-size: 14px; } .pf-ver small { display: block; color: var(--text-2); font-size: 12px; } .pf-ver .w { font-size: 11px; color: var(--text-3); }
+.pf-ver .acts { display: flex; flex-direction: column; gap: 4px; }
+.pf-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.pf-tabs button { padding: 6px 14px; font: inherit; font-size: 13px; color: var(--text-2); background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }
+.pf-tabs button.on { color: var(--navy); font-weight: 700; border-bottom-color: var(--blue); }

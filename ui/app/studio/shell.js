@@ -119,6 +119,7 @@
         '<span class="hint">시즌 운영은 1차 편성과 따로 둡니다. 경기 기록 → 재편성 순서로 씁니다.</span>' +
         S.mock('시안 예시: 경기 기록 저장·재편성');
     }
+    if (S.planFlow) { const f = S.planFlow.footer(); if (f) return f; }
     const n = S.ui.step;
     if (n === 1 && S.guideUI && S.guideUI.footer) { const f = S.guideUI.footer(); if (f) return f; } // ① 단계별 화면: 이전·단계·다음
     const cur = S.stepStatus(n);
@@ -216,7 +217,8 @@
     document.querySelectorAll('[data-sk]').forEach((el) => { scrollMem[el.getAttribute('data-sk')] = [el.scrollTop, el.scrollLeft]; });
     document.body.classList.toggle('mode-ops', !!u.ops);
     els.top.innerHTML = renderTop();
-    els.stepper.innerHTML = u.ops ? renderOpsBar() : renderStepper();
+    if (S.planFlow) S.planFlow.beforeRender();
+    els.stepper.innerHTML = u.ops ? renderOpsBar() : S.planFlow ? S.planFlow.stepper() : renderStepper();
     els.stepper.className = u.ops ? 'opsbar' : 'stepper';
     els.body.innerHTML = u.ops ? S.ops.render() : S.steps[u.step].render();
     els.footer.innerHTML = renderFooter();

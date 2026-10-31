@@ -368,6 +368,7 @@
     S.run = null;
     if (reason === 'ERROR') { S.toast('편성 실패 — ' + (message || '엔진 오류'), 'bad', 7000); S.render(); return; }
     const ex = D().ex;
+    if (S.afterRun && S.afterRun(ex, r, why)) return;
     S.toast('편성 끝 (' + why + ') — ' + S.scoreLine(ex) + ' · ③ 결과·수정으로 이동합니다.', ex.feasible ? 'ok' : 'warn', 4500);
     S.go({ step: 3, sel: ex.violations.length ? 'v:' + S.vsig(ex.violations[0]) : null });
   }
