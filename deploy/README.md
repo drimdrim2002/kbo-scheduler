@@ -64,7 +64,7 @@ HOST=<서버 IP> bash deploy/deploy.sh
 | 할 일 | 명령 |
 | :--- | :--- |
 | 상태·로그 | `systemctl status kbo-scheduler` · `journalctl -u kbo-scheduler -f` · `/var/log/caddy/kbo-scheduler.log` |
-| 한도 조정 | `/etc/systemd/system/kbo-scheduler.service`의 `MAX_SECONDS`·`SEEDS`·`JAVA_XMX` → `systemctl daemon-reload && systemctl restart kbo-scheduler` |
+| 한도 조정 | `/etc/systemd/system/kbo-scheduler.service`의 `MAX_SECONDS`(기본 300초)·`SEEDS`·`JAVA_XMX` → `systemctl daemon-reload && systemctl restart kbo-scheduler`. `deploy.sh`는 이 파일을 복사하지 않으므로 이미 있는 서버는 직접 고친다 |
 | 결과 파일 | `/var/lib/kbo-scheduler/results/<id>.json`·`.png`. `default.json`을 지우면 다음 시작 때 다시 만든다 |
 | 부하 | 한 번에 작업 1개(큐), IP당 1개. 4 vCPU에서 10초 요청은 시드 4개 병렬. 실사용 힙은 1~2GB라 `JAVA_XMX=5g`. 10초 요청이 서버에서 13~16초라 동시 10명이면 마지막 사람은 약 2분 대기. 대기 중 탭을 닫은 작업은 20~25초 안에 줄에서 빠진다. 부하 시험: `docs/LOAD_TEST.md`, `deploy/loadtest.py` |
 
