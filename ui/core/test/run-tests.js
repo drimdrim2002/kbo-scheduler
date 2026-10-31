@@ -778,6 +778,17 @@ test('Worker 소스 생성 (팩토리 직렬화)', () => {
   assert(sandbox.self.KBO.MockSolver && typeof sandbox.self.onmessage === 'function');
 });
 
+test('2027 LG·두산 구장: 서울 올림픽 주경기장(2025는 잠실 그대로) · 같이 쓰는 구장 · 어린이날 홈 구장도 같은 이름 · 거리는 잠실 값 그대로', () => {
+  const p = KBO.Preset2027.buildProject(), p25 = KBO.Preset.buildProject();
+  const st = (q, n) => q.teams.find((t) => t.name === n).stadium;
+  eq([st(p, 'LG'), st(p, '두산'), st(p25, 'LG')], ['서울 올림픽 주경기장', '서울 올림픽 주경기장', '잠실종합운동장']);
+  const ch = p.events.find((e) => e.type === 'CHILDREN');
+  assert(ch.stadiums.includes('서울 올림픽 주경기장') && !ch.stadiums.includes('잠실종합운동장'), ch.stadiums.join());
+  const op = p.events.find((e) => e.type === 'OPENING');
+  assert(op.stadiums.includes('서울 올림픽 주경기장'), op.stadiums.join());
+  eq(p.distanceMatrix, p25.distanceMatrix);
+});
+
 test('목적식 순서·허용 차이: 순위대로 점수를 놓고, 가장 많은·적은 구단 차이가 허용 안이면 벌점 0 · 없으면 기존 방식', () => {
   const P27 = KBO.Preset2027;
   const p = P27.buildProject();

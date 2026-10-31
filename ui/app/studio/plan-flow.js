@@ -126,7 +126,7 @@
       '<div class="pf-kpi"><div class="k">전체 이동 거리</div>' + (ours ? '<div class="v">' + pct + '% 짧음</div><div class="s">KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</div>' : '<div class="s">저장된 결과를 불러오는 중입니다</div>') + '</div>' +
       '<div class="grow"></div><div class="acts"><button class="btn" data-act="pf-open-2025">2025 결과 보기' + icon('right') + '</button></div></div>' +
       '<div class="pf-ch go"><div class="kick">새 계획</div><div class="y">2027<small>새 계획 만들기</small></div><p class="what">먼저 미리 채운 2027 값을 4단계로 검토합니다.</p><ul>' +
-      step(1, '구단 정보', '2025 그대로인지 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') +
+      step(1, '구단 정보', 'LG·두산 구장 바뀜 · 그 밖에 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') +
       '</ul><div class="small muted">노란 <span class="pf-tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 말풍선이 안내합니다.</div><div class="grow"></div>' +
       '<div class="acts">' + (res ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">결과 이어서 보기' + icon('right') + '</button><button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">검토 시작' + icon('right') + '</button>') + '</div></div>' +
       '</div></div>';
@@ -134,7 +134,14 @@
   /** 저장해 둔 2027이 개막 대진을 정하기 전 것이고 아직 검토하지 않았으면 기본 제공 값으로 다시 연다 */
   function open2027() {
     const rec = S.repo.load(YEAR_NEW), bad = rec && !rec.project.meta.review && !(rec.project.meta.flow || {}).teams && !((rec.project.events || []).find((e) => e.type === 'OPENING') || {}).basis;
-    const fresh = bad ? S.builtinOf(YEAR_NEW).build() : null;
+    let fresh = bad ? S.builtinOf(YEAR_NEW).build() : null;
+    // 잠실로 저장해 둔 2027은 LG·두산 구장만 고친다(검토한 것은 그대로)
+    const SH = KBO.Preset2027.SHARED_STADIUM;
+    if (!fresh && rec && rec.project.teams.some((t) => t.stadium === SH.was)) {
+      fresh = rec.project;
+      fresh.teams = KBO.Preset2027.teams2027(fresh.teams);
+      for (const e of fresh.events || []) if (e.stadiums) e.stadiums = e.stadiums.map((x) => (x === SH.was ? SH.name : x));
+    }
     if (S.seasonYear() !== YEAR_NEW || fresh) S.switchYear(YEAR_NEW, { quiet: true, to: 'stay', project: fresh || undefined, save: !!fresh });
     S.repo.setLastYear(YEAR_NEW);
   }
@@ -223,6 +230,11 @@
     if (G.mode === 'year' || G.mode === 'resume') return renderStart();
     if ((G.fs === 2 || G.fs === 3) && !P.calEdit) return S.flowWrap(G.fs === 2 ? renderSeasonReview() : renderHomeReview(), 'pf-rvw');
     if (G.fs === 4) return S.flowWrap(S.renderCheck().replace(/다음: [①-④]? ?검토·실행/g, '다음: 엔진 옵션·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, '<h2>검토 완료</h2>'), 'ck');
+    if (G.fs === 1 && inPlan()) {
+      const SH = KBO.Preset2027.SHARED_STADIUM;
+      const changed = app().state.teams.some((t) => t.stadium === SH.name);
+      if (changed) return origStep1(R).replace('바뀐 정보가 있나요?', '그 밖에 바뀐 정보가 있나요?').replace('<div class="fl-ask', '<div class="pf-note warn" style="margin-top:0"><b>이미 고쳐 둔 곳</b> — LG·두산 구장: 잠실 → ' + esc(SH.name) + '. 잠실야구장이 2026시즌 뒤 철거되어 2027~2031년 임시로 씁니다. 바로 옆 구장이라 구장 사이 거리는 잠실 값을 그대로 씁니다.</div><div class="fl-ask');
+    }
     return origStep1(R);
   };
   /** 단계 띠: 기존 모양에 이름만 「값 입력·검증」으로, 끝에 「따라 하기 다시 보기」 */
@@ -233,7 +245,7 @@
 
   // ───────── 말풍선 ─────────
   const TOUR = {
-    1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '값은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 「맞아요」, 다르면 「고치기」를 누르세요. 먼저 구단 정보입니다. 2025와 달라진 것이 없으면 「없어요」.' },
+    1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '값은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 「맞아요」, 다르면 「고치기」를 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
     2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '노란 표시는 확정 전 값입니다. 맞으면 「맞아요」, KBO 계획과 다르면 「고치기」로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
     3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해 신뢰도가 높고, 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 다르면 「고치기」를 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
     4: { a: '.footer .btn.primary', title: '다음은 엔진 옵션', text: () => '무엇을 먼저 맞출지와 구단 사이 차이를 얼마까지 허용할지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
@@ -478,7 +490,7 @@
       const canNext = n === 1 ? !!(st.meta.flow || {}).teams : n === 4 ? S.flowStatus().done.slice(0, 3).every(Boolean) : stepReviewed(st, n);
       const next = n < 4 ? '<button class="btn primary" data-act="pf-go" data-fs="' + (n + 1) + '"' + (canNext ? '' : ' disabled title="이 단계의 값을 모두 확인해 주세요"') + '>다음: ' + (n + 1) + ' ' + esc(steps[n].name) + icon('right') + '</button>'
         : '<button class="btn primary" data-act="cal-next"' + (canNext ? '' : ' disabled title="앞 단계를 모두 확인해 주세요"') + '>다음: 엔진 옵션·실행' + icon('right') + '</button>';
-      const hint = { 1: '2025 구단 정보를 가져왔습니다. 바뀐 것이 있는지 확인합니다', 2: '노란 추정값을 하나씩 확인합니다', 3: '개막전·어린이날 홈 구단을 확인합니다', 4: '모든 값을 검토했습니다. 다음은 엔진 옵션입니다' }[n];
+      const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '노란 추정값을 하나씩 확인합니다', 3: '개막전·어린이날 홈 구단을 확인합니다', 4: '모든 값을 검토했습니다. 다음은 엔진 옵션입니다' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
     if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 값 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">계획 실행' + icon('right') + '</button>'); }

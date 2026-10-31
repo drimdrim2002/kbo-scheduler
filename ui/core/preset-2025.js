@@ -821,6 +821,13 @@
 
   const DEFAULT_RESCHEDULE_2027 = Object.assign(clone(DEFAULT_RESCHEDULE), { start: '2027-09-06', end: '2027-10-31' });
 
+  /**
+   * 2027 LG·두산 홈 구장: 잠실야구장이 2026시즌 뒤 철거되어 2027~2031년은 서울 올림픽 주경기장(임시 개조)을 쓴다(「2027 KBO 개막전 예측」 참고 사항).
+   * 같은 종합운동장 안 옆 구장이라 구장 간 거리는 잠실 값을 그대로 쓴다(도로거리를 다시 받으면 바뀔 수 있음). 위치는 대략값.
+   */
+  const SHARED_STADIUM_2027 = { name: '서울 올림픽 주경기장', latitude: 37.5155, longitude: 127.0726, teams: ['LG', '두산'], was: '잠실종합운동장' };
+  const teams2027 = (teams) => teams.map((t) => (SHARED_STADIUM_2027.teams.includes(t.name) ? Object.assign({}, t, { stadium: SHARED_STADIUM_2027.name, latitude: SHARED_STADIUM_2027.latitude, longitude: SHARED_STADIUM_2027.longitude }) : t));
+
   /** 2027 개막전 근거(화면에 그대로 보여 준다). 공식 일정 발표(통상 12월 중순) 전 예상이다. */
   const OPENING_BASIS_2027 = {
     source: '2027 KBO 개막전 예측(2026-10-31 작성)',
@@ -834,7 +841,7 @@
    * 어린이날 5/5: 홈 두산·키움·한화·롯데·NC(상대는 자동 편성, fix 'home').
    */
   function presetEvents2027() {
-    const stadiumOf = (n) => ENGINE_INPUT_2025.teams.find((t) => t.name === n).stadium;
+    const stadiumOf = (n) => teams2027(ENGINE_INPUT_2025.teams).find((t) => t.name === n).stadium;
     const order = ENGINE_INPUT_2025.teams.map((t) => t.name);
     const byOrder = (a, b) => order.indexOf(a) - order.indexOf(b);
     const pairs = [{ home: 'KT', away: '한화' }, { home: '삼성', away: '키움' }, { home: 'KIA', away: 'NC' }, { home: 'LG', away: '롯데' }, { home: 'SSG', away: '두산' }];
@@ -858,6 +865,7 @@
    */
   function buildProject2027() {
     const base = buildProject();
+    base.teams = teams2027(base.teams);
     const settings = clone(DEFAULT_SETTINGS_2027);
     const events = presetEvents2027();
     const calendar = calendar2027(settings);
@@ -888,7 +896,7 @@
     };
   }
 
-  KBO.Preset2027 = { SLOTS_2027, HOME_TOTALS_2027, DEFAULT_SETTINGS: DEFAULT_SETTINGS_2027, DEFAULT_RESCHEDULE: DEFAULT_RESCHEDULE_2027, presetEvents: presetEvents2027, calendar: calendar2027, buildProject: buildProject2027 };
+  KBO.Preset2027 = { SHARED_STADIUM: SHARED_STADIUM_2027, teams2027, SLOTS_2027, HOME_TOTALS_2027, DEFAULT_SETTINGS: DEFAULT_SETTINGS_2027, DEFAULT_RESCHEDULE: DEFAULT_RESCHEDULE_2027, presetEvents: presetEvents2027, calendar: calendar2027, buildProject: buildProject2027 };
 
   KBO.Preset = { ENGINE_INPUT_2025, TEAM_COLORS, STADIUMS, DEFAULT_SETTINGS, DEFAULT_RESCHEDULE, presetEvents, planFromInitialPlan, buildProject };
 });
