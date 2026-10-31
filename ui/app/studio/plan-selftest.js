@@ -134,13 +134,21 @@
       const v1 = P.versions.list(2027)[0];
       ok('버전 저장 → 비교 화면 · 이름은 글자 그대로', S.ui.step === 6 && !!v1 && v1.name === '<b>첫 버전</b>' && !q('.pf-ver b b') && !!v1.inputs && v1.inputs.calendar.length === 45);
       ok('저장한 일정·숫자·개막 대진', v1.matches.length === 225 && v1.plan.length === 225 && v1.pairs.some((x) => x.home === 'KIA' && x.away === '키움') && Number.isFinite(v1.gaps.totalKm));
-      // 값을 고치면 전 결과를 보여 주지 않는다
+      // 연전이 바뀌면 묻고 지운다
       S.flowGo(2); flush();
       click('.pf-rv[data-k="opening"] [data-act="pf-cal"]'); flush();
       click('[data-act="cal-open"][data-date="2027-04-03"]'); flush();
+      ok('연전이 바뀌면 확인 창', S.ui.modal === 'pfCalChange' && /결과 지우고 계속/.test(page()));
+      click('[data-act="pf-cal-undo"]'); flush();
+      ok('「바꾸지 않기」 → 달력과 결과가 그대로', st().settings.seasonStart === '2027-03-27' && !!st().meta.result && !S.ui.modal);
       click('[data-act="pf-cal-done"]'); flush();
+      click('.pf-rv[data-k="opening"] [data-act="pf-cal"]'); flush();
+      click('[data-act="cal-open"][data-date="2027-04-03"]'); flush();
+      click('[data-act="pf-cal-clear"]'); flush();
+      click('[data-act="pf-cal-done"]'); flush();
+      ok('「결과 지우고 계속」 → 지금 결과만 지우고 저장한 버전은 남음', st().settings.seasonStart === '2027-04-03' && !st().meta.result && !S.ui.modal && !!P.versions.get(2027, v1.id));
       click('[data-act="pf-stage"][data-stage="3"]'); flush();
-      ok('실행 뒤 값을 고치면 전 결과 대신 다시 실행 안내', /값을 고친 뒤로/.test(page()) && !q('.pf-dash'));
+      ok('지운 뒤 현재 결과 분석: 결과 없음', /아직 결과가 없습니다/.test(page()) && !q('.pf-dash'));
       // 불러오면 그때 값으로
       click('[data-act="pf-stage"][data-stage="4"]'); flush();
       click('[data-act="pf-load"][data-id="' + v1.id + '"]'); flush();
@@ -149,6 +157,40 @@
       ok('불러오기: 숫자가 저장한 것과 같음', JSON.stringify(ex.objectiveGaps) === JSON.stringify(v1.gaps) && ex.feasible === v1.feasible, JSON.stringify(ex.objectiveGaps));
       ok('불러오기: 결과 화면으로 · 옛 결과 아님', S.ui.step === 5 && !!q('.pf-dash'));
       ok('불러온 뒤 시리즈가 값과 맞음(다시 실행해도 안 깨짐)', S.seriesOkOf(st()));
+      // 값만 고치면 결과를 두고 이어서 푼다
+      const planBefore = st().plan.map((x) => { const m = st().matches[x.match]; return x.calendar + '|' + m.home + '|' + m.away + '|' + m.consecutive; });
+      S.flowGo(3); flush();
+      click('.pf-rv[data-k="openingHome"] [data-act="pf-cal"]'); flush();
+      const pick2 = (home, away) => { const sel = q('[data-in="cal-pair"][data-home="' + home + '"]'); sel.value = away; sel.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      pick2('LG', ''); pick2('KIA', '롯데'); pick2('LG', '키움');
+      ok('개막전 상대를 바꿔도 결과가 남음', !!st().meta.result && !S.ui.modal);
+      click('[data-act="pf-cal-done"]'); flush();
+      S.flowGo(4); flush();
+      click('.footer [data-act="cal-next"]'); flush();
+      const planAfter = new Set(st().plan.map((x) => { const m = st().matches[x.match]; return x.calendar + '|' + m.home + '|' + m.away + '|' + m.consecutive; }));
+      const keptN = planBefore.filter((k) => planAfter.has(k)).length;
+      const four2 = st().calendar.findIndex((c) => c.consecutive === 4);
+      ok('다음: 바뀐 시리즈만 바꾸고 나머지는 그 자리', S.seriesOkOf(st()) && keptN >= 100 && P.keepPlanLeft === 0 && st().plan.length === 225 && slotMatches(0).some((m) => m.home === 'KIA' && m.away === '롯데') && slotMatches(four2).some((m) => m.home === 'KIA' && m.away === '롯데'), keptN + ' / 225');
+      const orig2 = app().engine.solve;
+      let sent2 = null;
+      app().engine.solve = function (state, opts) { sent2 = opts; return orig2.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
+      ok('값을 고쳤으면 이어서 푼다는 안내', /지금 결과에서 이어서/.test(page()));
+      click('[data-act="pf-run"]');
+      ok('값을 고쳤으면 전 결과에서 이어서 실행', sent2 && sent2.init === 'KEEP', sent2 && sent2.init);
+      for (let i = 0; i < 400 && S.run; i++) await wait(50);
+      flush();
+      app().engine.solve = orig2;
+      ok('이어 풀기가 끝나면 결과 기록', !S.run && S.ui.step === 5 && !!st().meta.result);
+      S.go({ step: 2 }); flush();
+      click('[data-act="pf-order"][data-id="distance"]'); flush();
+      let sent3 = null;
+      const orig3 = app().engine.solve;
+      app().engine.solve = function (state, opts) { sent3 = opts; return orig3.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
+      click('[data-act="pf-run"]');
+      ok('엔진 옵션만 바꾸면 처음부터 실행', sent3 && sent3.init === 'SCRATCH', sent3 && sent3.init);
+      for (let i = 0; i < 400 && S.run; i++) await wait(50);
+      flush();
+      app().engine.solve = orig3;
       // 기본 제공 대진안처럼 값이 없는 버전(개막 대진만 다름)
       const pairs2 = [{ home: 'KT', away: '한화' }, { home: '삼성', away: 'NC' }, { home: 'KIA', away: '롯데' }, { home: 'LG', away: '키움' }, { home: 'SSG', away: '두산' }];
       const gen = S.builtinOf(2027).build();

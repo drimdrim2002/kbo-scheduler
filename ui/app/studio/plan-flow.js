@@ -109,8 +109,12 @@
     return String(h);
   }
   P.inputSig = inputSig;
-  /** 실행한 뒤 값을 고쳐 결과가 옛 값으로 남아 있는가 */
-  const resultStale = (st) => { const r = st.meta.result; return !!(r && r.sig && r.sig !== inputSig(st)); };
+  /** 연전 구조(날짜·연전 수). 이것이 바뀌면 전 결과를 이어서 풀 수 없어 지우고 처음부터 푼다(사용자 결정 2026-10-31) */
+  const calSig = (st) => JSON.stringify(st.calendar.map((c) => [c.datetime, c.consecutive]));
+  P.calSig = calSig;
+  const resultStale = (st) => { const r = st.meta.result; return !!(r && r.calSig && r.calSig !== calSig(st)); };
+  /** 연전은 그대로인데 값(홈 구장·대진 지정 등)을 고쳤는가 → 다음 실행은 전 결과에서 이어서 푼다 */
+  const inputsEdited = (st) => { const r = st.meta.result; return !!(r && r.sig && !resultStale(st) && r.sig !== inputSig(st)); };
   const freshResult = (st) => (st.meta.result && !resultStale(st) ? st.meta.result : null);
 
   // ───────── 값 검토 상태 ─────────
@@ -151,12 +155,98 @@
     }
     return true;
   }
+  /** 새 시리즈를 전 결과 자리에 앉힌다: 같은 시리즈는 그 자리에, 바뀐 시리즈만 같은 길이의 빈 자리로(규칙 위반은 이어서 풀 때 엔진이 고친다) */
+  function keepPlan(st, matches) {
+    const half = st.teams.length >> 1, free = st.calendar.map(() => half), old = new Map(), out = new Array(matches.length).fill(-1);
+    const key = (m) => m.home + '|' + m.away + '|' + m.consecutive;
+    for (const x of st.plan) { const k = key(st.matches[x.match]); if (!old.has(k)) old.set(k, []); old.get(k).push(x.calendar); }
+    matches.forEach((m, i) => { const q = old.get(key(m)); if (q && q.length) { out[i] = q.shift(); free[out[i]]--; } });
+    const busy = st.calendar.map(() => new Set());
+    matches.forEach((m, i) => { if (out[i] >= 0) { busy[out[i]].add(m.home); busy[out[i]].add(m.away); } });
+    matches.forEach((m, i) => {
+      if (out[i] >= 0) return;
+      const fit = st.calendar.map((c, n) => n).filter((n) => free[n] > 0 && st.calendar[n].consecutive === m.consecutive);
+      const best = fit.find((n) => !busy[n].has(m.home) && !busy[n].has(m.away));
+      const n = best != null ? best : fit[0];
+      out[i] = n; free[n]--; busy[n].add(m.home); busy[n].add(m.away);
+    });
+    P.keepPlanLeft = repairRounds(st, matches, out);
+    return out;
+  }
+  /** 연전마다 구단이 한 번씩만 나오게 같은 길이 시리즈끼리 맞바꾼다. 엔진은 연전 묶음째 옮기므로 이 겹침은 스스로 못 고친다. 남은 겹침 수를 돌려준다 */
+  function repairRounds(st, matches, plan) {
+    const stadium = new Map(st.teams.map((t) => [t.name, t.stadium]));
+    const members = st.calendar.map(() => []);
+    plan.forEach((c, i) => members[c].push(i));
+    const cost = (list) => {
+      const seen = new Set(), homes = new Set();
+      let n = 0;
+      for (const i of list) {
+        const m = matches[i];
+        for (const t of [m.home, m.away]) { if (seen.has(t)) n++; seen.add(t); }
+        const h = stadium.get(m.home);
+        if (homes.has(h)) n++;
+        homes.add(h);
+      }
+      return n;
+    };
+    let seed = 42;
+    const rnd = (n) => { seed = (seed * 1664525 + 1013904223) >>> 0; return (seed >>> 8) % n; };
+    let total = members.reduce((sum, l) => sum + cost(l), 0);
+    for (let iter = 0; total > 0 && iter < 40000; iter++) {
+      const bad = members.map((l, c) => c).filter((c) => cost(members[c]) > 0);
+      const a = bad[rnd(bad.length)], list = members[a], x = rnd(list.length);
+      const len = st.calendar[a].consecutive, ca = cost(list);
+      let best = null, bestD = Infinity, ties = 0;
+      members.forEach((other, b) => {
+        if (b === a || st.calendar[b].consecutive !== len) return;
+        const cb = cost(other);
+        other.forEach((v, y) => {
+          const na = list.slice(); na[x] = v;
+          const nb = other.slice(); nb[y] = list[x];
+          const d = cost(na) + cost(nb) - ca - cb;
+          if (d < bestD) { bestD = d; best = [b, y]; ties = 1; } else if (d === bestD && rnd(++ties) === 0) best = [b, y];
+        });
+      });
+      if (!best || (bestD > 0 && rnd(5) !== 0)) continue;
+      const [b, y] = best, v = members[b][y], u = list[x];
+      list[x] = v; members[b][y] = u; plan[v] = a; plan[u] = b; total += bestD;
+    }
+    return total;
+  }
+  P.keepPlan = keepPlan;
   const origSeriesOk = S.seriesOkOf;
   S.seriesOkOf = (p) => origSeriesOk(p) && (!inPlan(p) || seriesFollows(p));
   function confirmKey(k) {
     app().commit('검토: 맞아요', (s) => { s.meta.review = Object.assign({}, s.meta.review || {}, { [k]: true }); }, ['meta']);
   }
 
+  // 「다음」: 전 결과가 있으면 시리즈를 통째로 새로 까는 대신 바뀐 것만 바꾼다
+  const origCalNextFn = S.calNext;
+  S.calNext = function () {
+    const st = app().state;
+    if (!inPlan(st) || !st.meta.result || resultStale(st) || S.seriesOkOf(st) || !S.gameDaysCheck().ok || S.locked()) { origCalNextFn(); return; }
+    const g = app().generateSeriesPreview();
+    if (g.errors.length) { origCalNextFn(); return; }
+    const plan = keepPlan(st, g.matches);
+    if (P.keepPlanLeft > 0) { // 자리를 맞추지 못하면 이어서 풀 수 없다: 결과를 지우고 처음부터
+      app().store.commit('시리즈를 맞추지 못해 결과 지움', (x) => { delete x.meta.result; }, { tags: ['meta'], undo: false });
+      S.toast('바꾼 값에 지금 결과를 맞추지 못해 처음부터 풉니다.', 'warn', 6000);
+      origCalNextFn();
+      return;
+    }
+    app().commit('시리즈를 값에 맞춤(전 결과 자리 유지)', (x) => {
+      x.matches = g.matches.map((m) => Object.assign({ pinned: false }, m));
+      x.plan = plan.map((c, m) => ({ match: m, calendar: c }));
+      x.games = [];
+    }, ['matches', 'plan', 'games']);
+    app().applyEvents({ silent: true, label: '특별 경기 대진 고정' });
+    S.calBeforeNext();
+    S.go({ step: 2, ops: null, sel: null, edit: null });
+  };
+  // 이어서 풀 때는 지금 일정에 규칙 위반이 있어도 처음부터로 바꾸지 않는다(바뀐 시리즈의 위반을 엔진이 고친다)
+  const origEffectiveInit = S.effectiveInit;
+  S.effectiveInit = function (sv) { return inPlan() && sv.init === 'KEEP' ? { v: 'KEEP', forced: false, chosen: 'KEEP' } : origEffectiveInit(sv); };
   const isOpeningDay = (d) => { const op = (app().state.events || []).find((e) => e.type === 'OPENING'); return inPlan() && !!op && Dates.dayNum(op.date) === d; };
   const origHomeBox = S.calHomeBox;
   S.calHomeBox = function (d, b) {
@@ -180,6 +270,11 @@
     openingHome: { why: '2026 상위 5팀이 홈(두산은 LG와 구장이 겹쳐 원정, SSG가 이어받음). 대진은 2025 개막 대진을 다시 쓴 1순위 예측입니다.', src: '2027 개막전 예측' },
     childrenHome: { why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).', src: '2027 일정 원칙' },
     homeTotals: { why: '남는 홈 경기는 해마다 번갈아 가집니다(2027 = 홀수 해).', src: '2027 원칙' }
+  };
+  S.modals.pfCalChange = function () {
+    return '<div class="modal" role="dialog" aria-label="연전이 바뀜" style="width:480px;max-width:94vw"><div class="modal-head"><h3>연전이 바뀌었습니다</h3></div><div class="modal-body" style="padding:14px">' +
+      '<p class="pf-d" style="margin:0 0 12px">날짜나 연전 수가 바뀌면 지금 결과에서 이어서 풀 수 없습니다. 지금 결과를 지우고 처음부터 다시 풉니다. 이름 붙여 저장한 버전은 그대로 남습니다.</p>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="pf-cal-undo">바꾸지 않기</button><button class="btn primary" data-act="pf-cal-clear">결과 지우고 계속</button></div></div></div>';
   };
   S.modals.pfBasis = function () {
     const tr = (c) => '<tr>' + c.map((x) => '<td>' + x + '</td>').join('') + '</tr>';
@@ -416,7 +511,7 @@
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
       '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">초록 창을 끌어 정합니다. 파랑 점 = 2025 이 엔진의 구단 10개, 회색 점 = 2025 KBO 실제. 창 안에 모든 구단이 들어오면 만족으로 보고 다음 순위로 넘어가고, 나가면 나간 만큼 줄이려 노력합니다(반드시 지키는 것은 아님).</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
-      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">고른 시간은 최대치입니다. 고른 시간의 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
+      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">' + (inputsEdited(app().state) ? '<b>값을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : freshResult(app().state) ? '옵션만 바꿨으면 처음부터 새로 풉니다. ' : '') + '고른 시간은 최대치입니다. 고른 시간의 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
       '<span class="pf-time">' + times.map((t) => '<button class="' + (P.timeSec === t ? 'on' : '') + '" data-act="pf-time" data-v="' + t + '">최대 ' + t / 60 + '분</button>').join('') + '</span>' +
       (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
       '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
@@ -448,7 +543,7 @@
   /** 실행이 끝나면(step-review.js finish): 결과를 기록하고 현재 결과 분석으로 */
   S.afterRun = function (ex, run, why) {
     if (S.seasonYear() !== YEAR_NEW) return false;
-    app().store.commit('실행 결과 기록', (s) => { s.meta.result = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: s.settings.objective || DEFAULT_OBJECTIVE, sig: inputSig(s) }; }, { tags: ['meta'], undo: false });
+    app().store.commit('실행 결과 기록', (s) => { s.meta.result = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: s.settings.objective || DEFAULT_OBJECTIVE, sig: inputSig(s), calSig: calSig(s) }; }, { tags: ['meta'], undo: false });
     P.name = '';
     const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
     S.toast(instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 4000);
@@ -497,13 +592,14 @@
       if (S.seasonYear() === YEAR_VIEW) return '<div class="stepview no-band">' + render2025() + '</div>';
       const st = app().state, res = st.meta.result;
       if (isRunning()) return '<div class="stepview no-band"><div class="pf-page">' + runningNote() + '</div></div>';
-      if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>값을 고친 뒤로 아직 실행하지 않았습니다</h3><p class="pf-d">전에 낸 결과는 고치기 전 값으로 만든 것이라 보여 주지 않습니다. 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
+      if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>연전이 바뀌었습니다</h3><p class="pf-d">전에 낸 결과는 이 달력에서 쓸 수 없습니다. 처음부터 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
       if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">엔진 옵션을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
       const ex = app().derived().ex, data = dataOf(ex), ob = res.objective || objective();
       const name = P.name || suggestName();
+      const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">값을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로 ›</button></div>' : '';
       return '<div class="stepview no-band"><div class="pf-page">' +
         '<div class="pf-sec" style="padding:8px 14px"><div class="pf-save">' + (app().engineConfig.kind === 'REST' ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진으로 낸 결과</span>') + '<span class="small muted">이 결과에 이름을 붙여 저장:</span><input value="' + esc(name) + '" data-in="pf-name" aria-label="버전 이름"><button class="btn primary" data-act="pf-save">버전으로 저장</button><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 공정성</button></div></div>' +
-        dashboard(data, ob) + '</div></div>';
+        editedNote2 + dashboard(data, ob) + '</div></div>';
     }
   };
   const noRoom = () => S.toast('저장 공간이 모자라 저장하지 못했습니다. 안 쓰는 버전을 지우세요.', 'bad', 6000);
@@ -538,7 +634,7 @@
         op.pairs = v.pairs; op.teams = v.pairs.map((x) => x.home);
         op.stadiums = op.teams.map((t) => (s.teams.find((x) => x.name === t) || {}).stadium).filter(Boolean);
       }
-      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, sig: inputSig(s) };
+      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, sig: inputSig(s), calSig: calSig(s) };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 값도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);
     S.go({ step: 5, sel: null });
@@ -599,12 +695,12 @@
   const STAGES = ['값 입력·검증', '엔진 옵션·실행', '현재 결과 분석', '실행 결과 비교'];
   const stageOf = (step) => ({ 1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4 })[step] || 1;
   P.stepper = function () {
-    const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), n = P.versions.all(S.seasonYear()).length;
+    const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), edited = inputsEdited(st), n = P.versions.all(S.seasonYear()).length;
     const running = isRunning();
     const start = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
     const sub = {
       1: fs.allDone ? '4단계 검토함' : start ? '' : (G.mode === 'flow' ? G.fs + ' / 4 ' + fs.steps[G.fs - 1].name + ' · 검토 중' : fs.stop + ' / 4에서 멈춤'),
-      2: running ? '실행 중' : stale ? '값이 바뀜 · 다시 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '엔진 옵션 정하기' : '값 검토를 마치면',
+      2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '값이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '엔진 옵션 정하기' : '값 검토를 마치면',
       3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 공정성' : '한 장으로 보기') : '실행 뒤',
       4: n ? '저장한 버전 ' + n + '개' : '저장한 버전 없음'
     };
@@ -638,6 +734,7 @@
     document.body.classList.add('pf');
     // 주소를 직접 쳐도 흐름 밖 화면으로 가지 않게: 2025는 비교 화면만, 다른 해는 처음 화면으로
     const y = S.seasonYear(), onHome = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
+    if (y === YEAR_NEW && !isRunning() && resultStale(app().state)) S.ui.modal = 'pfCalChange'; // 어느 화면에서 바꿨든 여기서 묻는다
     if (y !== YEAR_NEW && !onHome && !isRunning()) {
       S.ui.ops = null;
       if (y === YEAR_VIEW) S.ui.step = 5;
@@ -693,6 +790,13 @@
     },
     'pf-cal-done': () => { P.calEdit = false; S.render(); },
     'pf-basis': () => S.go({ modal: 'pfBasis' }),
+    'pf-cal-undo': () => { S.ui.modal = null; app().undo(); S.render(); },
+    'pf-cal-clear': () => {
+      S.ui.modal = null;
+      app().store.commit('연전이 바뀌어 결과 지움', (st) => { delete st.meta.result; }, { tags: ['meta'], undo: false });
+      S.toast('결과를 지웠습니다. 값을 확인한 뒤 처음부터 실행합니다.', 'info', 5000);
+      S.render();
+    },
     'pf-op-reset': () => {
       const base = preset27().events.find((e) => e.type === 'OPENING');
       app().commit('개막전 홈 구단: 전년도 순위대로', (s) => {
@@ -720,7 +824,8 @@
       if (!fs.allDone) { S.toast('값 입력·검증을 먼저 마쳐 주세요.', 'warn'); go1(fs.stop); return; }
       if (!app().state.settings.objective) app().updateSettings({ objective: Object.assign({}, DEFAULT_OBJECTIVE) }, '엔진 옵션 기본값');
       if (!S.seriesOkOf(app().state)) { S.calNext(); if (!S.seriesOkOf(app().state)) return; }
-      app().updateSolverSettings({ timeLimitSec: P.timeSec, unimprovedSec: Math.round(P.timeSec / 2), init: 'SCRATCH' });
+      const keep = inputsEdited(app().state); // 값만 고쳤으면 전 결과에서 이어서, 그 밖에는 처음부터
+      app().updateSolverSettings({ timeLimitSec: P.timeSec, unimprovedSec: Math.round(P.timeSec / 2), init: keep ? 'KEEP' : 'SCRATCH' });
       S.startRun();
       // 첫 결과가 오면 전 결과 표시를 지운다(도중에 새로고침해도 섞인 일정을 전 결과로 보이지 않게)
       if (S.run && app().run) { let once = false; app().run.handle.on('best', () => { if (once) return; once = true; if (app().state.meta.result) app().store.commit('전 결과 표시 지우기', (st) => { delete st.meta.result; }, { tags: ['meta'], undo: false }); }); }
