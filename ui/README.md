@@ -9,6 +9,10 @@
 - **값 검토**: 2027 추정값(개막일 · 1차 편성 끝 · 올스타 휴식기 · 개막전 홈 · 어린이날 홈)은 `meta.review`에 「맞아요」를 받아야 그 단계가 끝난다(`S.flowStatus`를 감싼다). 「고치기」는 기존 달력. 말풍선은 단계마다 처음 한 번.
 - **엔진 옵션**: 추천 순서 카드·직접 정하기 + 허용 차이 → `settings.objective` `{ order, moveGap, distanceGapKm, holidayGap }`로 서버에 간다. 없으면 엔진은 기존 방식(고정 순서, 평균 ±).
 - **버전**: 기본 제공 `data/plans/*.json`, 사용자가 저장한 것은 이 브라우저(`S.planFlow.versions` — 온라인 저장소로 옮길 때 이것만 바꾼다). 내려받기·올리기 가능.
+- **값과 시리즈**: 개막 대진·후반기 첫 4연전·격년 홈 경기 수가 시리즈와 어긋나면 「다음」·실행 때 규칙대로 다시 만든다(`S.seriesOkOf`를 감쌈).
+- **결과와 값**: 결과에는 입력값 지문(`meta.result.sig`)이 있어, 실행 뒤 값을 고치면 전 결과를 보여 주지 않고 다시 실행을 안내한다(실행 취소하면 돌아옴). 버전은 값(`inputs`)도 함께 저장하고, 불러오면 값도 그때로 돌아간다. `inputs`가 없는 버전(기본 제공 등)은 처음 제공한 2027 값 + 그 버전의 개막 대진.
+- **주소**: 2025는 비교 화면(`#step=5&year=2025`)만, 2025·2027이 아닌 해는 처음 화면으로 돌려보낸다.
+- **자가 점검**: `?plantest=1`(`app/studio/plan-selftest.js`) — 실제 버튼으로 검토 게이트·고치기·엔진 옵션·실행·버전·비교·금지어를 본다. `tools/studio/selftest.sh`가 예전 화면 점검에 이어 함께 돌린다. `routes.txt`의 예전 화면 줄은 `classic=1`로 연다.
 - **실행**: 이 브랜치 엔진이 필요하다. `.claude/launch.json`의 `kbo-studio`(8095, 최대 180초, 시도 10번) → `http://localhost:8095/studio/`.
 
 > 브랜치 `wizard-ui/final` (`wizard-ui/std` 87006ee에서 분기, opt-2 커밋을 cherry-pick) · 요구사항 `KBO_WIZARD_UI_REQUIREMENTS.md` §12.2 · 진입점 `index.html`

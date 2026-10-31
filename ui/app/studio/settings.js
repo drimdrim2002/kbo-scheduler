@@ -25,7 +25,7 @@
     const on = S.dev();
     return '<div class="set-sec dev-sec' + (on ? ' on' : '') + '"><label class="feat dev-feat"><span class="switch"><input type="checkbox" data-in="devmode" id="devToggle"' + (on ? ' checked' : '') + ' aria-label="개발자 모드"><i></i></span>' +
       '<span class="nm">' + icon('bolt') + '개발자 모드 <span class="id">이 브라우저에만 저장 · 기본 꺼짐</span></span><span class="df">' + (on ? '<b style="color:var(--blue)">켜짐</b>' : '꺼짐') + '</span>' +
-      '<span class="ds">엔진을 다루는 사람을 위한 표시입니다. 켜면 규칙 코드, 엔진 원점수, 검토·실행의 세부 옵션(최대 시간·시드·점수 추이)을 일반 용어 옆에 함께 보여 줍니다. 편성 결과는 바뀌지 않습니다.</span></label>' +
+      '<span class="ds">엔진을 다루는 사람을 위한 표시입니다. 켜면 규칙 코드, 엔진 원점수, 엔진 옵션의 세부 설정(최대 시간·점수 추이)을 일반 용어 옆에 함께 보여 줍니다. 편성 결과는 바뀌지 않습니다.</span></label>' +
       (on ? '<div class="dev-list"><span>' + icon('check') + '규칙 코드 <code class="rc">H0-b</code> <code class="rc">S2</code></span><span>' + icon('check') + 'Hard / Soft 구분</span><span>' + icon('check') + '원점수 <code class="mono">' + esc(S.fmt.score(app().derived().ex.score)) + '</code></span><span>' + icon('check') + '② 개발자 옵션 · 점수 추이</span></div>' : '') + '</div>';
   }
   /** 기준일: 일반 모드에서도 보이는 유일한 항목 */

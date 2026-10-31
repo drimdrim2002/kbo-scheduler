@@ -122,7 +122,7 @@
     { id: 'M7', name: '중간 저장·되돌리기', ref: 'FR-M7', desc: '지금 일정을 이름 붙여 저장하고 되돌립니다.', must: true },
     { id: 'T4', name: '지도에서 구장 위치 옮기기', ref: 'FR-T4', desc: '지도에서 구장 표시를 끌어 위치를 조금씩 고칩니다.', def: false },
     { id: 'T7', name: '구장 간 거리표', ref: 'FR-T7', desc: '구단 정보 화면의 접힌 거리표. A→B를 고치면 B→A도 함께 바뀝니다.', def: true },
-    { id: 'V6', name: '구단별 연전 표', ref: 'FR-V6', desc: '결과·수정의 세 번째 보기.', def: false },
+    { id: 'V6', name: '구단별 연전 표', ref: 'FR-V6', desc: '일정 자세히 보기의 세 번째 보기.', def: false },
     { id: 'M2', name: '바꾸면 어떻게 되나 미리보기', ref: 'FR-M2', desc: '옮길 곳을 고르면 위반과 공정성이 어떻게 바뀌는지 미리 보여 줍니다.', def: true },
     { id: 'M8', name: '일정 미정 보관함', ref: 'FR-M8', desc: '시리즈를 보관함으로 뺐다가 다시 넣습니다.', def: true },
     { id: 'P2', name: '결과 미입력 강조', ref: 'FR-P2', desc: '기준일 이전 예정 경기를 강조합니다.', def: true },

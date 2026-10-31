@@ -274,6 +274,7 @@
     const list = TOURS[t.id];
     while (t.k < list.length - 1 && list[t.k].done && list[t.k].done()) t.k++;
     const s = list[t.k], a = s.anchor();
+    if (a && a.scrollIntoView) a.scrollIntoView({ block: 'nearest' }); // 가리킬 곳이 왼쪽 칸 아래에 있으면 보이게 한다
     el.innerHTML = ring(a) + card(t, list, s);
     place(el, a);
   };

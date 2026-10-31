@@ -354,6 +354,7 @@
     if (S.ui.demo && S.demos[S.ui.demo]) { S.quiet = true; try { S.demos[S.ui.demo](); } finally { S.quiet = false; } }
     setTimeout(() => S.checkScroll(), 300);
     if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
+    if (q.get('plantest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/plan-selftest.js'; document.body.appendChild(sc); }
   };
   S.demos = {};
   /** 점검용 주소 demo=blank: 처음부터 입력하기 상태로 시작한다(빈 표 화면 점검). 주소의 단계·화면은 그대로 둔다 */

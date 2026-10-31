@@ -251,7 +251,7 @@
     const st = app().state, gd = S.gameDaysCheck();
     if (!st.matches.length) return { ok: false, kind: 'todo', text: gd.ok ? '「다음」 때 규칙대로 만듭니다' : '경기일 합을 맞추면 규칙대로 만듭니다' };
     if (S.seriesOkOf(st)) return { ok: true, kind: 'ok', text: '규칙대로 ' + st.matches.length + '개' };
-    return { ok: false, kind: 'warn', text: gd.ok ? '묶음이 바뀌어 「다음」 때 규칙대로 다시 만듭니다' : '경기일 합을 맞추면 규칙대로 다시 만듭니다' };
+    return { ok: false, kind: 'warn', text: gd.ok ? '값이 바뀌어 「다음」 때 규칙대로 다시 만듭니다' : '경기일 합을 맞추면 규칙대로 다시 만듭니다' };
   }
   S.calSeriesState = seriesState;
   const gdStat = (gd) => (gd.ok ? S.stat('ok', '맞음') : gd.have < gd.need ? S.stat('todo', (gd.need - gd.have) + '일 남음') : S.stat('warn', (gd.have - gd.need) + '일 많음'));
