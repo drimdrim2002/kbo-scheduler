@@ -24,6 +24,7 @@
       // ── 검토 게이트
       click('[data-act="pf-open-2027"]'); flush();
       ok('처음 들어가면 값은 있어도 「검토 전」', !S.flowStatus().allDone && S.flowStatus().stop === 1 && S.seasonYear() === 2027);
+      ok('고치지 않았으면 처음 제공한 값과 같은 값으로 본다', P.inputSig(st()) === P.inputSig(S.builtinOf(2027).build()));
       ok('1단계: 「있어요」 답 전에는 다음이 잠김', q('.footer .btn.primary').disabled);
       click('[data-act="pf-tour-ok"]'); flush();
       S.actions['fl-teams-changed'](); flush();

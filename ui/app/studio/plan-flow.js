@@ -93,7 +93,12 @@
     return JSON.parse(JSON.stringify({ teams: st.teams, distanceMatrix: st.distanceMatrix, calendar: st.calendar, events: st.events, settings }));
   }
   function inputSig(st) {
-    const t = JSON.stringify(inputsOf(st));
+    // 같은 구단을 다른 차례로 적은 것은 같은 값으로 본다(개막전 teams·stadiums 순서가 대진 순서를 따라 바뀜)
+    const inp = inputsOf(st);
+    for (const e of inp.events) { for (const k of ['teams', 'stadiums']) if (Array.isArray(e[k])) e[k].sort(); if (Array.isArray(e.pairs)) e.pairs = e.pairs.map((x) => x.away + '@' + x.home).sort(); }
+    // 저장·불러오기로 칸 차례가 달라져도 같은 값이므로 칸 이름 순으로 적어 견준다
+    const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { o[k] = canon(v[k]); return o; }, {}) : v);
+    const t = JSON.stringify(canon(inp));
     let h = 5381;
     for (let i = 0; i < t.length; i++) h = (h * 33 + t.charCodeAt(i)) | 0;
     return String(h);
@@ -421,7 +426,7 @@
     if (S.seasonYear() !== YEAR_NEW) return false;
     app().store.commit('실행 결과 기록', (s) => { s.meta.result = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: s.settings.objective || DEFAULT_OBJECTIVE, sig: inputSig(s) }; }, { tags: ['meta'], undo: false });
     P.name = '';
-    const instant = run.elapsed < 3000 && why === '최대 실행 시간'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우
+    const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
     S.toast(instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + why + ').', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 4000);
     S.go({ step: 5, sel: null });
     return true;
