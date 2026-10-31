@@ -1,6 +1,6 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 7 · 2027 ② 엔진 옵션 — 목적식 순서와 허용 차이</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="wrap2" style="grid-template-columns:minmax(0,1fr) 360px;position:relative"></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS;
-P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤' },
+P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤', 4: '저장한 버전 없음' },
   prev: '이전: 값 입력·검증', hint: '<b>엔진 옵션</b> — 무엇을 먼저 맞출지, 구단 사이 차이를 얼마까지 허용할지 정합니다', next: '계획 실행' });
 const goal = (g, k) => '<div class="goal"><span class="hd">⋮⋮<small>▲▼</small></span><span class="rk">' + (k + 1) + '</span><div class="gn"><b>' + g.name + '</b><small>' + g.desc + '</small></div>' +
   (g.tol ? '<div class="tol"><div class="k">허용 차이 <span class="muted" style="font-weight:400">가장 많은·적은 구단</span></div><div class="in2"><span class="box2">' + P.fmt(g.tol) + '</span>' + g.unit + ' 까지</div>' +

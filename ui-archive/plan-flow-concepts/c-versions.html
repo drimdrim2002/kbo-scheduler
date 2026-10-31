@@ -1,6 +1,6 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대안 C · 버전 — 결과 분석 옆에 버전 칸을 늘 두고 겹쳐 비교</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="body"><aside class="rail" style="width:290px;flex:none"></aside><div class="page"></div></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS, A = 'v27a', B = 'v27b', g = G[1];
-P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함', 2: '✓ 실행 2번', 3: '기본안 보는 중 · 바꾼 안과 비교' },
+P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함', 2: '✓ 실행 2번', 3: '기본안 보는 중 · 바꾼 안과 비교', 4: '저장한 버전 2개' },
   prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 왼쪽 버전을 누르면 보기, 한 번 더 누르면 비교 대상', next: '일정 자세히 보기' });
 const m = (set) => '<div class="m">' + G.map((x) => '<span>' + x.name + '</span><span>' + P.show(set, x) + x.unit + '</span>').join('') + '</div>';
 document.querySelector('.rail').innerHTML = '<h3>버전 <span class="r xs muted">눌러서 보기 · 비교</span></h3>' +

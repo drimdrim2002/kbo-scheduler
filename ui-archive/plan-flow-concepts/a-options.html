@@ -1,6 +1,6 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대안 A · 엔진 옵션 — 추천 순서 카드 + 허용 차이를 그림으로</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="wrap2" style="grid-template-rows:auto minmax(0,1fr)"></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS;
-P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤' },
+P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤', 4: '저장한 버전 없음' },
   prev: '이전: 값 입력·검증', hint: '<b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이는 막대를 끌어 정합니다', next: '계획 실행' });
 const N = { moves: '이동 횟수 균형', dist: '이동 거리 균형', hol: '주말·공휴일 홈 균형', total: '전체 이동 거리' };
 const oc = (on, t, p, ids, diy) => '<div class="oc' + (on ? ' on' : '') + (diy ? ' diy' : '') + '"><h4>' + (on ? '<span class="tag blue">고름</span>' : '') + t + '</h4><p>' + p + '</p><ol>' + ids.map((i) => '<li>' + N[i] + '</li>').join('') + '</ol></div>';

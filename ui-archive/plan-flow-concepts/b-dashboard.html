@@ -1,7 +1,7 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대안 B · 결과 분석 — 목적식 4개를 한 장 대시보드로</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="page" style="gap:10px"></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS, S = 'v27a';
-P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '✓ 실행 끝 · 28.7초', 3: '한 장으로 보기 · 아직 저장 안 함' },
-  prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 목적식 4개와 구단별 표를 한 장에 봅니다', next: '저장한 버전 비교' });
+P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '✓ 실행 끝 · 28.7초', 3: '한 장으로 보기 · 아직 저장 안 함', 4: '저장한 버전 없음' },
+  prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 목적식 4개와 구단별 표를 한 장에 봅니다', next: '실행 결과 비교' });
 const pan = (g, k, body) => { const v = P.val(S, g), ok = !g.tol || v <= g.tol;
   return '<div class="panel"><h3><span class="rk">' + (k + 1) + '순위</span>' + g.name + '<span class="r">' + (g.tol ? '차이 <b style="color:var(--navy);font-size:15px">' + P.show(S, g) + g.unit + '</b> / 허용 ' + P.fmt(g.tol) + g.unit + ' <span class="tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>' : '<b style="color:var(--navy);font-size:15px">' + P.show(S, g) + g.unit + '</b> 10구단 합') + '</span></h3>' + body + '</div>'; };
 const tot = [['2025 KBO 실제', P.TOTAL.kbo25, 'k'], ['2025 이 엔진', P.TOTAL.ours25, ''], ['2027 이 결과', P.TOTAL.v27a, '']];

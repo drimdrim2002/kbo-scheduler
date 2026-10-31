@@ -1,7 +1,7 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 9 · 2027 ③ 결과 분석 — 목적식마다 탭</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="page"></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS, S = 'v27a', g = G[1];
-P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '✓ 실행 끝 · 28.7초', 3: '목적식별 분석 · 아직 저장 안 함' },
-  prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 목적식을 눌러 구단별로 봅니다', next: '저장한 버전 비교' });
+P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '✓ 실행 끝 · 28.7초', 3: '목적식별 분석 · 아직 저장 안 함', 4: '저장한 버전 없음' },
+  prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 목적식을 눌러 구단별로 봅니다', next: '실행 결과 비교' });
 const tile = (x, k) => { const v = P.val(S, x), ok = !x.tol || v <= x.tol; return '<div class="tile' + (x === g ? ' on' : '') + '"><span class="rk">' + (k + 1) + '순위</span><div class="k">' + x.name + '</div><div class="v">' + P.show(S, x) + '<small>' + x.unit + '</small></div>' +
   (x.tol ? '<div class="meter"><i style="width:' + Math.min(100, v / x.tol * 100).toFixed(0) + '%"></i></div><div class="s">허용 ' + P.fmt(x.tol) + x.unit + ' — <b style="color:var(--ok)">' + (ok ? '안' : '넘음') + '</b></div>' : '<div class="s" style="margin-top:6px">짧을수록 좋음 · 10구단 합</div>') + '</div>'; };
 const km = P.vals(S, 0), mean = km.reduce((s, v) => s + v, 0) / 10, mn = Math.min(...km);
