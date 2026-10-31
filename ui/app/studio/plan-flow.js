@@ -162,14 +162,13 @@
     const allBetter = ids.every((id) => goalValue(ours, id) <= goalValue(kbo, id));
     const names = Object.keys(ours.teams);
     const worse = [];
-    if (Math.max(...vals(ours, 'wk')) - Math.min(...vals(ours, 'wk')) > Math.max(...vals(kbo, 'wk')) - Math.min(...vals(kbo, 'wk'))) worse.push('주말 홈 시리즈는 KBO가 ' + rangeText(kbo, 'wk') + ', 이 엔진은 ' + rangeText(ours, 'wk'));
     if (Math.min(...vals(ours, 'away')) > Math.min(...vals(kbo, 'away'))) worse.push('가장 긴 연속 원정은 KBO가 ' + rangeText(kbo, 'away') + ', 이 엔진은 ' + rangeText(ours, 'away') + '(규칙 한도 안)');
     return '<div class="pf-page">' +
       '<div class="pf-hero"><div class="big">−' + pct('total') + '<small>%</small></div><div><h2>' + (allBetter ? '목적식 4개 모두 KBO보다 나음' : 'KBO 실제와 비교') + '</h2><p>같은 2025 조건에서 비교 · 전체 이동 거리 ' + goalShow(kbo, 'total') + 'km → ' + goalShow(ours, 'total') + 'km · 구단 간 이동 거리 차이 ' + goalShow(kbo, 'distance') + 'km → ' + goalShow(ours, 'distance') + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="pf-tag got">저장된 결과 · ' + esc(ours.savedAt) + ' 실행</span></div></div>' +
       '<div class="pf-tiles">' + ids.map(card).join('') + '</div>' +
       '<div class="pf-cols" style="grid-template-columns:1.2fr 1fr">' +
       '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 차이</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
-      '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 이 엔진</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 점수</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
+      '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 이 엔진</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈(점)</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
       names.map((t) => { const a = kbo.teams[t], b = ours.teams[t]; return '<tr><td><b>' + esc(t) + '</b></td><td>' + a.moves + ' → <b>' + b.moves + '</b></td><td>' + a.hol + ' → <b>' + b.hol + '</b></td><td>' + a.wk + ' → ' + b.wk + '</td><td>' + a.away + ' → ' + b.away + '</td></tr>'; }).join('') +
       '</tbody></table>' + (worse.length ? '<div class="pf-note warn"><b>KBO가 나은 점</b> — ' + esc(worse.join(' · ')) + '</div>' : '') + '</div></div></div>';
   }
@@ -370,7 +369,7 @@
     const refs = [['2025 KBO 실제', kbo.gaps.totalKm, 'g']].concat(ours ? [['2025 이 엔진', ours.gaps.totalKm, '']] : []).concat(opt.noSave ? [] : [[opt.title || '이 결과', data.gaps.totalKm, '']]);
     const totalBody = '<div class="pf-big3">' + refs.map(([l, v, c]) => '<div class="pf-b ' + c + '"><span>' + esc(l) + '</span><span class="tr"><i style="width:' + (v / 80000 * 100).toFixed(1) + '%"></i></span><span class="n">' + num(v) + 'km</span></div>').join('') + '</div><div class="xs muted" style="margin-top:6px">참고로 2025 숫자를 함께 둡니다(해가 다르면 일정이 다릅니다).</div>';
     const body = (id) => (id === 'total' ? totalBody : bars(data, GOALS[id].metric, ob[GOALS[id].tol], GOALS[id].d));
-    const cols = [['이동 거리', 'km', 1], ['이동 횟수', 'moves', 0], ['주말·공휴일 점수', 'hol', 0], ['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]];
+    const cols = [['이동 거리', 'km', 1], ['이동 횟수', 'moves', 0], ['주말·공휴일 홈(점)', 'hol', 0], ['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]];
     const heat = (k, v) => { const a = vals(data, k), mean = a.reduce((s, x) => s + x, 0) / a.length, span = (Math.max(...a) - Math.min(...a)) || 1, z = (v - mean) / span; return z > 0 ? 'rgba(232,140,40,' + (z * 0.9).toFixed(2) + ')' : 'rgba(31,95,214,' + (-z * 0.6).toFixed(2) + ')'; };
     const names = Object.keys(data.teams);
     const allIn = ob.order.every((id) => within(data, id, ob));
