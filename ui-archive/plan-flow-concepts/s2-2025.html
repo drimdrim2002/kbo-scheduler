@@ -1,0 +1,19 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 2 · 2025 결과 — 우리가 낫다는 점을 강조</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="page"></div><script src="plan.js"></script><script>
+const P = Plan, G = P.GOALS;
+P.chrome({ year: 2025, mode: '계획 보기', ro: true, noStepper: true, prev: '처음 화면', hint: '<b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 이 엔진의 일정을 비교합니다', next: '목적식별 자세히 보기' });
+const pct = (g) => Math.round((1 - P.val('ours25', g) / P.val('kbo25', g)) * 100);
+const card = (g, k) => '<div class="vc win"><div class="k"><span class="tag blue" style="margin-right:4px">' + (k + 1) + '순위</span>' + g.name + ' <small>' + (g.id === 'total' ? '10구단 합' : '가장 많은·적은 구단 차이') + '</small></div>' +
+  '<div class="row"><span class="a">KBO ' + P.show('kbo25', g) + g.unit + '</span><span class="arrow">→</span><span class="o">' + P.show('ours25', g) + '<small>' + g.unit + '</small></span></div>' +
+  '<div class="d good">▼ ' + pct(g) + '% ' + (g.id === 'total' ? '짧음 (' + P.fmt(P.TOTAL.kbo25 - P.TOTAL.ours25) + 'km)' : '줄임') + '</div>' +
+  '<div class="lab">' + (g.tol ? '<span>허용 차이 ' + P.fmt(g.tol) + g.unit + ' — KBO <b style="color:var(--bad)">넘음</b> · 이 엔진 <b style="color:var(--ok)">안</b></span>' : '<span>줄일수록 좋음</span>') + '</div></div>';
+const ra = (s, i) => P.range(s, i).join('~');
+document.querySelector('.page').innerHTML =
+  '<div class="hero"><div class="big">−13<small>%</small></div><div><h2>같은 2025 조건에서 KBO 실제 일정보다 목적식 4개가 모두 좋아졌습니다</h2><p>전체 이동 거리 ' + P.fmt(P.TOTAL.kbo25) + 'km → ' + P.fmt(P.TOTAL.ours25) + 'km · 구단 간 이동 거리 차이 ' + P.show('kbo25', G[1]) + 'km → ' + P.show('ours25', G[1]) + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="tag got">저장된 결과 · 2026-10-20 실행</span></div></div>' +
+  '<div class="vs" style="grid-template-columns:repeat(4,minmax(0,1fr))">' + G.map(card).join('') + '</div>' +
+  '<div class="grid" style="grid-template-columns:1.25fr 1fr;flex:1">' +
+  '<div class="panel"><h3>구단별 이동 거리 <span class="muted">막대는 5,400km부터 · 회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 차이 600km</span></h3>' + P.teamBars('ours25', 0, 600, 'km', 'kbo25') + '</div>' +
+  '<div class="panel"><h3>구단별 표 <span class="muted">KBO 실제 → 이 엔진</span></h3><table class="cmp"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈 점수</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
+  P.TEAMS.map((t) => { const a = P.D.kbo25[t], b = P.D.ours25[t]; return '<tr><td><b>' + t + '</b></td><td>' + a[1] + ' → <b>' + b[1] + '</b></td><td>' + a[2] + ' → <b>' + b[2] + '</b></td><td>' + a[4] + ' → ' + b[4] + '</td></tr>'; }).join('') +
+  '<tr><td class="muted">범위</td><td class="good">' + ra('kbo25', 1) + ' → ' + ra('ours25', 1) + '</td><td class="good">' + ra('kbo25', 2) + ' → ' + ra('ours25', 2) + '</td><td class="bad">' + ra('kbo25', 4) + ' → ' + ra('ours25', 4) + '</td></tr></tbody></table>' +
+  '<div class="small" style="margin-top:8px;padding:7px 10px;border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:6px"><b>KBO가 나은 점</b> — 가장 긴 연속 원정은 KBO가 2~3시리즈, 이 엔진은 모든 구단 3시리즈입니다(규칙 한도 3시리즈 안).</div></div></div>';
+</script></body></html>

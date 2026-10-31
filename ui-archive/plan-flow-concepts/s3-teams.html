@@ -1,0 +1,18 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 3 · 2027 ① 1 구단 정보 — 따라 하기 시작</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="body" style="position:relative"></div><script src="plan.js"></script><script>
+const P = Plan;
+P.chrome({ year: 2027, mode: '새 계획', stage: 1, ssub: { 1: '1 / 4 구단 정보 · 검토 중', 2: '값 검토를 마치면', 3: '실행 뒤' }, at: 1, sub: { 1: '검토 중 · 따라 하기 1 / 4' },
+  prev: '처음 화면', hint: '<b>1 / 4 구단 정보</b> — 2025 구단 정보를 가져왔습니다. 바뀐 것이 있는지 확인합니다', next: '다음: 2 시즌 기간·연전 묶음', nextDis: true });
+const ST = { SSG: '문학경기장', 두산: '잠실종합운동장', LG: '잠실종합운동장', KT: '수원KT위즈파크', 키움: '고척돔야구장', 한화: '한화이글스파크', 삼성: '대구삼성라이언즈파크', KIA: '광주챔피언스필드', NC: '창원NC파크', 롯데: '사직야구장' };
+const LL = { SSG: [37.4370, 126.6932], 두산: [37.5122, 127.0719], LG: [37.5122, 127.0719], KT: [37.2997, 127.0097], 키움: [37.4983, 126.8671], 한화: [36.3166, 127.4290], 삼성: [35.8411, 128.6815], KIA: [35.1682, 126.8891], NC: [35.2226, 128.5826], 롯데: [35.1940, 129.0615] };
+document.querySelector('.body').innerHTML =
+  '<aside class="card"><div class="kick">1 / 4단계 · 구단 정보</div><h2>2027 시즌 구단 정보</h2>' +
+  '<div class="box"><span class="tag got">2025에서 가져옴</span><div class="small" style="margin-top:6px">10구단 · 구장 · 위치 · 구장 사이 도로 거리. 2027 구단 정보는 아직 나오지 않아 가장 최근 시즌(2025) 것을 넣었습니다.</div></div>' +
+  '<div class="ask now"><div class="q"><span class="no">?</span>2027에 바뀐 구단 정보가 있나요?</div><div class="a chips"><span class="chip rec">없어요 — 그대로</span><span class="chip">있어요 — 고칠게요</span></div><div class="why xs muted" style="margin-top:6px">예: 구장 이전 · 임시 구장 사용 · 구단 이름 변경</div></div>' +
+  '<div class="box warn"><h4>이 단계에는 추정값이 없습니다</h4><div class="small">노란 <span class="tag est">추정 · 확정 아님</span> 표시는 2·3단계에 있습니다.</div></div>' +
+  '</aside>' +
+  '<main class="main"><div class="head"><b>구단 정보</b><span class="desc">10구단 · 잠실은 두산·LG가 같이 씀</span></div><div class="body2"><table class="t"><tr><th>#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr>' +
+  P.TEAMS.map((t, i) => '<tr><td>' + (i + 1) + '</td><td><b>' + t + '</b></td><td>' + ST[t] + '</td><td class="num">' + LL[t][0].toFixed(4) + '</td><td class="num">' + LL[t][1].toFixed(4) + '</td></tr>').join('') +
+  '</table><div class="small muted" style="margin-top:10px">구장 지도 · 구장 사이 거리표는 지금 스튜디오 화면과 같습니다(이 시안에서는 생략).</div></div></main>' +
+  P.ring(12, 188, 316, 112) +
+  P.coach({ n: 1, of: 4, title: '2027 값을 한 단계씩 검토합니다', text: '값은 미리 채워 두었지만 <b>확정되지 않은 추정값</b>이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 <b>맞아요</b>, 다르면 <b>고치기</b>를 누르세요. 4단계를 모두 확인해야 「엔진 옵션·실행」으로 넘어갑니다.<br><br>먼저 구단 정보입니다. 2025와 달라진 것이 없으면 「없어요 — 그대로」.', x: 340, y: 186, side: 'l', w: 330, btn: '알겠어요 ›' });
+</script></body></html>

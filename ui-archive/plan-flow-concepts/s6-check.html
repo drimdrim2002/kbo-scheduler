@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 6 · 2027 ① 4 확인 — 모든 단계를 검토한 뒤</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="resume" style="position:relative"></div><script src="plan.js"></script><script>
+const P = Plan;
+P.chrome({ year: 2027, mode: '새 계획', stage: 1, ssub: { 1: '4 / 4 확인', 2: '값 검토를 마치면', 3: '실행 뒤' }, at: 4, sub: { 1: '✓ 바뀐 것 없음', 2: '✓ 추정값 3개 확인함', 3: '✓ 추정값 2개 확인함', 4: '따라 하기 4 / 4' },
+  prev: '이전: 3 공휴일·홈 구장', hint: '<b>4 / 4 확인</b> — 모든 값을 검토했습니다. 다음은 엔진 옵션입니다', next: '다음: 엔진 옵션·실행' });
+const row = (n, t, s, b) => '<div class="rrow done"><i>✓</i><div class="t"><b>' + n + ' ' + t + '</b><small>' + s + '</small></div><span class="btn sm">' + (b || '다시 보기') + '</span></div>';
+document.querySelector('.resume').innerHTML = '<div class="rcard" style="width:920px"><div class="kick">4 / 4단계 · 확인</div><h2>2027 값 검토를 마쳤습니다</h2><p class="sub">추정값 5개를 모두 확인했고, 고친 값은 없습니다. 고치고 싶으면 단계를 눌러 돌아가세요.</p>' +
+  row(1, '구단 정보', '10구단 · 구장 · 거리 — 2025 그대로 (바뀐 것 없음)') +
+  row(2, '시즌 기간·연전 묶음', '개막 3/27(토) ~ 1차 편성 9/5(일) · 경기일 135일 · 올스타 휴식기 7/9~14 · 연전 묶음 45개 &nbsp;<span class="tag ok">추정 3개 확인함</span>') +
+  row(3, '공휴일·홈 구장', '개막전 홈 KT·삼성·KIA·LG·SSG · 어린이날 홈 두산·키움·한화·롯데·NC · 홈 73/71 &nbsp;<span class="tag ok">추정 2개 확인함</span>') +
+  '<div class="rrow done"><i>✓</i><div class="t"><b>사전 점검</b><small>경기 225개(맞대결 15경기씩) · 하루 5경기 · 지정한 홈 구장이 서로 겹치지 않음 — 이대로 편성할 수 있습니다</small></div><span class="stat ok">통과</span></div>' +
+  '<div class="rfoot"><span class="small muted">검토한 값은 이 브라우저에 저장됩니다</span><span class="small muted">아래 「다음」을 누르면 엔진 옵션으로 갑니다</span></div></div>' +
+  P.coach({ n: 4, of: 4, title: '이제 엔진 옵션을 정합니다', text: '무엇을 먼저 맞출지(목적식 순서)와 구단 사이 차이를 얼마까지 허용할지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.', x: 1120, y: 515, side: 'b', w: 300, btn: '엔진 옵션으로 ›' });
+</script></body></html>

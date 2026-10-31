@@ -1,0 +1,24 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대안 A · 엔진 옵션 — 추천 순서 카드 + 허용 차이를 그림으로</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="wrap2" style="grid-template-rows:auto minmax(0,1fr)"></div><script src="plan.js"></script><script>
+const P = Plan, G = P.GOALS;
+P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤' },
+  prev: '이전: 값 입력·검증', hint: '<b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이는 막대를 끌어 정합니다', next: '계획 실행' });
+const N = { moves: '이동 횟수 균형', dist: '이동 거리 균형', hol: '주말·공휴일 홈 균형', total: '전체 이동 거리' };
+const oc = (on, t, p, ids, diy) => '<div class="oc' + (on ? ' on' : '') + (diy ? ' diy' : '') + '"><h4>' + (on ? '<span class="tag blue">고름</span>' : '') + t + '</h4><p>' + p + '</p><ol>' + ids.map((i) => '<li>' + N[i] + '</li>').join('') + '</ol></div>';
+// 허용 차이 그림: 2025 이 엔진(파랑 점)·KBO 실제(회색 점) 구단별 값을 가장 적은 구단 기준으로 놓고, 허용 창(초록)을 끌어 정한다
+const sl = (g, lo, hi, step) => { const x = (v) => ((v - lo) / (hi - lo) * 100).toFixed(1) + '%', ours = P.vals('ours25', g.i), kbo = P.vals('kbo25', g.i), m = Math.min(...ours);
+  const ticks = []; for (let v = lo; v <= hi; v += step) ticks.push('<span class="tk" style="left:' + x(v) + '">' + P.fmt(v) + '</span>');
+  return '<div class="sl"><div class="k"><b>' + g.name + '</b><small>가장 많은·적은 구단 차이를 몇 ' + g.unit + '까지 허용할까요?</small></div><div class="ax"><span class="ln"></span>' +
+    '<span class="win" style="left:' + x(m) + ';width:calc(' + x(m + g.tol) + ' - ' + x(m) + ')"></span><span class="hdl" style="left:' + x(m + g.tol) + '"></span><span class="lab" style="left:' + x(m + g.tol) + '">' + P.fmt(g.tol) + g.unit + '</span>' +
+    kbo.map((v) => '<span class="dot k" style="left:' + x(v) + '"></span>').join('') + ours.map((v) => '<span class="dot" style="left:' + x(v) + '"></span>').join('') + ticks.join('') + '</div>' +
+    '<div class="v2"><span class="box2">' + P.fmt(g.tol) + '</span> ' + g.unit + '<div class="xs muted" style="margin-top:4px">2025 이 엔진 ' + P.show('ours25', g) + ' · KBO ' + P.show('kbo25', g) + '</div></div></div>'; };
+document.querySelector('.wrap2').innerHTML =
+  '<div class="sec"><h3>무엇을 먼저 맞출까요? <span class="small muted" style="font-weight:400">추천 순서 하나를 고르거나 직접 정합니다 · 반드시 지킬 규칙은 어느 순서든 항상 지킴</span></h3><div class="orders" style="margin-top:8px">' +
+  oc(true, '균형 먼저 (기본)', '구단 사이 공평함을 가장 먼저. 지금 엔진 순서', ['moves', 'dist', 'hol', 'total']) +
+  oc(false, '거리 먼저', '리그 전체 이동을 가장 줄이고, 균형은 그다음', ['total', 'dist', 'moves', 'hol']) +
+  oc(false, '주말·공휴일 먼저', '흥행 날짜의 홈 경기를 고르게 나누는 것이 먼저', ['hol', 'moves', 'dist', 'total']) +
+  oc(false, '직접 정하기', '네 목적식을 끌어서 순서를 정합니다', ['…', '…', '…', '…'].map(() => 'moves'), true).replace(/<li>이동 횟수 균형<\/li>/g, '<li>끌어서 정하기</li>') +
+  '</div><div class="xs muted" style="margin-top:6px">순서마다 결과 숫자는 실행해 봐야 압니다 — 실행 뒤 버전으로 저장해 비교하세요.</div></div>' +
+  '<div class="sec" style="overflow:hidden"><h3>허용 차이 <span class="small muted" style="font-weight:400">초록 막대 끝을 끌어 정합니다 · 파랑 점 = 2025 이 엔진 결과의 구단 10개 · 회색 점 = 2025 KBO 실제</span></h3>' +
+  sl(G[0], 28, 40, 2) + sl(G[1], 5800, 8200, 400) + sl(G[2], 20, 34, 2) +
+  '<div class="small" style="margin-top:6px;padding:8px 10px;border:1px solid var(--line);background:var(--surface-2);border-radius:6px">초록 창 안에 모든 구단이 들어오면 그 목적식은 만족으로 보고 다음 순위로 넘어갑니다. 창 밖으로 나가면 나간 만큼 줄이려 노력합니다(반드시 지키는 것은 아님). 전체 이동 거리는 허용 차이 없이 짧을수록 좋습니다.</div></div>';
+</script></body></html>

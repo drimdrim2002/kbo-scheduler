@@ -1,0 +1,14 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 8 · 2027 ② 실행 중 — 지금까지 가장 좋은 결과를 계속 받아 옴</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="page"></div><script src="plan.js"></script><script>
+const P = Plan, G = P.GOALS, S = 'v27a';
+P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '실행 중 · 더 나은 결과를 찾는 중', 3: '실행 뒤' },
+  prev: '엔진 옵션', hint: '<b>실행 중</b> — 몇 초마다 지금까지 가장 좋은 결과를 받아 와 보여 줍니다', next: '멈추고 이 결과 쓰기' });
+const tile = (g, k) => { const v = P.val(S, g), ok = !g.tol || v <= g.tol; return '<div class="tile"><span class="rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '</div><div class="v">' + P.show(S, g) + '<small>' + g.unit + '</small></div>' +
+  (g.tol ? '<div class="meter"><i class="' + (ok ? '' : 'over') + '" style="width:' + Math.min(100, v / g.tol * 100).toFixed(0) + '%"></i></div><div class="s">허용 ' + P.fmt(g.tol) + g.unit + ' — ' + (ok ? '<b style="color:var(--ok)">안</b>' : '<b style="color:var(--bad)">넘음</b>') + '</div>' : '<div class="s" style="margin-top:6px">짧을수록 좋음 · 10구단 합</div>') + '</div>'; };
+document.querySelector('.page').innerHTML =
+  '<div class="hero run"><div class="big" style="font-size:24px">찾는 중…</div><div><h2>아래는 지금까지 가장 좋은 결과입니다</h2><p>0:20 지남 · 반드시 지킬 규칙은 모두 지키고 있습니다 · 결과를 2초마다 받아 옴 (마지막: 1초 전) · 더 나아지지 않으면 스스로 멈춥니다</p></div><div class="r"><span class="btn">멈추고 이 결과 쓰기</span></div></div>' +
+  '<div class="tiles">' + G.map(tile).join('') + '</div>' +
+  '<div class="grid" style="grid-template-columns:1.3fr 1fr;flex:1">' +
+  '<div class="panel"><h3>구단별 이동 거리 <span class="muted">지금까지 가장 좋은 결과 · 초록 띠 = 가장 적은 구단 + 허용 차이 600km · 막대는 5,400km부터</span></h3>' + P.teamBars(S, 0, 600, 'km') + '</div>' +
+  '<div class="panel"><h3>반드시 지킴 <span class="muted">지금 결과 기준</span></h3><div class="rules">' +
+  [['하루 5경기', '매 경기일 10구단 모두 한 경기'], ['맞대결 15경기씩', '모든 두 구단'], ['홈 경기 수', '1차 편성 69 / 66'], ['지정한 날 홈 구단', '개막전 5 · 어린이날 5 · 후반기 첫 4연전'], ['같은 대진 연속 없음', ''], ['홈·원정 연속 3시리즈까지', '가장 긴 연속 원정 3시리즈'], ['잠실 겹침 없음', '두산·LG']].map(([k, v]) => '<div class="rl"><i>✓</i><b>' + k + '</b><span>' + v + '</span></div>').join('') + '</div></div></div>';
+</script></body></html>

@@ -1,0 +1,23 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 7 · 2027 ② 엔진 옵션 — 목적식 순서와 허용 차이</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="wrap2" style="grid-template-columns:minmax(0,1fr) 360px;position:relative"></div><script src="plan.js"></script><script>
+const P = Plan, G = P.GOALS;
+P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검토함 · 추정 5개 확인', 2: '엔진 옵션 정하는 중', 3: '실행 뒤' },
+  prev: '이전: 값 입력·검증', hint: '<b>엔진 옵션</b> — 무엇을 먼저 맞출지, 구단 사이 차이를 얼마까지 허용할지 정합니다', next: '계획 실행' });
+const goal = (g, k) => '<div class="goal"><span class="hd">⋮⋮<small>▲▼</small></span><span class="rk">' + (k + 1) + '</span><div class="gn"><b>' + g.name + '</b><small>' + g.desc + '</small></div>' +
+  (g.tol ? '<div class="tol"><div class="k">허용 차이 <span class="muted" style="font-weight:400">가장 많은·적은 구단</span></div><div class="in2"><span class="box2">' + P.fmt(g.tol) + '</span>' + g.unit + ' 까지</div>' +
+    '<div class="ref">참고: 2025 KBO 실제 <b>' + P.show('kbo25', g) + g.unit + '</b> · 이 엔진 2025 <b>' + P.show('ours25', g) + g.unit + '</b></div></div>'
+    : '<div class="tol"><div class="k">허용 차이 없음</div><div class="nolim">짧을수록 좋음</div><div class="ref">참고: 2025 KBO 실제 <b>' + P.fmt(P.TOTAL.kbo25) + 'km</b> · 이 엔진 2025 <b>' + P.fmt(P.TOTAL.ours25) + 'km</b></div></div>') + '</div>';
+document.querySelector('.wrap2').innerHTML =
+  '<div style="display:flex;flex-direction:column;gap:12px;min-height:0">' +
+  '<div class="sec"><h3>반드시 지킴 <span class="small muted" style="font-weight:400">순서와 상관없이 항상 · 바꿀 수 없음</span></h3><div class="fixed">' +
+  ['하루 5경기 · 10구단 모두 한 경기', '맞대결 15경기씩', '홈 경기 수(1차 편성 69 / 66)', '지정한 날 홈 구단(개막전·어린이날·후반기 첫 4연전)', '같은 대진 연속 금지', '홈·원정 연속 3시리즈까지', '잠실 같은 날 겹침 없음'].map((x) => '<span>' + x + '</span>').join('') + '</div></div>' +
+  '<div class="sec" style="flex:1"><h3>무엇을 먼저 맞출까요? <span class="small muted" style="font-weight:400">끌어서 순서를 바꿉니다</span><span class="r"><span class="btn sm">기본 순서로 되돌리기</span></span></h3>' +
+  '<p class="d"><b>1순위가 조금이라도 나은 결과</b>를 고릅니다. 2순위는 1순위가 같을 때만 비교합니다. 균형 목적식은 <b>허용 차이 안이면 만족</b>으로 보고 다음 순위로 넘어가고, 넘으면 넘은 만큼 줄이려 노력합니다(반드시 지키는 것은 아님).</p>' +
+  G.map(goal).join('') + '</div></div>' +
+  '<div style="display:flex;flex-direction:column;gap:12px">' +
+  '<div class="sec"><h3>이렇게 실행합니다</h3><ol style="margin:4px 0 0;padding-left:18px;line-height:1.9">' + G.map((g) => '<li><b>' + g.name + '</b>' + (g.tol ? ' <span class="muted">— 차이 ' + P.fmt(g.tol) + g.unit + '까지</span>' : ' <span class="muted">— 짧게</span>') + '</li>').join('') + '</ol>' +
+  '<div class="box" style="margin-top:10px"><h4>기본값은 어디서 왔나요?</h4><div class="small">지금 엔진의 기본 허용 범위(리그 평균 ±2회 · ±300km · ±1.5점)를 「가장 많은·적은 구단 차이」로 옮긴 값입니다.</div></div></div>' +
+  '<div class="sec"><h3>실행</h3><p class="d">엔진이 더 나은 결과를 찾다가 <b>더 나아지지 않으면 스스로 멈춥니다</b>. 그동안 몇 초마다 지금까지 가장 좋은 결과를 화면에 보여 줍니다.</p>' +
+  '<div class="fold"><b>▸ 더 보기</b> <span class="small muted">최대 실행 시간 · 출발점 수 (보통은 그대로)</span></div>' +
+  '<div class="box blue" style="margin-top:10px"><div class="small">결과는 <b>이름을 붙여 버전으로 저장</b>합니다. 순서나 허용 차이를 바꿔 다시 실행하면 새 버전이 생기고, 버전끼리 비교할 수 있습니다.</div></div>' +
+  '<span class="btn pri big" style="margin-top:12px;display:flex;justify-content:center">계획 실행 ›</span></div></div>';
+</script></body></html>
