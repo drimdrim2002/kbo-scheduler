@@ -108,6 +108,7 @@
       const orig = app().engine.solve;
       let sent = null;
       app().engine.solve = function (state, opts) { sent = { objective: JSON.parse(JSON.stringify(state.settings.objective)), opts }; return orig.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
+      ok('실행 시간 선택지: 1·2·3·5분', qa('.pf-time button').map((b) => b.dataset.v).join() === '60,120,180,300');
       click('.pf-time [data-v="60"]'); flush();
       click('[data-act="pf-run"]');
       ok('실행: 순서·허용 차이가 엔진으로 간다', sent && sent.objective.order.join() === ob().order.join() && sent.objective.distanceGapKm === 600 && sent.opts.timeLimitSec === 60 && sent.opts.init === 'SCRATCH');

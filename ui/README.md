@@ -14,7 +14,7 @@
 - **결과와 값**: 결과에는 입력값 지문(`meta.result.sig`)이 있어, 실행 뒤 값을 고치면 전 결과를 보여 주지 않고 다시 실행을 안내한다(실행 취소하면 돌아옴). 버전은 값(`inputs`)도 함께 저장하고, 불러오면 값도 그때로 돌아간다. `inputs`가 없는 버전(기본 제공 등)은 처음 제공한 2027 값 + 그 버전의 개막 대진.
 - **주소**: 2025는 비교 화면(`#step=5&year=2025`)만, 2025·2027이 아닌 해는 처음 화면으로 돌려보낸다.
 - **자가 점검**: `?plantest=1`(`app/studio/plan-selftest.js`) — 실제 버튼으로 검토 게이트·고치기·엔진 옵션·실행·버전·비교·금지어를 본다. `tools/studio/selftest.sh`가 예전 화면 점검에 이어 함께 돌린다. `routes.txt`의 예전 화면 줄은 `classic=1`로 연다.
-- **실행**: 이 브랜치 엔진이 필요하다. `.claude/launch.json`의 `kbo-studio`(8095, 최대 180초, 시도 4번 — 공개 서버 4 vCPU에 맞춤) → `http://localhost:8095/studio/`.
+- **실행**: 이 브랜치 엔진이 필요하다. `.claude/launch.json`의 `kbo-studio`(8095, 최대 300초, 시도 4번 — 공개 서버 4 vCPU에 맞춤) → `http://localhost:8095/studio/`.
 
 > 브랜치 `wizard-ui/final` (`wizard-ui/std` 87006ee에서 분기, opt-2 커밋을 cherry-pick) · 요구사항 `KBO_WIZARD_UI_REQUIREMENTS.md` §12.2 · 진입점 `index.html`
 > 사용자 선택(2026-10-19): ① 데이터 준비 = **표준**(인스펙터 상단 시각화) · ④ 지표와 ② 실행 옵션 = **opt-2**(대시보드 + 큰 선택 카드) · 시즌 운영 이동 경로 = **표준**(3단 화면).
