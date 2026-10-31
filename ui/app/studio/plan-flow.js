@@ -73,6 +73,11 @@
     const bad = '버전 파일이 아니거나 내용이 잘렸습니다.';
     if (!v || typeof v !== 'object' || !v.teams || !v.gaps || !v.objective || !Array.isArray(v.plan) || !Array.isArray(v.matches)) return bad;
     if (v.year != null && v.year !== y) return '이 파일은 ' + v.year + ' 버전이라 ' + y + '에 올릴 수 없습니다.';
+    if (y === YEAR_NEW) {
+      const op = v.inputs && Array.isArray(v.inputs.events) ? v.inputs.events.find((e) => e.type === 'OPENING') : null;
+      const homes = v.pairs ? v.pairs.map((x) => x.home) : op ? op.teams : null;
+      if (homes && !sameTeams(homes, OPENING_HOMES())) return '개막전 홈 구단이 전년도 순위와 다른 버전입니다.';
+    }
     const ob = v.objective, order = ob.order;
     if (!Array.isArray(order) || order.slice().sort().join() !== Object.keys(GOALS).sort().join()) return bad;
     if (![ob.moveGap, ob.distanceGapKm, ob.holidayGap].every((x) => Number.isFinite(x) && x >= 0)) return bad;
@@ -111,7 +116,11 @@
   // ───────── 값 검토 상태 ─────────
   const KEYS = { 2: ['opening', 'initialEnd', 'allStar'], 3: ['openingHome', 'childrenHome'] };
   const review = (p) => (p || app().state).meta.review || {};
-  const stepReviewed = (p, n) => (n === 1 ? !!(p.meta.flow || {}).teams : (KEYS[n] || []).every((k) => review(p)[k]));
+  /** 개막전 홈 구단은 전년도 순위가 정한다(사용자 결정 2026-10-31): 상대만 고칠 수 있고, 표·엑셀·파일로 달라졌으면 그 단계가 끝나지 않는다 */
+  const OPENING_HOMES = () => (preset27().events.find((e) => e.type === 'OPENING') || {}).teams || [];
+  const sameTeams = (a, b) => (a || []).slice().sort().join() === (b || []).slice().sort().join();
+  const openingHomesOk = (p) => sameTeams(((p.events || []).find((e) => e.type === 'OPENING') || {}).teams, OPENING_HOMES());
+  const stepReviewed = (p, n) => (n === 1 ? !!(p.meta.flow || {}).teams : (KEYS[n] || []).every((k) => review(p)[k]) && (n !== 3 || openingHomesOk(p)));
   const yearOf = (p) => S.seasonYearOf(p);
   const inPlan = (p) => yearOf(p || app().state) === YEAR_NEW;
   const origStatus = S.flowStatus;
@@ -147,6 +156,20 @@
   function confirmKey(k) {
     app().commit('검토: 맞아요', (s) => { s.meta.review = Object.assign({}, s.meta.review || {}, { [k]: true }); }, ['meta']);
   }
+
+  const isOpeningDay = (d) => { const op = (app().state.events || []).find((e) => e.type === 'OPENING'); return inPlan() && !!op && Dates.dayNum(op.date) === d; };
+  const origHomeBox = S.calHomeBox;
+  S.calHomeBox = function (d, b) {
+    const html = origHomeBox(d, b);
+    if (!isOpeningDay(d)) return html;
+    return '<div class="sc-note"><b>홈 구단은 고정입니다</b> — 전년도 순위로 정해집니다. 상대 구단만 고칠 수 있습니다.</div>' +
+      html.replace(/<button class="sc-tog[\s\S]*?<\/button>/, '').replace(/<div class="sc-seg sc-fix"[\s\S]*?<\/div>/, '').replace(/data-act="cal-home-team"/g, 'disabled').replace(/<div class="sc-note">이 날 홈 구단[\s\S]*?<\/div>/, '').replace(/<div class="sc-note">[^<]*중 하나만 고릅니다[^<]*<\/div>/, '');
+  };
+  // 잠근 뒤에도 단축키·남은 단추로 들어오는 길을 막는다
+  ['cal-home-team', 'cal-home-off', 'cal-home-fix'].forEach((k) => {
+    const orig = S.actions[k];
+    S.actions[k] = (el, e) => { if (S.cal.day != null && isOpeningDay(S.cal.day)) { S.toast('개막전 홈 구단은 전년도 순위로 정해집니다. 상대 구단만 고칠 수 있습니다.', 'warn', 5000); return; } orig(el, e); };
+  });
 
   // ───────── 근거 ─────────
   const BASIS = {
@@ -267,7 +290,7 @@
       ? (ok ? '<span class="pf-tag ok">✓ 확인함</span><button class="btn sm" data-act="pf-cal"' + to + '>다시 고치기</button>' : '<button class="btn sm pf-okb" data-act="pf-ok" data-k="' + r.key + '">✓ 맞아요</button><button class="btn sm" data-act="pf-cal"' + to + '>고치기</button>')
       : '<button class="btn sm" data-act="pf-cal"' + to + '>' + (r.editText || '고치기') + '</button>';
     return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
-      '<div class="why"><em>왜 이 값?</em> ' + esc(r.why) + (r.src ? ' <em>· 근거:</em> ' + esc(r.src) : '') + (r.more || '') + '</div></div><div class="acts">' + acts + '</div></div>';
+      '<div class="why"><em>왜 이 값?</em> ' + esc(r.why) + (r.src ? ' <em>· 근거:</em> ' + esc(r.src) : '') + (r.more || '') + '</div>' + (r.warn || '') + '</div><div class="acts">' + acts + '</div></div>';
   }
   const firstOpen = (n) => (KEYS[n] || []).find((k) => !review()[k]);
   function renderSeasonReview() {
@@ -297,12 +320,13 @@
     const ht = s.homeTotals;
     const pairs = (op.pairs || []).map((x) => x.away + '@' + x.home).join(' · ');
     const more = ' <button class="pf-link" data-act="pf-basis">자세히 ›</button>';
+    const homesOk = openingHomesOk(st);
     const rows = [
       { t: '공휴일', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 안 ' + hol.length + '일', v2: hol.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · '), why: '정부 공휴일 달력 그대로입니다. 홈 경기 점수는 주말 하루 1점, 공휴일 2점, 어린이날 3점으로 셉니다.' },
       ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals } : null,
-      { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart) + ' &nbsp;' + chips(op.teams), v2: pairs ? '대진 ' + esc(pairs) : '', more, ...BASIS.openingHome },
+      { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart) + ' &nbsp;' + chips(op.teams), v2: pairs ? '대진 ' + esc(pairs) : '', more, ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05') + ' &nbsp;' + chips(ch.teams), ...BASIS.childrenHome },
-      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막전 홈 구단을 고치면 함께 바뀝니다.', src: '2027 원칙' }
+      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막 대진을 고치면 함께 바뀝니다.', src: '2027 원칙' }
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page"><div class="pf-cols" style="grid-template-columns:minmax(0,1fr) 340px">' +
@@ -332,7 +356,7 @@
   const TOUR = {
     1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '값은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 「맞아요」, 다르면 「고치기」를 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
     2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '노란 표시는 확정 전 값입니다. 맞으면 「맞아요」, KBO 계획과 다르면 「고치기」로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
-    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해 신뢰도가 높고, 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 다르면 「고치기」를 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
+    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「고치기」를 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
     4: { a: '.footer .btn.primary', title: '다음은 엔진 옵션', text: () => '무엇을 먼저 맞출지와 구단 사이 차이를 얼마까지 허용할지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
   };
   const tourKey = (n) => S.KEY + 'tour:plan' + n;
@@ -600,7 +624,7 @@
       const canNext = n === 1 ? !!(st.meta.flow || {}).teams : n === 4 ? S.flowStatus().done.slice(0, 3).every(Boolean) : stepReviewed(st, n);
       const next = n < 4 ? '<button class="btn primary" data-act="pf-go" data-fs="' + (n + 1) + '"' + (canNext ? '' : ' disabled title="이 단계의 값을 모두 확인해 주세요"') + '>다음: ' + (n + 1) + ' ' + esc(steps[n].name) + icon('right') + '</button>'
         : '<button class="btn primary" data-act="cal-next"' + (canNext ? '' : ' disabled title="앞 단계를 모두 확인해 주세요"') + '>다음: 엔진 옵션·실행' + icon('right') + '</button>';
-      const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '노란 추정값을 하나씩 확인합니다', 3: '개막전·어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 값을 검토했습니다. 다음은 엔진 옵션입니다' : '앞 단계의 값을 먼저 확인해 주세요' }[n];
+      const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '노란 추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 값을 검토했습니다. 다음은 엔진 옵션입니다' : '앞 단계의 값을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
     if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 값 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">계획 실행' + icon('right') + '</button>'); }
@@ -669,6 +693,16 @@
     },
     'pf-cal-done': () => { P.calEdit = false; S.render(); },
     'pf-basis': () => S.go({ modal: 'pfBasis' }),
+    'pf-op-reset': () => {
+      const base = preset27().events.find((e) => e.type === 'OPENING');
+      app().commit('개막전 홈 구단: 전년도 순위대로', (s) => {
+        const op = s.events.find((e) => e.type === 'OPENING');
+        const date = s.settings.seasonStart;
+        const next = Object.assign(JSON.parse(JSON.stringify(base)), { date, slot: 0 });
+        if (op) s.events[s.events.indexOf(op)] = next; else s.events.unshift(next);
+        for (const m of s.matches) if (m.eventId === next.id) { delete m.eventId; m.pinned = false; }
+      }, ['events', 'pins']);
+    },
     'pf-tour-ok': () => { S.ls.set(tourKey(G.fs), '1'); S.render(); },
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
     'pf-order': (el) => { P.customOrder = false; const o = ORDERS.find((x) => x.id === el.dataset.id); app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '목적식 순서: ' + o.name); },

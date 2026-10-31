@@ -60,11 +60,14 @@
       click('[data-act="pf-cal-done"]'); flush();
       click('.pf-rv[data-k="openingHome"] [data-act="pf-cal"]'); flush();
       ok('개막전 고치기 → 3/27이 골라짐', S.cal.day === KBO.Dates.dayNum('2027-03-27'));
-      // 개막전 대진을 바꾼다: KT 대신 한화가 홈(상대 KT)
-      click('[data-act="cal-home-team"][data-team="KT"]'); flush();
-      click('[data-act="cal-home-team"][data-team="한화"]'); flush();
-      const sel = q('[data-in="cal-pair"][data-home="한화"]');
-      sel.value = 'KT'; sel.dispatchEvent(new Event('change', { bubbles: true })); flush();
+      // 홈 구단은 잠겨 있다
+      ok('개막전 홈 구단은 눌리지 않음 · 고정 안내', qa('.gs-tbtn').every((b) => b.disabled) && !q('[data-act="cal-home-off"]') && !q('[data-act="cal-home-fix"]') && /홈 구단은 고정/.test(page()));
+      const homes0 = ev('OPENING').teams.join();
+      S.actions['cal-home-team']({ dataset: { team: 'KT' } }); flush();
+      ok('막힌 동작을 불러도 홈 구단이 그대로', ev('OPENING').teams.join() === homes0);
+      // 상대만 바꾼다: 삼성↔NC 상대, KIA↔키움 상대
+      const pick = (home, away) => { const sel = q('[data-in="cal-pair"][data-home="' + home + '"]'); sel.value = away; sel.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      pick('삼성', ''); pick('KIA', '키움'); pick('삼성', 'NC');
       ok('대진을 바꾸면 지금 시리즈와 어긋난 것으로 본다', !S.seriesOkOf(st()));
       click('[data-act="pf-cal-done"]'); flush();
       for (const k of ['openingHome', 'childrenHome']) { click('.pf-rv[data-k="' + k + '"] [data-act="pf-ok"]'); flush(); }
@@ -74,7 +77,7 @@
       ok('4 확인: 「검토 완료」', /검토 완료/.test(page()));
       click('.footer [data-act="cal-next"]'); flush();
       const four = st().calendar.findIndex((c) => c.consecutive === 4);
-      const hasKT = (ms) => ms.some((m) => m.home === '한화' && m.away === 'KT');
+      const hasKT = (ms) => ms.some((m) => m.home === 'KIA' && m.away === '키움') && ms.some((m) => m.home === '삼성' && m.away === 'NC');
       ok('다음 → 시리즈를 다시 만들어 개막전·후반기 첫 4연전이 새 대진을 따름', S.ui.step === 2 && S.seriesOkOf(st()) && hasKT(slotMatches(0)) && hasKT(slotMatches(four)));
 
       // ── 엔진 옵션 → settings.objective
@@ -129,7 +132,7 @@
       click('[data-act="pf-save"]'); flush();
       const v1 = P.versions.list(2027)[0];
       ok('버전 저장 → 비교 화면 · 이름은 글자 그대로', S.ui.step === 6 && !!v1 && v1.name === '<b>첫 버전</b>' && !q('.pf-ver b b') && !!v1.inputs && v1.inputs.calendar.length === 45);
-      ok('저장한 일정·숫자·개막 대진', v1.matches.length === 225 && v1.plan.length === 225 && v1.pairs.some((x) => x.home === '한화') && Number.isFinite(v1.gaps.totalKm));
+      ok('저장한 일정·숫자·개막 대진', v1.matches.length === 225 && v1.plan.length === 225 && v1.pairs.some((x) => x.home === 'KIA' && x.away === '키움') && Number.isFinite(v1.gaps.totalKm));
       // 값을 고치면 전 결과를 보여 주지 않는다
       S.flowGo(2); flush();
       click('.pf-rv[data-k="opening"] [data-act="pf-cal"]'); flush();
@@ -141,7 +144,7 @@
       click('[data-act="pf-stage"][data-stage="4"]'); flush();
       click('[data-act="pf-load"][data-id="' + v1.id + '"]'); flush();
       const ex = app().derived().ex;
-      ok('불러오기: 달력·개막전도 그 버전 것으로', st().settings.seasonStart === '2027-03-27' && ev('OPENING').pairs.some((x) => x.home === '한화') && ev('OPENING').stadiums.includes('한화이글스파크'));
+      ok('불러오기: 달력·개막전도 그 버전 것으로', st().settings.seasonStart === '2027-03-27' && ev('OPENING').pairs.some((x) => x.home === 'KIA' && x.away === '키움') && ev('OPENING').teams.length === 5);
       ok('불러오기: 숫자가 저장한 것과 같음', JSON.stringify(ex.objectiveGaps) === JSON.stringify(v1.gaps) && ex.feasible === v1.feasible, JSON.stringify(ex.objectiveGaps));
       ok('불러오기: 결과 화면으로 · 옛 결과 아님', S.ui.step === 5 && !!q('.pf-dash'));
       ok('불러온 뒤 시리즈가 값과 맞음(다시 실행해도 안 깨짐)', S.seriesOkOf(st()));
@@ -154,7 +157,7 @@
       P.versions.put(2027, P.versions.list(2027).concat([noInputs]));
       S.go({ step: 6 }); flush();
       click('[data-act="pf-load"][data-id="v-rank2"]'); flush();
-      ok('값 없는 버전: 처음 제공한 값 + 그 대진 · 구장·후반기 4연전이 따라옴', ev('OPENING').teams.join() === 'KT,삼성,KIA,LG,SSG' && !ev('OPENING').stadiums.includes('한화이글스파크') && st().matches.some((m) => m.home === '삼성' && m.away === 'NC' && m.consecutive === 4) && S.seriesOkOf(st()));
+      ok('값 없는 버전: 처음 제공한 값 + 그 대진 · 구장·후반기 4연전이 따라옴', ev('OPENING').teams.join() === 'KT,삼성,KIA,LG,SSG' && ev('OPENING').stadiums.includes('수원KT위즈파크') && st().matches.some((m) => m.home === '삼성' && m.away === 'NC' && m.consecutive === 4) && S.seriesOkOf(st()));
 
       // ── 비교
       S.go({ step: 6 }); flush();
@@ -184,6 +187,15 @@
       ok('파일 검사: 없는 칸을 가리킴', !!chk(Object.assign({}, v1, { plan: v1.plan.map((x) => ({ match: x.match, calendar: 999 })) })));
       ok('파일 검사: 순서가 이상함', !!chk(Object.assign({}, v1, { objective: Object.assign({}, v1.objective, { order: ['x'] }) })));
       ok('파일 검사: 숫자 빠짐', !!chk(Object.assign({}, v1, { gaps: {} })));
+      ok('파일 검사: 개막전 홈 구단이 다른 버전은 받지 않음', /홈 구단/.test(chk(Object.assign({}, v1, { pairs: [{ home: '한화', away: 'KT' }] }))));
+      // 표·엑셀로 홈 구단이 달라진 경우
+      app().commit('시험: 홈 구단 바꿈', (s) => { const e = s.events.find((x) => x.type === 'OPENING'); e.teams = e.teams.map((t) => (t === 'KT' ? '한화' : t)); }, ['events']);
+      S.flowGo(3); flush();
+      ok('다른 길로 홈 구단이 달라지면 3단계가 끝나지 않고 되돌리기 안내', !S.flowStatus().done[2] && /전년도 순위와 다릅니다/.test(page()) && q('.footer .btn.primary').disabled);
+      click('[data-act="pf-op-reset"]'); flush();
+      ok('되돌리기 → 원래 홈 구단 · 단계 끝', S.flowStatus().done[2] && ev('OPENING').teams.includes('KT') && ev('OPENING').pairs.length === 5);
+      S.go({ step: 6 }); flush();
+      click('[data-act="pf-load"][data-id="' + v1.id + '"]'); flush();
       // 저장 공간 부족
       const ls = S.ls.set;
       S.ls.set = () => false;
