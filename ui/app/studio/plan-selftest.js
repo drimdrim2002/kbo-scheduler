@@ -110,6 +110,7 @@
       app().engine.solve = function (state, opts) { sent = { objective: JSON.parse(JSON.stringify(state.settings.objective)), opts }; return orig.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
       ok('실행 시간 선택지: 최대 1·2·3·5분', qa('.pf-time button').map((b) => b.dataset.v).join() === '60,120,180,300' && qa('.pf-time button').every((b) => /^최대 \d분$/.test(b.innerText.trim())));
       click('.pf-time [data-v="60"]'); flush();
+      ok('결과가 없으면 처음부터 푼다는 안내', /처음부터 풉니다/.test(page()));
       click('[data-act="pf-run"]');
       ok('실행: 순서·허용 차이가 엔진으로 간다', sent && sent.objective.order.join() === ob().order.join() && sent.objective.distanceGapKm === 600 && sent.opts.timeLimitSec === 60 && sent.opts.init === 'SCRATCH');
       ok('실행 중: 화면이 진행 표시로', /찾는 중/.test(page()));
@@ -187,7 +188,7 @@
       const orig3 = app().engine.solve;
       app().engine.solve = function (state, opts) { sent3 = opts; return orig3.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };
       click('[data-act="pf-run"]');
-      ok('엔진 옵션만 바꾸면 처음부터 실행', sent3 && sent3.init === 'SCRATCH', sent3 && sent3.init);
+      ok('엔진 옵션만 바꿔도 이어서 실행', sent3 && sent3.init === 'KEEP', sent3 && sent3.init);
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig3;
