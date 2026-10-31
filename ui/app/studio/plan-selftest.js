@@ -211,7 +211,7 @@
       P.versions.put(2027, P.versions.list(2027).concat([third])); flush();
       click('[data-in="pf-cmp"][data-id="v-third"]'); flush();
       ok('3개째 고르면 가장 먼저 고른 것이 빠짐', boxes().length === 2 && boxes().includes('v-third'));
-      ok('순서가 다른 두 버전: 숫자만 나란히', /순서·허용 차이가 달라/.test(page()));
+      ok('순서가 다른 두 버전: 숫자만 나란히', /숫자만 나란히/.test(page()));
       const first = boxes()[0];
       click('[data-in="pf-cmp"][data-id="' + first + '"]'); flush();
       ok('체크를 끄면 꺼진 채로 · 하나 더 고르라는 안내', boxes().length === 1 && /두 개 고르세요/.test(page()));
@@ -251,6 +251,10 @@
       ok('비교: 규칙을 어긴 버전은 숫자가 좋아도 이기지 않음', /규칙 어김/.test(page()) && /시험 어김」은 반드시 지킬 규칙/.test(page()) && !/이번 실행에서는/.test(page()));
       P.cmp = ['t-good', 't-tol']; S.render(); flush();
       ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 차이가 달라/.test(page()));
+      const vOrd = cv('t-ord', '시험 순서', { objective: Object.assign({}, v1.objective, { order: ['total', 'distance', 'moves', 'holiday'] }) });
+      P.versions.put(2027, keepList.concat([vGood, vOrd]));
+      P.cmp = ['t-good', 't-ord']; S.render(); flush();
+      ok('비교: 순서가 다르면 그렇다고 말하고 숫자만', /순서·허용 차이가 달라/.test(page()) && !/이번 실행에서는/.test(page()));
       P.versions.put(2027, keepList); P.cmp = []; P.cmpPicked = false;
       // 표·엑셀로 홈 구단이 달라진 경우
       app().commit('시험: 홈 구단 바꿈', (s) => { const e = s.events.find((x) => x.type === 'OPENING'); e.teams = e.teams.map((t) => (t === 'KT' ? '한화' : t)); }, ['events']);
