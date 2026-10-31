@@ -4,7 +4,7 @@ P.chrome({ noStepper: true, noFoot: true, right: '설정' });
 const step = (n, t, s, est) => '<li><b>' + n + ' ' + t + '</b><span>' + s + (est ? ' <span class="tag est">추정 ' + est + '개</span>' : '') + '</span></li>';
 document.querySelector('.start').innerHTML = '<h1>무엇을 할까요?</h1><p class="lead">2025는 결과 확인, 2027은 새 계획 만들기</p><div class="choices">' +
   '<div class="ch" style="min-height:0"><div class="kick">확인용</div><div class="y">2025<small>계획 보기</small></div><p class="what">KBO 실제 일정과 이 엔진의 일정을 비교합니다.</p>' +
-  '<div class="nm" style="margin:6px 0 auto"><div class="k">전체 이동 거리</div><div class="v" style="color:var(--ok)">13% 짧음</div><div class="s">KBO 72,955km → 63,312km</div></div>' +
+  '<div class="nm" style="margin:6px 0 auto"><div class="k">전체 이동 거리</div><div class="v" style="color:var(--ok)">17% 짧음</div><div class="s">KBO 72,955km → 60,189km</div></div>' +
   '<div class="acts"><span class="btn big">2025 결과 보기 ›</span></div></div>' +
   '<div class="ch go" style="min-height:0"><div class="kick">새 계획</div><div class="y">2027<small>새 계획 만들기</small></div><p class="what">먼저 미리 채운 2027 값을 4단계로 검토합니다.</p><ul>' +
   step(1, '구단 정보', '2025 그대로인지 확인') +

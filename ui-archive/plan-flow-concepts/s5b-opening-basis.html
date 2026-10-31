@@ -1,0 +1,19 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>2027 개막전 근거</title><style>.page > * { flex: none; } table.cmp th, table.cmp td { padding: 3px 10px; }</style><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="page" style="overflow:auto"></div><script src="plan.js"></script><script>
+const P = Plan;
+P.chrome({ year: 2027, mode: '새 계획', stage: 1, ssub: { 1: '3 / 4 공휴일·홈 구장 · 근거 보는 중', 2: '값 검토를 마치면', 3: '실행 뒤', 4: '저장한 버전 없음' },
+  prev: '3 공휴일·홈 구장으로', hint: '<b>개막전 근거</b> — 공식 일정 발표(보통 12월 중순) 전 예상입니다' });
+const tr = (c) => '<tr>' + c.map((x) => '<td>' + x + '</td>').join('') + '</tr>';
+const conf = (x) => '<span class="tag ' + (x === '높음' ? 'ok' : 'est') + '">' + x + '</span>';
+document.querySelector('.page').innerHTML =
+  '<div class="sec" style="padding:10px 16px"><h3>2027 개막전 근거 <span class="small muted">2027 KBO 개막전 예측(2026-10-31 작성) · 1순위 예측을 입력값으로 씀</span></h3></div>' +
+  '<div class="grid" style="grid-template-columns:1fr 1fr">' +
+  '<div class="panel"><h3>개막일 <span class="muted">3/27(토)·28(일) 2연전</span></h3><table class="cmp"><thead><tr><th>시즌</th><th>개막일</th></tr></thead><tbody>' +
+  tr(['2024', '3월 23일(토)']) + tr(['2025', '3월 22일(토)']) + tr(['2026', '3월 28일(토)']) + tr(['<b>2027 예상</b>', '<b>3월 27일(토)</b>']) + '</tbody></table><div class="small" style="margin-top:8px">세 해 모두 3월 넷째 토요일입니다.</div></div>' +
+  '<div class="panel"><h3>홈 구단 ' + conf('높음') + ' <span class="muted">전년도 상위 5팀이 홈</span></h3><table class="cmp"><thead><tr><th>2026 순위</th><th>구단</th><th>개막전</th></tr></thead><tbody>' +
+  [['1', 'KT', '홈'], ['2', '삼성', '홈'], ['3', 'KIA', '홈'], ['4', 'LG', '홈'], ['5', '두산', '원정 — LG와 구장이 겹침'], ['6', 'SSG', '홈 — 두산 자리를 이어받음']].map(tr).join('') + '</tbody></table><div class="small" style="margin-top:8px">2025 개막전에도 같은 일이 있었습니다(두산 원정, SSG 홈).</div></div></div>' +
+  '<div class="panel"><h3>대진 ' + conf('낮음~중간') + ' <span class="muted">1순위 예측: 2025 개막 대진을 다시 씀. KBO가 상대 배정 기준을 공개한 적이 없어 패턴으로 추정</span></h3><table class="cmp"><thead><tr><th>구장</th><th>홈 (순위)</th><th>원정 (순위)</th><th>신뢰도</th><th>근거</th></tr></thead><tbody>' +
+  [['수원', 'KT (1)', '한화 (9)', '중간', '1위-9위 매칭 2년 연속 · 2025와 같음'], ['대구', '삼성 (2)', '키움 (10)', '중간', '2위-10위 매칭 2년 연속 · 2025와 같음'], ['광주', 'KIA (3)', 'NC (8)', '낮음', '2025와 같음'], ['서울', 'LG (4)', '롯데 (7)', '낮음', '2025와 같음'], ['인천', 'SSG (6)', '두산 (5)', '낮음', '2025와 같음']].map((r) => tr([r[0], r[1], r[2], conf(r[3]), r[4]])).join('') + '</tbody></table>' +
+  '<div class="small" style="margin-top:8px"><b>1순위로 둔 이유</b> — 2027 홈 5팀이 2025 홈 5팀과 같아 이동 동선 검토가 끝난 편성입니다. 2년 간격으로 같은 대진이 반복된 선례(NC-두산 2024·2026)도 있습니다.</div>' +
+  '<div class="small" style="margin-top:6px"><b>2순위 예측</b> — 삼성-NC · KIA-롯데 · LG-키움 (KT-한화, SSG-두산은 같음).</div>' +
+  '<div class="small muted" style="margin-top:6px">출처: KBO 보도자료(2026 일정 발표), 뉴스서울(2024·2025 일정 발표), 위키트리(2026 최종 순위), 스포츠경향(올림픽 주경기장 이전)</div></div>';
+</script></body></html>

@@ -1,11 +1,11 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대안 C · 버전 — 결과 분석 옆에 버전 칸을 늘 두고 겹쳐 비교</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="body"><aside class="rail" style="width:290px;flex:none"></aside><div class="page"></div></div><script src="plan.js"></script><script>
 const P = Plan, G = P.GOALS, A = 'v27a', B = 'v27b', g = G[1];
-P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함', 2: '✓ 실행 2번', 3: '기본안 보는 중 · 바꾼 안과 비교', 4: '저장한 버전 2개' },
+P.chrome({ year: 2027, mode: '새 계획', stage: 3, ssub: { 1: '✓ 4단계 검토함', 2: '✓ 실행 2번', 3: '기본안 보는 중 · 2순위 대진안과 비교', 4: '저장한 버전 2개' },
   prev: '엔진 옵션 바꿔 다시 실행', hint: '<b>결과 분석</b> — 왼쪽 버전을 누르면 보기, 한 번 더 누르면 비교 대상', next: '일정 자세히 보기' });
 const m = (set) => '<div class="m">' + G.map((x) => '<span>' + x.name + '</span><span>' + P.show(set, x) + x.unit + '</span>').join('') + '</div>';
 document.querySelector('.rail').innerHTML = '<h3>버전 <span class="r xs muted">눌러서 보기 · 비교</span></h3>' +
-  '<div class="rv2 view"><span class="role">보는 중</span><b>2027 기본안</b><div class="xs muted">10/31 11:43 · 값 그대로 · 기본 순서</div>' + m(A) + '</div>' +
-  '<div class="rv2 cmpv"><span class="role">비교</span><b>2027 개막 대진 바꾼 안</b><div class="xs muted">10/31 11:47 · 개막 대진 2쌍 맞바꿈</div>' + m(B) + '</div>' +
+  '<div class="rv2 view"><span class="role">보는 중</span><b>2027 기본안</b><div class="xs muted">10/31 · 1순위 대진 · 기본 순서</div>' + m(A) + '</div>' +
+  '<div class="rv2 cmpv"><span class="role">비교</span><b>2027 2순위 대진안</b><div class="xs muted">10/31 · 개막 대진 2순위 예측</div>' + m(B) + '</div>' +
   '<div class="rv2 new">+ 지금 결과를 새 버전으로 저장</div>' +
   '<div style="margin-top:auto" class="xs muted">스튜디오 안에 저장됩니다(나중에 온라인으로). <a>내려받기</a> · <a>받은 버전 올리기</a></div>';
 const tile = (x, k) => { const a = P.val(A, x), b = P.val(B, x), d = a - b, ok = !x.tol || a <= x.tol;
@@ -13,9 +13,9 @@ const tile = (x, k) => { const a = P.val(A, x), b = P.val(B, x), d = a - b, ok =
     '<div class="vs2">비교 ' + P.show(B, x) + x.unit + ' → <b class="' + (d > 0 ? 'up' : d < 0 ? 'dn' : 'eq') + '">' + (d === 0 ? '같음' : (d > 0 ? '▲ ' : '▼ ') + P.fmt(Math.abs(d), x.id === 'dist' ? 1 : 0) + x.unit) + '</b></div>' +
     (x.tol ? '<div class="s">허용 ' + P.fmt(x.tol) + x.unit + ' — 둘 다 <b style="color:var(--ok)">안</b></div>' : '<div class="s">10구단 합</div>') + '</div>'; };
 document.querySelector('.page').innerHTML =
-  '<div class="ph"><div><h2>2027 기본안 <span class="muted" style="font-size:14px;font-weight:400">— 비교: 2027 개막 대진 바꾼 안</span></h2><p>▲ 기본안이 더 큼(나쁨) · ▼ 기본안이 더 작음(좋음)</p></div><span class="r"><span class="btn sm">비교 끄기</span></span></div>' +
+  '<div class="ph"><div><h2>2027 기본안 <span class="muted" style="font-size:14px;font-weight:400">— 비교: 2027 2순위 대진안</span></h2><p>▲ 기본안이 더 큼(나쁨) · ▼ 기본안이 더 작음(좋음)</p></div><span class="r"><span class="btn sm">비교 끄기</span></span></div>' +
   '<div class="tiles">' + G.map(tile).join('') + '</div>' +
   '<div class="tabs">' + G.map((x) => '<span' + (x === g ? ' class="on"' : '') + '>' + x.name + '</span>').join('') + '</div>' +
-  '<div class="panel" style="flex:1;min-height:0;overflow:hidden"><h3>이동 거리 균형 — 구단별 <span class="muted">파랑 기본안 · 회색 바꾼 안 · 초록 띠 = 기본안의 가장 적은 구단 + 600km · 막대는 5,400km부터</span></h3>' + P.teamBars(A, 0, 600, 'km', B) +
+  '<div class="panel" style="flex:1;min-height:0;overflow:hidden"><h3>이동 거리 균형 — 구단별 <span class="muted">파랑 기본안 · 회색 2순위 대진안 · 초록 띠 = 기본안의 가장 적은 구단 + 600km · 막대는 4,900km부터</span></h3>' + P.teamBars(A, 0, 600, 'km', B) +
   '<div class="small" style="margin-top:10px;padding:8px 10px;border:1px solid var(--blue-line);background:var(--blue-weak);border-radius:6px"><b>순위대로 따지면</b> 1~3순위는 둘 다 허용 차이 안 → 4순위 전체 이동 거리에서 이번 실행에서는 기본안이 ' + P.fmt(P.TOTAL[B] - P.TOTAL[A]) + 'km 짧았습니다. 실행마다 수천 km씩 달라질 수 있어 다시 실행해 확인하세요.</div></div>';
 </script></body></html>
