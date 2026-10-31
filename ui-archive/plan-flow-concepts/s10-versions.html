@@ -15,7 +15,7 @@ document.querySelector('.wrap2').innerHTML =
   '<div style="display:flex;flex-direction:column;gap:12px;min-height:0">' +
   '<div class="sec"><h3>목적식마다 비교 <span class="small muted" style="font-weight:400">순위 순 · 초록 = 더 나음</span></h3><table class="cmp"><thead><tr><th>목적식</th><th>2027 기본안</th><th>2027 개막 대진 바꾼 안</th></tr></thead><tbody>' + G.map(row).join('') +
   '<tr><td class="muted">무엇이 달랐나</td><td>—</td><td>개막 2연전·후반기 첫 4연전 대진 2쌍</td></tr></tbody></table>' +
-  '<div class="small" style="margin-top:10px;padding:8px 10px;border:1px solid var(--blue-line);background:var(--blue-weak);border-radius:6px"><b>순위대로 따지면</b> — 1~3순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. 4순위 전체 이동 거리에서 <b>기본안이 ' + P.fmt(P.TOTAL[B] - P.TOTAL[A]) + 'km 짧아</b> 기본안이 낫습니다. 이동 거리 균형만 보면 바꾼 안이 더 고릅니다(' + P.show(B, G[1]) + 'km).</div>' +
-  '<div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 결과가 조금씩 달라집니다. 차이가 작으면 한 번 더 실행해 확인하세요.</div></div>' +
+  '<div class="small" style="margin-top:10px;padding:8px 10px;border:1px solid var(--blue-line);background:var(--blue-weak);border-radius:6px"><b>순위대로 따지면</b> — 1~3순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. 4순위 전체 이동 거리에서 <b>이번 실행에서는 기본안이 ' + P.fmt(P.TOTAL[B] - P.TOTAL[A]) + 'km 짧았습니다</b>. 이동 거리 균형만 보면 바꾼 안이 더 고릅니다(' + P.show(B, G[1]) + 'km).</div>' +
+  '<div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
   '<div class="sec" style="flex:1;min-height:0;overflow:hidden"><h3>구단별 이동 거리 <span class="small muted" style="font-weight:400">회색 기본안 · 파랑 바꾼 안 · 초록 띠 = 바꾼 안의 가장 적은 구단 + 600km</span></h3>' + P.teamBars(B, 0, 600, 'km', A) + '</div></div>';
 </script></body></html>
