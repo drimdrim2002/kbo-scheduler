@@ -352,6 +352,9 @@ final class JobManager {
         if (k.get("moveTolerance") != null) {
             out.put("moveTolerance", Json.asDouble(k.get("moveTolerance"), 2.0));
         }
+        if (k.get("objective") != null) {
+            out.put("objective", k.get("objective"));
+        }
         // 홈 구장 지정은 보낸 값이 아니라 실제로 적용되는 연전 기간별 홈 의무 구단(이벤트·예전 obligationTeams·기본값을 푼 결과)
         BaseballSolution solution = ProblemCodec.toSolution(problem);
         out.put("homeDesignations", ProblemCodec.homeDesignations(solution));

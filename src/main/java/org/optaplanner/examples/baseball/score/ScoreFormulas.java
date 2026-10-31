@@ -305,16 +305,65 @@ public final class ScoreFormulas {
             long hard0 = scratch.dailyHard(calendars, matches);
             scratch.finishTeams();
             hard0 += totalStreakPenalty(scratch.totals);
-            long soft1 = moveVariancePenalty(scratch.totals.moveCount, st.getMoveTolerance());
-            long soft2 = distanceVariancePenalty(scratch.totals.distanceTenths, st.getDistanceToleranceTenths());
-            long soft3 = holidayVariancePenalty(scratch.totals.holidayWeight, st.getHolidayTolerance());
-            long soft4 = totalDistanceKm(scratch.totals.distanceTenths);
+            long soft1 = softPenalty(1, scratch.totals, st);
+            long soft2 = softPenalty(2, scratch.totals, st);
+            long soft3 = softPenalty(3, scratch.totals, st);
+            long soft4 = softPenalty(4, scratch.totals, st);
             return BendableLongScore.of(
                     new long[] {-hard0, -scratch.hard1},
                     new long[] {-scratch.soft0, -soft1, -soft2, -soft3, -soft4});
         } finally {
             scratch.release();
         }
+    }
+
+    /** Penalty of the objective ranked at {@code softLevel} (1..4) under {@code settings}. */
+    public static long softPenalty(int softLevel, TeamTotals totals, ScoreSettings settings) {
+        boolean gap = settings.usesObjectives();
+        switch (settings.objectiveAt(softLevel)) {
+            case ScoreSettings.MOVES:
+                return gap ? scaledGapPenalty(totals.moveCount, settings.getMoveGap())
+                        : moveVariancePenalty(totals.moveCount, settings.getMoveTolerance());
+            case ScoreSettings.DISTANCE:
+                return gap ? distanceGapPenalty(totals.distanceTenths, settings.getDistanceGapTenths())
+                        : distanceVariancePenalty(totals.distanceTenths, settings.getDistanceToleranceTenths());
+            case ScoreSettings.HOLIDAY:
+                return gap ? scaledGapPenalty(totals.holidayWeight, settings.getHolidayGap())
+                        : holidayVariancePenalty(totals.holidayWeight, settings.getHolidayTolerance());
+            default:
+                return totalDistanceKm(totals.distanceTenths);
+        }
+    }
+
+    /**
+     * Zero exactly when max - min is within {@code gap}. Every pair counts, not only the two extremes,
+     * so a move that closes in on the limit still improves the score.
+     */
+    public static long scaledGapPenalty(long[] values, double gap) {
+        double sum = 0.0d;
+        for (int i = 0; i < values.length; i++) {
+            for (int j = i + 1; j < values.length; j++) {
+                double excess = Math.abs(values[i] - values[j]) - gap;
+                if (excess > 0.0d) {
+                    sum += excess * excess;
+                }
+            }
+        }
+        return Math.round(sum * 100.0d);
+    }
+
+    /** Same shape as {@link #scaledGapPenalty} in tenths of a kilometre; the result is whole km squared. */
+    public static long distanceGapPenalty(long[] distanceTenths, long gapTenths) {
+        long hundredths = 0L;
+        for (int i = 0; i < distanceTenths.length; i++) {
+            for (int j = i + 1; j < distanceTenths.length; j++) {
+                long excess = Math.abs(distanceTenths[i] - distanceTenths[j]) - gapTenths;
+                if (excess > 0L) {
+                    hundredths += excess * excess;
+                }
+            }
+        }
+        return hundredths / 100L;
     }
 
     /**

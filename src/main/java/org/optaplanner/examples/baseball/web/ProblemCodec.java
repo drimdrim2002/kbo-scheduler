@@ -30,6 +30,11 @@ final class ProblemCodec {
 
     static final long UNASSIGNED = -1L;
     static final double WEB_DEFAULT_HOLIDAY_TOLERANCE = 1.0;
+    /** ScoreSettings.MOVES 등의 순서와 같다. */
+    private static final List<String> OBJECTIVE_NAMES = List.of("moves", "distance", "holiday", "total");
+    static final double DEFAULT_MOVE_GAP = 4.0;
+    static final double DEFAULT_DISTANCE_GAP_KM = 600.0;
+    static final double DEFAULT_HOLIDAY_GAP = 3.0;
 
     private ProblemCodec() {
     }
@@ -99,8 +104,33 @@ final class ProblemCodec {
         if (distanceKm < 0 || distanceKm > 5000 || holiday <= 0 || holiday > 100 || move <= 0 || move > 100) {
             throw new IllegalArgumentException("허용오차 값이 범위를 벗어났습니다(이동거리 0~5000km, 휴일·이동 횟수 0 초과 100 이하).");
         }
-        solution.setSettings(ScoreSettings.ofKm(distanceKm, holiday, move));
+        JSONObject objective = Json.object(settings.get("objective"));
+        solution.setSettings(objective != null ? objectiveSettings(objective)
+                : ScoreSettings.ofKm(distanceKm, holiday, move));
         applyHomeDesignations(solution, problem, settings);
+    }
+
+    /**
+     * settings.objective: { order: ['moves','distance','holiday','total'], moveGap: 4, distanceGapKm: 600, holidayGap: 3 }.
+     * 없으면 기존 방식(고정 순서, 평균 ± 허용오차)을 쓴다.
+     */
+    private static ScoreSettings objectiveSettings(JSONObject objective) {
+        JSONArray names = Json.array(objective.get("order"));
+        if (names == null) {
+            throw new IllegalArgumentException("목적식 순서(order)가 없습니다.");
+        }
+        int[] order = new int[names.size()];
+        for (int i = 0; i < order.length; i++) {
+            int index = OBJECTIVE_NAMES.indexOf(String.valueOf(names.get(i)));
+            if (index < 0) {
+                throw new IllegalArgumentException("모르는 목적식입니다: " + names.get(i));
+            }
+            order[i] = index;
+        }
+        double moveGap = Json.asDouble(objective.get("moveGap"), DEFAULT_MOVE_GAP);
+        double distanceGapKm = Json.asDouble(objective.get("distanceGapKm"), DEFAULT_DISTANCE_GAP_KM);
+        double holidayGap = Json.asDouble(objective.get("holidayGap"), DEFAULT_HOLIDAY_GAP);
+        return ScoreSettings.ofObjectives(order, moveGap, distanceGapKm, holidayGap);
     }
 
     /**
@@ -334,7 +364,7 @@ final class ProblemCodec {
         JSONObject settings = Json.object(problem.get("settings"));
         JSONObject out = new JSONObject();
         if (settings != null) {
-            for (String k : new String[] {"distanceToleranceKm", "holidayTolerance", "moveTolerance"}) {
+            for (String k : new String[] {"distanceToleranceKm", "holidayTolerance", "moveTolerance", "objective"}) {
                 if (settings.get(k) != null) {
                     out.put(k, settings.get(k));
                 }

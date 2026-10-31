@@ -13,6 +13,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (KBO) {
   'use strict';
 
+  const OBJECTIVE_NAMES = ['moves', 'distance', 'holiday', 'total'];
   const DISTANCE_TOLERANCE_TENTHS = 3000; // 300km
   const MOVE_TOLERANCE = 2;               // Constants.TOLERANCE.TOTAL_MOVE
   const HOLIDAY_TOLERANCE = 1.5;          // Constants.TOLERANCE.HOLIDAY
@@ -171,8 +172,52 @@
       // 평준화 허용오차(손잡이). 엔진 ScoreSettings와 같은 의미·기본값
       distanceToleranceTenths: Math.round(numOr(o.distanceToleranceKm != null ? o.distanceToleranceKm : settings.distanceToleranceKm, DISTANCE_TOLERANCE_TENTHS / 10) * 10),
       holidayTolerance: numOr(settings.holidayTolerance, HOLIDAY_TOLERANCE),
-      moveTolerance: numOr(settings.moveTolerance, MOVE_TOLERANCE)
+      moveTolerance: numOr(settings.moveTolerance, MOVE_TOLERANCE),
+      objective: objectiveOf(settings)
     };
+  }
+
+  /** settings.objective(목적식 순서 · 허용 차이). 엔진 ProblemCodec.objectiveSettings와 같은 뜻·기본값. 없으면 null(기존 방식) */
+  function objectiveOf(settings) {
+    const o = settings.objective;
+    if (!o || !Array.isArray(o.order)) return null;
+    const gapOr = (v, d) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d);
+    return {
+      order: o.order.map((n) => OBJECTIVE_NAMES.indexOf(n)),
+      moveGap: gapOr(o.moveGap, 4),
+      distanceGapTenths: Math.round(gapOr(o.distanceGapKm, 600) * 10),
+      holidayGap: gapOr(o.holidayGap, 3)
+    };
+  }
+
+  /** 가장 많은·적은 구단 차이가 gap 안이면 0. 모든 두 구단을 세어, 끝 값이 아닌 구단이 움직여도 점수가 변한다(엔진 scaledGapPenalty와 같음) */
+  function scaledGapPenalty(values, n, gap) {
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const excess = Math.abs(values[i] - values[j]) - gap;
+        if (excess > 0) sum += excess * excess;
+      }
+    }
+    return Math.round(sum * 100);
+  }
+
+  function distanceGapPenalty(values, n, gapTenths) {
+    let hundredths = 0;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const excess = Math.abs(values[i] - values[j]) - gapTenths;
+        if (excess > 0) hundredths += excess * excess;
+      }
+    }
+    return Math.floor(hundredths / 100);
+  }
+
+  /** 목적식별 벌점 [이동 횟수, 이동 거리, 주말·공휴일, 전체 거리]를 순위대로 놓는다 */
+  function objectiveSoft(ctx, moveCount, distTenths, holidayW, N, sumTenths) {
+    const ob = ctx.input.objective;
+    const totals = [scaledGapPenalty(moveCount, N, ob.moveGap), distanceGapPenalty(distTenths, N, ob.distanceGapTenths), scaledGapPenalty(holidayW, N, ob.holidayGap), Math.floor(sumTenths / 10)];
+    return ob.order.map((i) => totals[i]);
   }
 
   /** 채점 입력 → 고속 평가용 컨텍스트 (형식화 배열 + 재사용 버퍼) */
@@ -385,6 +430,11 @@
     o[0] = -hard0;
     o[1] = -hard1;
     o[2] = -soft0;
+    if (ctx.input.objective) {
+      const ranked = objectiveSoft(ctx, moveCount, distTenths, holidayW, N, sumTenths);
+      for (let i = 0; i < 4; i++) o[3 + i] = -ranked[i];
+      return o;
+    }
     o[3] = -squaredFloorTolerance(moveCount, N, ctx.moveTolerance) * 100;
     o[4] = -distanceVariance(distTenths, N, ctx.distanceToleranceTenths);
     o[5] = -squaredFloorTolerance(holidayW, N, ctx.holidayTolerance);
@@ -626,9 +676,21 @@
     for (const r of HARD_RULES) byCode[r.code] = { code: r.code, label: r.label, desc: r.desc, level: r.level, count: 0, amount: 0 };
     for (const v of violations) { byCode[v.code].count++; byCode[v.code].amount += v.amount; }
     const score = { hard: [-hard0, -hard1], soft };
+    if (ctx.input.objective) {
+      // 순서·허용 차이를 받았으면 score.soft도 엔진과 같이 순위대로. 목적식별 값은 objectiveGaps로 본다
+      const ob = ctx.input.objective;
+      score.soft = [soft[0]].concat(objectiveSoft(ctx, mv, dt, hw, N, sumDt).map((x) => -x));
+      const minOf = (a) => Math.min(...a);
+      for (const tm of teamMetrics) {
+        tm.overDistance = tm.distanceTenths > minOf(dt) + ob.distanceGapTenths;
+        tm.overMoves = tm.moves > minOf(mv) + ob.moveGap;
+        tm.overHoliday = tm.holidayWeight > minOf(hw) + ob.holidayGap;
+      }
+    }
     return {
       score, feasible: hard0 === 0 && hard1 === 0, violations, byCode, matchFlags, slotStats, slotHard, unassigned,
       teamMetrics, h0eMode: ctx.h0eMode,
+      objectiveGaps: { moves: Math.max(...mv) - Math.min(...mv), distanceKm: (Math.max(...dt) - Math.min(...dt)) / 10, holiday: Math.max(...hw) - Math.min(...hw), totalKm: Math.floor(sumDt / 10) },
       softBreakdown: {
         S0: { total: soft[0], items: unassigned.map((m) => ({ match: m })) },
         S1: { total: soft[1], mean: meanMv, tolerance: ctx.moveTolerance, items: s1Items },

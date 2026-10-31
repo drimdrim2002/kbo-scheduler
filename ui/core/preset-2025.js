@@ -821,19 +821,27 @@
 
   const DEFAULT_RESCHEDULE_2027 = Object.assign(clone(DEFAULT_RESCHEDULE), { start: '2027-09-06', end: '2027-10-31' });
 
+  /** 2027 개막전 근거(화면에 그대로 보여 준다). 공식 일정 발표(통상 12월 중순) 전 예상이다. */
+  const OPENING_BASIS_2027 = {
+    source: '2027 KBO 개막전 예측(2026-10-31 작성)',
+    date: '3월 넷째 토요일 개막(2024 · 2025 · 2026 모두 같음)',
+    homes: '전년도 상위 5팀이 홈. 4위 LG와 구장이 겹치는 5위 두산은 원정, 6위 SSG가 홈을 이어받음(2025 선례). 신뢰도 높음',
+    pairs: '1순위 예측: 2025 개막 대진 재사용. 2027 홈 5팀이 2025와 같아 이동 동선 검토가 끝난 편성. KBO가 상대 배정 기준을 공개하지 않아 신뢰도 낮음~중간'
+  };
+
   /**
-   * 2027 홈 구장 지정. 개막전 3/27: 홈 KT·삼성·KIA·LG·SSG(2026 최종 순위 상위 5개 팀 홈), 기본 대진까지 고정(fix 'pairs').
+   * 2027 홈 구장 지정. 개막전 3/27: 홈 KT·삼성·KIA·LG·SSG(2026 최종 순위 상위 5개 팀 홈), 대진은 「2027 KBO 개막전 예측」 1순위(2025 대진 재사용, 공식 발표 전 예상)까지 고정(fix 'pairs').
    * 어린이날 5/5: 홈 두산·키움·한화·롯데·NC(상대는 자동 편성, fix 'home').
    */
   function presetEvents2027() {
     const stadiumOf = (n) => ENGINE_INPUT_2025.teams.find((t) => t.name === n).stadium;
     const order = ENGINE_INPUT_2025.teams.map((t) => t.name);
     const byOrder = (a, b) => order.indexOf(a) - order.indexOf(b);
-    const pairs = [{ home: 'KT', away: '한화' }, { home: '삼성', away: 'NC' }, { home: 'KIA', away: '롯데' }, { home: 'LG', away: '키움' }, { home: 'SSG', away: '두산' }];
+    const pairs = [{ home: 'KT', away: '한화' }, { home: '삼성', away: '키움' }, { home: 'KIA', away: 'NC' }, { home: 'LG', away: '롯데' }, { home: 'SSG', away: '두산' }];
     const opening = pairs.map((x) => x.home).sort(byOrder);
     const children = ['두산', '키움', '한화', '롯데', 'NC'].sort(byOrder);
     return [
-      { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2027-03-27', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf), pairs, fix: 'pairs' },
+      { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2027-03-27', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf), pairs, fix: 'pairs', basis: OPENING_BASIS_2027 },
       { id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 11, date: '2027-05-05', mode: 'STADIUM', teams: children, stadiums: children.map(stadiumOf), fix: 'home' }
     ];
   }

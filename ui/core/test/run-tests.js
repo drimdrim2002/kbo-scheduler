@@ -212,7 +212,7 @@ test('2027 기본 데이터: 설정 · 공휴일 가중치 · 개막전(대진 �
   eq(p.calendar.length, 45); eq(p.calendar[11].holiday, 3, '어린이날 묶음 값');
   eq(p.teams.map((t) => t.name), Preset.ENGINE_INPUT_2025.teams.map((t) => t.name));
   const op = p.events.find((e) => e.type === 'OPENING'), ch = p.events.find((e) => e.type === 'CHILDREN');
-  eq([op.date, op.fix, op.teams.slice().sort(), op.pairs.map((x) => x.away + '@' + x.home)], ['2027-03-27', 'pairs', OPENING_HOSTS_2027.slice().sort(), ['한화@KT', 'NC@삼성', '롯데@KIA', '키움@LG', '두산@SSG']]);
+  eq([op.date, op.fix, op.teams.slice().sort(), op.pairs.map((x) => x.away + '@' + x.home)], ['2027-03-27', 'pairs', OPENING_HOSTS_2027.slice().sort(), ['한화@KT', '키움@삼성', 'NC@KIA', '롯데@LG', '두산@SSG']]);
   eq([ch.date, ch.slot, ch.fix, ch.teams.slice().sort()], ['2027-05-05', 11, 'home', ['NC', '두산', '롯데', '키움', '한화'].sort()]);
   eq(s.homeTotals, { moreTeams: MORE_2027, more: { total: 73, initial: 69 }, less: { total: 71, initial: 66 } }); eq(s.homeTotals, P27.HOME_TOTALS_2027);
   eq(p.reschedule.start, '2027-09-06');
@@ -776,6 +776,28 @@ test('Worker 소스 생성 (팩토리 직렬화)', () => {
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
   assert(sandbox.self.KBO.MockSolver && typeof sandbox.self.onmessage === 'function');
+});
+
+test('목적식 순서·허용 차이: 순위대로 점수를 놓고, 가장 많은·적은 구단 차이가 허용 안이면 벌점 0 · 없으면 기존 방식', () => {
+  const P27 = KBO.Preset2027;
+  const p = P27.buildProject();
+  const plain = KBO.Score.scoreProject(p, {});
+  assert(p.plan.length > 0, '계획 있음');
+  const gaps = plain.objectiveGaps;
+  const withOb = (order, g) => { const q = JSON.parse(JSON.stringify(p)); q.settings.objective = Object.assign({ order }, g); return KBO.Score.scoreProject(q, {}); };
+  const wide = { moveGap: gaps.moves, distanceGapKm: gaps.distanceKm, holidayGap: gaps.holiday };
+  const a = withOb(['moves', 'distance', 'holiday', 'total'], wide);
+  eq(a.score.soft.slice(1), [-0, -0, -0, -gaps.totalKm].map((x) => x), '딱 허용 차이면 벌점 없음');
+  const tight = { moveGap: 0, distanceGapKm: 0, holidayGap: 0 };
+  const b = withOb(['moves', 'distance', 'holiday', 'total'], tight);
+  const c = withOb(['total', 'holiday', 'distance', 'moves'], tight);
+  eq(c.score.soft.slice(1), b.score.soft.slice(1).reverse(), '순서를 뒤집으면 뒤집힌다');
+  assert(b.score.soft[1] < 0 && b.score.soft[2] < 0, '넘으면 벌점');
+  const ctx = KBO.Score.createContext(KBO.Score.buildInput(Object.assign(JSON.parse(JSON.stringify(p)), { settings: Object.assign({}, p.settings, { objective: { order: ['total', 'holiday', 'distance', 'moves'], moveGap: 0, distanceGapKm: 0, holidayGap: 0 } }) }), {}));
+  const fast = KBO.Score.evaluate(ctx, KBO.Score.planArrayFrom(p));
+  eq(Array.from(fast).slice(3), c.score.soft.slice(1), '빠른 계산과 설명 계산이 같음');
+  eq(plain.score.soft.length, 5);
+  assert(plain.score.soft[4] === -gaps.totalKm, '설정이 없으면 기존 순서');
 });
 
 (async () => {
