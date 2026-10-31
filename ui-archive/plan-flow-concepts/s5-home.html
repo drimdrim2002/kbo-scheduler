@@ -4,19 +4,19 @@ P.chrome({ year: 2027, mode: '새 계획', stage: 1, ssub: { 1: '3 / 4 공휴일
   prev: '이전: 2 시즌 기간·연전 묶음', hint: '<b>3 / 4 공휴일·홈 구장</b> — 개막전·어린이날 홈 구단을 확인합니다', next: '다음: 4 확인', nextDis: true });
 const chips = (a) => a.map((t) => '<span class="chip on" style="padding:2px 9px">' + t + '</span>').join(' ');
 document.querySelector('.wrap2').innerHTML =
-  '<div class="sec" style="overflow:hidden"><h3>2027 공휴일·홈 구장 <span class="r small muted">2 / 4 확인함</span></h3><p class="d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' +
-  P.rv({ t: '공휴일', tag: 'cal', v: '1차 편성 기간 안 5일 — 5/5 어린이날 · 5/13 부처님오신날 · 6/6 현충일 · 8/15 광복절 · 8/16 대체공휴일 (추석 9/14~16은 1차 편성 뒤)', why: '정부 공휴일 달력 그대로입니다. 홈 경기 점수는 주말 하루 1점, 공휴일 2점, 어린이날 3점으로 셉니다.', src: '공휴일 달력', state: 'ok' }) +
+  '<div class="sec" style="overflow:hidden"><h3>공휴일·홈 구장 <span class="r small">2 / 4 확인함</span></h3><p class="d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' +
+  P.rv({ t: '공휴일', tag: 'cal', v: '1차 편성 기간 안 5일', v2: '5/5 어린이날 · 5/13 부처님오신날 · 6/6 현충일 · 8/15 광복절 · 8/16 대체공휴일 (추석 9/14~16은 1차 편성 뒤)', why: '정부 공휴일 달력 그대로입니다. 홈 경기 점수는 주말 하루 1점, 공휴일 2점, 어린이날 3점으로 셉니다.', src: '공휴일 달력', state: 'ok' }) +
   P.rv({ t: '홈 경기 수', tag: 'rule', v: '73경기: 한화 · SSG · KT · 롯데 · 두산 &nbsp;/&nbsp; 71경기: 나머지 5구단', why: '맞대결 16경기 중 홈 8·원정 8, 남는 홈 경기는 해마다 번갈아 가집니다(2027 = 홀수 해).', src: '2027 원칙', state: 'ok' }) +
-  P.rv({ t: '개막 2연전 홈 · 3/27(토)·28(일)', tag: 'est', v: chips(['KT', '삼성', 'KIA', 'LG', 'SSG']) + ' <span class="small muted" style="margin-left:6px">대진 한화@KT · NC@삼성 · 롯데@KIA · 키움@LG · 두산@SSG</span>', why: '전년도 상위 5구단이 홈에서 개막합니다. 2026 최종 순위가 정해지면 다시 확인하세요.', src: '2027_kbo_135.md', state: 'cur' }) +
-  P.rv({ t: '어린이날 홈 · 5/5(수)', tag: 'est', v: chips(['두산', '키움', '한화', '롯데', 'NC']), why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).', src: '2027_kbo_135.md' }) +
-  P.rv({ t: '후반기 첫 4연전 홈 · 7/15(목)~18(일)', tag: 'rule', v: '개막 대진 그대로, 개막전 홈 구장에서', why: '개막전 홈 구단을 고치면 함께 바뀝니다.', src: '2027 원칙' }) +
+  P.rv({ t: '개막 2연전 홈', tag: 'est', v: '3/27(토)·28(일) &nbsp;' + chips(['KT', '삼성', 'KIA', 'LG', 'SSG']) + ' <span class="small muted" style="margin-left:6px">대진 한화@KT · NC@삼성 · 롯데@KIA · 키움@LG · 두산@SSG</span>', why: '전년도 상위 5구단이 홈에서 개막합니다. 2026 최종 순위가 정해지면 다시 확인하세요.', src: '2027 일정 원칙', state: 'cur' }) +
+  P.rv({ t: '어린이날 홈', tag: 'est', v: '5/5(수) &nbsp;' + chips(['두산', '키움', '한화', '롯데', 'NC']), why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).', src: '2027 일정 원칙' }) +
+  P.rv({ t: '후반기 첫 4연전 홈', tag: 'rule', v: '7/15(목)~18(일) · 개막 대진 그대로', why: '개막전 홈 구단을 고치면 함께 바뀝니다.', src: '2027 원칙' }) +
   '</div>' +
-  '<div class="sec"><h3>지정한 날 한눈에</h3><p class="d">홈 구단이 정해진 날만 표시합니다.</p>' +
+  '<div class="sec"><h3>지정한 날</h3><p class="d">홈 구단이 정해진 날만</p>' +
   '<table class="cmp"><thead><tr><th>날짜</th><th>홈 구단</th><th>상태</th></tr></thead><tbody>' +
   '<tr><td>3/27~28 개막</td><td>KT·삼성·KIA·LG·SSG</td><td><span class="tag est">추정</span></td></tr>' +
   '<tr><td>5/5 어린이날</td><td>두산·키움·한화·롯데·NC</td><td><span class="tag est">추정</span></td></tr>' +
   '<tr><td>7/15~18 후반기</td><td>개막과 같음</td><td><span class="tag blue">자동</span></td></tr></tbody></table>' +
-  '<div class="box warn" style="margin-top:12px"><h4>추정값 2개 · 0개 확인함</h4><div class="small">개막 2연전 홈 · 어린이날 홈</div></div></div>' +
-  P.ring(14, 268, 1042, 94) +
-  P.coach({ n: 3, of: 4, title: '개막전 홈은 전년도 순위로 정해집니다', text: '지금은 예상 순위로 채워 두었습니다. 다르면 「고치기」를 눌러 구단을 바꾸세요. 개막 대진을 바꾸면 후반기 첫 4연전도 같은 대진으로 따라 바뀝니다.', x: 640, y: 372, side: 't', w: 360 });
+  '<div class="box warn" style="margin-top:12px"><h4>추정값 0 / 2 확인</h4><div class="small">개막 2연전 홈 · 어린이날 홈</div></div></div>' +
+  P.ring(14, 287, 1042, 94) +
+  P.coach({ n: 3, of: 4, title: '개막전 홈 확인', text: '지금은 예상 순위로 채워 두었습니다. 다르면 「고치기」를 눌러 구단을 바꾸세요. 개막 대진을 바꾸면 후반기 첫 4연전도 같은 대진으로 따라 바뀝니다.', x: 640, y: 390, side: 't', w: 360 });
 </script></body></html>

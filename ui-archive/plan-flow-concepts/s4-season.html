@@ -3,18 +3,18 @@ const P = Plan;
 P.chrome({ year: 2027, mode: '새 계획', stage: 1, ssub: { 1: '2 / 4 시즌 기간 · 검토 중', 2: '값 검토를 마치면', 3: '실행 뒤', 4: '저장한 버전 없음' }, at: 2, sub: { 1: '✓ 바뀐 것 없음', 2: '1 / 4 확인함 · 따라 하기 2 / 4' },
   prev: '이전: 1 구단 정보', hint: '<b>2 / 4 시즌 기간·연전 묶음</b> — 노란 추정값을 하나씩 확인합니다', next: '다음: 3 공휴일·홈 구장', nextDis: true });
 document.querySelector('.wrap2').innerHTML =
-  '<div class="sec" style="overflow:hidden"><h3>2027 시즌 기간·연전 묶음 <span class="r small muted">줄마다 「맞아요」 또는 「고치기」 · 1 / 4 확인함</span></h3><p class="d">개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' +
-  P.rv({ t: '개막일', tag: 'est', v: '2027-03-27(토) · 개막 2연전 3/27(토)·28(일)', why: '3월 넷째 주 토요일에 2연전으로 엽니다(2025는 3/22 토 개막).', src: '2027_kbo_135.md 예상안', state: 'ok' }) +
-  P.rv({ t: '1차 편성이 끝나는 날', tag: 'est', v: '2027-09-05(일) · 경기일 135일', why: '개막부터 경기일을 세어 135일이 되는 첫 일요일입니다. 남은 경기(잔여 일정)는 그 뒤에 따로 짭니다.', src: '2027_kbo_135.md', state: 'cur' }) +
-  P.rv({ t: '올스타 휴식기', tag: 'est', v: '2027-07-09(금) ~ 07-14(수) · 6일 경기 없음', why: '7월 둘째 금요일부터 6일(올스타전 포함)로 잡았습니다.', src: '2027_KBO_일정_예상.xlsx' }) +
+  '<div class="sec" style="overflow:hidden"><h3>시즌 기간·연전 묶음 <span class="r small">1 / 4 확인함</span></h3><p class="d">줄마다 「맞아요」 또는 「고치기」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' +
+  P.rv({ t: '개막일', tag: 'est', v: '2027-03-27(토) · 개막 2연전 3/27(토)·28(일)', why: '3월 넷째 주 토요일에 2연전으로 엽니다(2025는 3/22 토 개막).', src: '2027 일정 원칙', state: 'ok' }) +
+  P.rv({ t: '1차 편성이 끝나는 날', tag: 'est', v: '2027-09-05(일) · 경기일 135일', why: '개막부터 경기일을 세어 135일이 되는 첫 일요일입니다. 남은 경기(잔여 일정)는 그 뒤에 따로 짭니다.', src: '2027 일정 원칙', state: 'cur' }) +
+  P.rv({ t: '올스타 휴식기', tag: 'est', v: '2027-07-09(금) ~ 07-14(수) · 6일 경기 없음', why: '7월 둘째 금요일부터 6일(올스타전 포함)로 잡았습니다.', src: '2027 일정 예상 엑셀' }) +
   P.rv({ t: '후반기 첫 4연전', tag: 'rule', v: '2027-07-15(목) ~ 18(일)', why: '올스타 휴식기 바로 뒤 목~일을 4연전으로 묶습니다. 휴식기를 고치면 함께 옮겨집니다.', src: '2027 원칙' }) +
   P.rv({ t: '쉬는 요일', tag: 'got', v: '월요일 (월요일 공휴일은 경기하고 그 주 목요일 쉼)', why: '2025와 같은 관행입니다.', src: '2025 일정' }) +
   '</div>' +
-  '<div class="sec"><h3>이렇게 만들어집니다</h3><p class="d">위 값으로 자동 계산 — 값을 고치면 바로 다시 셉니다.</p>' +
+  '<div class="sec"><h3>자동 계산</h3><p class="d">값을 고치면 바로 다시 셉니다.</p>' +
   '<div class="nums" style="grid-template-columns:1fr 1fr"><div class="nm"><div class="k">경기일</div><div class="v">135<small> / 135일</small></div></div><div class="nm"><div class="k">연전 묶음</div><div class="v">45<small>개</small></div><div class="s">3연전 43 · 2연전 1 · 4연전 1</div></div>' +
   '<div class="nm"><div class="k">기간</div><div class="v" style="font-size:16px">3/27 ~ 9/5</div></div><div class="nm"><div class="k">맞대결</div><div class="v">15<small>경기씩</small></div><div class="s">+ 잔여 1경기는 9/5 뒤</div></div></div>' +
-  '<div class="box warn" style="margin-top:12px"><h4>추정값 3개 · 1개 확인함</h4><div class="small">개막일 ✓ · 1차 편성 끝나는 날 · 올스타 휴식기</div></div>' +
+  '<div class="box warn" style="margin-top:12px"><h4>추정값 1 / 3 확인</h4><div class="small">개막일 ✓ · 1차 편성 끝나는 날 · 올스타 휴식기</div></div>' +
   '<div class="box" style="margin-top:8px"><h4>달력으로 보기</h4><div class="small muted">지금 스튜디오의 시즌 달력(경기일·휴식·올스타)을 그대로 씁니다(이 시안에서는 생략).</div></div></div>' +
   P.ring(14, 174, 1042, 94) +
-  P.coach({ n: 2, of: 4, title: '노란 「추정」 줄을 꼭 확인하세요', text: '1차 편성이 끝나는 날은 「경기일 135일」 규칙으로 계산한 값입니다. KBO 실제 계획과 다르면 「고치기」로 날짜를 바꾸세요 — 경기일 수와 연전 묶음이 오른쪽에서 바로 다시 계산됩니다.', x: 640, y: 280, side: 't', w: 360 });
+  P.coach({ n: 2, of: 4, title: '추정값 확인', text: '1차 편성이 끝나는 날은 「경기일 135일」 규칙으로 계산한 값입니다. KBO 실제 계획과 다르면 「고치기」로 날짜를 바꾸세요 — 경기일 수와 연전 묶음이 오른쪽에서 바로 다시 계산됩니다.', x: 640, y: 280, side: 't', w: 360 });
 </script></body></html>

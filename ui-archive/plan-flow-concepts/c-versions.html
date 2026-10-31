@@ -7,7 +7,7 @@ document.querySelector('.rail').innerHTML = '<h3>버전 <span class="r xs muted"
   '<div class="rv2 view"><span class="role">보는 중</span><b>2027 기본안</b><div class="xs muted">10/31 11:43 · 값 그대로 · 기본 순서</div>' + m(A) + '</div>' +
   '<div class="rv2 cmpv"><span class="role">비교</span><b>2027 개막 대진 바꾼 안</b><div class="xs muted">10/31 11:47 · 개막 대진 2쌍 맞바꿈</div>' + m(B) + '</div>' +
   '<div class="rv2 new">+ 지금 결과를 새 버전으로 저장</div>' +
-  '<div style="margin-top:auto" class="xs muted">버전은 JSON 파일로 저장됩니다(나중에 온라인 저장소). <a>파일로 내보내기</a> · <a>불러오기</a></div>';
+  '<div style="margin-top:auto" class="xs muted">스튜디오 안에 저장됩니다(나중에 온라인으로). <a>내려받기</a> · <a>받은 버전 올리기</a></div>';
 const tile = (x, k) => { const a = P.val(A, x), b = P.val(B, x), d = a - b, ok = !x.tol || a <= x.tol;
   return '<div class="tile' + (x === g ? ' on' : '') + '"><span class="rk">' + (k + 1) + '순위</span><div class="k">' + x.name + '</div><div class="v">' + P.show(A, x) + '<small>' + x.unit + '</small></div>' +
     '<div class="vs2">비교 ' + P.show(B, x) + x.unit + ' → <b class="' + (d > 0 ? 'up' : d < 0 ? 'dn' : 'eq') + '">' + (d === 0 ? '같음' : (d > 0 ? '▲ ' : '▼ ') + P.fmt(Math.abs(d), x.id === 'dist' ? 1 : 0) + x.unit) + '</b></div>' +

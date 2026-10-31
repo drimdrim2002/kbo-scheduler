@@ -1,16 +1,16 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><title>표준 1 · 처음 화면</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="../demo-flow-concepts/demo.css"><link rel="stylesheet" href="plan.css"></head><body><div class="start"></div><script src="plan.js"></script><script>
-const P = Plan, G = P.GOALS;
+const P = Plan;
 P.chrome({ noStepper: true, noFoot: true, right: '설정' });
-const cut = (g) => Math.round((1 - P.val('ours25', g) / P.val('kbo25', g)) * 100);
-document.querySelector('.start').innerHTML = '<h1>무엇을 할까요?</h1><p class="lead">2025년은 이미 나온 결과를 확인하고, 2027년은 새 계획을 직접 만듭니다.</p><div class="choices">' +
-  '<div class="ch"><div class="kick">확인용 · 고치지 않음</div><div class="y">2025<small>계획 보기</small></div><p class="what">같은 2025 조건에서 <b>KBO 실제 일정</b>과 <b>이 엔진이 짠 일정</b>을 나란히 봅니다.</p><ul>' +
-  G.map((g) => '<li><b>' + g.name + '</b><span>KBO ' + (g.id === 'total' ? '' : '차이 ') + P.show('kbo25', g) + g.unit + ' → <b style="min-width:0;color:var(--ok)">' + P.show('ours25', g) + g.unit + '</b> (' + cut(g) + '% ' + (g.id === 'total' ? '짧음' : '줄임') + ')</span></li>').join('') +
-  '<li style="background:#fff"><span class="muted">균형 3가지는 가장 많은 구단과 가장 적은 구단의 차이입니다.</span></li></ul><div class="acts"><span class="btn big">2025 결과 보기 ›</span></div></div>' +
-  '<div class="ch go"><div class="kick">새 계획</div><div class="y">2027<small>새 계획 만들기</small></div><p class="what">2027 값은 미리 채워 두었지만 <b>추정값</b>이 있습니다. 한 단계씩 검토하고 고친 뒤 실행합니다.</p><ul>' +
-  '<li><b>1. 값 입력·검증</b><span>1 구단 정보 → 2 시즌 기간·연전 묶음 → 3 공휴일·홈 구장 → 4 확인 · 따라 하기가 단계마다 안내</span></li>' +
-  '<li><b>2. 엔진 옵션·실행</b><span>목적식 4개의 순서와 균형의 허용 차이를 정하고 실행</span></li>' +
-  '<li><b>3. 결과 분석</b><span>목적식마다 표·그래프로 보고, 이름을 붙여 버전으로 저장·비교</span></li>' +
-  '<li style="background:var(--warn-bg);border-color:var(--warn-line)"><b>추정값 4가지</b><span>개막일 · 개막전·어린이날 홈 구장 · 올스타 휴식기 · 1차 편성 끝나는 날</span></li></ul>' +
-  '<div class="acts"><span class="btn pri big">2027 검토 시작 — 1 구단 정보부터 ›</span></div></div></div>' +
-  '<div class="note">저장한 2027 버전이 있으면 오른쪽 카드에 「이어서 보기」가 함께 나옵니다.</div>';
+const step = (n, t, s, est) => '<li><b>' + n + ' ' + t + '</b><span>' + s + (est ? ' <span class="tag est">추정 ' + est + '개</span>' : '') + '</span></li>';
+document.querySelector('.start').innerHTML = '<h1>무엇을 할까요?</h1><p class="lead">2025는 결과 확인, 2027은 새 계획 만들기</p><div class="choices">' +
+  '<div class="ch" style="min-height:0"><div class="kick">확인용</div><div class="y">2025<small>계획 보기</small></div><p class="what">KBO 실제 일정과 이 엔진의 일정을 비교합니다.</p>' +
+  '<div class="nm" style="margin:6px 0 auto"><div class="k">전체 이동 거리</div><div class="v" style="color:var(--ok)">13% 짧음</div><div class="s">KBO 72,955km → 63,312km</div></div>' +
+  '<div class="acts"><span class="btn big">2025 결과 보기 ›</span></div></div>' +
+  '<div class="ch go" style="min-height:0"><div class="kick">새 계획</div><div class="y">2027<small>새 계획 만들기</small></div><p class="what">먼저 미리 채운 2027 값을 4단계로 검토합니다.</p><ul>' +
+  step(1, '구단 정보', '2025 그대로인지 확인') +
+  step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) +
+  step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) +
+  step(4, '확인', '모두 맞으면 다음으로') +
+  '</ul><div class="small muted">노란 <span class="tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 따라 하기가 안내합니다.</div>' +
+  '<div class="acts"><span class="btn pri big">검토 시작 ›</span></div></div></div>';
 </script></body></html>

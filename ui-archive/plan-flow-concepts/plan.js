@@ -76,7 +76,7 @@
   P.rv = (r) => '<div class="rv ' + (r.state || '') + '"><div class="t"><b>' + r.t + '</b> ' +
     (r.tag === 'est' ? '<span class="tag est">추정 · 확정 아님</span>' : r.tag === 'got' ? '<span class="tag got">2025에서 가져옴</span>' : r.tag === 'rule' ? '<span class="tag blue">규칙대로 자동</span>' : r.tag === 'cal' ? '<span class="tag got">공휴일 달력</span>' : '') +
     (r.state === 'chg' ? ' <span class="tag blue">고침</span>' : '') +
-    '<div class="v">' + r.v + '</div><div class="why">' + (r.why ? '<em>왜 이 값?</em> ' + r.why : '') + (r.src ? ' <em>· 근거:</em> ' + r.src : '') + '</div></div>' +
+    '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="small" style="color:var(--text-2);margin-top:1px">' + r.v2 + '</div>' : '') + '<div class="why">' + (r.why ? '<em>왜 이 값?</em> ' + r.why : '') + (r.src ? ' <em>· 근거:</em> ' + r.src : '') + '</div></div>' +
     '<div class="acts">' + (r.state === 'ok' || r.state === 'chg' ? '<span class="tag ok">✓ 확인함</span><span class="btn sm">다시 고치기</span>' : '<span class="btn sm okb">✓ 맞아요</span><span class="btn sm">고치기</span>') + '</div></div>';
 
   /** 구단별 막대 + 허용 띠(가장 적은 구단 ~ +허용 차이). sets: [주, 비교?] */

@@ -7,12 +7,12 @@ const LL = { SSG: [37.4370, 126.6932], 두산: [37.5122, 127.0719], LG: [37.5122
 document.querySelector('.body').innerHTML =
   '<aside class="card"><div class="kick">1 / 4단계 · 구단 정보</div><h2>2027 시즌 구단 정보</h2>' +
   '<div class="box"><span class="tag got">2025에서 가져옴</span><div class="small" style="margin-top:6px">10구단 · 구장 · 위치 · 구장 사이 도로 거리. 2027 구단 정보는 아직 나오지 않아 가장 최근 시즌(2025) 것을 넣었습니다.</div></div>' +
-  '<div class="ask now"><div class="q"><span class="no">?</span>2027에 바뀐 구단 정보가 있나요?</div><div class="a chips"><span class="chip rec">없어요 — 그대로</span><span class="chip">있어요 — 고칠게요</span></div><div class="why xs muted" style="margin-top:6px">예: 구장 이전 · 임시 구장 사용 · 구단 이름 변경</div></div>' +
-  '<div class="box warn"><h4>이 단계에는 추정값이 없습니다</h4><div class="small">노란 <span class="tag est">추정 · 확정 아님</span> 표시는 2·3단계에 있습니다.</div></div>' +
+  '<div class="ask now"><div class="q"><span class="no">?</span>바뀐 구단 정보가 있나요?</div><div class="a chips"><span class="chip rec">없어요 — 그대로</span><span class="chip">있어요 — 고칠게요</span></div><div class="why xs muted" style="margin-top:6px">예: 구장 이전 · 임시 구장 사용 · 구단 이름 변경</div></div>' +
+  '<div class="box warn"><h4>추정값 없음</h4><div class="small">노란 <span class="tag est">추정 · 확정 아님</span> 표시는 2·3단계에 있습니다.</div></div>' +
   '</aside>' +
   '<main class="main"><div class="head"><b>구단 정보</b><span class="desc">10구단 · 잠실은 두산·LG가 같이 씀</span></div><div class="body2"><table class="t"><tr><th>#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr>' +
   P.TEAMS.map((t, i) => '<tr><td>' + (i + 1) + '</td><td><b>' + t + '</b></td><td>' + ST[t] + '</td><td class="num">' + LL[t][0].toFixed(4) + '</td><td class="num">' + LL[t][1].toFixed(4) + '</td></tr>').join('') +
   '</table><div class="small muted" style="margin-top:10px">구장 지도 · 구장 사이 거리표는 지금 스튜디오 화면과 같습니다(이 시안에서는 생략).</div></div></main>' +
   P.ring(12, 188, 316, 112) +
-  P.coach({ n: 1, of: 4, title: '2027 값을 한 단계씩 검토합니다', text: '값은 미리 채워 두었지만 <b>확정되지 않은 추정값</b>이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 <b>맞아요</b>, 다르면 <b>고치기</b>를 누르세요. 4단계를 모두 확인해야 「엔진 옵션·실행」으로 넘어갑니다.<br><br>먼저 구단 정보입니다. 2025와 달라진 것이 없으면 「없어요 — 그대로」.', x: 340, y: 186, side: 'l', w: 330, btn: '알겠어요 ›' });
+  P.coach({ n: 1, of: 4, title: '한 단계씩 검토', text: '값은 미리 채워 두었지만 <b>확정되지 않은 추정값</b>이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 <b>맞아요</b>, 다르면 <b>고치기</b>를 누르세요. 4단계를 모두 확인해야 「엔진 옵션·실행」으로 넘어갑니다.<br><br>먼저 구단 정보입니다. 2025와 달라진 것이 없으면 「없어요 — 그대로」.', x: 340, y: 186, side: 'l', w: 330, btn: '알겠어요 ›' });
 </script></body></html>

@@ -5,7 +5,7 @@ P.chrome({ year: 2027, mode: '새 계획', stage: 2, ssub: { 1: '✓ 4단계 검
 const tile = (g, k) => { const v = P.val(S, g), ok = !g.tol || v <= g.tol; return '<div class="tile"><span class="rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '</div><div class="v">' + P.show(S, g) + '<small>' + g.unit + '</small></div>' +
   (g.tol ? '<div class="meter"><i class="' + (ok ? '' : 'over') + '" style="width:' + Math.min(100, v / g.tol * 100).toFixed(0) + '%"></i></div><div class="s">허용 ' + P.fmt(g.tol) + g.unit + ' — ' + (ok ? '<b style="color:var(--ok)">안</b>' : '<b style="color:var(--bad)">넘음</b>') + '</div>' : '<div class="s" style="margin-top:6px">짧을수록 좋음 · 10구단 합</div>') + '</div>'; };
 document.querySelector('.page').innerHTML =
-  '<div class="hero run"><div class="big" style="font-size:24px">찾는 중…</div><div><h2>아래는 지금까지 가장 좋은 결과입니다</h2><p>0:20 지남 · 반드시 지킬 규칙은 모두 지키고 있습니다 · 결과를 2초마다 받아 옴 (마지막: 1초 전) · 더 나아지지 않으면 스스로 멈춥니다</p></div><div class="r"><span class="btn">멈추고 이 결과 쓰기</span></div></div>' +
+  '<div class="hero run"><div class="big" style="font-size:24px">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>0:20 지남 · 반드시 지킬 규칙은 모두 지키고 있습니다 · 결과를 2초마다 받아 옴 (마지막: 1초 전) · 더 나아지지 않으면 스스로 멈춥니다</p></div><div class="r"><span class="btn">멈추고 이 결과 쓰기</span></div></div>' +
   '<div class="tiles">' + G.map(tile).join('') + '</div>' +
   '<div class="grid" style="grid-template-columns:1.3fr 1fr;flex:1">' +
   '<div class="panel"><h3>구단별 이동 거리 <span class="muted">지금까지 가장 좋은 결과 · 초록 띠 = 가장 적은 구단 + 허용 차이 600km · 막대는 5,400km부터</span></h3>' + P.teamBars(S, 0, 600, 'km') + '</div>' +

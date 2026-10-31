@@ -7,15 +7,15 @@ const ver = (on, name, what, when, set) => '<div class="ver' + (on ? ' on' : '')
 const row = (g) => { const a = P.val(A, g), b = P.val(B, g), inA = !g.tol || a <= g.tol, inB = !g.tol || b <= g.tol;
   return '<tr><td><b>' + g.name + '</b>' + (g.tol ? ' <span class="muted">차이 · 허용 ' + P.fmt(g.tol) + g.unit + '</span>' : ' <span class="muted">10구단 합</span>') + '</td><td class="' + (a < b ? 'win' : '') + '">' + P.show(A, g) + g.unit + (g.tol ? ' <span class="tag ' + (inA ? 'ok' : 'over') + '">' + (inA ? '안' : '넘음') + '</span>' : '') + '</td><td class="' + (b < a ? 'win' : '') + '">' + P.show(B, g) + g.unit + (g.tol ? ' <span class="tag ' + (inB ? 'ok' : 'over') + '">' + (inB ? '안' : '넘음') + '</span>' : '') + '</td></tr>'; };
 document.querySelector('.wrap2').innerHTML =
-  '<div class="sec" style="display:flex;flex-direction:column;gap:10px"><h3>저장한 버전 <span class="r small muted">2개 골라 비교</span></h3><div class="vers">' +
+  '<div class="sec" style="display:flex;flex-direction:column;gap:10px"><h3>저장한 버전 <span class="r small">2개 고름</span></h3><div class="vers">' +
   ver(true, '2027 기본안', '값 고친 것 없음 · 엔진 옵션 기본 순서', '10/31 11:43 저장 · 28.7초', A) +
   ver(true, '2027 개막 대진 바꾼 안', '개막 대진 2쌍 맞바꿈(롯데@KT · 한화@KIA) · 엔진 옵션 같음', '10/31 11:47 저장 · 19.4초', B) +
-  '</div><div class="box"><h4>저장 위치</h4><div class="small">지금은 버전마다 JSON 파일 하나로 저장합니다(나중에 온라인 저장소로 옮김). 「파일로 내보내기」로 다른 사람에게 줄 수도 있습니다.</div></div>' +
-  '<div style="display:flex;gap:6px"><span class="btn sm">이름 바꾸기</span><span class="btn sm">파일로 내보내기</span><span class="btn sm">파일에서 불러오기</span></div></div>' +
+  '</div><div class="box"><h4>저장 위치</h4><div class="small">스튜디오 안에 저장됩니다(나중에 온라인으로 옮김). 「내려받기」로 다른 사람에게 줄 수 있습니다.</div></div>' +
+  '<div style="display:flex;gap:6px"><span class="btn sm">이름 바꾸기</span><span class="btn sm">내려받기</span><span class="btn sm">받은 버전 올리기</span></div></div>' +
   '<div style="display:flex;flex-direction:column;gap:12px;min-height:0">' +
-  '<div class="sec"><h3>목적식마다 비교 <span class="small muted" style="font-weight:400">순위 순 · 초록 = 더 나음</span></h3><table class="cmp"><thead><tr><th>목적식</th><th>2027 기본안</th><th>2027 개막 대진 바꾼 안</th></tr></thead><tbody>' + G.map(row).join('') +
+  '<div class="sec"><h3>목적식마다 비교 <span class="small muted">순위 순 · 초록 = 더 나음</span></h3><table class="cmp"><thead><tr><th>목적식</th><th>2027 기본안</th><th>2027 개막 대진 바꾼 안</th></tr></thead><tbody>' + G.map(row).join('') +
   '<tr><td class="muted">무엇이 달랐나</td><td>—</td><td>개막 2연전·후반기 첫 4연전 대진 2쌍</td></tr></tbody></table>' +
   '<div class="small" style="margin-top:10px;padding:8px 10px;border:1px solid var(--blue-line);background:var(--blue-weak);border-radius:6px"><b>순위대로 따지면</b> — 1~3순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. 4순위 전체 이동 거리에서 <b>이번 실행에서는 기본안이 ' + P.fmt(P.TOTAL[B] - P.TOTAL[A]) + 'km 짧았습니다</b>. 이동 거리 균형만 보면 바꾼 안이 더 고릅니다(' + P.show(B, G[1]) + 'km).</div>' +
   '<div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
-  '<div class="sec" style="flex:1;min-height:0;overflow:hidden"><div class="tabs" style="margin:-4px 0 8px"><span>이동 횟수</span><span class="on">이동 거리</span><span>주말·공휴일 홈 점수</span></div><h3>구단별 이동 거리 <span class="small muted" style="font-weight:400">회색 기본안 · 파랑 바꾼 안 · 초록 띠 = 바꾼 안의 가장 적은 구단 + 600km</span></h3>' + P.teamBars(B, 0, 600, 'km', A) + '</div></div>';
+  '<div class="sec" style="flex:1;min-height:0;overflow:hidden"><div class="tabs" style="margin:-4px 0 8px"><span>이동 횟수</span><span class="on">이동 거리</span><span>주말·공휴일 홈 점수</span></div><h3>구단별 이동 거리 <span class="small muted">회색 기본안 · 파랑 바꾼 안 · 초록 띠 = 바꾼 안의 가장 적은 구단 + 600km</span></h3>' + P.teamBars(B, 0, 600, 'km', A) + '</div></div>';
 </script></body></html>

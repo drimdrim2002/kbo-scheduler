@@ -8,7 +8,7 @@ const card = (g, k) => '<div class="vc win"><div class="k"><span class="tag blue
   '<div class="lab">' + (g.tol ? '<span>허용 차이 ' + P.fmt(g.tol) + g.unit + ' — KBO <b style="color:var(--bad)">넘음</b> · 이 엔진 <b style="color:var(--ok)">안</b></span>' : '<span>줄일수록 좋음</span>') + '</div></div>';
 const ra = (s, i) => P.range(s, i).join('~');
 document.querySelector('.page').innerHTML =
-  '<div class="hero"><div class="big">−13<small>%</small></div><div><h2>같은 2025 조건에서 KBO 실제 일정보다 목적식 4개가 모두 좋아졌습니다</h2><p>전체 이동 거리 ' + P.fmt(P.TOTAL.kbo25) + 'km → ' + P.fmt(P.TOTAL.ours25) + 'km · 구단 간 이동 거리 차이 ' + P.show('kbo25', G[1]) + 'km → ' + P.show('ours25', G[1]) + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="tag got">저장된 결과 · 2026-10-20 실행</span></div></div>' +
+  '<div class="hero"><div class="big">−13<small>%</small></div><div><h2>목적식 4개 모두 KBO보다 나음</h2><p>같은 2025 조건에서 비교 · 전체 이동 거리 ' + P.fmt(P.TOTAL.kbo25) + 'km → ' + P.fmt(P.TOTAL.ours25) + 'km · 구단 간 이동 거리 차이 ' + P.show('kbo25', G[1]) + 'km → ' + P.show('ours25', G[1]) + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="tag got">저장된 결과 · 2026-10-20 실행</span></div></div>' +
   '<div class="vs" style="grid-template-columns:repeat(4,minmax(0,1fr))">' + G.map(card).join('') + '</div>' +
   '<div class="grid" style="grid-template-columns:1.25fr 1fr;flex:1">' +
   '<div class="panel"><h3>구단별 이동 거리 <span class="muted">막대는 5,400km부터 · 회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 차이 600km</span></h3>' + P.teamBars('ours25', 0, 600, 'km', 'kbo25') + '</div>' +
