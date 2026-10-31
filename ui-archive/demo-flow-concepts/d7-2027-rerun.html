@@ -1,0 +1,27 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>7 · 조건 바꿔 다시 짜기 — 하나 바꾸고 전후 비교</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ year: 2027, mode: '결과', hint: '<b>조건 바꿔 다시 짜기</b> — 바꾼 결과가 마음에 안 들면 이전 결과로 되돌립니다', prev: '이전 결과로 되돌리기', next: '이 결과 쓰기' });
+const op = (on, t, s) => '<div class="op' + (on ? ' on' : '') + '"><span class="dot"></span><div><b>' + t + '</b><small>' + s + '</small></div></div>';
+const tr = (k, a, b, d, cls) => '<tr><td>' + k + '</td><td>' + a + '</td><td class="now">' + b + '</td><td class="' + cls + '">' + d + '</td></tr>';
+document.querySelector('.body').outerHTML = '<div class="page">' +
+  '<div class="ph"><div><h2>조건 하나를 바꿔 다시 짰습니다</h2><p>바꾼 것: <b>개막 대진</b> 한화@KT · 롯데@KIA → <b>롯데@KT · 한화@KIA</b> (후반기 첫 4연전도 같이 바뀜)</p></div></div>' +
+  '<div class="grid" style="grid-template-columns:400px minmax(0,1fr);flex:1">' +
+  '<div class="panel"><h3>무엇을 바꿔 볼까요?</h3><div class="opts">' +
+  op(true, '개막 대진', '홈 구단은 그대로, 원정 구단만 바꿉니다') +
+  op(false, '개막전 방식', '대진까지 고정 ↔ 홈 구장만 지정(상대는 엔진이 고름)') +
+  op(false, '어린이날 홈 구단', '5/5 홈 5곳') +
+  op(false, '홈 73 구단', '격년 홈 73 / 71을 받는 5곳') +
+  op(false, '개막일 · 올스타 휴식기', '날짜를 옮기면 연전 묶음을 다시 깝니다') +
+  '</div><div style="margin-top:12px"><span class="btn pri big">다시 짜기 (약 30초)</span></div></div>' +
+  '<div class="panel"><h3>전후 비교 <span class="muted">왼쪽 = 2027 원칙 그대로 · 오른쪽 = 바꾼 뒤</span></h3>' +
+  '<table class="cmp"><thead><tr><th>항목</th><th>이전</th><th class="now">바꾼 뒤</th><th>차이</th></tr></thead><tbody>' +
+  tr('규칙 점검표', '✓ 10 / 10', '✓ 10 / 10', '그대로', 'same') +
+  tr('총 이동 거리', '63,754km', '68,992km', '▲ 5,238km 늘어남 (8%)', 'bad') +
+  tr('구단 간 이동 거리 차이', '594km', '430km', '▼ 164km 줄어 더 고름', 'good') +
+  tr('구단별 이동 횟수', '31~34회', '32~35회', '차이 3회 그대로', 'same') +
+  tr('휴일 가중치', '26~27', '25~28', '차이 1 → 3', 'bad') +
+  tr('주말 홈 시리즈', '11~13개', '9~13개', '차이 2 → 4', 'bad') +
+  tr('걸린 시간', '29초', '19초', '', 'same') +
+  '</tbody></table>' +
+  '<div class="box warn" style="margin-top:12px"><h4>한 줄로</h4>개막 대진을 이렇게 바꾸면 규칙은 모두 지키지만, 리그 전체 이동 거리가 <b>5,238km 늘어납니다</b>. 조건을 바꿀 때마다 이렇게 30초 안에 숫자로 비교할 수 있습니다.</div>' +
+  '</div></div></div>';
+</script></body></html>

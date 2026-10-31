@@ -1,0 +1,23 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>3 · 2025 계획 보기 — KBO 실제 일정과 숫자 비교</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ year: 2025, mode: '계획 보기', ro: true, right: '⬇ 파일로 내려받기', hint: '<b>보기 전용</b> — 2025는 확인용이라 고치지 않습니다', prev: '처음 화면', next: '2027 새 계획 만들기' });
+const vc = (k, s, a, o, unit, d, cls, lab) => '<div class="vc ' + (cls || '') + '"><div class="k">' + k + ' <small>' + s + '</small></div><div class="row"><span class="a">' + a + '</span><span class="arrow">→</span><span class="o">' + o + '<small>' + unit + '</small></span></div><div class="d ' + (cls === 'win' ? 'good' : cls === 'meh' ? 'bad' : 'same') + '">' + d + '</div><div class="lab"><span>KBO 실제</span><span>이 엔진</span></div></div>';
+document.querySelector('.body').outerHTML = '<div class="page">' +
+  '<div class="ph"><div><h2>같은 2025년 조건에서 — KBO 실제 일정 vs 이 엔진</h2><p>구단·구장·개막일 3/22·연전 묶음 45개·개막전 대진·어린이날 홈은 같습니다. 이 엔진은 30초 동안 짰습니다.</p></div><span class="r"><span class="stat ok">✓ 필수 규칙 위반 0 (두 일정 모두)</span></span></div>' +
+  '<div class="tabs"><span class="on">숫자 비교</span><span>일정 보기</span><span>구단별 보기</span></div>' +
+  '<div class="grid" style="grid-template-columns:minmax(0,1fr) 470px;flex:1">' +
+  '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="vs">' +
+  vc('총 이동 거리', '10구단 합', '72,955', '63,312', 'km', '▼ 9,643km 짧음 (13%)', 'win') +
+  vc('구단 간 이동 거리 차이', '가장 먼 − 가장 가까운', '1,373', '554', 'km', '▼ 819km 줄어 더 고름', 'win') +
+  vc('구단별 이동 횟수', '가장 적은~많은', '32~38', '31~33', '회', '차이 6회 → 2회', 'win') +
+  vc('휴일 가중치', '구단별 가장 적은~많은', '22~33', '26~29', '', '차이 11 → 3, 더 고름', 'win') +
+  vc('주말 홈 시리즈', '구단별', '11~12', '11~12', '개', '같음', '') +
+  vc('연속 원정 최장', '시리즈 수', '2~3', '3', '시리즈', 'KBO가 조금 나음', 'meh') +
+  '</div>' +
+  '<div class="panel" style="flex:1"><h3>숫자를 읽는 법</h3><ul style="margin:0;padding-left:18px;color:var(--text-2);line-height:1.7">' +
+  '<li><b>총 이동 거리</b>: 10구단이 시즌 동안 구장 사이를 오간 도로 거리의 합. 짧을수록 선수단 피로·비용이 줄어듭니다.</li>' +
+  '<li><b>구단 간 차이</b>: 가장 많이 움직인 구단과 가장 적게 움직인 구단의 차이. 작을수록 공평합니다.</li>' +
+  '<li><b>휴일 가중치</b>: 주말·공휴일 홈 경기 값을 더한 것. 구단끼리 비슷할수록 관중 수입이 고르게 나뉩니다.</li>' +
+  '<li><b>연속 원정</b>: 원정 시리즈가 몇 번 이어졌는지. 규칙은 홈·원정 모두 최대 3시리즈 연속이고, 이 엔진은 그 안에서 이동 거리를 먼저 줄입니다.</li></ul></div></div>' +
+  '<div class="panel"><h3>구단별 총 이동 거리 <span class="muted">긴 순서</span></h3>' + Demo.bars(Demo.KM_2025_ACTUAL, Demo.KM_2025_OURS, 'KBO 실제 2025', '이 엔진 2025') + '</div>' +
+  '</div></div>';
+</script></body></html>
