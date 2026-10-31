@@ -416,10 +416,10 @@
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
       '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">초록 창을 끌어 정합니다. 파랑 점 = 2025 이 엔진의 구단 10개, 회색 점 = 2025 KBO 실제. 창 안에 모든 구단이 들어오면 만족으로 보고 다음 순위로 넘어가고, 나가면 나간 만큼 줄이려 노력합니다(반드시 지키는 것은 아님).</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
-      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">더 나아지지 않으면 스스로 멈춥니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
-      '<span class="pf-time">최대 ' + times.map((t) => '<button class="' + (P.timeSec === t ? 'on' : '') + '" data-act="pf-time" data-v="' + t + '">' + t / 60 + '분</button>').join('') + '</span>' +
+      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">고른 시간은 최대치입니다. 고른 시간의 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
+      '<span class="pf-time">' + times.map((t) => '<button class="' + (P.timeSec === t ? 'on' : '') + '" data-act="pf-time" data-v="' + t + '">최대 ' + t / 60 + '분</button>').join('') + '</span>' +
       (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
-      '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '계획 실행</button></div>' +
+      '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 값 입력·검증으로 돌아가 고치세요.</div>') + '</div></div>';
   }
@@ -436,7 +436,7 @@
   }
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
-    return '<div class="pf-page"><div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 스스로 멈춥니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
+    return '<div class="pf-page"><div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
       tiles(data, ob) + '<div class="pf-cols" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 차이 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
       '<div class="pf-sec"><h3>반드시 지킴</h3><p class="pf-d">지금 결과 기준</p>' + rulesList(ex) + '</div></div></div>';
   }
@@ -451,7 +451,7 @@
     app().store.commit('실행 결과 기록', (s) => { s.meta.result = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: s.settings.objective || DEFAULT_OBJECTIVE, sig: inputSig(s) }; }, { tags: ['meta'], undo: false });
     P.name = '';
     const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
-    S.toast(instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + why + ').', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 4000);
+    S.toast(instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 4000);
     S.go({ step: 5, sel: null });
     return true;
   };
@@ -498,7 +498,7 @@
       const st = app().state, res = st.meta.result;
       if (isRunning()) return '<div class="stepview no-band"><div class="pf-page">' + runningNote() + '</div></div>';
       if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>값을 고친 뒤로 아직 실행하지 않았습니다</h3><p class="pf-d">전에 낸 결과는 고치기 전 값으로 만든 것이라 보여 주지 않습니다. 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
-      if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">엔진 옵션을 정하고 계획을 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
+      if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">엔진 옵션을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
       const ex = app().derived().ex, data = dataOf(ex), ob = res.objective || objective();
       const name = P.name || suggestName();
       return '<div class="stepview no-band"><div class="pf-page">' +
@@ -627,7 +627,7 @@
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '노란 추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 값을 검토했습니다. 다음은 엔진 옵션입니다' : '앞 단계의 값을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 값 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">계획 실행' + icon('right') + '</button>'); }
+    if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 값 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">최대 ' + P.timeSec / 60 + '분 실행' + icon('right') + '</button>'); }
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '엔진 옵션 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 목적식 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 목적식마다 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
