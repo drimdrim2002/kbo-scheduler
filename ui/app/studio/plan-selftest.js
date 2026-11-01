@@ -105,8 +105,14 @@
       setBox(1, '0');
       ok('0도 받음', ob().distanceGapKm === 0);
       setBox(1, '99999');
-      const win = qa('.pf-ax .win')[1].getBoundingClientRect(), axis = qa('.pf-ax')[1].getBoundingClientRect();
-      ok('아주 큰 값: 초록 창이 눈금 밖으로 나가지 않음', ob().distanceGapKm === 99999 && win.right <= axis.right + 1, Math.round(win.right) + ' ≤ ' + Math.round(axis.right));
+      ok('아주 큰 값도 숫자 칸에 그대로', ob().distanceGapKm === 99999 && qa('input[data-in="pf-gap"]')[1].value === '99999');
+      setBox(1, '600'); click('[data-act="pf-gap-step"][data-k="distanceGapKm"][data-d="50"]'); flush();
+      ok('+ 단추 → 650', ob().distanceGapKm === 650);
+      click('[data-act="pf-gap-step"][data-k="distanceGapKm"][data-d="-50"]'); flush();
+      ok('− 단추 → 600', ob().distanceGapKm === 600);
+      setBox(1, '0'); click('[data-act="pf-gap-step"][data-k="distanceGapKm"][data-d="-50"]'); flush();
+      ok('0에서 − 단추는 0 그대로', ob().distanceGapKm === 0);
+      ok('허용 차이 칸에 지난 결과 숫자가 없음', !/2025 이 엔진|KBO \d/.test(qa('.pf-sl').map((e) => e.innerText).join(' ')) && !qa('.pf-ax .dot, .pf-ax .tk').length);
       setBox(1, '600'); setBox(0, '4');
 
       // ── 실행

@@ -534,21 +534,13 @@
       ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k === 3 ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : '') + '</li>').join('') + '</ol></div>';
     return ORDERS.map(card).join('') + diy;
   }
+  // 허용 차이는 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
+  // 그림 없이 문장 하나와 숫자로만 받는다. −·+ 한 번의 폭은 지난 결과가 아니라 여기 고정값이다.
+  const GAP_STEP = { moveGap: 1, distanceGapKm: 50, holidayGap: 1 };
   function slider(id, ob) {
-    const g = GOALS[id], ref = P.builtin['2025-best'], kbo = kboData();
-    const tol = ob[g.tol], ours = ref ? vals(ref, g.metric) : [], kb = vals(kbo, g.metric), all = ours.concat(kb);
-    const step = id === 'distance' ? 50 : 1, mn = ours.length ? Math.min(...ours) : Math.min(...kb);
-    const pad = id === 'distance' ? 200 : 2;
-    const lo = Math.floor((Math.min(...all) - pad) / step) * step, hi = Math.ceil((Math.max(...all) + pad) / step) * step;
-    const x = (v) => ((v - lo) / (hi - lo) * 100).toFixed(1) + '%';
-    const maxTol = Math.floor((hi - mn) / step) * step;
-    const ticks = []; const every = id === 'distance' ? 400 : 2;
-    for (let v = Math.ceil(lo / every) * every; v <= hi; v += every) ticks.push('<span class="tk" style="left:' + x(v) + '">' + num(v) + '</span>');
-    return '<div class="pf-sl"><div class="k"><b>' + g.name + '</b><small>가장 많은·적은 구단 차이</small></div><div class="pf-ax"><span class="ln"></span>' +
-      '<span class="win" style="left:' + x(mn) + ';width:calc(' + x(Math.min(mn + tol, hi)) + ' - ' + x(mn) + ')"></span>' +
-      kb.map((v) => '<span class="dot g" style="left:' + x(v) + '"></span>').join('') + ours.map((v) => '<span class="dot" style="left:' + x(v) + '"></span>').join('') + ticks.join('') +
-      '<input type="range" min="0" max="' + maxTol + '" step="' + step + '" value="' + tol + '" data-in="pf-gap" data-live="pf-gap-live" data-k="' + g.tol + '" data-lo="' + lo + '" data-hi="' + hi + '" data-mn="' + mn + '" aria-label="' + esc(g.name) + ' 허용 차이" style="left:' + x(mn) + ';width:calc(100% - ' + x(mn) + ')"></div>' +
-      '<div class="v2"><input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 차이 숫자"> ' + g.unit + '<small>' + (ref ? '2025 이 엔진 ' + goalShow(ref, id) + ' · ' : '') + 'KBO ' + goalShow(kbo, id) + '</small></div></div>';
+    const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol];
+    return '<div class="pf-sl"><div class="k"><b>' + g.name + '</b></div>' +
+      '<div class="pf-st">가장 많은 구단이 가장 적은 구단보다 <span class="n"><button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="-' + st + '" aria-label="' + esc(g.name) + ' 허용 차이 줄이기">−</button>' + '<input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 차이 숫자">' + '<button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="' + st + '" aria-label="' + esc(g.name) + ' 허용 차이 늘리기">+</button></span>' + g.unit + ' 넘게 많지 않으면 만족</div></div>';
   }
   function renderOptions() {
     const ob = objective(), pf = app().preflight();
@@ -557,7 +549,7 @@
     const times = [60, 120, 180, 300];
     return '<div class="pf-page">' +
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
-      '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">초록 창을 끌어 정합니다. 파랑 점 = 2025 이 엔진의 구단 10개, 회색 점 = 2025 KBO 실제. 창 안에 모든 구단이 들어오면 만족으로 보고 다음 순위로 넘어가고, 나가면 나간 만큼 줄이려 노력합니다(반드시 지키는 것은 아님).</p>' +
+      '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">가장 많은 구단과 가장 적은 구단의 차이를 얼마까지 봐줄지 정합니다. 차이가 이 안이면 만족으로 보고 다음 순위로 넘어가고, 넘으면 넘은 만큼 줄이려 노력합니다(반드시 지키는 것은 아님). 실제 차이는 실행해 봐야 압니다.</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
       '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '고른 시간은 최대치입니다. 고른 시간의 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
       '<span class="pf-time">' + times.map((t) => '<button class="' + (P.timeSec === t ? 'on' : '') + '" data-act="pf-time" data-v="' + t + '">최대 ' + t / 60 + '분</button>').join('') + '</span>' +
@@ -994,12 +986,10 @@
     if (objective()[k] === v) return;
     app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 차이 바꾸기');
   };
-  /** 끄는 동안 초록 창과 숫자 칸을 따라 움직인다(놓을 때 저장) */
-  S.inputs['pf-gap-live'] = (el) => {
-    const v = +el.value, row = el.closest('.pf-sl'), d = el.dataset, x = (u) => ((u - d.lo) / (d.hi - d.lo) * 100).toFixed(1) + '%';
-    row.querySelector('.win').style.width = 'calc(' + x(Math.min(+d.mn + v, +d.hi)) + ' - ' + x(+d.mn) + ')';
-    const box = row.querySelector('input:not([type=range])');
-    if (box) box.value = v;
+  S.actions['pf-gap-step'] = (el) => {
+    const k = el.dataset.k, v = Math.max(0, objective()[k] + +el.dataset.d);
+    if (v === objective()[k]) return;
+    app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 차이 바꾸기');
   };
   S.inputs['pf-name'] = (el) => { P.name = el.value; };
   S.inputs['pf-cmp'] = (el) => {

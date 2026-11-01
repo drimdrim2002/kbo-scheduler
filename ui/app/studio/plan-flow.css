@@ -74,19 +74,14 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-mv { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: 1px; }
 .pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
 .pf-mv button:disabled { opacity: .3; cursor: default; }
-.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr) 140px; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .pf-sl:first-of-type { border-top: 0; }
 .pf-sl .k b { display: block; color: var(--navy); font-size: 14px; } .pf-sl .k small { color: var(--text-2); font-size: 11.5px; }
-.pf-ax { position: relative; height: 58px; }
-.pf-ax .ln { position: absolute; left: 0; right: 0; top: 24px; height: 2px; background: var(--line-2); }
-.pf-ax .win { position: absolute; top: 10px; height: 30px; background: rgba(19,112,63,.12); border: 1px solid var(--ok-line); border-radius: 6px; }
-.pf-ax .dot { position: absolute; top: 18px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--blue); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--blue); }
-.pf-ax .dot.g { background: #C9CFD9; box-shadow: 0 0 0 1px #9AA3B2; top: 34px; width: 10px; height: 10px; margin-left: -5px; }
-.pf-ax .tk { position: absolute; top: 46px; font-size: 10.5px; color: var(--text-3); transform: translateX(-50%); }
-.pf-ax input[type=range] { position: absolute; left: 0; right: 0; top: 14px; width: 100%; margin: 0; background: transparent; }
-.pf-sl .v2 { text-align: right; }
-.pf-sl .v2 input { width: 76px; font: 700 15px var(--font, inherit); text-align: right; border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; }
-.pf-sl .v2 small { display: block; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+/* 허용 차이: 문장 한 줄 안의 숫자 칸과 −·+ 단추. 그림·축·눈금·구단 점은 없다 */
+.pf-st { font-size: 13.5px; color: var(--fg); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pf-st .n { display: inline-flex; align-items: center; gap: 2px; }
+.pf-st input { width: 64px; font: 700 15px var(--font, inherit); text-align: right; border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; }
+.pf-st button { width: 24px; height: 28px; border: 1px solid var(--line-2); background: #fff; border-radius: 6px; font-size: 15px; line-height: 1; cursor: pointer; color: var(--navy); }
 .pf-runbar { display: flex; gap: 12px; align-items: center; }
 .pf-runbar .grow { flex: 1; }
 .pf-time { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; color: var(--text-2); }
