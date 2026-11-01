@@ -370,6 +370,8 @@
   // ───────── 2025 보기 ─────────
   let kboCache = null;
   function kboData() { if (!kboCache) kboCache = dataOf(Score.scoreProject(KBO.Preset.buildProject(), {})); return kboCache; }
+  // 설명 창(objective-help.js)이 같은 숫자를 쓴다
+  P.GOALS = GOALS; P.objective = objective;
   function render2025() {
     const ours = P.builtin['2025-best'];
     if (!ours) return '<div class="pf-page"><div class="pf-sec">' + (P.builtinFailed ? '<h3>저장된 2025 결과를 읽지 못했습니다</h3><p class="pf-d">편성 서버 주소로 열면 볼 수 있습니다. 2027 새 계획은 지금도 만들 수 있습니다.</p>' : '<h3>결과를 불러오는 중입니다</h3>') + '</div></div>';
@@ -550,12 +552,14 @@
       '<input type="range" min="0" max="' + maxTol + '" step="' + step + '" value="' + tol + '" data-in="pf-gap" data-live="pf-gap-live" data-k="' + g.tol + '" data-lo="' + lo + '" data-hi="' + hi + '" data-mn="' + mn + '" aria-label="' + esc(g.name) + ' 허용 차이" style="left:' + x(mn) + ';width:calc(100% - ' + x(mn) + ')"></div>' +
       '<div class="v2"><input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 차이 숫자"> ' + g.unit + '<small>' + (ref ? '2025 이 엔진 ' + goalShow(ref, id) + ' · ' : '') + 'KBO ' + goalShow(kbo, id) + '</small></div></div>';
   }
+  /** 오른쪽 위 「목적식 설명하기」(글자는 사용자가 정함) → 설명 창(objective-help.js). 엔진 옵션 화면과 실행 중 화면에만 둔다 */
+  const explainLink = () => '<div class="pf-toprow"><button class="pf-link' + (S.ui.drawer === 'explain' ? ' on' : '') + '" data-act="pf-explain">' + icon('info') + '목적식 설명하기</button></div>';
   function renderOptions() {
     const ob = objective(), pf = app().preflight();
     const rest = app().engineConfig.kind === 'REST', info = (app().engineConfig && app().engineConfig.info) || {};
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
     const times = [60, 120, 180, 300];
-    return '<div class="pf-page">' +
+    return '<div class="pf-page">' + explainLink() +
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
       '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">초록 창을 끌어 정합니다. 파랑 점 = 2025 이 엔진의 구단 10개, 회색 점 = 2025 KBO 실제. 창 안에 모든 구단이 들어오면 만족으로 보고 다음 순위로 넘어가고, 나가면 나간 만큼 줄이려 노력합니다(반드시 지키는 것은 아님).</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
@@ -579,7 +583,7 @@
   }
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
-    return '<div class="pf-page"><div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
+    return '<div class="pf-page">' + explainLink() + '<div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
       tiles(data, ob) + '<div class="pf-cols" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 차이 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
       '<div class="pf-sec"><h3>반드시 지킴</h3><p class="pf-d">지금 결과 기준</p>' + rulesList(ex) + '</div></div></div>';
   }
@@ -908,6 +912,7 @@
         for (const m of s.matches) if (m.eventId === next.id) { delete m.eventId; m.pinned = false; }
       }, ['events', 'pins']);
     },
+    'pf-explain': () => { S.go({ drawer: S.ui.drawer === 'explain' ? null : 'explain' }); },
     'pf-tour-ok': () => { S.ls.set(tourKey(G.fs), '1'); S.render(); },
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
     'pf-order': (el) => { P.customOrder = false; const o = ORDERS.find((x) => x.id === el.dataset.id); app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },

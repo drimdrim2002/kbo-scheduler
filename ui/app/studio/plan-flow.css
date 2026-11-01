@@ -12,6 +12,27 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-ro-tag { font-size: 11.5px; font-weight: 700; color: #FFE7A3; border: 1px solid #FFE7A3; border-radius: 10px; padding: 1px 9px; }
 .pf-page { flex: 1; min-height: 0; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
 .pf-page > * { flex: none; }
+/* 오른쪽 위 「목적식 설명하기」 */
+.pf-toprow { display: flex; justify-content: flex-end; margin: -4px 0 -6px; }
+.pf-toprow .pf-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; }
+.pf-toprow .pf-link.on { color: var(--navy); }
+/* 설명 창: 설정 서랍과 같은 서랍, 막 없이 */
+.drawer.explain { width: 560px; }
+.xh { padding: 12px 16px 24px; font-size: 13px; line-height: 1.6; color: var(--text); }
+.xh section { padding: 10px 0; border-top: 1px solid var(--line); }
+.xh section:first-child { border-top: 0; padding-top: 0; }
+.xh h3 { margin: 0 0 2px; font-size: 14.5px; color: var(--navy); }
+.xh h4 { margin: 12px 0 2px; font-size: 13px; color: var(--navy); }
+.xh p { margin: 0; }
+.xh .xh-how { color: var(--text-2); font-size: 12px; margin-bottom: 4px; }
+.xh-tol { background: var(--surface-2); margin: 0 -16px; padding: 10px 16px !important; }
+.xh-fig { margin: 8px 0 0; }
+.xh-fig figcaption { font-size: 11px; color: var(--text-3); margin-top: -4px; }
+.xh-t { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+.xh-t th, .xh-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+.xh-t th { background: #fff; font-weight: 600; color: var(--text-2); }
+.xh-t th small, .xh-t td small { font-weight: 400; color: var(--text-3); font-size: 11px; }
+.xh-t td b { color: var(--navy); }
 .pf-grow { flex: 1 0 auto; }
 .pf-cols { display: grid; gap: 12px; align-items: start; }
 .pf-sec { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }

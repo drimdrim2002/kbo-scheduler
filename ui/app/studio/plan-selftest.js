@@ -17,7 +17,7 @@
   const setBox = (i, v) => { const el = qa('input[data-in="pf-gap"]:not([type=range])')[i]; el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
   const ob = () => st().settings.objective;
   const slotMatches = (c) => st().plan.filter((x) => x.calendar === c).map((x) => st().matches[x.match]);
-  const WRONG = /노란|값 입력|값을 검토|목적식|시안 예시|대기|슬롯|인스펙터|스냅샷|프리셋|목업|구단쌍|미배정|위저드|JSON|[①②③④]|검토·실행|결과·수정|공정성·배포/;
+  const WRONG = /노란|값 입력|값을 검토|목적식(?! 설명하기)|시안 예시|대기|슬롯|인스펙터|스냅샷|프리셋|목업|구단쌍|미배정|위저드|JSON|[①②③④]|검토·실행|결과·수정|공정성·배포/;
 
   async function run() {
     try {
@@ -108,6 +108,12 @@
       const win = qa('.pf-ax .win')[1].getBoundingClientRect(), axis = qa('.pf-ax')[1].getBoundingClientRect();
       ok('아주 큰 값: 초록 창이 눈금 밖으로 나가지 않음', ob().distanceGapKm === 99999 && win.right <= axis.right + 1, Math.round(win.right) + ' ≤ ' + Math.round(axis.right));
       setBox(1, '600'); setBox(0, '4');
+      // ── 목적식 설명하기 → 오른쪽 설명 창(뒤 화면은 가리지 않음)
+      click('[data-act="pf-explain"]'); flush();
+      ok('「목적식 설명하기」 → 설명 창이 열리고 옵션 화면은 그대로', S.ui.drawer === 'explain' && !!q('.drawer.explain') && !q('.drawer-scrim') && !!q('[data-act="pf-run"]'));
+      ok('설명 창: 지금 허용 차이 숫자를 보여 줌', /4회/.test(q('.drawer.explain').innerText) && /600km/.test(q('.drawer.explain').innerText) && /3점/.test(q('.drawer.explain').innerText));
+      click('.drawer.explain [data-act="close-drawer"]'); flush();
+      ok('설명 창 닫기', !S.ui.drawer && !q('.drawer.explain'));
 
       // ── 실행
       const orig = app().engine.solve;
