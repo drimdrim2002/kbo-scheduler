@@ -336,6 +336,41 @@
     app().undo(); flush();
     window.fetch = realFetch; app().roadApi = false; flush();
     ok('구단 정보: 도로거리 받기(서버 중계 흉내) → 방향별 17개 「도로」 · 못 받은 1개는 그대로 · 실행 취소 한 번으로 복귀 · 서버가 없으면 단추 없음', roadUi && roadOk && !st().distanceMatrix.some((d) => d.source === 'ROAD') && back() && !q('.gs-card [data-act="g1-road"]'), 'ui ' + roadUi + ' · ok ' + rr.ok + ' · failed ' + rr.failed + ' · pairs ' + roadPairs.length + ' · calls ' + calls);
+    // 연도별 거리(편성 서버 저장): 가짜 응답으로 — 서버가 없으면 단추 없음 · 다른 해를 방향별로 불러오기 · 저장은 비밀번호
+    const realFetch2 = window.fetch, posts = [];
+    const lgAt = st().teams[li], savedTeams = st().teams.map((t) => ({ name: t.name, latitude: t.latitude, longitude: t.longitude }));
+    savedTeams[li] = { name: 'LG', latitude: lgAt.latitude + 0.05, longitude: lgAt.longitude };
+    const pause = () => new Promise((r) => setTimeout(r, 0));
+    window.fetch = (url, o) => {
+      const reply = (status, j) => Promise.resolve({ ok: status === 200, status, json: () => Promise.resolve(j) });
+      if (url === '/api/v1/distances') return reply(200, { years: [{ year: 2025, savedAt: '2026-11-01T00:00:00Z', count: 2 }] });
+      if (url === '/api/v1/distances/2025' && !(o && o.method === 'POST')) return reply(200, { year: 2025, savedAt: '2026-11-01T00:00:00Z', teams: savedTeams, distances: [{ from: 'LG', to: 'KT', distance: 77.7, estimated: false, source: 'ROAD' }, { from: 'KT', to: 'LG', distance: 88.8, estimated: false }, { from: 'LG', to: '없는구단', distance: 9, estimated: false }] });
+      if (/^\/api\/v1\/distances\/\d{4}$/.test(url) && o && o.method === 'POST') { const b = JSON.parse(o.body); posts.push(b); return b.password === '맞는값' ? reply(200, { year: 2027, count: b.distances.length }) : reply(403, { error: '관리자 비밀번호가 맞지 않습니다.' }); }
+      return realFetch2(url, o);
+    };
+    const noBtn = !q('[data-act="dist-load-open"]');
+    app().distanceApi = true; app().distanceSave = false; flush();
+    const saveHidden = !!q('[data-act="dist-load-open"]') && !q('[data-act="dist-save-open"]');
+    const lk0 = app().distanceOf('LG', 'KT').distance, kl0 = app().distanceOf('KT', 'LG').distance, topD = us()[us().length - 1];
+    click('[data-act="dist-load-open"]'); await pause(); await pause(); flush();
+    click('[data-act="dist-load-pick"][data-year="2025"]'); await pause(); await pause(); flush();
+    const warned = /구장 위치가 지금과 다른 구단: LG/.test(q('.modal').textContent);
+    click('[data-act="dist-load"]'); flush();
+    const loaded = app().distanceOf('LG', 'KT').distance === 77.7 && app().distanceOf('LG', 'KT').source === 'ROAD' && app().distanceOf('KT', 'LG').distance === 88.8 && !app().distanceOf('KT', 'LG').source && !S.ui.modal && us()[us().length - 2] === topD;
+    app().undo(); flush();
+    const undone = app().distanceOf('LG', 'KT').distance === lk0 && app().distanceOf('KT', 'LG').distance === kl0;
+    ok('구단 정보: 다른 해 거리 불러오기 — 서버가 없으면 단추 없음 · 위치가 다른 구단 알림 · 방향별로 넣음 · 없는 구단은 건너뜀 · 실행 취소 한 번으로 복귀', noBtn && saveHidden && warned && loaded && undone, 'noBtn ' + noBtn + ' · saveHidden ' + saveHidden + ' · warned ' + warned + ' · loaded ' + loaded + ' · undone ' + undone);
+    app().distanceSave = true; flush();
+    click('[data-act="dist-save-open"]'); await pause(); await pause(); await pause(); flush();
+    click('.modal-foot [data-act="dist-save"]'); await pause(); await pause(); await pause(); flush();
+    const emptyStop = posts.length === 0 && /비밀번호를 적어 주세요/.test(q('.modal').textContent);
+    const setPw = (v) => { q('#distPw').value = v; };
+    setPw('틀린값'); click('.modal-foot [data-act="dist-save"]'); await pause(); await pause(); await pause(); flush();
+    const wrong = posts.length === 1 && S.ui.modal === 'distSave' && /맞지 않습니다/.test(q('.modal').textContent) && q('#distPw').value === '';
+    setPw('맞는값'); click('.modal-foot [data-act="dist-save"]'); await pause(); await pause(); await pause(); flush();
+    const saved = posts.length === 2 && !S.ui.modal && posts[1].distances.length === st().distanceMatrix.length && posts[1].teams.length === st().teams.length;
+    window.fetch = realFetch2; app().distanceApi = false; app().distanceSave = false; flush();
+    ok('구단 정보: 거리 저장 — 비밀번호를 비우면 안 보냄 · 틀리면 창에 이유 · 맞으면 저장하고 닫힘', emptyStop && wrong && saved && !q('[data-act="dist-load-open"]'), 'empty ' + emptyStop + ' · wrong ' + wrong + ' · saved ' + saved + ' · posts ' + posts.length);
     const topN = us()[us().length - 1];
     await findT('없는구장이름');
     const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '없는구장이름' && us()[us().length - 1] === topN;

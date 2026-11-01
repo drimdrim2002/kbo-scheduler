@@ -1187,6 +1187,12 @@ svg.mc text { font-family: var(--font); }
 .gs-sub-row .btn, .gs-sub-row .gs-road-busy { margin-left: auto; }
 .gs-road-busy { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--blue); font-weight: 600; letter-spacing: 0; }
 .tm-road { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dist-lead { margin: 0 0 10px; }
+.dist-years { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 10px; }
+.dist-years .chip { justify-content: flex-start; font-weight: 600; }
+.dist-years .chip small { font-weight: 400; margin-left: 6px; }
+.dist-warn { margin: 0 0 8px; color: var(--warn); }
+.dist-err { margin: 8px 0 0; color: var(--bad); }
 .gs-pickteam { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 6px; }
 .gs-tbtn { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border: 1px solid var(--line-2, var(--line)); border-radius: 13px; background: var(--surface); font: inherit; font-size: var(--fs-s); color: var(--text); cursor: pointer; }
 .gs-tbtn i { width: 8px; height: 8px; border-radius: 2px; background: var(--tc); }

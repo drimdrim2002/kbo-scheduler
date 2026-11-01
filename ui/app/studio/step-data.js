@@ -502,6 +502,7 @@
       s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 구장 사이 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + nAll + '개)</button>') +
         '<span class="muted small">도로 ' + nRoad + '개 · 추정 ' + nEst + '개</span></div>';
     }
+    s += S.distYearsRow();
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
