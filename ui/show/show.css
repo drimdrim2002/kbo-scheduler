@@ -24,8 +24,8 @@ body.sh-body { background: var(--bg); color: var(--fg); font-size: 15px; line-he
 .sh-nav a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; color: var(--muted); font-size: 14px; padding: 0 10px; border-radius: 6px; white-space: nowrap; }
 .sh-nav a:hover, .sh-nav a[aria-current] { color: var(--fg); background: var(--surface-2); }
 /* 편성 스튜디오는 PC에서만 쓸 수 있어 휴대폰·태블릿 폭에서는 숨긴다(.sh-pc와 같은 1024px) */
-.sh-nav-pc { display: none; }
-@media (min-width: 1024px) { .sh-nav-pc { display: flex; } }
+.sh-nav-pc, .sh-nav a.sh-nav-pc { display: none; }
+@media (min-width: 1024px) { .sh-nav-pc, .sh-nav a.sh-nav-pc { display: inline-flex; } }
 
 /* 블록 */
 .sh-sec { padding: 32px 0; border-top: 1px solid var(--line); scroll-margin-top: 56px; }
@@ -690,7 +690,7 @@ html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
 /* ───── 엔진 설명 쪽 둘(2026-11-01, C안): how.html = 팬용 짧은 쪽 · engine.html = KBO 실무자·연구자용 ─────
    공통 글 하나를 두 모양으로. 한 결 규칙 그대로: 글·목록은 맨글 + 가는 줄, 상자는 숫자 묶음·표·그림에만, 파랑 = 매치봇, 주황 = 실제.
    「방법」 줄(.sh-eng-how, engine만)은 전문 용어를 쓰는 유일한 자리라 13px 회색 + 점선 윗줄로 본문과 떼어 둔다 */
-.sh-nav + .sh-nav { margin-left: 0; } /* 소개 쪽: 「엔진 설명」 + PC 전용 스튜디오 링크 두 묶음이 나란히 */
+/* 소개 쪽의 두 번째 nav(PC 전용 스튜디오 링크)는 2026-11-01 한 nav로 합쳤다 */
 .sh-body .sh-eng-more { margin: 12px 0 0; font-size: 15px; }
 .sh-body .sh-eng-more .sh-small { margin-left: 6px; }
 .sh-eng .sh-sec > :last-child, .sh-how .sh-sec > :last-child { margin-bottom: 0; }
