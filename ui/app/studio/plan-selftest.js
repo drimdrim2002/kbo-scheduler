@@ -241,6 +241,19 @@
       ok('올린 파일: 그대로면 숫자가 같음', P.rescoreVersion(same) === false);
       const nine = JSON.parse(JSON.stringify(v1)); nine.matches.forEach((m) => { m.consecutive = 9; }); P.rescoreVersion(nine);
       ok('올린 파일: 규칙을 어긴 일정은 그렇게 표시됨', nine.feasible === false);
+      // 어느 엔진으로 낸 결과인가: 지금 연결이 아니라 그 결과를 낸 엔진으로
+      ok('버전에 낸 엔진을 함께 저장', v1.engine === app().engineConfig.kind);
+      const fromServer = Object.assign(JSON.parse(JSON.stringify(v1)), { id: 't-rest', name: '시험 서버 결과', engine: 'REST' });
+      const fromMock = Object.assign(JSON.parse(JSON.stringify(v1)), { id: 't-mock', name: '시험 브라우저 결과', engine: 'MOCK' });
+      const beforeTag = P.versions.list(2027); P.versions.put(2027, beforeTag.concat([fromServer, fromMock]));
+      S.go({ step: 6 }); flush();
+      ok('시험 엔진 버전만 표시', /시험 엔진/.test(q('.pf-ver input[data-id="t-mock"]').closest('.pf-ver').innerText) && !/시험 엔진/.test(q('.pf-ver input[data-id="t-rest"]').closest('.pf-ver').innerText));
+      click('[data-act="pf-load"][data-id="t-rest"]'); flush();
+      ok('서버에서 낸 버전을 불러오면 시험 엔진 표시 없음', S.ui.step === 5 && !/시험 엔진으로 낸 결과/.test(page()));
+      click('.footer [data-act="pf-stage"][data-stage="4"]'); flush();
+      click('[data-act="pf-load"][data-id="t-mock"]'); flush();
+      ok('시험 엔진 버전을 불러오면 표시', S.ui.step === 5 && /시험 엔진으로 낸 결과/.test(page()));
+      P.versions.put(2027, beforeTag); S.go({ step: 6 }); flush();
       // 비교: 규칙을 어긴 버전 · 허용 차이가 다른 버전
       const keepList = P.versions.list(2027);
       const cv = (id, name, more) => Object.assign(JSON.parse(JSON.stringify(v1)), { id, name, feasible: true }, more);
