@@ -464,7 +464,7 @@
     if (G.fs === 1 && inPlan()) {
       const SH = KBO.Preset2027.SHARED_STADIUM;
       const changed = app().state.teams.some((t) => t.stadium === SH.name);
-      if (changed) return origStep1(R).replace('바뀐 정보가 있나요?', '그 밖에 바뀐 정보가 있나요?').replace('<div class="fl-ask', '<div class="pf-note warn" style="margin-top:0"><b>이미 고쳐 둔 곳</b> — LG·두산 구장: 잠실 → ' + esc(SH.name) + '. 잠실야구장이 2026시즌 뒤 철거되어 2027~2031년 임시로 씁니다. 바로 옆 구장이라 구장 사이 거리는 잠실 값을 그대로 씁니다.</div><div class="fl-ask');
+      if (changed) return origStep1(R).replace('바뀐 정보가 있나요?', '그 밖에 바뀐 정보가 있나요?').replace('<!--ask-note-->', '<div class="pf-note warn" style="margin-top:0"><b>이미 고쳐 둔 곳</b> — LG·두산 구장: 잠실 → ' + esc(SH.name) + '. 잠실야구장이 2026시즌 뒤 철거되어 2027~2031년 임시로 씁니다. 바로 옆 구장이라 구장 사이 거리는 잠실 값을 그대로 씁니다.</div>');
     }
     return origStep1(R);
   };
