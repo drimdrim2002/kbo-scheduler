@@ -205,7 +205,7 @@
     // 위치가 바뀌면 직선거리 추정 뒤, 편성 서버가 되면 도로거리로 바꿔 넣는다(따로 실행 취소되는 한 단계)
     if (ok && locationChanged && this.roadApi) {
       const name = this.state.teams[i].name;
-      setTimeout(() => this.fetchRoadDistances([name]).then((r) => { if (r.failed) UI.toast(name + ' 도로거리 ' + r.failed + '쌍을 받지 못해 추정값을 그대로 둡니다 — ' + r.error, 'warn', 6000); }), 0);
+      setTimeout(() => this.fetchRoadDistances([name]).then((r) => { if (r.failed) UI.toast(name + ' 도로거리 ' + r.failed + '개를 받지 못해 추정값을 그대로 둡니다 — ' + r.error, 'warn', 6000); }), 0);
     }
     return ok;
   };
@@ -244,16 +244,16 @@
     });
   };
   /**
-   * 구장 사이 도로거리를 편성 서버(카카오모빌리티 길찾기 중계)로 받아 거리표에 넣는다. names: 이 구단들이 낀 쌍만(없으면 모든 쌍).
-   * 양쪽 방향에 같은 값, estimated=false, source='ROAD'. 받는 사이 구장 위치가 바뀐 쌍은 버린다. 한 번의 실행 취소 단계.
+   * 구장 사이 도로거리를 편성 서버(카카오모빌리티 길찾기 중계)로 받아 거리표에 넣는다. names: 이 구단들이 낀 거리만(없으면 모든 거리).
+   * 방향마다 따로 묻는다(A→B와 B→A는 값이 다를 수 있다). estimated=false, source='ROAD'. 받는 사이 구장 위치가 바뀐 거리는 버린다. 한 번의 실행 취소 단계.
    * 돌려주는 값: { ok, failed, error }
    */
   App.prototype.fetchRoadDistances = function (names) {
     if (!this.roadApi) return Promise.resolve({ ok: 0, failed: 0, error: '도로거리 계산을 쓸 수 없습니다' });
     const teams = this.state.teams, want = names ? new Set(names) : null;
     const pairs = [];
-    for (let a = 0; a < teams.length; a++) for (let b = a + 1; b < teams.length; b++) {
-      if (want && !want.has(teams[a].name) && !want.has(teams[b].name)) continue;
+    for (let a = 0; a < teams.length; a++) for (let b = 0; b < teams.length; b++) {
+      if (a === b || (want && !want.has(teams[a].name) && !want.has(teams[b].name))) continue;
       pairs.push({ a: teams[a].name, b: teams[b].name, from: { lat: teams[a].latitude, lon: teams[a].longitude }, to: { lat: teams[b].latitude, lon: teams[b].longitude } });
     }
     if (!pairs.length) return Promise.resolve({ ok: 0, failed: 0 });
@@ -268,27 +268,24 @@
         const pos = new Map(this.state.teams.map((t) => [t.name, t.latitude + ',' + t.longitude]));
         const good = rows.filter((x) => typeof x.km === 'number' && pos.get(x.a) === x.from.lat + ',' + x.from.lon && pos.get(x.b) === x.to.lat + ',' + x.to.lon);
         const bad = rows.filter((x) => typeof x.km !== 'number');
-        if (good.length) this.commit('도로거리 받기 ' + good.length + '쌍', (s) => {
+        if (good.length) this.commit('도로거리 받기 ' + good.length + '개', (s) => {
           const put = (from, to, km) => {
             const d = s.distanceMatrix.find((x) => x.from === from && x.to === to);
             if (d) { d.distance = km; d.estimated = false; d.source = 'ROAD'; } else s.distanceMatrix.push({ from, to, distance: km, estimated: false, source: 'ROAD' });
           };
-          for (const x of good) { put(x.a, x.b, x.km); put(x.b, x.a, x.km); }
+          for (const x of good) put(x.a, x.b, x.km);
         }, ['distance']);
         return done({ ok: good.length, failed: bad.length, error: bad.length ? bad[0].error : '' });
       })
       .catch((e) => done({ ok: 0, failed: pairs.length, error: e.message || String(e) }));
   };
-  App.prototype.setDistance = function (from, to, km, symmetric) {
+  /** from → to 한 방향만 고친다(반대 방향은 그대로) */
+  App.prototype.setDistance = function (from, to, km) {
     const v = Number(km);
     if (!Number.isFinite(v) || v < 0) { UI.toast('거리는 0 이상의 숫자여야 합니다.', 'warn'); return false; }
     return this.commit('거리 수정: ' + from + ' → ' + to, (s) => {
-      const put = (a, b) => {
-        const d = s.distanceMatrix.find((x) => x.from === a && x.to === b);
-        if (d) { d.distance = Math.round(v * 10) / 10; d.estimated = false; delete d.source; } else s.distanceMatrix.push({ from: a, to: b, distance: Math.round(v * 10) / 10, estimated: false });
-      };
-      put(from, to);
-      if (symmetric) put(to, from);
+      const d = s.distanceMatrix.find((x) => x.from === from && x.to === to);
+      if (d) { d.distance = Math.round(v * 10) / 10; d.estimated = false; delete d.source; } else s.distanceMatrix.push({ from, to, distance: Math.round(v * 10) / 10, estimated: false });
     }, ['distance']);
   };
   App.prototype.estimateMissingDistances = function () {

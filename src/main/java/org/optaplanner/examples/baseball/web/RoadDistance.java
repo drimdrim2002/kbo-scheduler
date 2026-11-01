@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * 공개 서버 /etc/kbo-scheduler/env → systemd EnvironmentFile)로만 갖고, 응답·로그 어디에도 키를 내보내지 않는다.
  * 화면은 {@code POST /api/v1/road-distance} {@code { pairs: [{ from: {lat, lon}, to: {lat, lon} }] }}로 묻는다.
  *
- * <p>사용량 보호: 한 요청 최대 {@value #MAX_PAIRS}쌍, 같은 좌표 쌍은 캐시(방향 무시, 소수 5자리), 방문자 주소당 10분에
+ * <p>사용량 보호: 한 요청 최대 {@value #MAX_PAIRS}쌍, 같은 출발·도착 좌표는 캐시(방향별, 소수 5자리), 방문자 주소당 10분에
  * {@value #PER_IP_PER_WINDOW}건, 하루(한국 시간) 전체 {@value #PER_DAY}건까지 카카오에 묻는다. 좌표는 한국 범위만 받는다.
  */
 final class RoadDistance {
@@ -151,11 +151,9 @@ final class RoadDistance {
         return v;
     }
 
-    /** 방향을 무시한 캐시 키(소수 5자리 ≈ 1m). */
+    /** 방향별 캐시 키(소수 5자리 ≈ 1m): A→B와 B→A는 길이 다를 수 있다. */
     static String key(double lat1, double lon1, double lat2, double lon2) {
-        String a = String.format(Locale.ROOT, "%.5f,%.5f", lat1, lon1);
-        String b = String.format(Locale.ROOT, "%.5f,%.5f", lat2, lon2);
-        return a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a;
+        return String.format(Locale.ROOT, "%.5f,%.5f|%.5f,%.5f", lat1, lon1, lat2, lon2);
     }
 
     Result one(double lat1, double lon1, double lat2, double lon2, String ip) {

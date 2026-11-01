@@ -498,14 +498,14 @@
       }).join('') + '</tbody></table></div>';
     if (app().roadApi) {
       const dm = st.distanceMatrix.filter((d) => d.from !== d.to);
-      const nRoad = dm.filter((d) => d.source === 'ROAD').length / 2, nEst = dm.filter((d) => d.estimated).length / 2;
-      s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 10구장 사이 45쌍의 도로거리를 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + (st.teams.length * (st.teams.length - 1) / 2) + '쌍)</button>') +
-        '<span class="muted small">도로 ' + Math.floor(nRoad) + '쌍 · 추정 ' + Math.floor(nEst) + '쌍</span></div>';
+      const nRoad = dm.filter((d) => d.source === 'ROAD').length, nEst = dm.filter((d) => d.estimated).length, nAll = st.teams.length * (st.teams.length - 1);
+      s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 구장 사이 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + nAll + '개)</button>') +
+        '<span class="muted small">도로 ' + nRoad + '개 · 추정 ' + nEst + '개</span></div>';
     }
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
-      s += '<details class="fold" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · A→B를 고치면 B→A도 함께 바뀜</span></summary><div style="padding:8px 6px" class="chart-box">' +
+      s += '<details class="fold" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></summary><div style="padding:8px 6px" class="chart-box">' +
         KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: 24, labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
@@ -837,7 +837,7 @@
     S.ui.edit = { sheet: key, row, col, value: el.value, error: null, fix: null, _focused: true };
     commitEdit(false);
   };
-  /** 카드의 「다른 구장까지 거리」 칸: 고치면 반대 방향도 같은 값(직접 적은 값 = 추정 아님) */
+  /** 카드의 「다른 구장까지 거리」 칸: 이 방향만 고친다(직접 적은 값 = 추정 아님) */
   S.inputs['team-dist'] = (el) => {
     if (locked()) return;
     const from = el.dataset.from, to = el.dataset.to, raw = el.value.trim().replace(/km$/i, '').trim();
@@ -845,7 +845,7 @@
     if (!raw || !Number.isFinite(v) || v < 0 || v > 2000) { el.classList.add('err'); S.toast('거리는 km 숫자로 적습니다(예: 31.5).', 'bad'); return; }
     const d = app().distanceOf(from, to);
     if (d && !d.estimated && Math.round(v * 10) / 10 === d.distance) return; // 바뀐 것 없음
-    if (app().setDistance(from, to, v, true)) S.toast(from + ' ↔ ' + to + ' 거리를 ' + (Math.round(v * 10) / 10) + 'km로 바꿨습니다(양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 4000);
+    if (app().setDistance(from, to, v)) S.toast(from + ' → ' + to + ' 거리를 ' + (Math.round(v * 10) / 10) + 'km로 바꿨습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 4000);
   };
   S.inputs['team-field'] = (el) => {
     if (locked()) return;

@@ -36,9 +36,24 @@ class RoadDistanceTest {
     }
 
     @Test
-    void cacheKeyIgnoresDirection() {
+    void cacheKeySeparatesDirection() {
         assertThat(RoadDistance.key(37.5122, 127.0720, 37.2998, 127.0097))
-                .isEqualTo(RoadDistance.key(37.2998, 127.0097, 37.5122, 127.0720));
+                .isNotEqualTo(RoadDistance.key(37.2998, 127.0097, 37.5122, 127.0720));
+    }
+
+    @Test
+    void asksEachDirectionSeparately() {
+        List<String> urls = java.util.Collections.synchronizedList(new ArrayList<>());
+        String reverse = "{\"routes\":[{\"result_code\":0,\"summary\":{\"distance\":33000}}]}";
+        RoadDistance road = new RoadDistance("k", (url, auth) -> {
+            urls.add(url);
+            return url.contains("origin=127.072000,37.512200") ? OK : reverse;
+        });
+        JSONArray results = Json.array(road.handle(body(pair(37.5122, 127.0720, 37.2998, 127.0097),
+                pair(37.2998, 127.0097, 37.5122, 127.0720)), "198.51.100.3").get("results"));
+        assertThat(urls).hasSize(2);
+        assertThat(Json.object(results.get(0)).get("km")).isEqualTo(31.4);
+        assertThat(Json.object(results.get(1)).get("km")).isEqualTo(33.0);
     }
 
     @Test
@@ -52,14 +67,11 @@ class RoadDistanceTest {
         });
         assertThat(road.available()).isTrue();
         JSONObject out = road.handle(body(pair(37.5122, 127.0720, 37.2998, 127.0097),
-                pair(37.2998, 127.0097, 37.5122, 127.0720), // 반대 방향 = 캐시
                 pair(37.5122, 127.0720, 37.51221, 127.07201)), "198.51.100.1"); // 같은 구장
         JSONArray results = Json.array(out.get("results"));
-        assertThat(results).hasSize(3);
-        assertThat(Json.object(results.get(2)).get("km")).isEqualTo(0.0);
-        // 두 번째는 첫 번째가 끝난 뒤면 캐시, 동시에 돌면 한 번 더 묻는다 — 어느 쪽이든 값은 같다
+        assertThat(results).hasSize(2);
+        assertThat(Json.object(results.get(1)).get("km")).isEqualTo(0.0);
         assertThat(Json.object(results.get(0)).get("km")).isEqualTo(31.4);
-        assertThat(Json.object(results.get(1)).get("km")).isEqualTo(31.4);
         assertThat(urls).isNotEmpty().allMatch((u) -> u.startsWith(RoadDistance.ENDPOINT + "?origin="));
         assertThat(urls.get(0)).contains("127.072000,37.512200").contains("destination=");
         assertThat(auths).allMatch("KakaoAK test-rest-key"::equals);
