@@ -482,14 +482,23 @@
     else s = icon('map') + '<span>카카오 지도를 불러오는 중입니다…</span>';
     return '<div class="pane-foot small tm-foot' + (a.kakaoKey && a.kakaoError ? ' warn' : '') + '"' + (S.feature('T4') ? ' data-feature="T4"' : '') + '>' + s + '</div>';
   }
+  // 구장 간 거리표: 처음부터 펼쳐 두고, 창 높이에 맞춰 칸 높이를 정한다(19~34px). 남는 높이의 절반은 구단 줄 몫
+  const tmDistOpen = () => S.ui.tmDistOpen !== false;
+  const tmCellH = () => {
+    const free = window.innerHeight - 679; // 위아래 띠·여백과, 칸 높이와 상관없이 고정인 부분
+    return Math.max(19, Math.min(34, Math.floor(free <= 240 ? free / 10 : 24 + (free - 240) / 20)));
+  };
+  document.addEventListener('click', (e) => { const d = e.target.closest && e.target.closest('.tm-dist > summary'); if (d) S.ui.tmDistOpen = !d.parentNode.open; });
+  let tmCellLast = 0, tmResize = 0;
+  window.addEventListener('resize', () => { clearTimeout(tmResize); tmResize = setTimeout(() => { if (document.querySelector('.tm-dist') && tmCellH() !== tmCellLast) S.render(); }, 120); });
   function renderTeams() {
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
     const stepwise = !!(S.g1 && S.g1.mode === 'flow' && S.g1.fs === 1); // 1 구단 정보 단계면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
-    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
+    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 있습니다.</span></div>';
     s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
-    s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
+    s += '<div class="blk" style="--tm-n:' + st.teams.length + '"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
         const sh = shared.get(t.stadium);
         const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
@@ -505,8 +514,8 @@
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
-      s += '<details class="fold" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></summary><div style="padding:8px 6px" class="chart-box">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: 24, labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
+      s += '<details class="fold tm-dist"' + (tmDistOpen() ? ' open' : '') + ' data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></summary><div style="padding:8px 6px" class="chart-box">' +
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: (tmCellLast = tmCellH()), labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
     s += '<div class="blk tm-mapblk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">' + (app().kakao && app().kakaoKey ? 'Kakao' : '내장 SVG') + '</span></span>' : '') + '</div><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>';

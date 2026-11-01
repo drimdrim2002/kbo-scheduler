@@ -1215,10 +1215,13 @@ svg.mc text { font-family: var(--font); }
 .gs-mappick .btn { flex: none; }
 .k-kakao-label.cand { --tc: #1F5FD6; border-radius: 3px; }
 
-/* ① 구단 정보: 왼쪽 구단 표(+접힌 거리표) · 오른쪽 구장 지도(남은 높이를 모두) */
+/* ① 구단 정보: 왼쪽 구단 표(+거리표) · 오른쪽 구장 지도(남은 높이를 모두) */
 .pane-body.tm-body { display: flex; flex-direction: column; }
 .tm-grid { flex: 1; min-height: 380px; display: grid; grid-template-columns: minmax(400px, 500px) minmax(280px, 1fr); gap: 12px; }
 .tm-left { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.tm-left > .blk:first-child { flex: 1 0 auto; max-height: calc(32px + var(--tm-n, 10) * 44px); } /* 남는 높이를 구단 줄이 나눠 갖되 한 줄 44px까지 */
+.tm-table { height: 100%; }
+.tm-dist { flex: none; }
 .tm-table td.tm-std { display: table-cell; }
 .tm-std-n { overflow: hidden; text-overflow: ellipsis; }
 .tm-table td.tm-std .tag.shared { margin-left: 6px; }
