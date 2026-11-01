@@ -321,7 +321,7 @@ public final class BaseballWebServer {
     // ───────────── 정적 파일 ─────────────
 
     /**
-     * 경로 규칙: {@code /}·{@code /compare}는 보여주는 문(ui/show/)이 있으면 그것, 없으면 위저드.
+     * 경로 규칙: {@code /}·{@code /compare}·{@code /how}·{@code /engine}은 보여주는 문(ui/show/)이 있으면 그것, 없으면 위저드.
      * {@code /r/<id>}는 ui/show/r.html. {@code /studio/...}는 위저드(ui/). 그 밖의 경로는 ui/show/ → ui/ 순서로 찾는다.
      */
     private Path resolveStatic(String path) {
@@ -331,6 +331,12 @@ public final class BaseballWebServer {
         }
         if ("/compare".equals(rel) && showRoot != null) {
             return showRoot.resolve("compare.html");
+        }
+        if ("/how".equals(rel) && showRoot != null) {
+            return showRoot.resolve("how.html");
+        }
+        if ("/engine".equals(rel) && showRoot != null) {
+            return showRoot.resolve("engine.html");
         }
         if (rel.startsWith("/studio/")) {
             String sub = rel.substring("/studio/".length());

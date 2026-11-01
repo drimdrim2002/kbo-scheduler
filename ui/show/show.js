@@ -1212,6 +1212,10 @@
     setMeta('og:url', isFile ? location.href : location.origin + '/r/' + id);
   }
 
+  /** 엔진 설명 쪽 둘(2026-11-01 C안): how.html = 팬용 짧은 쪽, engine.html = 실무자·연구자용. 정적 글이라 데이터 읽기 없음. 점검 스크립트가 보는 data-show만 적는다 */
+  pages.how = function () { bindShare(); fixStudioLinks(); mark('show', 'how-ok'); };
+  pages.engine = function () { bindShare(); fixStudioLinks(); mark('show', 'engine-ok'); };
+
   // ───────── 시작 ─────────
   function boot() {
     const page = document.body.getAttribute('data-page');

@@ -687,3 +687,91 @@ html[data-lay] .sh-step p { font-size: 14px; line-height: 1.55; color: var(--mut
 .sh-tool-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 0 0 var(--ly-h, 12px); }
 html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
 
+
+/* ───── 엔진 설명 쪽 둘(2026-11-01, C안): how.html = 팬용 짧은 쪽 · engine.html = KBO 실무자·연구자용 ─────
+   공통 글 하나를 두 모양으로. 한 결 규칙 그대로: 글·목록은 맨글 + 가는 줄, 상자는 숫자 묶음·표·그림에만, 파랑 = 매치봇, 주황 = 실제.
+   「방법」 줄(.sh-eng-how, engine만)은 전문 용어를 쓰는 유일한 자리라 13px 회색 + 점선 윗줄로 본문과 떼어 둔다 */
+.sh-nav + .sh-nav { margin-left: 0; } /* 소개 쪽: 「엔진 설명」 + PC 전용 스튜디오 링크 두 묶음이 나란히 */
+.sh-body .sh-eng-more { margin: 12px 0 0; font-size: 15px; }
+.sh-body .sh-eng-more .sh-small { margin-left: 6px; }
+.sh-eng .sh-sec > :last-child, .sh-how .sh-sec > :last-child { margin-bottom: 0; }
+.sh-eng .sh-sec p, .sh-how .sh-sec p { line-height: 1.65; }
+.sh-eng .sh-lead a { color: var(--accent); }
+/* 번호 */
+.sh-eng-no { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); color: var(--mb-deep); font-size: 14px; font-weight: 800; margin-right: 10px; vertical-align: 4px; font-variant-numeric: tabular-nums; }
+/* 숫자 묶음: 맨 위 4칸(휴대폰 2×2, 768+ 한 줄), 문제 크기 3칸, 출발점 2칸(기본) */
+.sh-eng .sh-facts, .sh-how .sh-facts { margin: 16px 0 0; }
+.sh-eng-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 18px 0 16px !important; }
+.sh-eng-facts .sh-fact > span { white-space: normal; }
+.sh-eng-facts .sh-fact b { font-size: 24px; } /* 「10 · 225 · 45」가 4칸 폭(768+ 약 158px)에 들어가게 */
+@media (min-width: 768px) { .sh-eng-facts .sh-fact b { font-size: 26px; } }
+.sh-eng-facts3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 768px) { .sh-eng-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* 2번: 규칙 두 층 표. 768+ 두 열 나란히, 휴대폰은 위아래 */
+.sh-eng-rules { display: grid; gap: 12px; margin: 16px 0 0; }
+.sh-eng-rules .sh-card { padding: 0 12px; }
+.sh-eng-rules .sh-card + .sh-card { margin-top: 0; }
+@media (min-width: 768px) { .sh-eng-rules { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .sh-eng-rules .sh-card { padding: 0 16px; } }
+.sh-eng-tbl { table-layout: auto; } /* 고정 배치 + colspan 머리면 번호 열이 절반을 차지한다 */
+.sh-eng-tbl th:first-child { width: auto; }
+.sh-eng-tbl thead th { font-size: 15px; color: var(--fg); font-weight: 800; background: none; padding: 14px 0 10px; line-height: 1.35; }
+.sh-eng-tbl thead th small { font-size: 13px; font-weight: 500; }
+.sh-eng-tbl td { font-size: 14px; line-height: 1.5; padding: 9px 0; }
+.sh-eng-tbl td.n { width: 1%; white-space: nowrap; padding-right: 8px; color: var(--muted); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.sh-eng-tbl tbody tr:last-child td { border-bottom: 0; padding-bottom: 14px; }
+.sh-body .sh-eng-after { margin: 16px 0 0; }
+/* 「방법」 줄: 공통 글 9블록의 대응 행. 전문 용어는 여기에만 */
+.sh-eng-how { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13px; line-height: 1.6; color: var(--muted); }
+.sh-eng-how b { align-self: start; font-size: 11px; letter-spacing: .04em; font-weight: 800; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; line-height: 1.2; margin-top: 1px; white-space: nowrap; }
+.sh-eng-how span { overflow-wrap: anywhere; }
+/* 그림 상자(3번 점 바닥, 5번 점수 곡선): SVG 글자는 viewBox 600 기준 18px → 휴대폰 약 9px, 768+에서는 그림 폭을 520px로 눌러 약 15px */
+.sh-eng-fig { margin-top: 16px; }
+.sh-eng-fig svg { display: block; width: 100%; height: auto; }
+.sh-body .sh-eng-cap { margin: 10px 0 0; line-height: 1.5; }
+@media (min-width: 768px) { .sh-eng-fig svg { max-width: 520px; margin: 0 auto; } }
+.sh-eng-dots .d-field circle { fill: var(--muted); opacity: .28; }
+.sh-eng-dots .d-pick circle { fill: none; stroke: var(--fg); stroke-width: 2.5; opacity: .7; }
+.sh-eng-dots .d-line polyline { fill: none; stroke: var(--sh-engine); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.sh-eng-dots .d-start { fill: var(--surface); stroke: var(--sh-engine); stroke-width: 3; }
+.sh-eng-dots .d-end { fill: var(--sh-engine); }
+.sh-eng-dots .d-txt text { font-family: inherit; font-size: 18px; font-weight: 700; fill: var(--muted); }
+.sh-eng-dots .d-txt .d-eng { fill: var(--sh-engine); }
+.sh-eng-dots .d-txt .d-axis { font-size: 15px; font-weight: 600; }
+.sh-eng-curve .c-axis line { stroke: var(--line); stroke-width: 2; }
+.sh-eng-curve .c-line { fill: none; stroke: var(--sh-engine); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.sh-eng-curve .c-dip circle { fill: var(--surface); stroke: var(--sh-engine); stroke-width: 2.5; }
+.sh-eng-curve .c-txt text { font-family: inherit; font-size: 18px; font-weight: 700; fill: var(--muted); }
+/* 5번: 바꿔 보는 방법 세 가지(맨글 + 가는 줄) */
+.sh-eng-moves { margin: 0 0 16px; }
+.sh-eng-moves li b { font-size: 15px; font-weight: 700; }
+/* 8번·근거: 맨글 목록 + 가는 줄 */
+.sh-eng-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.sh-eng-list li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.55; }
+.sh-eng-list li:last-child { border-bottom: 1px solid var(--line); }
+.sh-eng-src li { display: grid; gap: 2px; }
+.sh-eng-src li b { font-weight: 700; }
+.sh-eng-src li span { font-size: 13px; color: var(--muted); }
+/* 6번 표(출발점 1·4·10개): 지금 서버가 쓰는 열은 옅은 파랑. 7번 표(실제 vs 매치봇): 값 색 = 주황·파랑 */
+.sh-eng .sh-table caption, .sh-how .sh-table caption { caption-side: top; text-align: left; padding: 0 0 8px; }
+.sh-eng-seeds th:first-child { width: 27%; }
+.sh-eng-seeds th, .sh-eng-seeds td { padding: 8px 4px; } /* 휴대폰 375에서 숫자 열이 72px라 「68,097km」가 글자 중간에서 꺾이던 것 */
+.sh-eng-seeds td.sh-num, .sh-eng-res td.sh-num { white-space: nowrap; overflow-wrap: normal; }
+@media (min-width: 768px) { .sh-eng-seeds th:first-child { width: 31%; } .sh-eng-seeds th, .sh-eng-seeds td { padding: 8px 6px; } }
+.sh-eng-seeds .now { background: var(--accent-soft); }
+.sh-eng-seeds th.now { color: var(--mb-deep); }
+.sh-eng-seeds th.now small { color: var(--accent); font-weight: 700; }
+.sh-eng-seeds td.sh-num, .sh-eng-res td.sh-num { font-variant-numeric: tabular-nums; }
+.sh-eng-seeds td b, .sh-eng-res td b { font-size: 15px; }
+.sh-eng-res td.r b { color: var(--sh-real); }
+.sh-eng-res td.e b { color: var(--sh-engine); }
+/* 8번 실무 문의 단추 둘(주·보조) + 안내 한 줄, 쪽 끝 단추 줄 */
+.sh-eng-cta { margin: 16px 0 0; }
+@media (min-width: 560px) { .sh-eng-cta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sh-body .sh-eng-cta-note { margin: 10px 0 0; line-height: 1.5; }
+.sh-eng-foot { margin-top: 20px; }
+.sh-eng-foot .k-btn { min-height: 44px; }
+/* 팬 쪽: 출발점 1개 → 4개 숫자 묶음, 깊이 알아보기 링크 */
+.sh-how .sh-stats-msg { margin-top: 16px; }
+.sh-how .sh-stats-msg .sh-stat-d b { font-variant-numeric: tabular-nums; }
+.sh-body .sh-how-deep { margin: 20px 0 0; font-size: 16px; }
+.sh-how-deep .sh-link { white-space: normal; }

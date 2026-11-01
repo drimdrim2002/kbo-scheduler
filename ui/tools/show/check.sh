@@ -5,13 +5,15 @@
 CH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-PAGES=${*:-"index compare r"}
+PAGES=${*:-"index compare r how engine"}
 FAIL=0
 for P in $PAGES; do
   case $P in
     index) SRC="../../show/index.html?replay=now" ;;
     compare) SRC="../../show/compare.html" ;;
     r) SRC="../../show/r.html?id=default" ;;
+    how) SRC="../../show/how.html" ;;
+    engine) SRC="../../show/engine.html" ;;
     *) SRC="../../show/$P" ;;
   esac
   for W in 375 768 1440; do
@@ -25,7 +27,7 @@ for P in $PAGES; do
     echo "$OUT" | grep -q 'data-scroll="OK' || OK=0
     echo "$OUT" | grep -q 'data-errors="0"' || OK=0
     echo "$OUT" | grep -q 'data-show="[a-z]*-ok"' || OK=0
-    if [ "$P" != compare ]; then echo "$OUT" | grep -q 'data-replay="ready' || OK=0; fi
+    case $P in compare|how|engine) ;; *) echo "$OUT" | grep -q 'data-replay="ready' || OK=0 ;; esac  # 재생기를 싣지 않는 쪽은 data-replay를 보지 않는다
     [ $OK = 1 ] && TAG=PASS || { TAG=FAIL; FAIL=1; }
     echo "[$TAG] $P $W  $OUT"
   done
