@@ -161,4 +161,9 @@ table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff;
 .pf-open { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 6px 0 4px; }
 .pf-open .g { border: 1px solid var(--line, #dfe3e8); border-radius: 8px; padding: 8px 8px 7px; text-align: center; color: var(--text, inherit); }
 .pf-open .a { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.pf-open .a.auto { font-weight: 400; opacity: .65; }
+.pf-open-none { font-size: 13px; opacity: .65; margin: 4px 0; }
 .pf-open .s { font-size: 11.5px; opacity: .65; margin-top: 2px; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+.pf-years { flex: none; }
+.pf-years .pf-t th, .pf-years .pf-t td { text-align: left; }
+.pf-years .pf-t th:first-child, .pf-years .pf-t td:first-child { width: 96px; }
