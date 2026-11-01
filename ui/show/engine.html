@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매치봇 작동 원리 (KBO 실무자·연구자용) — 매치봇</title>
+<meta name="description" content="매치봇이 KBO 1차 일정을 어떤 문제로 보고, 어떤 규칙 두 층으로 풀고, 어디서 출발해 어떻게 고쳐 나가는지. 출발점 여러 개를 쓰는 근거 숫자와 매치봇이 모르는 조건까지, 실무자·연구자용으로 정리했어요.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="매치봇 작동 원리 — 무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지">
+<meta property="og:description" content="시리즈 225개를 날짜 칸 45개에. 반드시 지키는 규칙 7가지 안에서 5가지를 차례로 맞추고, 규칙 위반 0인 출발점에서 10초 동안 고쳐 나가요. 출발점 4개를 동시에 돌리는 이유와 벤치마크 숫자.">
+<meta property="og:image" content="https://schedulelab.kr/og/default.png">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  (function () {
+    var errs = [];
+    window.__studioErrors = errs;
+    function mark() { try { document.documentElement.setAttribute('data-errors', String(errs.length)); if (errs.length) document.documentElement.setAttribute('data-error-list', errs.slice(0, 5).join(' | ')); } catch (e) { /* 무시 */ } }
+    window.addEventListener('error', function (e) { errs.push('error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || '')); mark(); }, true);
+    window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + (e.reason && e.reason.message || e.reason)); mark(); });
+    var ce = console.error;
+    console.error = function () { errs.push('console: ' + Array.prototype.join.call(arguments, ' ')); mark(); return ce.apply(console, arguments); };
+    mark();
+  })();
+</script>
+<!-- 매치봇 워드마크 글꼴(Jua, 브랜드 가이드). 이 사이트의 외부 요청은 이 글꼴과 탭해서 부르는 카카오맵뿐. 못 받으면 기본 글꼴로 보인다 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="../app/common/common.css?v=20261024p">
+<link rel="stylesheet" href="show.css?v=20261101a">
+</head>
+<body class="sh-body" data-page="engine">
+<!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크에 쓴다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mb-bot-body" viewBox="0 0 100 100">
+      <rect x="47" y="6" width="6" height="14" rx="3" fill="#2546a8"/>
+      <rect x="8" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="84" y="42" width="8" height="22" rx="4" fill="#2546a8"/>
+      <rect x="14" y="20" width="72" height="68" rx="20" fill="#3b6cf4"/>
+      <rect x="22" y="30" width="56" height="42" rx="12" fill="#dfe9ff"/>
+    </symbol>
+    <symbol id="mb-bot" viewBox="0 0 100 100">
+      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0"/>
+      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
+      <rect x="35" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="60" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
+      <path d="M42 62 q8 6 16 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".45"/>
+    </symbol>
+  </defs>
+</svg>
+<header class="sh-top">
+  <div class="sh-wrap">
+    <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span></a>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="how.html" aria-current="page">결정구</a><a href="../index.html" data-studio data-pc-note>편성 스튜디오(PC)</a></nav>
+  </div>
+</header>
+
+<main class="sh-wrap sh-eng">
+  <!-- 엔진 설명 C안(2026-11-01): 실무자·연구자 우선 쪽. 팬용 짧은 쪽은 how.html. 글은 공통 글(engine-page-copy) 그대로, 숫자는 비교 쪽·벤치마크 문서와 같은 값.
+       블록 2·4·5·6·7·8 바로 밑의 「방법」 줄에만 전문 용어를 쓴다(공통 글 9블록의 대응 행). -->
+  <section class="sh-sec" aria-labelledby="eng-h">
+    <p class="sh-kicker">KBO 실무자·연구자용</p>
+    <h1 class="sh-h1" id="eng-h">매치봇 작동 원리</h1>
+    <p class="sh-lead">무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지. 숫자는 <a href="compare.html">숫자와 근거</a> 쪽과 같은 값이에요. 팬을 위한 짧은 설명은 <a href="how.html">매치봇의 결정구</a> 쪽에 있어요.</p>
+    <div class="sh-facts sh-eng-facts" role="group" aria-label="한눈에 보는 숫자 네 개">
+      <div class="sh-fact"><b>10 · 225 · 45</b><span>구단 · 시리즈 · 날짜 칸</span></div>
+      <div class="sh-fact"><b>7 · 5</b><span>반드시 지키는 것 · 되도록 맞추는 것</span></div>
+      <div class="sh-fact"><b>0.002<small>초</small></b><span>규칙을 전부 지키는 출발점 하나</span></div>
+      <div class="sh-fact"><b>10<small>초</small> · 4<small>개</small></b><span>탐색 시간 · 동시에 쓰는 출발점</span></div>
+    </div>
+    <nav class="sh-jump" aria-label="이 쪽 바로가기"><a href="#q1">문제</a><a href="#q2">규칙 두 층</a><a href="#q3">가짓수</a><a href="#q4">출발점</a><a href="#q5">고치기</a><a href="#q6">출발점 여러 개</a><a href="#q7">결과</a><a href="#q8">모르는 것</a><a href="#src">근거 문서</a></nav>
+  </section>
+
+  <!-- 1 -->
+  <section class="sh-sec" id="q1" aria-labelledby="q1-h">
+    <h2 class="sh-h2" id="q1-h"><span class="sh-eng-no" aria-hidden="true">1</span>무엇을 푸는 문제인가요?</h2>
+    <p>10개 구단의 1차 일정은 <b>시리즈 225개를 날짜 칸 45개에 놓는 일</b>이에요. 칸 하나에 시리즈 5개가 들어가고(10구단이 한 번씩), 개막 2연전·어린이날 3연전·올스타 휴식 뒤 4연전은 자리가 정해져 있어요. 나머지 3연전 42칸의 순서와 조합이 매치봇이 정하는 부분이에요.</p>
+    <div class="sh-facts sh-eng-facts3" role="group" aria-label="문제의 크기">
+      <div class="sh-fact"><b>10</b><span>구단</span></div>
+      <div class="sh-fact"><b>225</b><span>시리즈</span></div>
+      <div class="sh-fact"><b>45</b><span>날짜 칸</span></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="sh-sec" id="q2" aria-labelledby="q2-h">
+    <h2 class="sh-h2" id="q2-h"><span class="sh-eng-no" aria-hidden="true">2</span>꼭 지키는 것과 되도록 맞추는 것은 어떻게 다르나요?</h2>
+    <p>규칙을 두 층으로 나눠요.</p>
+    <div class="sh-eng-rules">
+      <div class="sh-card">
+        <table class="sh-table sh-eng-tbl">
+          <thead><tr><th scope="col" colspan="2">반드시 지키는 것 (7가지)<small>하나라도 어기면 그 일정은 버려요</small></th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>하루에 10개 구단이 모두 한 번씩 경기해요</td></tr>
+            <tr><td class="n">2</td><td>하루에 쓰는 구장이 5개 모두 달라요 (두산·LG는 잠실을 같이 써서 같은 날 둘 다 홈일 수 없어요)</td></tr>
+            <tr><td class="n">3</td><td>하루에 시리즈가 5개예요</td></tr>
+            <tr><td class="n">4</td><td>2연전 칸에는 2연전만, 3연전 칸에는 3연전만 들어가요</td></tr>
+            <tr><td class="n">5</td><td>개막전·어린이날처럼 홈이 정해진 날은 그 구단이 홈이에요 (사용자가 고정한 시리즈도 같아요)</td></tr>
+            <tr><td class="n">6</td><td>홈 시리즈나 원정 시리즈가 4번 연속 이어지지 않아요</td></tr>
+            <tr><td class="n">7</td><td>같은 두 팀이 연속한 시리즈에서 다시 만나지 않아요</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sh-card">
+        <table class="sh-table sh-eng-tbl">
+          <thead><tr><th scope="col" colspan="2">되도록 맞추는 것 (5가지, 중요한 순서)<small>앞의 것이 같을 때만 다음 것을 봐요</small></th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>빠진 시리즈가 없게</td></tr>
+            <tr><td class="n">2</td><td>구단별 <b>이동 일수</b>가 고르게</td></tr>
+            <tr><td class="n">3</td><td>구단별 <b>이동거리</b>가 고르게 (서로 300km 안이면 같다고 봐요)</td></tr>
+            <tr><td class="n">4</td><td>구단별 <b>주말·공휴일 홈 경기</b>가 고르게 (한 경기 차이는 같다고 봐요)</td></tr>
+            <tr><td class="n">5</td><td>10개 구단 <b>총 이동거리</b>가 짧게</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="sh-eng-after">이렇게 나눈 이유는 하나예요. 조건이 서로 부딪혀도 "일정을 못 만들었어요"가 되지 않고, 덜 중요한 것만 조금 양보하면 되거든요.</p>
+    <div class="sh-eng-how"><b>방법</b><span>BendableLongScore 하드 2단계·소프트 5단계 사전식. 거리는 0.1km 정수. 편차 항은 허용오차(거리 300km, 휴일 1.0) 밖의 초과분만 벌점.</span></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="sh-sec" id="q3" aria-labelledby="q3-h">
+    <h2 class="sh-h2" id="q3-h"><span class="sh-eng-no" aria-hidden="true">3</span>규칙만 지키는 일정은 하나뿐인가요?</h2>
+    <p>아니요, <b>셀 수 없이 많아요.</b> 3연전 42칸에 라운드를 늘어놓는 순서만 따져도 0이 51개 붙는 수이고, 위의 규칙으로 걸러 내도 어림잡아 <b>0이 38개</b> 붙는 수가 남아요.</p>
+    <p>그래서 "다 만들어 놓고 가장 좋은 걸 고르기"는 할 수 없어요. 수백 개를 뽑아서 고르는 방법도 있지만, 그건 0이 38개 붙는 수 가운데 <b>운 좋게 뽑힌 수백 개</b>일 뿐이에요. 매치봇은 반대로 가요. 일정 하나를 만들고, 점수가 좋아지는 쪽으로 계속 고쳐요.</p>
+    <div class="sh-card sh-eng-fig">
+      <svg class="sh-eng-dots" viewBox="0 0 600 270" role="img" aria-label="규칙을 지키는 일정들이 점으로 넓게 깔려 있고, 그중 무작위로 뽑은 몇 개는 회색 동그라미, 매치봇은 점 하나에서 출발해 파란 선으로 아래(더 좋은 점수)로 내려간다">
+        <g class="d-field">
+          <circle cx="293" cy="188" r="2.2"/><circle cx="350" cy="77" r="2.2"/><circle cx="36" cy="128" r="2.2"/><circle cx="568" cy="45" r="2.2"/><circle cx="355" cy="49" r="2.2"/><circle cx="314" cy="55" r="2.2"/><circle cx="443" cy="179" r="2.2"/><circle cx="510" cy="68" r="2.2"/>
+          <circle cx="146" cy="174" r="2.2"/><circle cx="456" cy="51" r="2.2"/><circle cx="264" cy="49" r="2.2"/><circle cx="214" cy="127" r="2.2"/><circle cx="39" cy="84" r="2.2"/><circle cx="226" cy="169" r="2.2"/><circle cx="49" cy="52" r="2.2"/><circle cx="128" cy="129" r="2.2"/>
+          <circle cx="538" cy="172" r="2.2"/><circle cx="428" cy="202" r="2.2"/><circle cx="186" cy="165" r="2.2"/><circle cx="561" cy="191" r="2.2"/><circle cx="456" cy="127" r="2.2"/><circle cx="559" cy="134" r="2.2"/><circle cx="205" cy="188" r="2.2"/><circle cx="417" cy="132" r="2.2"/>
+          <circle cx="385" cy="126" r="2.2"/><circle cx="358" cy="55" r="2.2"/><circle cx="332" cy="201" r="2.2"/><circle cx="353" cy="138" r="2.2"/><circle cx="143" cy="204" r="2.2"/><circle cx="211" cy="82" r="2.2"/><circle cx="49" cy="128" r="2.2"/><circle cx="445" cy="206" r="2.2"/>
+          <circle cx="187" cy="126" r="2.2"/><circle cx="530" cy="138" r="2.2"/><circle cx="159" cy="194" r="2.2"/><circle cx="284" cy="45" r="2.2"/><circle cx="256" cy="116" r="2.2"/><circle cx="344" cy="166" r="2.2"/><circle cx="202" cy="91" r="2.2"/><circle cx="183" cy="206" r="2.2"/>
+          <circle cx="464" cy="191" r="2.2"/><circle cx="65" cy="102" r="2.2"/><circle cx="482" cy="153" r="2.2"/><circle cx="537" cy="48" r="2.2"/><circle cx="368" cy="86" r="2.2"/><circle cx="188" cy="152" r="2.2"/><circle cx="456" cy="50" r="2.2"/><circle cx="374" cy="54" r="2.2"/>
+          <circle cx="336" cy="136" r="2.2"/><circle cx="386" cy="177" r="2.2"/><circle cx="284" cy="62" r="2.2"/><circle cx="480" cy="191" r="2.2"/><circle cx="343" cy="110" r="2.2"/><circle cx="371" cy="193" r="2.2"/><circle cx="415" cy="195" r="2.2"/><circle cx="501" cy="128" r="2.2"/>
+          <circle cx="465" cy="199" r="2.2"/><circle cx="505" cy="149" r="2.2"/><circle cx="354" cy="179" r="2.2"/><circle cx="402" cy="78" r="2.2"/><circle cx="80" cy="207" r="2.2"/><circle cx="509" cy="190" r="2.2"/><circle cx="53" cy="129" r="2.2"/><circle cx="549" cy="143" r="2.2"/>
+          <circle cx="76" cy="146" r="2.2"/><circle cx="253" cy="135" r="2.2"/><circle cx="435" cy="82" r="2.2"/><circle cx="271" cy="96" r="2.2"/><circle cx="387" cy="53" r="2.2"/><circle cx="152" cy="103" r="2.2"/>
+          <circle cx="110" cy="60" r="2.2"/><circle cx="240" cy="200" r="2.2"/><circle cx="600" cy="100" r="2.2"/><circle cx="20" cy="180" r="2.2"/><circle cx="520" cy="210" r="2.2"/><circle cx="300" cy="150" r="2.2"/>
+        </g>
+        <g class="d-pick">
+          <circle cx="350" cy="77" r="6"/><circle cx="146" cy="174" r="6"/><circle cx="456" cy="127" r="6"/><circle cx="256" cy="116" r="6"/><circle cx="549" cy="143" r="6"/>
+        </g>
+        <g class="d-line">
+          <polyline points="49,52 70,70 92,96 118,112 140,126 170,152 205,170 245,186 290,200 340,212 395,222 450,229 510,234 570,237"/>
+          <circle class="d-start" cx="49" cy="52" r="5"/>
+          <circle class="d-end" cx="570" cy="237" r="6"/>
+        </g>
+        <g class="d-txt">
+          <text x="300" y="22" text-anchor="middle">규칙을 지키는 일정들 — 0이 38개 붙는 수</text>
+          <text x="364" y="72">무작위로 뽑은 몇 개</text>
+          <text x="575" y="264" text-anchor="end" class="d-eng">매치봇: 하나를 고쳐 나가요 →</text>
+          <text x="8" y="264" class="d-axis">↓ 아래가 좋아요</text>
+        </g>
+      </svg>
+      <p class="sh-small sh-eng-cap">아래로 내려갈수록 좋은 일정. 회색 동그라미 = 수백 개를 뽑아 고르는 방법, 파란 선 = 매치봇.</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="sh-sec" id="q4" aria-labelledby="q4-h">
+    <h2 class="sh-h2" id="q4-h"><span class="sh-eng-no" aria-hidden="true">4</span>어디서 출발하나요?</h2>
+    <p><b>규칙을 전부 지키는 일정 하나를 0.002초에 만들어요.</b></p>
+    <p>먼저 3연전 215개를 "두산 또는 LG 홈 하나 + 10개 구단이 한 번씩" 짝이 맞는 라운드 42개로 쪼개요. 그다음 라운드를 날짜 칸에 하나씩 놓는데, 이동거리가 가까운 순서로 놓다가 "4연속"이나 "같은 대진 연속"에 걸리면 한 칸 되돌아가 다른 라운드를 넣어요. 되돌아가는 횟수가 많아지면 처음부터 다시 시작해요.</p>
+    <p>이 출발점은 <b>규칙 위반이 0</b>이에요. 그래서 매치봇에는 "조건이 안 맞아서 일정이 안 나와요"가 없어요. 조건을 아무리 바꿔도 출발점은 항상 나와요.</p>
+    <div class="sh-facts" role="group" aria-label="출발점 숫자">
+      <div class="sh-fact"><b>0.002<small>초</small></b><span>출발점 하나</span></div>
+      <div class="sh-fact"><b>0</b><span>규칙 위반</span></div>
+    </div>
+    <div class="sh-eng-how"><b>방법</b><span>GRASP 다중 시작 구성 휴리스틱. Phase A: 3연전 215개를 공유 구장 홈 1개를 포함한 완전 매칭(라운드) 42개로 분해. Phase B: 구단별 가중치를 곱한 이동거리 기준 최근접 DFS로 슬롯 배치, 비트마스크로 4연속·연속 대진 가지치기, 노드 한도 초과 시 재시작. 시작마다 평균보다 많이 이동한 구단의 가중치를 올리는 라그랑주식 갱신.</span></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="sh-sec" id="q5" aria-labelledby="q5-h">
+    <h2 class="sh-h2" id="q5-h"><span class="sh-eng-no" aria-hidden="true">5</span>어떻게 고쳐 나가나요?</h2>
+    <p>바꿔 보는 방법은 세 가지예요.</p>
+    <ul class="sh-msgs sh-eng-moves">
+      <li><b>두 날짜 칸의 시리즈 5개를 통째로 맞바꾸기</b></li>
+      <li><b>두 날짜 칸 사이에서 시리즈 몇 개만 서로 바꾸기</b><span>10개 구단이 한 번씩이라는 짝은 그대로 두고</span></li>
+      <li><b>연속한 몇 칸을 다른 자리에 끼우거나 순서를 뒤집기</b></li>
+    </ul>
+    <p>바꾼 뒤 점수가 좋아지면 남겨요. 그런데 <b>좋아질 때만 받으면 금방 막다른 길에 갇혀요.</b> 그래서 "지금보다"가 아니라 "2,000걸음 전보다" 나으면 받아 줘요. 잠깐 나빠지는 길을 지나야 더 좋은 곳에 갈 수 있을 때가 많거든요. 규칙을 깨는 교환은 점수를 매기기 전에 버려서, 고치는 동안에도 규칙 위반은 늘 0이에요.</p>
+    <p>10초 동안 이런 걸음을 수백 번 밟고, 걸음마다 후보를 수십 개씩 봐요. <a href="index.html#replay">소개 쪽의 재생 화면</a>이 바로 이 과정이에요.</p>
+    <div class="sh-card sh-eng-fig">
+      <svg class="sh-eng-curve" viewBox="0 0 600 200" role="img" aria-label="총 이동거리가 시간에 따라 내려가는 꺾은선. 중간에 세 번 잠깐 올라갔다가 더 내려간다">
+        <g class="c-axis"><line x1="40" y1="20" x2="40" y2="170"/><line x1="40" y1="170" x2="580" y2="170"/></g>
+        <polyline class="c-line" points="40,32 70,62 100,84 128,96 150,112 170,104 200,126 240,140 275,150 292,143 330,156 380,163 420,165 436,160 470,170 520,174 580,176"/>
+        <g class="c-dip"><circle cx="170" cy="104" r="4"/><circle cx="292" cy="143" r="4"/><circle cx="436" cy="160" r="4"/></g>
+        <g class="c-txt">
+          <text x="178" y="98">잠깐 나빠져도 받아 줘요</text>
+          <text x="40" y="190">0초</text><text x="580" y="190" text-anchor="end">10초</text>
+          <text x="46" y="18">총 이동거리 ↓ 좋음</text>
+        </g>
+      </svg>
+      <p class="sh-small sh-eng-cap">점수가 좋아지는 길만 가면 막다른 곳에 갇혀요. 2,000걸음 전보다 나으면 받아 주기 때문에 선이 잠깐 올라가는 곳이 있어요.</p>
+    </div>
+    <div class="sh-eng-how"><b>방법</b><span>OptaPlanner 9.44 Late Acceptance 지역 탐색(lateAcceptanceSize 2000, acceptedCountLimit 40). 이동 세 종류: pillar swap(라운드 통째), Kempe 체인(두 라운드 사이 교대 사이클 부분 교환), 라운드 블록(Or-opt 삽입·2-opt 반전). 하드 위반 이동은 isMoveDoable에서 점수 계산 전에 거름.</span></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="sh-sec" id="q6" aria-labelledby="q6-h">
+    <h2 class="sh-h2" id="q6-h"><span class="sh-eng-no" aria-hidden="true">6</span>왜 출발점을 여러 개 쓰나요?</h2>
+    <p><b>출발점에 따라 결과가 달라요.</b> 같은 조건·같은 10초인데, 출발점 20개의 총 이동거리가 64,294km에서 73,318km까지 벌어졌어요(13% 차이). 20개 중 12개는 "구단별 차이 고르게"를 끝까지 못 맞췄어요.</p>
+    <p>그래서 <b>서로 다른 출발점 4개를 동시에 돌리고 가장 좋은 결과를 골라요.</b> 그러면 못 맞추는 경우가 60%에서 20%로 줄고, 평균 총 이동거리는 68,097km에서 65,878km로, 가장 나쁜 경우는 73,318km에서 67,590km로 좋아져요. 출발점 10개면 못 맞추는 경우가 0이었어요. 지금 서버는 4개를 돌려요.</p>
+    <div class="sh-card">
+      <table class="sh-table sh-eng-seeds">
+        <caption class="sh-small">같은 조건 · 10초, 벤치마크 2026-10-20</caption>
+        <thead><tr><th scope="col"></th><th scope="col">출발점 1개</th><th scope="col" class="now">4개 중 최고<small>지금 서버</small></th><th scope="col">10개 중 최고</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">차이를 못 맞춘 경우</th><td class="sh-num">20개 중 <b>12</b></td><td class="sh-num now">5묶음 중 <b>1</b></td><td class="sh-num"><b>0</b></td></tr>
+          <tr><th scope="row">총 이동거리 평균</th><td class="sh-num"><b>68,097</b>km</td><td class="sh-num now"><b>65,878</b>km</td><td class="sh-num"><b>64,078</b>km</td></tr>
+          <tr><th scope="row">가장 나쁜 경우</th><td class="sh-num"><b>73,318</b>km</td><td class="sh-num now"><b>67,590</b>km</td><td class="sh-num"><b>66,448</b>km</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sh-eng-how"><b>방법</b><span>시드별 단일스레드 솔버를 코어 수만큼 병렬(best-of-N). 4 move 스레드 1개는 1초 안에 개선이 멈추고, 단일스레드 4개는 8초까지 계속 개선(벤치마크).</span></div>
+  </section>
+
+  <!-- 7 -->
+  <section class="sh-sec" id="q7" aria-labelledby="q7-h">
+    <h2 class="sh-h2" id="q7-h"><span class="sh-eng-no" aria-hidden="true">7</span>그래서 얼마나 좋아졌나요?</h2>
+    <p>실제 2025 1차 일정과 <b>같은 대진·같은 날짜 칸·같은 거리표·같은 어린이날 홈 구단</b>으로 만들고, 같은 채점 방식으로 쟀어요.</p>
+    <div class="sh-card">
+      <table class="sh-table sh-eng-res">
+        <caption class="sh-small">출발점 8개 · 30초로 만든 결과</caption>
+        <thead><tr><th scope="col"></th><th scope="col"><i class="sh-sw sh-sw-real" aria-hidden="true"></i>실제 2025</th><th scope="col"><i class="sh-sw sh-sw-engine" aria-hidden="true"></i>매치봇</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">구단별 이동 일수</th><td class="sh-num r"><b>32~38</b>일</td><td class="sh-num e"><b>31~33</b>일</td></tr>
+          <tr><th scope="row">구단별 이동거리 차이</th><td class="sh-num r"><b>1,373</b>km</td><td class="sh-num e"><b>554</b>km</td></tr>
+          <tr><th scope="row">주말·공휴일 홈 경기</th><td class="sh-num r"><b>22~28</b>경기</td><td class="sh-num e"><b>모두 25</b>경기</td></tr>
+          <tr><th scope="row">총 이동거리</th><td class="sh-num r">—</td><td class="sh-num e"><b>13%</b> 감소</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sh-eng-after">자세한 숫자와 구단별 막대는 <a class="sh-link" href="compare.html">숫자와 근거 쪽에 →</a></p>
+    <div class="sh-eng-how"><b>방법</b><span>Bavet 제약 스트림(실제 솔버), 교차 검증용 Easy 계산기, 브라우저 JS 포트 셋이 같은 점수를 내도록 패리티 테스트로 묶음.</span></div>
+  </section>
+
+  <!-- 8 -->
+  <section class="sh-sec" id="q8" aria-labelledby="q8-h">
+    <h2 class="sh-h2" id="q8-h"><span class="sh-eng-no" aria-hidden="true">8</span>매치봇이 모르는 것은요?</h2>
+    <p>실제 일정은 매치봇에 없는 조건까지 맞춰야 해요.</p>
+    <ul class="sh-eng-list">
+      <li>구장 대관·공사 일정</li>
+      <li>방송사가 원하는 중계 대진</li>
+      <li>지역 행사(마라톤, 축제)와 겹치는 날</li>
+      <li>구단의 개별 요청</li>
+      <li>우천 예비일</li>
+      <li>지방 구단의 수도권 원정을 한 번에 묶는 현장 규칙</li>
+    </ul>
+    <p>그래서 실제 일정과 매치봇 일정은 <b>같은 문제를 푼 게 아니에요.</b> 위의 숫자는 "같은 조건이라면 이만큼 더 줄일 수 있다"로 읽어 주세요.</p>
+    <p>KBO는 2015년까지 손으로 만들다가 그 뒤로 프로그램으로 만들어요. 구단별 이동거리 차이를 2017년 4,034km에서 2021년 1,293km까지 줄였어요(스포츠춘추, 2022). 그 프로그램이 어떤 방식인지는 공개되지 않아서 여기서 견주지 않아요.</p>
+    <div class="sh-eng-how"><b>방법</b><span>입력은 KBO 2025 1차 일정의 대진·날짜·구장 간 도로 거리(카카오맵)만. 중계·대관·구단 요청은 입력에 없음.</span></div>
+
+    <h3 class="sh-h3" id="q8-ask">실무 조건을 넣을 수 있나요?</h3>
+    <p>셀 수 있는 조건이면 넣을 수 있어요.</p>
+    <ul class="sh-eng-list">
+      <li>"이 날은 이 구단이 홈" / "이 날은 이 구장 못 써요" → <b>반드시 지키는 규칙</b>으로</li>
+      <li>"주말 홈 경기 수를 고르게" / "수도권 원정은 되도록 묶어서" → <b>되도록 맞추는 점수</b>로</li>
+      <li>마음에 드는 시리즈는 <b>고정</b>하고 나머지만 다시 만들 수 있어요</li>
+      <li>같은 조건·같은 출발점이면 <b>같은 결과</b>가 나와요. 조건을 하나 바꾸고 10초 뒤 무엇이 달라졌는지 볼 수 있어요</li>
+      <li>아직 없는 것: 미편성 9경기와 우천 취소 경기를 뒤에 다시 넣는 일</li>
+    </ul>
+    <div class="sh-cta sh-eng-cta">
+      <a class="k-btn k-btn-primary" href="mailto:drimdrim2002@naver.com?subject=%5B%EB%A7%A4%EC%B9%98%EB%B4%87%5D%20%EC%8B%A4%EB%AC%B4%20%EB%AC%B8%EC%9D%98">실무 문의하기</a>
+      <a class="k-btn" href="compare.html">숫자와 근거 보기</a>
+    </div>
+    <p class="sh-small sh-eng-cta-note">메일로 조건을 보내 주시면 넣을 수 있는지, 어느 층(반드시·되도록)에 들어가는지 답해 드려요.</p>
+  </section>
+
+  <!-- 근거 문서 -->
+  <section class="sh-sec" id="src" aria-labelledby="src-h">
+    <h2 class="sh-h2" id="src-h">근거 문서</h2>
+    <ul class="sh-eng-list sh-eng-src">
+      <li><b>시드 편차·멀티스타트 벤치마크</b><span>2026-10-20 · 6번 블록의 표와 "출발점 1개는 1초 안에 멈춘다"의 출처</span></li>
+      <li><b>초기해 구축 설계서</b><span>4번 블록의 출발점 만드는 방법</span></li>
+      <li><b>저장소 링크</b><span>준비 중</span></li>
+    </ul>
+    <div class="sh-card-foot sh-eng-foot"><a class="k-btn" href="how.html">짧은 설명으로</a><a class="k-btn" href="index.html">소개로 돌아가기</a><button class="k-btn sh-more" type="button" data-share="copy" aria-label="이 쪽 링크 복사">링크 복사</button></div>
+  </section>
+</main>
+
+<footer class="sh-foot">
+  <div class="sh-wrap">
+    <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 만들어 드려요 →</p>
+    <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
+    <p><a href="index.html">소개로</a> · <a href="compare.html">숫자와 근거</a> · <a href="how.html">결정구</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
+  </div>
+</footer>
+<script src="show.js?v=20261101a"></script>
+</body>
+</html>
