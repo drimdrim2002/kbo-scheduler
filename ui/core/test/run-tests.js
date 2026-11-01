@@ -222,6 +222,21 @@ test('2027 기본 데이터: 설정 · 공휴일 가중치 · 개막전(대진 �
   assert(v.ok, JSON.stringify(v.errors));
 });
 
+test('2027 공휴일 바로잡기: 예전 저장본은 8/16을 빼고 5/1·7/17을 넣음 · 다시 읽어도 같음 · 8/16 월 경기를 켠 시즌과 지운 날은 그대로', () => {
+  const base = P27.buildProject();
+  const old = (o) => { const q = JSON.parse(JSON.stringify(base)); q.settings.holidays = q.settings.holidays.filter((h) => !['2027-05-01', '2027-07-17'].includes(h.date)).concat([Object.assign({ date: '2027-08-16', name: '광복절 대체공휴일', weight: 2, playOnRest: false }, o)]); return q; };
+  const days = (q) => KBO.Store.validateProject(q).project.settings.holidays.map((h) => h.date);
+  const fixed = KBO.Store.validateProject(old()).project;
+  const d = fixed.settings.holidays.map((h) => h.date);
+  assert(d.includes('2027-05-01') && d.includes('2027-07-17') && !d.includes('2027-08-16'), '바로잡음');
+  eq(d, d.slice().sort(), '날짜 순');
+  eq(days(fixed), d, '다시 읽어도 같음');
+  fixed.settings.holidays = fixed.settings.holidays.filter((h) => h.date !== '2027-05-01');
+  assert(!days(fixed).includes('2027-05-01'), '사용자가 지운 날은 되살리지 않음');
+  const kept = days(old({ playOnRest: true }));
+  assert(kept.includes('2027-08-16') && !kept.includes('2027-05-01'), '월 경기를 켠 시즌은 그대로');
+});
+
 test('격년 홈 73/71 기본값: 홀수 해 한화·SSG·KT·롯데·두산, 짝수 해는 나머지 · 1차 편성 69/66(4연전 홈 바꿈이면 68/67) · 다음 해로 뒤집기 · 합 검사', () => {
   const teams = Preset.ENGINE_INPUT_2025.teams;
   const y27 = CalendarGen.defaultHomeTotals(2027, teams), y28 = CalendarGen.defaultHomeTotals(2028, teams);
