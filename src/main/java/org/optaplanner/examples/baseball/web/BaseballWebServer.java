@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
  * GET  /api/v1/solve/{jobId}/events      SSE: queued | status | seed-best | best | done | error
  * POST /api/v1/solve/{jobId}/stop        조기 종료
  * POST /api/v1/score                     { problem, plan?, mode } → { score, scoreString }
+ * POST /api/v1/road-distance             { pairs: [{ from: {lat, lon}, to: {lat, lon} }] } → { results: [{ km } | { error }] }
+ *                                        (카카오모빌리티 길찾기 중계, 서버 환경 변수 KAKAO_REST_KEY가 있을 때만)
  * GET  /...                              ui/ 아래 정적 파일 (/ → index.html)
  * </pre>
  *
@@ -66,10 +68,16 @@ public final class BaseballWebServer {
     private final JobManager jobs;
     private final Showcase showcase;
     private final SolutionManager<BaseballSolution, BendableLongScore> scorer;
+    private final RoadDistance road;
     private HttpServer server;
 
     BaseballWebServer(ServerLimits limits, Path uiRoot, Path dataDir, Path inputFile) throws IOException {
+        this(limits, uiRoot, dataDir, inputFile, RoadDistance.fromEnv());
+    }
+
+    BaseballWebServer(ServerLimits limits, Path uiRoot, Path dataDir, Path inputFile, RoadDistance road) throws IOException {
         this.limits = limits;
+        this.road = road;
         this.uiRoot = uiRoot == null ? null : uiRoot.toAbsolutePath().normalize();
         this.showRoot = this.uiRoot == null ? null : this.uiRoot.resolve("show");
         ResultStore store = new ResultStore(dataDir);
@@ -105,8 +113,8 @@ public final class BaseballWebServer {
         BaseballWebServer app = new BaseballWebServer(limits, Files.isDirectory(ui) ? ui : null, data, input);
         app.start(port);
         app.showcase.ensureDefault();
-        LOG.info("{} {} listening on http://localhost:{} (ui={}, seeds={}, maxSeconds={})", NAME, VERSION, port,
-                app.uiRoot, limits.defaultSeeds(), limits.maxSeconds());
+        LOG.info("{} {} listening on http://localhost:{} (ui={}, seeds={}, maxSeconds={}, roadDistance={})", NAME, VERSION, port,
+                app.uiRoot, limits.defaultSeeds(), limits.maxSeconds(), app.road.available() ? "on" : "off(KAKAO_REST_KEY 없음)");
     }
 
     void start(int port) throws IOException {
@@ -187,7 +195,15 @@ public final class BaseballWebServer {
                     "defaultResult", showcase.defaultStatus(),
                     "defaultSeconds", limits.defaultSeconds(), "maxSeconds", limits.maxSeconds(),
                     "defaultSeeds", (long) limits.defaultSeeds(), "maxSeeds", (long) limits.maxSeeds(),
-                    "queueLength", (long) jobs.queueLength()));
+                    "queueLength", (long) jobs.queueLength(), "roadDistance", road.available()));
+            return;
+        }
+        if ("road-distance".equals(rest) && "POST".equals(method)) {
+            if (!road.available()) {
+                sendJson(ex, 503, Json.obj("error", "서버에 카카오 REST 키가 없어 도로거리를 계산할 수 없습니다."));
+                return;
+            }
+            sendJson(ex, 200, road.handle(readJsonObject(ex), clientIp(ex)));
             return;
         }
         if ("solve".equals(rest) && "POST".equals(method)) {

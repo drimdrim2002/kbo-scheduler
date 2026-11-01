@@ -1,6 +1,8 @@
 /*
  * alt-a 편성 스튜디오 — ① 데이터 준비
- * 위: 가져오기 띠 / 왼쪽: 시트 목록 / 가운데: 시트 표(한 건 편집) · 시즌 골격 폼 · 구단과 거리 / 오른쪽: 행 인스펙터
+ * 기본 화면은 시즌 달력 한 화면(season-calendar.js). 여기는 그 화면이 쓰는 표 정의·구단 정보와
+ * 전문가용 「모든 표 보기」(위: 가져오기 띠 / 왼쪽: 시트 목록 / 가운데: 시트 표 · 시즌 골격 폼 · 구단 정보 / 오른쪽: 행 인스펙터)다.
+ * 휴식일 경기·휴식기 표는 달력의 묶음에서 만들어지므로 읽기만 한다.
  */
 (function () {
   'use strict';
@@ -62,7 +64,7 @@
   const STADIUM_NAMES = () => app().state.teams.map((t) => t.stadium).filter((x, i, a) => a.indexOf(x) === i);
   const vMode = (v) => (['대진 지정', '구장 지정', 'MATCH', 'STADIUM'].includes(String(v).trim()) ? null : { error: '「대진 지정」 또는 「구장 지정」으로 씁니다.', fix: /대진|MATCH/i.test(String(v)) ? '대진 지정' : '구장 지정' });
   const parseMode = (v) => (/대진|MATCH/i.test(String(v)) ? 'MATCH' : 'STADIUM');
-  const vStadiums = (v) => { const names = STADIUM_NAMES(); const bad = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean).filter((x) => !names.includes(x)); return bad.length ? { error: "모르는 구장 '" + bad[0] + "' — 구단과 거리 화면의 구장 이름을 쉼표로 적습니다." } : null; };
+  const vStadiums = (v) => { const names = STADIUM_NAMES(); const bad = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean).filter((x) => !names.includes(x)); return bad.length ? { error: "모르는 구장 '" + bad[0] + "' — 구단 정보 화면의 구장 이름을 쉼표로 적습니다." } : null; };
   const SHEETS = {
     slots: {
       label: '연전 기간', sheet: S.SHEET_NAMES.slots, unit: '기간', get desc() { return (app().state.teams.length >> 1) + '개 구장에서 동시에 시리즈가 열리는 2~4일입니다. 보통 엑셀 파일로 한꺼번에 받습니다.'; },
@@ -93,7 +95,7 @@
       label: '시리즈', sheet: S.SHEET_NAMES.series, unit: '시리즈', desc: '같은 두 구단이 한 구장에서 치르는 2~4연전입니다. 날짜와 고정은 ③에서 정합니다.',
       rows: (st) => st.matches,
       cols: [
-        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="muted" title="개막전 대진 지정으로 고정(③에서 관리)">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
+        { key: 'home', head: '홈', alias: 'home', req: true, w: 120, get: (r) => r.home, show: (r) => S.team(r.home) + (r.pinned ? ' <span class="muted" title="홈 구장 지정으로 고정(③에서 관리)">' + icon('pin') + '</span>' : ''), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.away ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.home = String(v).trim(); } },
         { key: 'away', head: '원정', alias: 'away', req: true, w: 120, get: (r) => r.away, show: (r) => S.team(r.away), html: true, validate: (v, r) => vTeam(v) || (String(v).trim() === r.home ? { error: '홈과 원정이 같습니다.' } : null), set: (r, v) => { r.away = String(v).trim(); } },
         { key: 'games', head: '연전 수', alias: 'games', req: true, w: 70, num: true, get: (r) => r.consecutive, validate: vRange(2, 4, '연전 수'), set: (r, v) => { r.consecutive = P.int(v); } },
         { key: 'stadium', head: '구장', w: 170, ro: true, show: (r) => esc(((app().team(r.home) || {}).stadium) || '-'), html: true },
@@ -127,46 +129,47 @@
       assist: { act: 'draft-series', label: '맞대결 규칙대로 자동 채우기' }
     },
     holidays: {
-      label: '공휴일', sheet: S.SHEET_NAMES.holidays, unit: '일', parent: 'season', desc: '휴일 등급을 매길 때 쓰는 공휴일입니다. 같은 날짜는 한 번만 적습니다.',
+      label: '공휴일', sheet: S.SHEET_NAMES.holidays, unit: '일', parent: 'season', desc: '홈 경기 공정성에 쓰는 공휴일과 가중치(주말 하루 = 1)입니다. 같은 날짜는 한 번만 적습니다.',
       rows: (st) => st.settings.holidays,
       cols: [
         { key: 'date', head: '날짜', alias: 'date', req: true, w: 130, get: (r) => r.date, show: (r) => dateCell(r.date), validate: vDate, set: (r, v) => { r.date = P.date(v); } },
         { key: 'name', head: '이름', alias: 'name', req: true, w: 200, get: (r) => r.name, validate: (v) => (String(v).trim() ? null : { error: '이름이 비었습니다.' }), set: (r, v) => { r.name = String(v).trim(); } },
+        { key: 'weight', head: '가중치', alias: 'weight', w: 70, num: true, get: (r) => (r.weight == null ? CalendarGen.HOLIDAY_WEIGHT : r.weight), validate: (v) => { const n = Number(String(v).trim()); return String(v).trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 10 ? null : { error: '가중치는 0~10 정수입니다(주말 하루 = 1).' }; }, set: (r, v) => { r.weight = Number(String(v).trim()); } },
         { key: 'slot', head: '속한 연전 기간', w: 0, ro: true, show: (r) => { const i = CalendarGen.slotIndexOfDate(app().state.calendar, r.date); return i >= 0 ? D().slots[i].label : '<span class="muted">경기 없음</span>'; }, html: true }
       ],
       rowIssues(st, i) { const r = st.settings.holidays[i]; return st.settings.holidays.some((h, k) => k !== i && h.date === r.date) ? [{ level: 'error', col: 'date', msg: '같은 날짜가 두 번 있습니다.' }] : []; },
-      blank: (st) => ({ date: baseDate(st), name: '새 공휴일' }),
+      blank: (st) => ({ date: baseDate(st), name: '새 공휴일', weight: CalendarGen.HOLIDAY_WEIGHT }),
       insert(s, at, row) { s.settings.holidays.splice(at, 0, row); },
       remove(s, at) { s.settings.holidays.splice(at, 1); },
       assist: { act: 'fill-holidays', label: '법정 공휴일 채우기' },
       emptyHint: '시즌 기간의 법정 공휴일(어린이날·현충일·광복절 등)입니다. 「법정 공휴일 채우기」로 한 번에 넣고, 임시 공휴일만 직접 더합니다.'
     },
     restex: {
-      label: '휴식일 경기', sheet: S.SHEET_NAMES.restex, unit: '일', parent: 'season', desc: '휴식 요일이지만 경기를 하는 날입니다. 예: 5/5(월) 어린이날.',
+      label: '휴식일 경기', sheet: S.SHEET_NAMES.restex, unit: '일', parent: 'season', derived: true, desc: '휴식 요일이지만 경기를 하는 날입니다(예: 5/5(월) 어린이날). 시즌 달력에서 휴식 요일에 묶음을 그리면 여기에 생깁니다 — 읽기만.',
       rows: (st) => st.settings.restExceptions.map((d) => ({ date: d })),
       cols: [
-        { key: 'date', head: '날짜', alias: 'date', req: true, w: 130, get: (r) => r.date, show: (r) => dateCell(r.date), validate: vDate, setAt: (s, i, v) => { s.settings.restExceptions[i] = P.date(v); } },
+        { key: 'date', head: '날짜', alias: 'date', req: true, w: 130, ro: true, get: (r) => r.date, show: (r) => dateCell(r.date) },
         { key: 'note', head: '메모', alias: 'note', w: 0, ro: true, show: (r) => { const h = (app().state.settings.holidays || []).find((x) => x.date === r.date); return esc(h ? h.name : ''); }, html: true }
       ],
       rowIssues(st, i) { const d = st.settings.restExceptions[i]; return st.settings.restWeekdays.includes(Dates.weekday(d)) ? [] : [{ level: 'warn', col: 'date', msg: '휴식 요일이 아니라서 따로 적을 필요가 없습니다.' }]; },
       blank: (st) => nextRestDay(st),
       insert(s, at, row) { s.settings.restExceptions.splice(at, 0, typeof row === 'string' ? row : row.date); },
       remove(s, at) { s.settings.restExceptions.splice(at, 1); },
-      emptyHint: '휴식 요일인데 경기를 하는 날만 적습니다. 예: 5/5(월) 어린이날. 보통 한두 줄입니다.'
+      emptyHint: '휴식 요일인데 경기를 하는 날입니다. 시즌 달력에서 휴식 요일(월)에 묶음을 그리면 여기에 생깁니다. 예: 5/5(월) 어린이날.'
     },
     blackouts: {
-      label: '휴식기', sheet: S.SHEET_NAMES.blackouts, unit: '개', parent: 'season', desc: '올스타 휴식기처럼 경기가 없는 기간입니다. 하루만이면 시작일과 종료일을 같게 적습니다.',
+      label: '휴식기', sheet: S.SHEET_NAMES.blackouts, unit: '개', parent: 'season', derived: true, desc: '올스타 휴식기처럼 경기가 없는 기간입니다. 시즌 달력에서 묶음이 없는 날(휴식 요일 말고)이 여기에 생깁니다 — 읽기만.',
       rows: (st) => st.settings.blackouts,
       cols: [
-        { key: 'start', head: '시작일', alias: 'start', req: true, w: 130, get: (r) => r.start, show: (r) => dateCell(r.start), validate: vDate, set: (r, v) => { r.start = P.date(v); } },
-        { key: 'end', head: '종료일', alias: 'end', req: true, w: 130, get: (r) => r.end, show: (r) => dateCell(r.end), validate: vDate, set: (r, v) => { r.end = P.date(v); } },
-        { key: 'name', head: '이름', alias: 'name', req: true, w: 0, get: (r) => r.label || '', set: (r, v) => { r.label = String(v).trim(); } }
+        { key: 'start', head: '시작일', alias: 'start', req: true, w: 130, ro: true, get: (r) => r.start, show: (r) => dateCell(r.start) },
+        { key: 'end', head: '종료일', alias: 'end', req: true, w: 130, ro: true, get: (r) => r.end, show: (r) => dateCell(r.end) },
+        { key: 'name', head: '이름', alias: 'name', req: true, w: 0, ro: true, get: (r) => r.label || '', show: (r) => r.label || '' }
       ],
       rowIssues(st, i) { const r = st.settings.blackouts[i]; return r.start > r.end ? [{ level: 'error', col: 'end', msg: '시작일이 종료일보다 늦습니다.' }] : []; },
       blank: (st) => ({ start: baseDate(st), end: baseDate(st), label: '새 기간' }),
       insert(s, at, row) { s.settings.blackouts.splice(at, 0, row); },
       remove(s, at) { s.settings.blackouts.splice(at, 1); },
-      emptyHint: '올스타 휴식기처럼 경기가 없는 기간입니다. 하루만이면 시작일과 종료일을 같게 적습니다. 보통 한두 줄입니다.'
+      emptyHint: '올스타 휴식기처럼 경기가 없는 기간입니다. 시즌 달력에서 그 주 묶음을 지우면 여기에 생깁니다.'
     },
     events: {
       label: '특별 경기', sheet: S.SHEET_NAMES.events, unit: '개', desc: '대진 지정: 그 날짜에 정한 대진을 고정합니다. 구장 지정: 그 구장 연고 구단이 반드시 홈 경기를 합니다.',
@@ -178,7 +181,7 @@
         { key: 'mode', head: '지정 방식', alias: 'mode', req: true, w: 84, get: (r) => (r.mode === 'MATCH' ? '대진 지정' : '구장 지정'), validate: vMode, set: (r, v) => { r.mode = parseMode(v); if (r.mode === 'STADIUM') { delete r.home; delete r.away; r.stadiums = r.stadiums || []; } else delete r.stadiums; } },
         { key: 'home', head: '홈', alias: 'home', w: 90, get: (r) => r.home || '', show: (r) => (r.home ? S.team(r.home) : ''), html: true, validate: (v, r) => (r.mode === 'MATCH' ? vTeam(v) : null), set: (r, v) => { r.home = String(v).trim(); } },
         { key: 'away', head: '원정', alias: 'away', w: 90, get: (r) => r.away || '', show: (r) => (r.away ? S.team(r.away) : ''), html: true, validate: (v, r) => (r.mode === 'MATCH' ? vTeam(v) : null), set: (r, v) => { r.away = String(v).trim(); } },
-        { key: 'stadiums', head: '구장', alias: 'stadiums', w: 0, get: (r) => (r.stadiums || []).join(', '), validate: (v, r) => (r.mode === 'STADIUM' ? vStadiums(v) : null), set: (r, v) => { if (r.mode === 'STADIUM') r.stadiums = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean); } }
+        { key: 'stadiums', head: '구장', alias: 'stadiums', w: 0, get: (r) => (r.stadiums || []).join(', '), validate: (v, r) => (r.mode === 'STADIUM' ? vStadiums(v) : null), set: (r, v) => { if (r.mode === 'STADIUM') { r.stadiums = String(v).split(/[,、·]/).map((x) => x.trim()).filter(Boolean); delete r.teams; r.teams = S.evTeams(r); } } }
       ],
       rowIssues(st, i) {
         const e = st.events[i];
@@ -189,9 +192,14 @@
       },
       blank: (st) => ({ id: 'ev-' + Date.now().toString(36), type: 'CUSTOM', name: '새 특별 경기', date: firstSlotDate(st), mode: 'STADIUM', stadiums: [(st.teams[0] || {}).stadium].filter(Boolean) }),
       insert(s, at, row) { s.events.splice(at, 0, row); },
-      remove(s, at) { const e = s.events[at]; s.events.splice(at, 1); for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; } },
-      assists: [{ act: 'add-opening', label: '개막전 대진 추가' }, { act: 'add-children', label: '어린이날 구장 지정 추가' }],
-      emptyHint: '날짜를 미리 정할 경기입니다. 개막전은 「대진 지정」(그날 대진 고정), 어린이날은 「구장 지정」(그 구장 구단이 꼭 홈). 시리즈가 먼저 있어야 개막전 대진을 만들 수 있습니다.'
+      // 개막전·어린이날 구장 지정은 규칙(노트 「사」): 줄을 지우면 teams: []로 남겨 「지정 없음」 — 사전 점검·편성 시작 때 다시 묻는다
+      remove(s, at) {
+        const e = s.events[at];
+        if (e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && (e.teams || e.stadiums || []).length) { e.teams = []; e.stadiums = []; e.fix = 'home'; delete e.pairs; } else s.events.splice(at, 1);
+        for (const m of s.matches) if (m.eventId === e.id) { delete m.eventId; m.pinned = false; }
+      },
+      assists: [{ act: 'add-opening', label: '개막전 홈 구장 지정 추가' }, { act: 'add-children', label: '어린이날 구장 지정 추가' }],
+      emptyHint: '날짜를 미리 정할 경기입니다. 개막전·어린이날 모두 「구장 지정」(그 날 홈 경기를 해야 하는 구단 5곳, 상대는 자동 편성이 정함)입니다. 시즌 달력에서 날을 눌러 고르는 편이 쉽습니다.'
     }
   };
   S.SHEETS = SHEETS;
@@ -234,13 +242,12 @@
       '<button class="btn sm" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식</button>' +
       '<button class="btn sm" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기</button>' +
       '<span class="sep" style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>' +
-      (S.isBlank()
-        ? '<button class="btn sm" data-act="reset-ask" data-kind="example"' + (locked ? ' disabled' : '') + ' title="2025 실제 일정(기본 제공)을 다시 불러옵니다">' + icon('db') + '2025 예시 데이터 불러오기</button>'
-        : '<button class="btn sm reset-btn" data-act="reset-ask" data-kind="blank"' + (locked ? ' disabled' : '') + ' title="표를 모두 비우고 빈 상태에서 처음부터 입력합니다(구단과 거리는 남김)">' + icon('plus') + '처음부터 입력하기</button>') +
+      // 처음부터 입력하기·예시 데이터 다시 불러오기는 시즌 연도 고르기(연도 카드)로 합쳤다
+      '<button class="btn sm" data-act="year-pick"' + (locked ? ' disabled' : '') + ' title="연도 카드에서 그 해를 처음부터 다시 하거나 기본 제공 데이터로 다시 불러옵니다">' + icon('cal') + '시즌 연도 · 처음부터 다시</button>' +
       (S.guideButton ? S.guideButton() : '') +
       '<span class="last">' + (li
         ? S.stat('ok', '적용됨') + '<span>' + esc(li.source) + ' · ' + esc(li.sheets) + ' · ' + esc(li.time) + '</span>' + (li.kind === 'gsheet' ? '<button class="btn xs" data-act="import-gsheet-reload">' + icon('redo') + '다시 불러오기</button>' : '') + S.mock()
-        : S.isBlank() ? '<span class="muted">현재 데이터: 직접 입력(처음부터) · 구단과 거리만 들어 있음</span>' : '<span class="muted">현재 데이터: 2025 실제 일정(기본 제공)</span>' + S.mock()) + '</span>' +
+        : '<span class="muted">현재 데이터: ' + S.seasonYear() + ' 시즌 · ' + (S.isBlank() ? '직접 입력(처음부터) · 구단 정보만 들어 있음' : S.builtinOf && S.builtinOf(S.seasonYear()) && !S.repo.has(S.seasonYear()) ? S.builtinOf(S.seasonYear()).label + '(' + S.builtinOf(S.seasonYear()).tag + ')' : '이 브라우저에 저장한 데이터') + '</span>') + '</span>' +
       '</div>';
   }
 
@@ -267,7 +274,7 @@
     s += item('series', SHEETS.series.label, st.matches.length, { icon: 'list', sub: '맞대결 ' + pairs + '쌍 × ' + (pairs ? Math.round(st.matches.length / pairs * 10) / 10 : 0), issues: sheetIssueCount('series') });
     s += item('events', SHEETS.events.label, st.events.length, { icon: 'target', sub: '대진 지정 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 지정 ' + st.events.filter((e) => e.mode === 'STADIUM').length, issues: sheetIssueCount('events') });
     s += '<div class="label">구단</div>';
-    s += item('teams', '구단과 거리', st.teams.length, { icon: 'team', sub: '같이 쓰는 구장 ' + app().sharedStadiums().size + ' · 거리 ' + nT * (nT - 1) });
+    s += item('teams', '구단 정보', st.teams.length, { icon: 'team', sub: '같이 쓰는 구장 ' + app().sharedStadiums().size + ' · 거리 ' + nT * (nT - 1) });
     s += '<div class="list-sep"></div><div class="label">가져온 기록</div>';
     const hist = (S.importHistory || []).slice().reverse();
     s += hist.map((h) => '<div class="small" style="padding:3px 12px 5px;display:flex;gap:6px;align-items:flex-start"><span class="ico" style="color:var(--text-3)">' + icon(h.kind === 'gsheet' ? 'link' : h.kind === 'preset' ? 'db' : 'upload') + '</span><span><b style="font-weight:600">' + esc(h.source) + '</b><br><span class="muted">' + esc(h.detail) + '</span></span></div>').join('');
@@ -290,6 +297,7 @@
     // 줄을 고르지 않았으면 「아래에 추가」는 맨 끝(빈 표면 첫 줄)에 더한다
     const addLabel = rows.length ? (selRow < 0 ? '끝에 추가' : '아래에 추가') : '첫 줄 추가';
     const assists = o.assist === false ? [] : sheetAssists(sh);
+    if (sh.derived) return renderDerivedSheet(key, sh, rows, cols);
     let s = '<div class="toolbar">' +
       '<span class="pane-title">' + esc(sh.label) + '</span><span class="muted small">' + rows.length + '개</span>' +
       '<span class="pane-desc" style="max-width:420px">' + esc(sh.desc) + '</span>' +
@@ -339,6 +347,16 @@
     s += '<div class="pane-foot small muted" style="white-space:nowrap;overflow:hidden">' + icon('info') + '<span style="overflow:hidden;text-overflow:ellipsis" title="여러 줄을 한꺼번에 고치거나 붙여 넣을 때는 엑셀에서 고친 뒤 다시 가져옵니다.">칸을 누르고 <span class="kbd">Enter</span>나 두 번 눌러 고칩니다 · 화살표로 이동 · <span class="kbd">Esc</span>로 취소 · 고친 값은 오른쪽 그림에 바로 보입니다</span></div>';
     return s;
   }
+  /** 휴식일 경기·휴식기: 시즌 달력의 묶음에서 만들어지는 표(읽기만) */
+  function renderDerivedSheet(key, sh, rows, cols) {
+    let s = '<div class="toolbar"><span class="pane-title">' + esc(sh.label) + '</span><span class="muted small">' + rows.length + '개</span><span class="pane-desc" style="max-width:520px">' + esc(sh.desc) + '</span>' +
+      '<span style="margin-left:auto"><button class="btn sm primary" data-act="g1-cal">' + icon('cal') + '시즌 달력에서 고치기</button></span></div>';
+    s += '<div class="pane-body xy" data-sk="d-sheet-' + key + '" id="sheetScroll"><table class="sheet" aria-label="' + esc(sh.label) + ' 표(읽기만)"><colgroup><col style="width:44px">' + cols.map((c) => '<col' + (c.w ? ' style="width:' + c.w + 'px"' : '') + '>').join('') + '</colgroup>';
+    s += '<thead><tr><th class="rn">번호</th>' + cols.map((c) => '<th><span class="col">자동</span>' + esc(c.head) + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach((r, i) => { s += '<tr data-row="' + i + '"><td class="rn">' + (i + 1) + '</td>' + cols.map((c) => '<td class="ro">' + (c.html ? c.show(r, i) : esc(c.show ? c.show(r, i) : c.get(r))) + '</td>').join('') + '</tr>'; });
+    if (!rows.length) s += '<tr class="empty-row"><td colspan="' + (cols.length + 1) + '"><div class="empty sheet-empty"><b>' + icon('sheet') + ' 없습니다</b>' + esc(sh.emptyHint) + '</div></td></tr>';
+    return s + '</tbody></table></div><div class="pane-foot small muted">' + icon('info') + '<span>연전 묶음이 곧 경기일입니다. 이 표는 시즌 달력의 묶음과 휴식 요일에서 만들어 ② 검토·실행과 자동 편성에 넘깁니다.</span></div>';
+  }
   function sheetColIndex(sh, col) { return sh.cols.filter((c) => !c.ro).indexOf(col); }
   /** 표의 자동 채우기 단추 목록 (assist 하나 또는 assists 여럿) */
   function sheetAssists(sh) { return sh.assists ? sh.assists.slice() : sh.assist ? [sh.assist] : []; }
@@ -352,7 +370,7 @@
     const wd = ['일', '월', '화', '수', '목', '금', '토'];
     const blankDates = !set.seasonStart || !set.initialEnd;
     const dateIn = (k, label, ph) => '<label class="field"><span>' + label + ' *</span><input class="input' + (set[k] ? '' : ' empty') + '" data-in="season" data-k="' + k + '" value="' + esc(set[k] ? fmt.date(set[k]) : '') + '" placeholder="' + esc(ph) + '"' + (set[k] ? '' : ' aria-describedby="seasonHint"') + '></label>';
-    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">' + (o.subs === false ? '개막·종료일과 휴식 요일을 입력합니다. 공휴일·휴식일 경기·휴식기는 다음 단계에서 넣습니다.' : '개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일·휴식일 경기·휴식기는 왼쪽 목록에서 고칩니다.') + '</span></div>';
+    let s = '<div class="pane-head"><span class="pane-title">시즌 기본 설정</span><span class="pane-desc">' + (o.subs === false ? '개막·종료일과 휴식 요일을 입력합니다.' : '개막·종료일과 휴식 요일은 여기서 입력합니다. 공휴일은 왼쪽 목록에서 고치고, 휴식일 경기·휴식기는 시즌 달력의 묶음에서 만들어집니다.') + '</span></div>';
     s += '<div class="pane-body pad" data-sk="d-season">';
     s += '<div class="blk"><div class="blk-head">기간과 휴식 요일</div><div class="blk-body"><div class="form-grid">' +
       dateIn('seasonStart', '개막일', '예: 2025-03-22') +
@@ -401,35 +419,99 @@
     return s;
   }
 
-  // ───────── 구단과 거리 ─────────
+  // ───────── 구단 정보 ─────────
+  // 왼쪽: 구단 표(+ 접힌 구장 간 거리표) / 오른쪽: 구장 지도(남은 높이를 모두).
+  // 지도는 UI.mapWidget(설정에 카카오 지도 키가 있으면 카카오 지도, 없으면 내장 지도)을 한 번만 만들어 두고,
+  // 화면을 다시 그릴 때마다 자리(#teamMapHost)에 옮겨 붙인다(카카오 지도를 매번 새로 만들지 않도록).
+  const TM = { el: null, w: null, app: null };
+  const TEAM_BOX = { lonMin: 125.9, lonMax: 129.8, latMin: 34.6, latMax: 38.0 }; // 내장 지도: 제주를 빼고 구장이 있는 곳만(지도가 덜 길쭉해 넓게 보인다)
+  const running = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
+  const selTeam = () => (S.ui.cell && S.ui.cell.sheet === 'teams' ? S.ui.cell.row : -1);
+  const kakaoOn = () => !!(app().kakao && app().kakaoKey);
+  /** 구장 칸 Enter로 찾은 곳이 여럿이면 지도에도 번호로 보인다(guide-steps.js의 S.ui.teamFind) */
+  const findCands = () => { const f = S.ui.teamFind; return f && f.row === selTeam() && f.results && f.results.length ? f.results : null; };
+  /** 「지도에서 찍기」 중인 구단(카카오 지도일 때만) */
+  const mapPicking = () => { const p = S.ui.mapPick; return p && p.row === selTeam() && kakaoOn() ? p : null; };
+  function teamMarkers() {
+    const sel = selTeam();
+    const drag = S.feature('T4') && !running() && !mapPicking();
+    const out = app().state.teams.map((t, i) => ({ id: i, lat: Number(t.latitude), lon: Number(t.longitude), color: t.color, label: t.name, title: t.stadium, size: i === sel ? 7 : 5, active: i === sel, draggable: drag }));
+    (findCands() || []).forEach((x, k) => out.push({ id: 'c' + k, lat: Number(x.latitude), lon: Number(x.longitude), color: '#1F5FD6', shape: 'square', size: 6, label: (k + 1) + ' ' + x.name, title: '누르면 이 위치로 채웁니다', cls: 'cand' }));
+    return out;
+  }
+  function teamFocus() {
+    const c = findCands(), f = S.ui.teamFind;
+    if (!c) return null; // 검색 결과가 없으면 지금 보는 범위를 그대로 둔다(지도에서 찍기 중 확대한 화면 유지)
+    const t = app().state.teams[f.row];
+    return { key: 'find:' + f.row + ':' + f.q, points: c.map((x) => ({ lat: Number(x.latitude), lon: Number(x.longitude) })).concat(t ? [{ lat: t.latitude, lon: t.longitude }] : []) };
+  }
+  function mountTeamMap() {
+    const host = document.getElementById('teamMapHost');
+    if (!host) return;
+    if (TM.app !== app()) { if (TM.w) TM.w.destroy(); TM.el = null; TM.w = null; TM.app = app(); }
+    if (!TM.el) {
+      TM.el = document.createElement('div');
+      TM.el.className = 'tm-map';
+      host.appendChild(TM.el); // 크기가 있는 자리에 붙인 뒤 만든다(카카오 지도는 처음 크기로 범위를 맞춘다)
+      TM.w = KBO.UI.mapWidget(TM.el, app(), {
+        get width() { return S.wide ? 520 : 400; }, // 넓은 화면에서 이름표가 너무 커지지 않게
+        box: TEAM_BOX, spread: 10, grid: false, caption: false, fit: true, title: '구장 위치', tags: ['teams', 'map'], markers: teamMarkers,
+        focus: teamFocus, cursor: () => (mapPicking() ? 'crosshair' : ''),
+        onMarkerClick: (id) => {
+          if (String(id).charAt(0) === 'c') { if (S.teamFindPick) S.teamFindPick(+String(id).slice(1)); return; }
+          if (mapPicking()) return; // 찍는 중에는 다른 구단으로 바꾸지 않는다
+          S.ui.cell = { sheet: 'teams', row: +id, col: 'name' }; S.ui.teamFind = null; S.render();
+        },
+        onMapClick: (lat, lon) => { const p = mapPicking(); if (p && S.teamMapPicked) S.teamMapPicked(p.row, lat, lon); },
+        onDragEnd: (id, lat, lon) => { if (!locked() && app().updateTeam(+id, { latitude: lat, longitude: lon })) S.toast('구장 위치를 옮겼습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000); }
+      });
+      return;
+    }
+    if (TM.el.parentNode !== host) host.appendChild(TM.el);
+    TM.w.refresh();
+  }
+  S.teamMap = TM;
+  function mapFoot() {
+    const a = app();
+    const drag = S.feature('T4') ? ' 구장 표시를 끌어 위치를 옮길 수 있습니다.' + (S.dev() ? ' <span class="tag ref">FR-T4</span>' : '') : '';
+    let s;
+    if (!a.kakaoKey) s = icon('info') + '<span>' + (findCands() ? '파란 번호 표시를 누르면 그 위치로 채웁니다. ' : '') + '<button class="lnk" data-act="open-settings" data-set="data">설정 › 카카오 지도 키</button>를 넣으면 카카오 지도로 보입니다.' + drag + '</span>';
+    else if (a.kakao && mapPicking()) s = icon('move') + '<span><b>지도에서 새 구장 자리를 누르세요.</b> 누른 곳의 위도·경도로 채웁니다. 그만두려면 카드의 「취소」나 Esc.</span>';
+    else if (a.kakao) s = icon('map') + '<span>카카오 지도 · ' + (findCands() ? '파란 번호 표시를 누르면 그 위치로 채웁니다.' : '표시를 누르면 그 구단을 고릅니다.') + drag + '</span>';
+    else if (a.kakaoError) s = icon('warn') + '<span>카카오 지도를 열지 못해 기본 지도로 보입니다. 설정 › 카카오 지도 키와, 이 사이트 주소를 카카오에 등록했는지 확인해 주세요.' + (S.dev() ? ' (' + esc(a.kakaoError) + ')' : '') + '</span>';
+    else s = icon('map') + '<span>카카오 지도를 불러오는 중입니다…</span>';
+    return '<div class="pane-foot small tm-foot' + (a.kakaoKey && a.kakaoError ? ' warn' : '') + '"' + (S.feature('T4') ? ' data-feature="T4"' : '') + '>' + s + '</div>';
+  }
   function renderTeams() {
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
-    let s = '<div class="pane-head"><span class="pane-title">구단과 거리</span><span class="pane-desc">구단과 구장 위치입니다. 구장 사이 거리표는 접어 두었습니다. 여기서 직접 입력합니다.</span></div>';
-    s += '<div class="pane-body pad" data-sk="d-teams"><div style="display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px;align-items:start">';
-    s += '<div class="blk"><table class="sheet"><colgroup><col style="width:44px"><col style="width:110px"><col><col style="width:86px"><col style="width:86px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
+    const stepwise = !!(S.g1 && S.g1.mode === 'flow' && S.g1.fs === 1); // 1 구단 정보 단계면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
+    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 접어 두었습니다.</span></div>';
+    s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
+    s += '<div class="blk"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
-        const sh = Array.from(shared.keys()).includes(t.stadium);
-        return '<tr class="' + (i === sel ? 'sel' : '') + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + esc(t.stadium) + (sh ? ' <span class="tag shared">같이 쓰는 구장</span>' : '') + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
+        const sh = shared.get(t.stadium);
+        const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
+        const hint = i === sel ? (stepwise ? '왼쪽 카드에서 고치는 중' : '오른쪽에서 고치는 중') : '눌러서 고치기';
+        return '<tr class="' + (i === sel ? 'sel' : '') + '" data-act="team-sel" data-row="' + i + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '<span class="tm-edit-hint">' + (i === sel ? icon('left') : icon('edit')) + hint + '</span></td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
-    const markers = st.teams.map((t, i) => ({ id: t.name, lat: t.latitude, lon: t.longitude, x: 0, y: 0, color: t.color, label: t.name, size: i === sel ? 7 : 5, active: i === sel }));
-    let mapSvg = '';
-    try {
-      const proj = KBO.MapKit.projection(250);
-      for (const mk of markers) { const p = proj.project(mk.lat, mk.lon); mk.x = p[0]; mk.y = p[1]; }
-      mapSvg = KBO.MapKit.render({ width: 250, markers, grid: false, spread: 10, title: '구장 위치' }).svg;
-    } catch (e) { mapSvg = '<div class="empty">지도를 그릴 수 없습니다.</div>'; }
-    s += '<div class="blk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">내장 SVG</span></span>' : '') + '</div><div class="blk-body mapbox" style="padding:6px">' + mapSvg + '</div>' +
-      (S.feature('T4') ? '<div class="pane-foot small" data-feature="T4">' + icon('move') + '구장 표시를 끌어 위치를 조금씩 옮길 수 있습니다' + (S.dev() ? ' <span class="tag ref">FR-T4</span>' : '') + '</div>' : '') + '</div>';
-    s += '</div>';
+    if (app().roadApi) {
+      const dm = st.distanceMatrix.filter((d) => d.from !== d.to);
+      const nRoad = dm.filter((d) => d.source === 'ROAD').length / 2, nEst = dm.filter((d) => d.estimated).length / 2;
+      s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 10구장 사이 45쌍의 도로거리를 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + (st.teams.length * (st.teams.length - 1) / 2) + '쌍)</button>') +
+        '<span class="muted small">도로 ' + Math.floor(nRoad) + '쌍 · 추정 ' + Math.floor(nEst) + '쌍</span></div>';
+    }
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
-      s += '<details class="fold" style="margin-top:12px" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · A→B를 고치면 B→A도 함께 바뀜</span></summary><div style="padding:8px 10px" class="chart-box">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 58, cellH: 24, labelW: 50, format: (v) => (v == null ? '' : Number(v).toFixed(1)), title: '구단 간 이동거리' }) + '</div></details>';
+      s += '<details class="fold" data-feature="T7"><summary>' + icon('grid') + '구장 간 거리표 <span class="muted">km · A→B를 고치면 B→A도 함께 바뀜</span></summary><div style="padding:8px 6px" class="chart-box">' +
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: 24, labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
+    s += '<div class="blk tm-mapblk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">' + (app().kakao && app().kakaoKey ? 'Kakao' : '내장 SVG') + '</span></span>' : '') + '</div><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>';
+    s += '</div></div>';
+    S.afterRender(mountTeamMap);
     return s;
   }
 
@@ -474,7 +556,7 @@
     const ribbonSheets = { season: 1, slots: 1, holidays: 1, restex: 1, blackouts: 1, events: 1 };
     if (!ribbonSheets[key]) return '';
     if (key === 'season') {
-      const gen = CalendarGen.generateSlots(st.settings).slots;
+      const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(st.settings)).slots;
       const diff = V().diffSlots(st.calendar, gen);
       return sec('규칙으로 만든 경기일', '지금 연전 기간과 ' + (diff.size ? '<b style="color:var(--warn)">' + diff.size + '곳 다름</b>' : '같음'), V().ribbon({ settings: st.settings, slots: gen, changed: diff, label: '규칙으로 만든 경기일' }));
     }
@@ -514,7 +596,7 @@
   function renderInspBase() {
     const u = S.ui, st = app().state, key = u.tab;
     if (key === 'season') {
-      const gen = CalendarGen.generateSlots(st.settings);
+      const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(st.settings));
       const same = !app().slotsOutOfDate();
       const h = CalendarGen.lengthHistogram(gen.slots);
       const gd = S.gameDaysCheck(gen.slots);
@@ -585,8 +667,8 @@
     render() {
       const u = S.ui;
       if (!SHEETS[u.tab] && u.tab !== 'season' && u.tab !== 'teams') u.tab = 'slots';
-      // 단계별 화면(묻는 화면·새로 입력·기존 데이터 보기)이면 guide-steps.js가 그린다. null이면 아래 전체 화면(모든 표 보기)
-      if (S.guideUI && S.guideUI.renderStep1) { const g = S.guideUI.renderStep1({ sheet: renderSheet, season: renderSeason, teams: renderTeams }); if (g) return g; }
+      // 시즌 달력 한 화면(기본)·구단 정보 펼침이면 guide-steps.js가 그린다. null이면 아래 전체 화면(모든 표 보기)
+      if (S.guideUI && S.guideUI.renderStep1) { const g = S.guideUI.renderStep1({ sheet: renderSheet, season: renderSeason, teams: renderTeams, calendar: () => S.renderSeasonCalendar() }); if (g) return g; }
       let main;
       if (u.tab === 'season') main = renderSeason();
       else if (u.tab === 'teams') main = renderTeams();
@@ -611,6 +693,7 @@
 
   // ───────── 동작 ─────────
   function locked() { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 입력이 잠깁니다. 먼저 중지하세요.', 'warn'); return true; } return false; }
+  S.locked = locked;
   function startEdit(sheet, row, col, initial) {
     const sh = SHEETS[sheet];
     const c = sh.cols.find((x) => x.key === col);
@@ -637,6 +720,7 @@
       S.trackViz(e.sheet, () => app().commit(sh.label + ' ' + (e.row + 1) + '번째 ' + c.head + ': ' + old + ' → ' + e.value, (s) => {
         if (c.setAt) c.setAt(s, e.row, e.value);
         else { const row = sh.rows(s)[e.row]; c.set(row, e.value); }
+        if (e.sheet === 'holidays' || e.sheet === 'slots') S.recalcCalendar(s);
       }, ['input']));
     }
     if (moveDown) { const n = sh.rows(app().state).length; S.ui.cell = { sheet: e.sheet, row: Math.min(n - 1, e.row + 1), col: e.col }; }
@@ -644,7 +728,7 @@
   }
   function insertRow(pos) {
     const u = S.ui, key = u.tab, sh = SHEETS[key];
-    if (!sh || locked()) return;
+    if (!sh || sh.derived || locked()) return;
     const n = sh.rows(app().state).length;
     const has = u.cell && u.cell.sheet === key && u.cell.row < n;
     if (pos === 'above' && !has) return;
@@ -652,7 +736,7 @@
     const at = has ? (pos === 'above' ? u.cell.row : u.cell.row + 1) : n;
     const blank = sh.blank(app().state, has ? u.cell.row : n - 1);
     if (blank && typeof blank === 'object') blank._uiNew = true;
-    S.trackViz(key, () => app().commit(sh.label + ' ' + (at + 1) + '번째 줄 추가', (s) => { sh.insert(s, at, blank); }, ['input', 'plan']));
+    S.trackViz(key, () => app().commit(sh.label + ' ' + (at + 1) + '번째 줄 추가', (s) => { sh.insert(s, at, blank); if (key === 'holidays' || key === 'slots') S.recalcCalendar(s); }, ['input', 'plan']));
     u.edit = null;
     u.cell = { sheet: key, row: at, col: sh.cols.find((c) => !c.ro).key };
     S.toast(!n ? sh.label + ' 표에 첫 줄을 넣었습니다. 칸을 두 번 누르거나 Enter로 값을 고치세요.' : sh.label + ' ' + (at + 1) + '번째에 한 줄을 ' + (has ? (pos === 'above' ? '위에' : '아래에') : '끝에') + ' 추가했습니다. 값을 고치세요.' + (key === 'series' ? ' 새 시리즈는 일정 미정 보관함으로 들어갑니다.' : ''), 'info');
@@ -661,9 +745,9 @@
   S.insertRow = insertRow;
   function deleteRow() {
     const u = S.ui, key = u.tab, sh = SHEETS[key];
-    if (!sh || !u.cell || u.cell.sheet !== key || locked()) return;
+    if (!sh || sh.derived || !u.cell || u.cell.sheet !== key || locked()) return;
     const at = u.cell.row;
-    S.trackViz(key, () => app().commit(sh.label + ' ' + (at + 1) + '번째 줄 삭제', (s) => { sh.remove(s, at); }, ['input', 'plan']));
+    S.trackViz(key, () => app().commit(sh.label + ' ' + (at + 1) + '번째 줄 삭제', (s) => { sh.remove(s, at); if (key === 'holidays' || key === 'slots') S.recalcCalendar(s); }, ['input', 'plan']));
     u.edit = null;
     const n = sh.rows(app().state).length;
     u.cell = n ? { sheet: key, row: Math.min(at, n - 1), col: u.cell.col } : null;
@@ -689,32 +773,30 @@
     // 작은 표 자동 채우기(미리보기 없이 바로 넣고, 실행 취소로 되돌린다)
     'fill-holidays': () => {
       if (locked()) return;
-      const st = app().state, set = st.settings;
-      if (!set.seasonStart || !set.initialEnd) { S.toast('개막일과 1차 편성 종료일을 먼저 적어 주세요. 그 기간의 법정 공휴일만 넣습니다.', 'warn', 5000); S.go({ tab: 'season' }); return; }
-      const end = set.seasonEnd && set.seasonEnd > set.initialEnd ? set.seasonEnd : set.initialEnd;
+      const st = app().state, set = st.settings, y = S.seasonYear();
+      // 시즌 기간(개막일~시즌 종료일). 날짜를 아직 적지 않았으면 시즌 연도의 3월~10월
+      const start = set.seasonStart || y + '-03-01';
+      const end = set.seasonEnd && set.seasonEnd > (set.initialEnd || '') ? set.seasonEnd : set.initialEnd || y + '-10-31';
       const have = new Set(set.holidays.map((h) => h.date));
-      const add = CalendarGen.builtinHolidays(S.seasonYear()).filter((h) => h.date >= set.seasonStart && h.date <= end && !have.has(h.date));
-      if (!add.length) { S.toast('시즌 기간(' + fmt.short(set.seasonStart) + '~' + fmt.short(end) + ')의 법정 공휴일이 이미 모두 들어 있습니다.', 'info', 4000); return; }
-      S.trackViz('holidays', () => app().commit('법정 공휴일 채우기 (' + add.length + '일)', (s) => { s.settings.holidays = s.settings.holidays.concat(add).sort((a, b) => (a.date < b.date ? -1 : 1)); }, ['input']));
+      const add = CalendarGen.builtinHolidays(y).filter((h) => h.date >= start && h.date <= end && !have.has(h.date));
+      if (!add.length) { S.toast('시즌 기간(' + fmt.short(start) + '~' + fmt.short(end) + ')의 법정 공휴일이 이미 모두 들어 있습니다.', 'info', 4000); return; }
+      S.trackViz('holidays', () => app().commit('법정 공휴일 채우기 (' + add.length + '일)', (s) => { s.settings.holidays = s.settings.holidays.concat(add).sort((a, b) => (a.date < b.date ? -1 : 1)); S.recalcCalendar(s); }, ['input']));
       S.ui.cell = null; S.ui.edit = null;
-      S.toast('법정 공휴일 ' + add.length + '일을 넣었습니다(' + add.map((h) => fmt.short(h.date)).join(', ') + '). 임시 공휴일은 「첫 줄 추가」·「끝에 추가」로 더하세요.', 'ok', 6000);
+      S.toast('법정 공휴일 ' + add.length + '일을 넣었습니다(' + add.map((h) => fmt.short(h.date)).join(', ') + '). 가중치는 공휴일 2 · 어린이날 3입니다. 임시 공휴일은 「줄 추가」로 더하세요.', 'ok', 6000);
       S.go({ tab: 'holidays' });
     },
+    // 개막전 홈 구장 지정: 대진이 아니라 그 날 홈 경기를 해야 하는 구단 5곳(구장 지정). 지금 일정의 개막일 홈 구단으로 채우고, 시즌 달력에서 고친다
     'add-opening': () => {
       if (locked()) return;
       const st = app().state, c = D();
-      if (!st.calendar.length) { S.toast('연전 기간이 먼저 있어야 합니다. 연전 기간 표에서 「규칙대로 자동 채우기」를 누르세요.', 'warn', 5000); S.go({ tab: 'slots' }); return; }
-      const ms = (c.bySlot[0] || []).filter((m) => !st.events.some((e) => e.mode === 'MATCH' && e.date === c.slots[0].date && e.home === st.matches[m].home && e.away === st.matches[m].away));
-      if (!ms.length) { S.toast(st.matches.length ? '개막일(' + fmt.date(c.slots[0].day) + ')의 대진이 이미 모두 특별 경기에 있습니다.' : '시리즈가 먼저 있어야 개막전 대진을 정할 수 있습니다. 시리즈 표에서 「맞대결 규칙대로 자동 채우기」를 누르세요.', st.matches.length ? 'info' : 'warn', 5000); if (!st.matches.length) S.go({ tab: 'series' }); return; }
-      const date = c.slots[0].date;
-      const evs = ms.map((m, k) => ({ id: 'ev-open-' + Date.now().toString(36) + k, type: 'OPENING', name: '개막전', slot: 0, date, mode: 'MATCH', home: st.matches[m].home, away: st.matches[m].away }));
-      S.trackViz('events', () => app().commit('개막전 대진 추가 (' + evs.length + '경기)', (s) => {
-        s.events = s.events.concat(evs);
-        // 개막일 연전 기간에 이미 들어 있는 그 대진 시리즈를 고정한다(자동 편성이 그대로 둔다)
-        evs.forEach((e, k) => { const m = ms[k]; if (s.plan[m] && s.plan[m].calendar === 0) { s.matches[m].pinned = true; s.matches[m].eventId = e.id; } });
-      }, ['input', 'events', 'pins']));
-      S.ui.cell = { sheet: 'events', row: st.events.length - evs.length, col: 'name' }; S.ui.edit = null;
-      S.toast('개막전 ' + fmt.date(date) + ' 대진 ' + evs.length + '경기를 「대진 지정」으로 넣고 고정했습니다. 대진을 바꾸려면 홈·원정 칸을 고치세요.', 'ok', 6000);
+      if (!st.calendar.length) { S.toast('연전 기간이 먼저 있어야 합니다. 시즌 달력에서 「규칙대로 채우기」를 누르세요.', 'warn', 5000); return; }
+      if (st.events.some((e) => e.type === 'OPENING' && e.mode === 'STADIUM')) { S.toast('개막전 홈 구장 지정이 이미 있습니다. 시즌 달력에서 개막일을 눌러 고칩니다.', 'info', 4500); return; }
+      const date = c.slots[0].date, half = st.teams.length >> 1;
+      const homes = (c.bySlot[0] || []).map((m) => st.matches[m].home).filter((x, i, a) => a.indexOf(x) === i).slice(0, half);
+      const ev = { id: 'ev-opening-' + Date.now().toString(36), type: 'OPENING', name: '개막전', slot: 0, date, mode: 'STADIUM', teams: homes, stadiums: homes.map((n) => (app().team(n) || {}).stadium).filter(Boolean) };
+      S.trackViz('events', () => app().commit('개막전 홈 구장 지정 추가', (s) => { s.events.push(ev); }, ['input', 'events']));
+      S.ui.cell = { sheet: 'events', row: st.events.length - 1, col: 'stadiums' }; S.ui.edit = null;
+      S.toast(homes.length ? '개막전(' + fmt.date(date) + ') 홈 구장 ' + homes.length + '곳을 넣었습니다: ' + homes.join('·') + '. 상대는 자동 편성이 정합니다. 시즌 달력에서 개막일을 눌러 바꿀 수 있습니다.' : '개막전(' + fmt.date(date) + ') 홈 구장 지정을 넣었습니다. 시즌 달력에서 개막일을 눌러 홈 구단 ' + half + '곳을 고르세요.', homes.length ? 'ok' : 'warn', 6500);
       S.go({ tab: 'events' });
     },
     'add-children': () => {
@@ -725,20 +807,21 @@
       const teams = (set.obligationTeams || []).filter((n) => st.teams.some((t) => t.name === n));
       const stadiums = teams.map((n) => st.teams.find((t) => t.name === n).stadium).filter((x, i, a) => a.indexOf(x) === i);
       const inSlot = CalendarGen.slotIndexOfDate(st.calendar, date) >= 0;
-      const ev = { id: 'ev-children-' + Date.now().toString(36), type: 'CHILDREN', name: '어린이날', date, mode: 'STADIUM', stadiums };
+      const ev = { id: 'ev-children-' + Date.now().toString(36), type: 'CHILDREN', name: '어린이날', date, mode: 'STADIUM', teams, stadiums };
       S.trackViz('events', () => app().commit('어린이날 구장 지정 추가', (s) => { s.events.push(ev); }, ['input', 'events']));
       S.ui.cell = { sheet: 'events', row: st.events.length - 1, col: 'stadiums' }; S.ui.edit = null;
-      S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — ' + fmt.date(date) + '이 휴식 요일이면 「휴식일 경기」에 넣고 연전 기간을 다시 만드세요.'), inSlot ? 'ok' : 'warn', 7000);
+      S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — 시즌 달력에서 ' + fmt.date(date) + '이 든 묶음을 만드세요(휴식 요일이면 그 날을 눌러 끌기).'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
-    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.render(); },
+    'road-all': () => { if (locked()) return; app().fetchRoadDistances(null).then(S.roadToast); },
+    'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.ui.mapPick = null; S.render(); },
     'rest-wd': (el) => {
       if (locked()) return;
       const w = +el.dataset.wd;
       const cur = app().state.settings.restWeekdays.slice();
       const i = cur.indexOf(w); if (i >= 0) cur.splice(i, 1); else cur.push(w);
-      app().updateSettings({ restWeekdays: cur.sort() }, '휴식 요일 변경');
-      if (app().slotsOutOfDate()) S.toast('휴식 요일을 바꿨습니다. 지금 연전 기간이 규칙과 달라졌으니, 오른쪽 「규칙대로 자동 채우기」로 확인하세요.', 'warn', 5000);
+      S.updateSeason({ restWeekdays: cur.sort() }, '휴식 요일 변경');
+      if (app().slotsOutOfDate()) S.toast('휴식 요일을 바꿨습니다. 연전 묶음은 그대로입니다. 규칙대로 다시 깔려면 「규칙대로 채우기」를 누르세요.', 'warn', 5000);
     }
   });
   S.inputs.season = (el) => {
@@ -754,17 +837,32 @@
     S.ui.edit = { sheet: key, row, col, value: el.value, error: null, fix: null, _focused: true };
     commitEdit(false);
   };
+  /** 카드의 「다른 구장까지 거리」 칸: 고치면 반대 방향도 같은 값(직접 적은 값 = 추정 아님) */
+  S.inputs['team-dist'] = (el) => {
+    if (locked()) return;
+    const from = el.dataset.from, to = el.dataset.to, raw = el.value.trim().replace(/km$/i, '').trim();
+    const v = Number(raw);
+    if (!raw || !Number.isFinite(v) || v < 0 || v > 2000) { el.classList.add('err'); S.toast('거리는 km 숫자로 적습니다(예: 31.5).', 'bad'); return; }
+    const d = app().distanceOf(from, to);
+    if (d && !d.estimated && Math.round(v * 10) / 10 === d.distance) return; // 바뀐 것 없음
+    if (app().setDistance(from, to, v, true)) S.toast(from + ' ↔ ' + to + ' 거리를 ' + (Math.round(v * 10) / 10) + 'km로 바꿨습니다(양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 4000);
+  };
   S.inputs['team-field'] = (el) => {
     if (locked()) return;
     const i = +el.dataset.row, k = el.dataset.k;
-    if (!el.value.trim()) return;
+    const t = app().state.teams[i];
+    if (!el.value.trim() || !t) return;
     if (k === 'latitude' || k === 'longitude') {
       const v = Number(el.value.trim());
       const okRange = Number.isFinite(v) && (k === 'latitude' ? v >= -90 && v <= 90 : v >= -180 && v <= 180);
       if (!okRange) { el.classList.add('err'); S.toast((k === 'latitude' ? '위도' : '경도') + '는 숫자로 적습니다(예: ' + (k === 'latitude' ? '37.5122' : '127.0719') + ').', 'bad'); return; }
+      if (el.value.trim() === t[k].toFixed(4)) return; // 칸에 보이는 값 그대로(바뀐 것 없음)
       if (app().updateTeam(i, { [k]: v })) S.toast('구장 위치를 바꿨습니다. 이 구단의 구장 간 거리는 직선거리로 다시 추정했습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
       return;
     }
+    if (el.value.trim() === t[k]) return; // 바뀐 것 없음(Enter로 위치를 찾은 뒤의 change 등)
+    const f = S.ui.teamFind;
+    if (k === 'stadium' && f && f.row === i && f.q === el.value.trim()) return; // 구장 위치 찾기(Enter)가 이름과 위치를 한 번에 저장한다(칸을 다시 그릴 때 오는 change는 무시)
     app().updateTeam(i, { [k]: el.value.trim() });
   };
 

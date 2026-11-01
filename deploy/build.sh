@@ -5,4 +5,5 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mvn -q -DskipTests compile
 mvn -q dependency:copy-dependencies -DoutputDirectory=target/lib -DincludeScope=runtime
+bash scripts/ui-config.sh   # 카카오 지도 키(/etc/kbo-scheduler/env) → ui/config.local.json
 echo "build ok: target/classes + $(ls target/lib | wc -l | tr -d ' ') jars"

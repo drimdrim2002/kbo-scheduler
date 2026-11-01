@@ -38,6 +38,7 @@
     rowAbove: '<path d="M2.5 9.5h11v4h-11zM8 2.5v4.5M5.8 4.7L8 2.5l2.2 2.2"/>',
     rowBelow: '<path d="M2.5 2.5h11v4h-11zM8 9v4.5M5.8 11.3L8 13.5l2.2-2.2"/>',
     trash: '<path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M4.8 4.5l.6 8.8h5.2l.6-8.8"/>',
+    edit: '<path d="M10.6 3.1l2.3 2.3L6.2 12.1l-2.9.6.6-2.9z"/><path d="M9.3 4.4l2.3 2.3"/>',
     left: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
     right: '<path d="M6 3.5L10.5 8 6 12.5"/>',
     down: '<path d="M3.5 6l4.5 4.5L12.5 6"/>',
@@ -120,8 +121,8 @@
     { id: 'A3', name: '홈/원정 흐름 그래프', ref: 'FR-A3', desc: '구단별 연전 기간 순서, 4연속 이상 강조.', must: true },
     { id: 'M7', name: '중간 저장·되돌리기', ref: 'FR-M7', desc: '지금 일정을 이름 붙여 저장하고 되돌립니다.', must: true },
     { id: 'T4', name: '지도에서 구장 위치 옮기기', ref: 'FR-T4', desc: '지도에서 구장 표시를 끌어 위치를 조금씩 고칩니다.', def: false },
-    { id: 'T7', name: '구장 간 거리표', ref: 'FR-T7', desc: '구단과 거리 화면의 접힌 거리표. A→B를 고치면 B→A도 함께 바뀝니다.', def: true },
-    { id: 'V6', name: '구단별 연전 표', ref: 'FR-V6', desc: '결과·수정의 세 번째 보기.', def: false },
+    { id: 'T7', name: '구장 간 거리표', ref: 'FR-T7', desc: '구단 정보 화면의 접힌 거리표. A→B를 고치면 B→A도 함께 바뀝니다.', def: true },
+    { id: 'V6', name: '구단별 연전 표', ref: 'FR-V6', desc: '일정 자세히 보기의 세 번째 보기.', def: false },
     { id: 'M2', name: '바꾸면 어떻게 되나 미리보기', ref: 'FR-M2', desc: '옮길 곳을 고르면 위반과 공정성이 어떻게 바뀌는지 미리 보여 줍니다.', def: true },
     { id: 'M8', name: '일정 미정 보관함', ref: 'FR-M8', desc: '시리즈를 보관함으로 뺐다가 다시 넣습니다.', def: true },
     { id: 'P2', name: '결과 미입력 강조', ref: 'FR-P2', desc: '기준일 이전 예정 경기를 강조합니다.', def: true },
@@ -271,11 +272,11 @@
   };
   /** 지금 데이터가 「처음부터 입력하기」로 비운 상태인가 (예시 데이터를 다시 불러오면 false) */
   S.isBlank = () => !!(S.app && S.app.state.meta && S.app.state.meta.blank);
-  /** 시즌 연도: 개막일이 있으면 그 연도, 없으면 2025 */
+  /** 시즌 연도: 개막일이 있으면 그 연도, 없으면 시즌 달력에서 고른 연도(settings.seasonYear), 그것도 없으면 2025 */
   S.seasonYear = function () {
-    const s = S.app && S.app.state.settings.seasonStart;
-    const m = /^(\d{4})-/.exec(s || '');
-    return m ? +m[1] : 2025;
+    const set = S.app && S.app.state.settings;
+    const m = /^(\d{4})-/.exec((set && set.seasonStart) || '');
+    return m ? +m[1] : set && set.seasonYear ? +set.seasonYear : 2025;
   };
   const SWAP_KEYS = ['teams', 'distanceMatrix', 'settings', 'events', 'calendar', 'matches', 'plan', 'games', 'reschedule'];
   function swapProject(next, label) {
@@ -283,7 +284,7 @@
     if (!app.guard()) return false;
     const ok = app.commit(label, (s) => {
       for (const k of SWAP_KEYS) s[k] = next[k];
-      s.meta = Object.assign({}, s.meta, { name: next.meta.name, blank: !!next.meta.blank, updatedAt: new Date().toISOString() });
+      s.meta = Object.assign({}, s.meta, { name: next.meta.name, blank: !!next.meta.blank, flow: next.meta.flow || null, updatedAt: new Date().toISOString() });
       s.snapshots = next.snapshots || [];
     }, ['all']);
     if (!ok) return false;
@@ -292,12 +293,14 @@
   }
   /** 처음부터 입력하기: 표를 모두 비운다(실행 취소 가능). 시즌 기본 설정 화면으로 간다. */
   // 「새로 입력」 선택(guide-steps.js)이 부를 때는 quiet로, 띠·메뉴의 「처음부터 입력하기(초기화)」는 확인 창을 거쳐 부른다.
+  // 새 흐름(season-year.js)에서는 그 해를 처음부터 다시: 구단 정보·규칙 값은 지금 것 그대로, 그 해 법정 공휴일은 미리 넣는다.
   S.resetAll = function (opts) {
     const o = opts || {};
-    if (!swapProject(S.emptyProject(), '처음부터 입력하기(초기화)')) return false;
-    S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단과 거리는 그대로 · ' + S.fmt.clock(new Date()) });
-    if (!o.quiet) S.toast('표를 모두 비웠습니다. 시즌 기본 설정부터 차례로 적어 주세요. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
-    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null });
+    const next = S.newYearProject ? S.newYearProject(S.seasonYear(), { teamsFrom: S.app.state }) : S.emptyProject();
+    if (!swapProject(next, '처음부터 입력하기(초기화)')) return false;
+    S.importHistory.push({ kind: 'reset', source: '처음부터 입력하기', detail: '표를 모두 비움 · 구단 정보는 그대로 · ' + S.fmt.clock(new Date()) });
+    if (!o.quiet) S.toast(S.seasonYear() + ' 시즌을 처음부터 다시 입력합니다. 구단 정보는 그대로 두었습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 6000);
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(S.seasonYear(), 'flow'); S.go({ step: 1, ops: null, tab: 'season', modal: null, menu: null, drawer: null }); }
     if (S.guideOnReset) S.guideOnReset(); // 단계별 화면이면 1단계로
     return true;
   };
@@ -307,7 +310,19 @@
     if (!swapProject(S.seedProject(), '2025 예시 데이터 다시 불러오기')) return false;
     S.importHistory.push({ kind: 'preset', source: '2025 실제 일정 (기본 제공)', detail: '다시 불러옴 · ' + S.fmt.clock(new Date()) });
     if (!o.quiet) S.toast('2025 실제 일정을 다시 불러왔습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
-    if (o.stay) S.render(); else S.go({ step: 1, ops: null, tab: 'slots', modal: null, menu: null, drawer: null });
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(2025, 'resume'); S.go({ step: 1, ops: null, tab: 'slots', modal: null, menu: null, drawer: null }); }
+    return true;
+  };
+  /** 기본 제공 데이터로 다시(2025는 예시 데이터, 2027은 예상 일정). 실행 취소 가능 */
+  S.loadBuiltin = function (y, opts) {
+    if (+y === 2025) return S.loadExample(opts);
+    const b = S.builtinOf && S.builtinOf(y), o = opts || {};
+    if (!b) return false;
+    const p = b.build();
+    p.meta = Object.assign({}, p.meta, { season: +y }); p.settings = Object.assign({}, p.settings, { seasonYear: +y });
+    if (!swapProject(p, y + ' ' + b.tag + ' 데이터로 다시')) return false;
+    if (!o.quiet) S.toast(b.label + '(' + b.tag + ')을 다시 불러왔습니다. 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (o.stay) S.render(); else { if (S.flowOnYear) S.flowOnYear(+y, 'resume'); S.go({ step: 1, ops: null, modal: null, menu: null, drawer: null }); }
     return true;
   };
 
@@ -317,7 +332,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -336,21 +351,24 @@
     }
     else {
       o.step = u.step;
-      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계별 화면: g=ask|new|view(&gs=단계), 모든 표 보기: tab=
+      if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계 흐름: tab 없음(pick=year·resume=1·fs=·day=·slot=), 모든 표 보기: tab=
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
       if (u.sel) o.sel = u.sel;
     }
+    if (S.flowYearChosen && S.flowYearChosen()) o.year = S.seasonYear();
     if (S.dev()) o.dev = 1;
     if (u.modal) o.modal = u.modal;
     if (u.drawer) { o.drawer = u.drawer; }
     if (u.inspOff) o.insp = '0';
-    const str = Object.keys(o).map((k) => k + '=' + encodeURIComponent(o[k])).join('&');
+    const str = S.lastHash = Object.keys(o).map((k) => k + '=' + encodeURIComponent(o[k])).join('&');
     try { history.replaceState(null, '', location.pathname + location.search + '#' + str); } catch (e) { /* file:// 일부 환경 */ }
   };
   S.applyRoute = function (o) {
     const u = S.ui;
+    // year=: 그 시즌을 연다(주소를 고쳐 쓴 때). 시작할 때는 S.start가 먼저 연다
+    if (o.year && S.booted && S.switchYear && +o.year !== S.seasonYear() && +o.year > 2000) S.switchYear(+o.year, { boot: true, quiet: true, to: 'stay' });
     if (o.ops) {
       u.ops = ['games', 'reschedule', 'route'].includes(o.ops) ? o.ops : 'games';
       if (u.ops === 'route' && !S.feature('A6')) u.ops = 'games';
@@ -361,7 +379,7 @@
     if (o.dev === '1') S.devOverride = true; else if (o.dev === '0') S.devOverride = false;
     u.devOpen = o.devopen === '1';
     u.mtOpen = o.mt === '1'; // ④ 지표 비교표 띠 펼침 (opt-2 채택)
-    if (o.step) u.step = Math.max(1, Math.min(4, parseInt(o.step, 10) || 1));
+    if (o.step) u.step = Math.max(1, Math.min(S.planFlow ? 6 : 4, parseInt(o.step, 10) || 1));
     if (o.tab) u.tab = o.tab;
     if (o.month) u.month = parseInt(o.month, 10) || u.month;
     if (o.view) u.view = o.view;
@@ -374,7 +392,7 @@
     if (o.set) u.setTab = o.set;
     u.inspOff = o.insp === '0';
     u.demo = o.demo || null;
-    if (S.g1Route) S.g1Route(o); // ① 단계별 화면(g=ask|new|view|all, gs=단계). 예전 키 guide=는 묻는 화면으로
+    if (S.g1Route) S.g1Route(o); // ① 단계 흐름(연도·어디까지·fs=1~4) · tab= 이면 모든 표 보기. 예전 open=teams·g=·gs=는 단계로
   };
 
   // ───────── 스크롤 점검 (NFR-W4, AC-P2) ─────────

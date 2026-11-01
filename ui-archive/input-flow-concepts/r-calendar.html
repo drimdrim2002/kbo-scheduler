@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 R · 한 화면 — 시즌 달력에서 끌어서 연전, 눌러서 홈 구장</title>
+<link rel="stylesheet" href="concept.css"></head>
+<body><div class="body"></div>
+<script src="concept.js"></script><script src="r-screen.js"></script>
+<script>
+  renderR({ sel: '2025-07-17', onCell: (n) => (Concept.D.iso(n) === '2025-05-05' ? 'pick' : ''),
+    pop: '<div class="pop" style="top:330px;left:470px"><h4>7/17(목) ~ 7/20(일) · 4연전 <span class="stat blue">올스타 휴식기 뒤</span></h4>' +
+      '<div class="muted xs">연전 수</div><div class="seg"><span>2연전</span><span>3연전</span><span class="on">4연전</span></div>' +
+      '<div class="small muted" style="margin-bottom:8px">3연전으로 바꾸면 7/20(일)이 경기 없는 날이 되어 경기일 합이 134가 됩니다.</div>' +
+      '<div class="acts"><span class="btn sm">둘로 나누기 (2+2)</span><span class="btn sm">묶음 지우기</span></div></div>' });
+</script></body></html>

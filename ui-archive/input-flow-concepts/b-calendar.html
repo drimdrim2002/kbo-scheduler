@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>대안 B · 달력 한 장 — 시즌 달력 하나로 모두</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .card { width: 300px; gap: 10px; }
+  .card .field { margin-bottom: 6px; }
+  .card .field .in { min-height: 28px; padding: 4px 8px; }
+  .lay { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+  .side { width: 290px; flex: none; background: #fff; border-left: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+  .side h3 { margin: 0; font-size: 14px; }
+  .calwrap { position: relative; }
+  .main { margin-right: 0; border-right: 0; border-radius: 6px 0 0 6px; }
+</style></head>
+<body>
+<div class="body">
+  <aside class="card">
+    <h2><span class="n">2 / 2</span>시즌 달력</h2>
+    <p class="small">왼쪽에 적고, 가운데 달력에서 보고 고치고, 오른쪽에서 확인합니다. 한 화면에서 끝납니다.</p>
+    <div class="box blue">
+      <h4>시즌 기간 <span class="r xs">적기</span></h4>
+      <div class="line"><span class="k">개막일</span><span class="v"><span class="in" style="display:inline-block;border:1px solid var(--line-2);border-radius:4px;padding:2px 8px;background:#fff">3/22(토)</span></span></div>
+      <div class="line"><span class="k">1차 편성 종료일</span><span class="v"><span style="display:inline-block;border:1px solid var(--line-2);border-radius:4px;padding:2px 8px;background:#fff">8/31(일)</span></span></div>
+      <div class="line"><span class="k">시즌 종료일</span><span class="v"><span style="display:inline-block;border:1px solid var(--line-2);border-radius:4px;padding:2px 8px;background:#fff">10/31(금)</span></span></div>
+      <div class="line"><span class="k">휴식 요일</span><span class="v wd" style="gap:2px"><span style="width:24px;height:24px;font-size:11px">일</span><span class="on" style="width:24px;height:24px;font-size:11px">월</span><span style="width:24px;height:24px;font-size:11px">화</span><span style="width:24px;height:24px;font-size:11px">수</span><span style="width:24px;height:24px;font-size:11px">목</span><span style="width:24px;height:24px;font-size:11px">금</span><span style="width:24px;height:24px;font-size:11px">토</span></span></div>
+    </div>
+    <div class="box blue">
+      <h4>규칙 <span class="r xs">적기</span></h4>
+      <div class="line"><span class="k">기본 연전 수</span><span class="v"><b>3연전</b> · 남으면 2·4</span></div>
+      <div class="line"><span class="k">맞대결</span><span class="v"><b>16경기</b> · 1차 편성 15 (홈 9·원정 6)</span></div>
+      <div style="margin-top:8px"><span class="btn pri big">⚡ 규칙대로 다시 만들기</span></div>
+    </div>
+    <div class="box">
+      <h4>달력에 보이는 것</h4>
+      <div class="lay">
+        <span class="chk"><i class="on">✓</i>공휴일 <span class="muted xs">10일 · 법정 자동</span></span>
+        <span class="chk"><i class="on">✓</i>휴식 요일이지만 경기 <span class="muted xs">1일</span></span>
+        <span class="chk"><i class="on">✓</i>경기 없는 기간 <span class="muted xs">2개</span></span>
+        <span class="chk"><i class="on">✓</i>연전 기간 <span class="muted xs">45개</span></span>
+        <span class="chk"><i class="on">✓</i>날짜가 정해진 경기 <span class="muted xs">2건</span></span>
+      </div>
+      <div class="xs muted" style="margin-top:6px">날을 누르면 그 날을 표시하고, 묶음을 누르면 연전 수를 고칩니다.</div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="head"><b>2025 시즌 달력</b><span class="desc">3월~10월 · 모든 것이 이 한 장에</span><span class="r" id="lg"></span></div>
+    <div class="body2 calwrap" id="cal"></div>
+  </main>
+  <aside class="side">
+    <h3>확인</h3>
+    <div class="box ok"><div class="line"><span class="k">경기일 합</span><span class="v">135 / 135 <span class="stat ok">맞음</span></span></div>
+      <div class="line"><span class="k">연전 기간</span><span class="v">45개 · 2연전 1 · 3연전 43 · 4연전 1</span></div>
+      <div class="line"><span class="k">시리즈</span><span class="v">225개 <span class="stat ok">규칙대로</span></span></div>
+      <div class="line"><span class="k">맞대결 경기 수</span><span class="v">45쌍 모두 15 <span class="stat ok">맞음</span></span></div>
+      <div class="line"><span class="k">연전 수 맞추기</span><span class="v"><span class="stat ok">맞음</span></span></div></div>
+    <div class="box"><h4>특별한 날 <span class="r muted xs">15건</span></h4>
+      <div class="line small"><span class="mono">3/22(토)</span><span>개막전 대진 5경기</span></div>
+      <div class="line small"><span class="mono">5/5(월)</span><span>어린이날 · 경기함 · 구장 5곳</span></div>
+      <div class="line small"><span class="mono">5/8(목)</span><span>경기 없음</span></div>
+      <div class="line small"><span class="mono">7/11~16</span><span>올스타 휴식기</span></div>
+      <div class="xs muted" style="margin-top:4px">외 공휴일 9일</div></div>
+    <div class="box"><h4>구단 정보</h4><div class="small">10구단 · 구장 간 거리 90개 <span class="stat ok">확인함</span> <a class="xs">1 / 2로</a></div></div>
+    <div style="margin-top:auto"><span class="btn pri big">다음: 검토·실행 ›</span></div>
+  </aside>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, S = C.S2025, slots = C.slots(S);
+  C.chrome({ at: 2, prev: '구단 정보', next: '검토·실행', mode: '새로 입력하기', sum: '새로 입력하기 · 2 / 2 시즌 달력',
+    steps: [{ name: '구단 정보', role: '확인' }, { name: '시즌 달력', role: '적기 · 달력 · 확인' }] });
+  document.getElementById('lg').innerHTML = C.legend([['game', '경기일'], ['ss', '묶음 시작'], ['rest', '휴식'], ['black', '경기 없는 기간'], ['hol', '공휴일'], ['rex', '휴식일 경기'], ['ev', '정해진 경기'], ['re', '재편성']]);
+  const selIdx = slots.findIndex((s) => C.D.iso(s.start) === '2025-05-05');
+  document.getElementById('cal').innerHTML = C.strip({ S, from: 3, to: 10, slots, big: true, sel: selIdx }) +
+    '<div class="pop" style="top:368px;left:330px"><h4>5/5(월) ~ 5/7(수) · 3연전 <span class="stat warn">어린이날</span></h4>' +
+    '<div class="muted xs">이 날은</div><div class="small" style="margin:2px 0 6px">공휴일 ✓ · 휴식 요일이지만 경기 ✓ · 홈 구장 지정 5곳 ✓</div>' +
+    '<div class="muted xs">연전 수</div><div class="seg"><span>2연전</span><span class="on">3연전</span><span>4연전</span></div>' +
+    '<div class="acts"><span class="btn sm">이 날을 경기 없는 날로</span><span class="btn sm">정해진 경기 고치기</span></div></div>';
+</script>
+</body></html>

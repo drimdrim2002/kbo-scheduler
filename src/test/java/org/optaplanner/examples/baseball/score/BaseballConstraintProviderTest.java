@@ -68,24 +68,43 @@ class BaseballConstraintProviderTest {
     }
 
     @Test
-    void childrensDayHomeObligation() {
+    void homeObligation() {
         Team doosan = team(0L, "두산", "잠실");
         Team lg = team(1L, "LG", "잠실");
         Team host = team(2L, "KIA", "광주");
         Team.prepareIndices(List.of(doosan, lg, host));
-        Calendar children = calendar(0L, LocalDateTime.of(2025, 5, 5, 0, 0), 3, 0, 0);
-        assertThat(children.isChildrenDay()).isTrue();
+        Calendar designated = calendar(0L, LocalDateTime.of(2027, 5, 4, 0, 0), 3, 0, 0);
+        designated.setHomeObligationMask(1 << doosan.getIndex());
+        assertThat(designated.requiresHome(doosan)).isTrue();
+        assertThat(designated.requiresHome(lg)).isFalse();
 
         Match obligated = new Match(0L, host, doosan, 3);
-        obligated.setCalendar(children);
-        verifier.verifyThat(BaseballConstraintProvider::childrensDayHomeObligation)
+        obligated.setCalendar(designated);
+        verifier.verifyThat(BaseballConstraintProvider::homeObligation)
                 .given(obligated)
                 .penalizesBy(1L);
 
         Match notObligated = new Match(1L, host, lg, 3);
-        notObligated.setCalendar(children);
-        verifier.verifyThat(BaseballConstraintProvider::childrensDayHomeObligation)
+        notObligated.setCalendar(designated);
+        verifier.verifyThat(BaseballConstraintProvider::homeObligation)
                 .given(notObligated)
+                .penalizesBy(0L);
+
+        // 2연전 기간(개막)도 같은 규칙
+        Calendar opening = calendar(1L, LocalDateTime.of(2027, 3, 27, 0, 0), 2, 1, 0);
+        opening.setHomeObligationMask(1 << host.getIndex());
+        Match openingAway = new Match(2L, lg, host, 2);
+        openingAway.setCalendar(opening);
+        verifier.verifyThat(BaseballConstraintProvider::homeObligation)
+                .given(openingAway)
+                .penalizesBy(1L);
+
+        // 지정이 없는 기간은 날짜가 5/5여도 감점하지 않는다
+        Calendar plain = calendar(2L, LocalDateTime.of(2025, 5, 5, 0, 0), 3, 0, 0);
+        Match plainAway = new Match(3L, host, doosan, 3);
+        plainAway.setCalendar(plain);
+        verifier.verifyThat(BaseballConstraintProvider::homeObligation)
+                .given(plainAway)
                 .penalizesBy(0L);
     }
 

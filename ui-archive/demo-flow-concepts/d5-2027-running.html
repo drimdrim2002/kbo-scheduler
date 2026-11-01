@@ -1,0 +1,12 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>5 · 2027 자동 편성 중 — 걸린 시간이 늘 보이게</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ year: 2027, mode: '새 계획', hint: '<b>자동 편성 중</b> — 다 되면 결과 화면으로 넘어갑니다', next: '멈추고 지금까지 결과 보기' });
+document.querySelector('.body').outerHTML = '<div class="page">' +
+  '<div class="hero run"><div class="big">0:20<small> / 0:30</small></div><div style="flex:1"><h2>2027 일정을 짜는 중입니다</h2><p>네 가지 출발점에서 동시에 짜고, 가장 좋은 것을 고릅니다.</p><div class="prog" style="margin-top:8px"><i style="width:67%"></i></div></div></div>' +
+  '<div class="grid" style="grid-template-columns:minmax(0,1fr) 420px;flex:1">' +
+  '<div class="panel"><h3>지금까지 가장 좋은 일정 <span class="muted">0:14에 찾음</span></h3>' + Demo.rules(Demo.RULES_2027) + '</div>' +
+  '<div style="display:flex;flex-direction:column;gap:12px"><div class="panel"><h3>지금 숫자</h3><div class="nums">' +
+  '<div class="nm"><div class="k">총 이동 거리</div><div class="v">63,754<small>km</small></div><div class="s">처음 짠 것 69,109km에서 줄어듦</div></div>' +
+  '<div class="nm"><div class="k">구단 간 차이</div><div class="v">594<small>km</small></div><div class="s">두산 6,081 ~ NC 6,676</div></div>' +
+  '</div></div><div class="panel" style="flex:1"><h3>진행</h3><div class="small" style="line-height:1.8;color:var(--text-2)">출발점 1 · 끝남(더 나아지지 않음)<br>출발점 2 · <b>가장 좋음</b><br>출발점 3 · 짜는 중<br>출발점 4 · 짜는 중</div></div></div>' +
+  '</div></div>';
+</script></body></html>

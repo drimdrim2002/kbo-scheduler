@@ -25,7 +25,7 @@
     const on = S.dev();
     return '<div class="set-sec dev-sec' + (on ? ' on' : '') + '"><label class="feat dev-feat"><span class="switch"><input type="checkbox" data-in="devmode" id="devToggle"' + (on ? ' checked' : '') + ' aria-label="개발자 모드"><i></i></span>' +
       '<span class="nm">' + icon('bolt') + '개발자 모드 <span class="id">이 브라우저에만 저장 · 기본 꺼짐</span></span><span class="df">' + (on ? '<b style="color:var(--blue)">켜짐</b>' : '꺼짐') + '</span>' +
-      '<span class="ds">엔진을 다루는 사람을 위한 표시입니다. 켜면 규칙 코드, 엔진 원점수, 검토·실행의 세부 옵션(최대 시간·시드·점수 추이)을 일반 용어 옆에 함께 보여 줍니다. 편성 결과는 바뀌지 않습니다.</span></label>' +
+      '<span class="ds">엔진을 다루는 사람을 위한 표시입니다. 켜면 규칙 코드, 엔진 원점수, 엔진 옵션의 세부 설정(최대 시간·점수 추이)을 일반 용어 옆에 함께 보여 줍니다. 편성 결과는 바뀌지 않습니다.</span></label>' +
       (on ? '<div class="dev-list"><span>' + icon('check') + '규칙 코드 <code class="rc">H0-b</code> <code class="rc">S2</code></span><span>' + icon('check') + 'Hard / Soft 구분</span><span>' + icon('check') + '원점수 <code class="mono">' + esc(S.fmt.score(app().derived().ex.score)) + '</code></span><span>' + icon('check') + '② 개발자 옵션 · 점수 추이</span></div>' : '') + '</div>';
   }
   /** 기준일: 일반 모드에서도 보이는 유일한 항목 */
@@ -48,9 +48,9 @@
       '<p>POST /api/v1/solve · GET /api/v1/solve/{jobId}/events (SSE) · POST /api/v1/score ' + S.mock('시안: 연결 시험 없음') + '</p></div>' + refDate();
   }
   function data() {
-    const key = app().kakaoKey || '';
+    const key = app().kakaoKeyLocal || '', envKey = app().kakaoKeyEnv || '';
     const gs = S.ls.get(S.KEY + 'gsheet-url') || '';
-    return '<div class="set-sec"><h4>' + icon('map') + '카카오 지도</h4><label class="field"><span>' + (S.dev() ? 'Kakao JavaScript 키' : '카카오 지도 키') + '</span><input class="input" data-in="kakao" value="' + esc(key) + '" placeholder="키가 없으면 기본 지도를 씁니다"></label><p>' + (key ? '키 입력됨 — 이 컴퓨터의 주소(http://localhost)로 열어야 합니다.' : S.stat('info', '기본 지도 사용 중') + ' 키를 넣으면 카카오 지도·장소 검색으로 바꿉니다.') + '</p></div>' +
+    return '<div class="set-sec"><h4>' + icon('map') + '카카오 지도</h4><label class="field"><span>' + (S.dev() ? 'Kakao JavaScript 키' : '카카오 지도 키') + '</span><input class="input" data-in="kakao" value="' + esc(key) + '" placeholder="' + (envKey ? '설정 파일(.env)의 키를 쓰는 중' : '키가 없으면 기본 지도를 씁니다') + '"></label><p>' + (key ? '키 입력됨(이 브라우저에만 저장) — 이 컴퓨터의 주소(http://localhost)로 열어야 합니다.' + (envKey ? ' 칸을 비우면 설정 파일(.env)의 키로 돌아갑니다.' : '') : envKey ? S.stat('ok', '설정 파일(.env)의 키 사용 중') + ' 다른 키를 쓰려면 여기에 넣습니다.' : S.stat('info', '기본 지도 사용 중') + ' 키를 넣으면 카카오 지도·장소 검색으로 바꿉니다. 저장소 맨 위 .env 의 KAKAO_JS_KEY 로도 넣을 수 있습니다.') + '</p></div>' +
       '<div class="set-sec"><h4>' + icon('link') + '구글 시트</h4><label class="field"><span>기억한 공유 링크</span><input class="input" data-in="gsurl" value="' + esc(gs) + '" placeholder="https://docs.google.com/spreadsheets/d/…"></label><p>링크는 이 브라우저에만 저장합니다. <button class="btn xs" data-act="gs-forget">잊기</button></p></div>' +
       (S.dev() ? '<div class="set-sec"><h4>' + icon('db') + '프로젝트·엔진 JSON</h4><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="export" data-kind="project">' + icon('download') + '프로젝트 JSON 내보내기</button><button class="btn sm" data-act="export" data-kind="engine">' + icon('download') + '엔진 JSON 내보내기</button><button class="btn sm" data-act="json-import">' + icon('upload') + 'JSON 가져오기…</button></div><p>엔진 JSON은 input_2025.json 형식입니다. 가져오기는 필드 단위로 검증합니다.</p></div>' : '');
   }

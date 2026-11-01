@@ -25,7 +25,12 @@
     this.engineConfig = this._loadEngineConfig();
     this.engine = Engine.createEngine(this.engineConfig);
     this._probeServer();
-    this.kakaoKey = LS.get(KAKAO_KEY) || '';
+    this.kakaoKeyLocal = LS.get(KAKAO_KEY) || ''; // 설정에 직접 넣은 키(이 브라우저)
+    this.kakaoKeyEnv = ''; // 설정 파일(ui/config.local.json ← .env·서버 환경 파일)의 키
+    this.kakaoKey = this.kakaoKeyLocal;
+    this.roadApi = false; // 편성 서버가 도로거리(카카오모빌리티 길찾기 중계)를 해 주는가 — probeRoad()
+    this.roadChecked = false;
+    this.roadBusy = null; // 받는 중인 구단 이름들(Set) 또는 'all'
     this.kakao = null;
     this.kakaoError = null;
     this._cache = { version: -1 };
@@ -166,7 +171,7 @@
       if (!set.has(a.name) && !set.has(b.name)) continue;
       const km = a.name === b.name ? 0 : MapKit.estimateRoadKm(byName.get(a.name), byName.get(b.name), rf);
       const key = a.name + '|' + b.name;
-      if (idx.has(key)) { const d = s.distanceMatrix[idx.get(key)]; d.distance = km; d.estimated = a.name !== b.name; }
+      if (idx.has(key)) { const d = s.distanceMatrix[idx.get(key)]; d.distance = km; d.estimated = a.name !== b.name; delete d.source; }
       else { s.distanceMatrix.push({ from: a.name, to: b.name, distance: km, estimated: a.name !== b.name }); idx.set(key, s.distanceMatrix.length - 1); }
     }
   };
@@ -179,8 +184,9 @@
       if (!patch.name) { UI.toast('구단명은 비울 수 없습니다.', 'warn'); return false; }
       if (patch.name !== old.name && st.teams.some((t) => t.name === patch.name)) { UI.toast('이미 있는 구단명입니다.', 'warn'); return false; }
     }
-    const locationChanged = ['stadium', 'latitude', 'longitude'].some((k) => patch[k] != null && patch[k] !== old[k]);
-    return this.commit('구단 수정: ' + old.name, (s) => {
+    // 거리를 다시 추정하는 것은 위치(위도·경도)가 바뀔 때만 — 구장 이름만 바꾸면 직접 적은 거리를 그대로 둔다
+    const locationChanged = ['latitude', 'longitude'].some((k) => patch[k] != null && Number(patch[k]) !== old[k]);
+    const ok = this.commit('구단 수정: ' + old.name, (s) => {
       const t = s.teams[i];
       const oldName = t.name;
       Object.assign(t, patch);
@@ -196,6 +202,12 @@
       }
       if (locationChanged) this._reestimate(s, [t.name]);
     }, ['teams', 'distance']);
+    // 위치가 바뀌면 직선거리 추정 뒤, 편성 서버가 되면 도로거리로 바꿔 넣는다(따로 실행 취소되는 한 단계)
+    if (ok && locationChanged && this.roadApi) {
+      const name = this.state.teams[i].name;
+      setTimeout(() => this.fetchRoadDistances([name]).then((r) => { if (r.failed) UI.toast(name + ' 도로거리 ' + r.failed + '쌍을 받지 못해 추정값을 그대로 둡니다 — ' + r.error, 'warn', 6000); }), 0);
+    }
+    return ok;
   };
   App.prototype.addTeam = function (t) {
     const st = this.state;
@@ -221,13 +233,59 @@
       s.matches = []; s.plan = []; s.games = []; s.reschedule.units = []; s.reschedule.plan = [];
     }, ['teams', 'distance', 'matches', 'plan', 'events', 'games']);
   };
+  /** 편성 서버가 도로거리를 계산해 주는지 묻는다(/api/v1/info 의 roadDistance). file:// 이나 정적 서버면 꺼짐 */
+  App.prototype.probeRoad = function () {
+    if (typeof fetch !== 'function' || !(window.location && /^https?:$/.test(window.location.protocol))) return Promise.resolve(false);
+    return fetch('/api/v1/info', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((info) => {
+      this.roadApi = !!(info && info.name === 'kbo-scheduler' && info.roadDistance);
+      this.roadChecked = true;
+      this.emitUI(['map']);
+      return this.roadApi;
+    });
+  };
+  /**
+   * 구장 사이 도로거리를 편성 서버(카카오모빌리티 길찾기 중계)로 받아 거리표에 넣는다. names: 이 구단들이 낀 쌍만(없으면 모든 쌍).
+   * 양쪽 방향에 같은 값, estimated=false, source='ROAD'. 받는 사이 구장 위치가 바뀐 쌍은 버린다. 한 번의 실행 취소 단계.
+   * 돌려주는 값: { ok, failed, error }
+   */
+  App.prototype.fetchRoadDistances = function (names) {
+    if (!this.roadApi) return Promise.resolve({ ok: 0, failed: 0, error: '도로거리 계산을 쓸 수 없습니다' });
+    const teams = this.state.teams, want = names ? new Set(names) : null;
+    const pairs = [];
+    for (let a = 0; a < teams.length; a++) for (let b = a + 1; b < teams.length; b++) {
+      if (want && !want.has(teams[a].name) && !want.has(teams[b].name)) continue;
+      pairs.push({ a: teams[a].name, b: teams[b].name, from: { lat: teams[a].latitude, lon: teams[a].longitude }, to: { lat: teams[b].latitude, lon: teams[b].longitude } });
+    }
+    if (!pairs.length) return Promise.resolve({ ok: 0, failed: 0 });
+    this.roadBusy = want || 'all'; this.emitUI(['map']);
+    const done = (r) => { this.roadBusy = null; this.emitUI(['map']); return r; };
+    const chunks = [];
+    for (let k = 0; k < pairs.length; k += 45) chunks.push(pairs.slice(k, k + 45));
+    return chunks.reduce((p, chunk) => p.then((acc) => fetch('/api/v1/road-distance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pairs: chunk.map((x) => ({ from: x.from, to: x.to })) }) })
+      .then((r) => r.json().then((j) => { if (!r.ok) throw new Error(j && j.error ? j.error : 'HTTP ' + r.status); return j; }))
+      .then((j) => acc.concat(chunk.map((x, k) => Object.assign({}, x, j.results && j.results[k] ? j.results[k] : { error: '응답 없음' }))))), Promise.resolve([]))
+      .then((rows) => {
+        const pos = new Map(this.state.teams.map((t) => [t.name, t.latitude + ',' + t.longitude]));
+        const good = rows.filter((x) => typeof x.km === 'number' && pos.get(x.a) === x.from.lat + ',' + x.from.lon && pos.get(x.b) === x.to.lat + ',' + x.to.lon);
+        const bad = rows.filter((x) => typeof x.km !== 'number');
+        if (good.length) this.commit('도로거리 받기 ' + good.length + '쌍', (s) => {
+          const put = (from, to, km) => {
+            const d = s.distanceMatrix.find((x) => x.from === from && x.to === to);
+            if (d) { d.distance = km; d.estimated = false; d.source = 'ROAD'; } else s.distanceMatrix.push({ from, to, distance: km, estimated: false, source: 'ROAD' });
+          };
+          for (const x of good) { put(x.a, x.b, x.km); put(x.b, x.a, x.km); }
+        }, ['distance']);
+        return done({ ok: good.length, failed: bad.length, error: bad.length ? bad[0].error : '' });
+      })
+      .catch((e) => done({ ok: 0, failed: pairs.length, error: e.message || String(e) }));
+  };
   App.prototype.setDistance = function (from, to, km, symmetric) {
     const v = Number(km);
     if (!Number.isFinite(v) || v < 0) { UI.toast('거리는 0 이상의 숫자여야 합니다.', 'warn'); return false; }
     return this.commit('거리 수정: ' + from + ' → ' + to, (s) => {
       const put = (a, b) => {
         const d = s.distanceMatrix.find((x) => x.from === a && x.to === b);
-        if (d) { d.distance = Math.round(v * 10) / 10; d.estimated = false; } else s.distanceMatrix.push({ from: a, to: b, distance: Math.round(v * 10) / 10, estimated: false });
+        if (d) { d.distance = Math.round(v * 10) / 10; d.estimated = false; delete d.source; } else s.distanceMatrix.push({ from: a, to: b, distance: Math.round(v * 10) / 10, estimated: false });
       };
       put(from, to);
       if (symmetric) put(to, from);
@@ -251,11 +309,26 @@
 
   // ───────────── 지도 검색 (FR-T2, T3) ─────────────
   App.prototype.setKakaoKey = function (key) {
-    this.kakaoKey = String(key || '').trim();
-    if (this.kakaoKey) LS.set(KAKAO_KEY, this.kakaoKey); else LS.remove(KAKAO_KEY);
+    this.kakaoKeyLocal = String(key || '').trim();
+    if (this.kakaoKeyLocal) LS.set(KAKAO_KEY, this.kakaoKeyLocal); else LS.remove(KAKAO_KEY);
+    this.kakaoKey = this.kakaoKeyLocal || this.kakaoKeyEnv; // 비우면 설정 파일의 키로 돌아간다
     this.kakao = null; this.kakaoError = null;
     this.emitUI(['map']);
     if (this.kakaoKey) this.ensureKakao();
+  };
+  /**
+   * 설정 파일(ui/config.local.json, scripts/ui-config.sh 가 .env·서버 환경 파일로 만든다)의 카카오 키를 읽는다.
+   * 파일이 없거나(커밋하지 않음) file:// 이면 조용히 넘어간다. 설정에 직접 넣은 키가 있으면 그 키가 먼저다.
+   */
+  App.prototype.loadLocalConfig = function (url) {
+    if (typeof fetch !== 'function' || (window.location && window.location.protocol === 'file:')) return Promise.resolve(null);
+    return fetch(url || 'config.local.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((cfg) => {
+      const key = cfg && typeof cfg.kakaoKey === 'string' ? cfg.kakaoKey.trim() : '';
+      if (!key || key === this.kakaoKeyEnv) return cfg;
+      this.kakaoKeyEnv = key;
+      if (!this.kakaoKeyLocal) { this.kakaoKey = key; this.kakao = null; this.kakaoError = null; this.emitUI(['map']); this.ensureKakao(); }
+      return cfg;
+    });
   };
   App.prototype.ensureKakao = function () {
     if (!this.kakaoKey) return Promise.resolve(null);
@@ -308,16 +381,17 @@
     }, { undo: false, tags: ['settings', 'events'] });
     return Object.assign({}, patch, isNaN(seed) ? {} : { seed });
   };
-  /** 설정으로 생성할 슬롯과 현재 슬롯이 다른가 */
+  /** 규칙(시즌 기간·휴식 요일·휴식 요일 공휴일·올스타 휴식기)으로 깔 묶음과 지금 묶음(시작일·연전 수)이 다른가 — 달력에서 직접 고친 묶음이 있으면 참 */
   App.prototype.slotsOutOfDate = function () {
-    const gen = CalendarGen.generateSlots(this.state.settings).slots;
+    const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(this.state.settings)).slots;
     const cur = this.state.calendar;
     if (gen.length !== cur.length) return true;
-    return gen.some((g, i) => g.datetime !== cur[i].datetime || g.consecutive !== cur[i].consecutive || g.weekend !== cur[i].weekend || g.holiday !== cur[i].holiday);
+    return gen.some((g, i) => g.datetime !== cur[i].datetime || g.consecutive !== cur[i].consecutive);
   };
+  /** 규칙대로 채우기(모든 표 보기의 미리보기 적용). 묶음에서 휴식기·휴식일 경기를 다시 만든다 */
   App.prototype.regenerateSlots = function () {
     const st = this.state;
-    const gen = CalendarGen.generateSlots(st.settings);
+    const gen = CalendarGen.generateSlots(CalendarGen.ruleSettings(st.settings));
     const oldCal = st.calendar;
     const map = new Map(gen.slots.map((s, i) => [s.datetime + '|' + s.consecutive, i]));
     const ok = this.commit('연전 기간 자동 생성 (' + gen.slots.length + '개)', (s) => {
@@ -329,7 +403,9 @@
         p.calendar = n == null ? -1 : n;
       });
       for (const e of s.events) { const idx = Score.resolveEventSlot(e, s.calendar); e.slot = idx; }
-    }, ['calendar', 'plan', 'events']);
+      const d = CalendarGen.deriveRestDays(s.calendar, s.settings);
+      s.settings.restExceptions = d.restExceptions; s.settings.blackouts = d.blackouts;
+    }, ['calendar', 'plan', 'events', 'settings']);
     if (ok && gen.warnings.length) UI.toast(gen.warnings[0].message, 'warn', 6000);
     return ok;
   };
@@ -342,7 +418,10 @@
   };
   App.prototype.generateSeriesPreview = function () {
     const st = this.state;
-    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: st.settings.initialGamesPerPair, homeGamesMajor: st.settings.homeGamesMajor });
+    // 격년 홈 73/71·3연전 이상·개막전 대진(events)도 넘긴다(코어에 seriesOptions가 있으면 그것으로)
+    if (CalendarGen.seriesOptions) return CalendarGen.generateSeries(st.teams, st.calendar, CalendarGen.seriesOptions(st));
+    const s = st.settings;
+    return CalendarGen.generateSeries(st.teams, st.calendar, { initialGamesPerPair: s.initialGamesPerPair, homeGamesMajor: s.homeGamesMajor, gamesPerPair: s.gamesPerPair, homeTotals: s.homeTotals, seriesMinLength: s.seriesMinLength, fourGameHome: s.fourGameHome || 'same', events: st.events, settings: s });
   };
   App.prototype.regenerateSeries = function () {
     const g = this.generateSeriesPreview();
@@ -406,7 +485,7 @@
       } else {
         const unknown = (e.stadiums || []).filter((x) => !st.teams.some((t) => t.stadium === x));
         if (unknown.length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 연고 구단이 없는 구장 ' + unknown.join(', ') });
-        if (!(e.stadiums || []).length) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
+        if (!(e.stadiums || []).length && !(Array.isArray(e.teams) && !e.teams.length)) issues.push({ level: 'warn', events: [e.id], message: e.name + ': 지정한 구장이 없습니다.' });
       }
     }
     const half = st.teams.length >> 1;
@@ -447,6 +526,8 @@
     const o = opts || {};
     const st = this.state;
     const notes = [];
+    // 바뀐 것이 없으면 실행 취소 항목을 남기지 않는다(「다음」 때마다 부르므로)
+    const before = JSON.stringify([st.matches.map((m) => [m.pinned, m.eventId || '']), st.plan.map((p) => p.calendar)]);
     const ok = this.commit(o.label || '특별 경기 대진 고정', (s) => {
       for (const e of s.events) {
         if (e.mode !== 'MATCH') continue;
@@ -472,6 +553,55 @@
         s.matches[m].pinned = true;
         s.matches[m].eventId = e.id;
       }
+      // 홈 구장 지정은 fix 'pairs'(대진까지 고정)일 때만 시리즈를 고정한다. 'home'·없음(예전 데이터)은 고정하지 않는다 — 서버가 그 연전 기간의 홈 의무 구단으로 직접 지킨다.
+      // 고른 대진(pairs)이 있으면 그 시리즈를, 없으면 고른 구단이 그 기간에 홈인 시리즈를 고정한다(그 기간에 없으면 같은 연전 수의 홈 시리즈를 옮겨 온다).
+      for (const e of s.events) {
+        if (e.mode !== 'STADIUM' || !(e.teams || []).length || e.fix !== 'pairs') continue;
+        const slot = Score.resolveEventSlot(e, s.calendar);
+        if (slot < 0) continue;
+        const L = s.calendar[slot].consecutive;
+        if (e.fix === 'pairs' && Array.isArray(e.pairs) && e.pairs.length) {
+          for (const pr of e.pairs) {
+            if (!pr.home || !pr.away) continue;
+            const cands = s.matches.map((m, i) => i).filter((i) => s.matches[i].home === pr.home && s.matches[i].away === pr.away);
+            if (!cands.length) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' 시리즈 없음'); continue; }
+            let m = cands.find((i) => s.plan[i].calendar === slot);
+            if (m == null) m = cands.find((i) => s.matches[i].consecutive === L && !s.matches[i].pinned);
+            if (m == null) { notes.push(e.name + ': ' + pr.away + ' @ ' + pr.home + ' ' + L + '연전 시리즈 없음'); continue; }
+            const from = s.plan[m].calendar;
+            if (from !== slot) {
+              for (let n = 0; n < s.matches.length; n++) {
+                if (n === m || s.plan[n].calendar !== slot || s.matches[n].pinned) continue;
+                const mm = s.matches[n];
+                if ([mm.home, mm.away].some((t) => t === pr.home || t === pr.away)) { s.plan[n].calendar = from; break; }
+              }
+              s.plan[m].calendar = slot;
+            }
+            s.matches[m].pinned = true;
+            s.matches[m].eventId = e.id;
+          }
+          continue;
+        }
+        const busy = () => { const b = new Set(); s.matches.forEach((mm, i) => { if (s.plan[i].calendar === slot && mm.pinned) { b.add(mm.home); b.add(mm.away); } }); return b; };
+        for (const h of e.teams) {
+          let m = s.matches.findIndex((mm, i) => mm.home === h && s.plan[i].calendar === slot);
+          if (m < 0) {
+            const b = busy();
+            m = s.matches.findIndex((mm) => mm.home === h && mm.consecutive === L && !mm.pinned && !e.teams.includes(mm.away) && !b.has(mm.away));
+            if (m < 0) { notes.push(e.name + ': ' + h + ' 홈 ' + L + '연전 시리즈 없음'); continue; }
+            const from = s.plan[m].calendar;
+            for (let n = 0; n < s.matches.length; n++) {
+              if (n === m || s.plan[n].calendar !== slot || s.matches[n].pinned) continue;
+              const mm = s.matches[n];
+              if ([mm.home, mm.away].some((t) => t === h || t === s.matches[m].away)) { s.plan[n].calendar = from; break; }
+            }
+            s.plan[m].calendar = slot;
+          }
+          s.matches[m].pinned = true;
+          s.matches[m].eventId = e.id;
+        }
+      }
+      if (JSON.stringify([s.matches.map((m) => [m.pinned, m.eventId || '']), s.plan.map((p) => p.calendar)]) === before) return false;
     }, ['plan', 'pins']);
     if (!o.silent) UI.toast(notes.length ? '일부 특별 경기를 고정하지 못했습니다: ' + notes.join(', ') : '대진 지정 특별 경기를 고정했습니다.', notes.length ? 'warn' : 'ok', 5000);
     return ok;
@@ -495,8 +625,8 @@
     for (const a of st.teams) for (const b of st.teams) if (a.name !== b.name && !have.has(a.name + '|' + b.name)) missing++;
     for (const d of st.distanceMatrix) if (d.estimated) estimated++;
     add('distance', missing ? 'block' : estimated ? 'warn' : 'pass', '구장 간 거리', missing ? '누락 ' + missing + '개 — 이동거리를 계산할 수 없습니다.' : estimated ? '추정 거리 ' + estimated + '개(직선거리 × 도로계수). 실제 도로거리로 바꾸면 정확해집니다.' : N * (N - 1) + '개 모두 입력됨', 'distance');
-    add('slots', st.calendar.length ? 'pass' : 'block', '연전 기간', st.calendar.length + '개' + (this.slotsOutOfDate() ? ' — 시즌 기본 설정과 다릅니다(규칙대로 다시 채울지 확인)' : ''), 'slots');
-    if (st.calendar.length && this.slotsOutOfDate()) items[items.length - 1].status = 'warn';
+    // 연전 묶음이 곧 경기일: 달력에서 직접 고친 묶음은 그대로 쓴다(규칙과 달라도 확인 필요가 아님)
+    add('slots', st.calendar.length ? 'pass' : 'block', '연전 기간', st.calendar.length + '개' + (st.calendar.length && this.slotsOutOfDate() ? ' — 규칙과 다른 묶음이 있습니다(시즌 달력에서 직접 고친 묶음)' : ''), 'slots');
     const singles = st.calendar.filter((x) => x.consecutive === 1).length;
     if (singles) add('single', 'warn', '1연전 기간', singles + '개 — 1연전 시리즈가 없으면 비게 됩니다.', 'slots');
     const sh = CalendarGen.lengthHistogram(st.calendar), mh = CalendarGen.lengthHistogram(st.matches);
@@ -526,6 +656,9 @@
     const ev = this.checkEvents();
     const blocks = ev.filter((x) => x.level === 'block'), warns = ev.filter((x) => x.level === 'warn');
     add('events', blocks.length ? 'block' : warns.length ? 'warn' : 'pass', '특별 경기 충돌', blocks.length + warns.length ? ev.map((x) => x.message).join(' / ') : st.events.length + '개 모두 충돌 없음', 'events');
+    // 개막전·어린이날 홈 구장 지정을 지운 날(teams: [] = 지정 없음): 막지 않고 확인 필요로 알린다
+    const cleared = st.events.filter((e) => e.mode === 'STADIUM' && (e.type === 'OPENING' || e.type === 'CHILDREN') && Array.isArray(e.teams) && !e.teams.length);
+    if (cleared.length) add('rule-homes', 'warn', '개막전·어린이날 홈 구장 지정', cleared.map((e) => Dates.fmtDate(e.date) + ' ' + e.name).join(', ') + ' 지정 없음 — KBO 원칙(개막전 = 전년도 상위 5팀 홈, 어린이날 = 격년제 편성)과 다릅니다. 편성 시작 때 한 번 더 묻습니다.', 'events');
     const pinMis = st.matches.filter((m, i) => m.pinned && c.plan[i] >= 0 && m.consecutive !== st.calendar[c.plan[i]].consecutive).length;
     if (pinMis) add('pins', 'warn', '고정 시리즈 연전 불일치', pinMis + '개 고정 시리즈가 연전 수가 다른 기간에 있습니다(연전 수 불일치 위반이 남음).', 'result');
     const st0 = { block: 0, warn: 0, pass: 0 };

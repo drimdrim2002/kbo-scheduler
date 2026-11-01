@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>대안 D · 엑셀 중심 — 서식을 채워 올리고 확인 화면에서 고치기</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .tabs { display: flex; gap: 2px; padding: 8px 14px 0; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .tabs span { padding: 6px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 5px 5px 0 0; background: #fff; color: var(--text-2); font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; }
+  .tabs span.on { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--blue); }
+  table.x { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  table.x th, table.x td { border: 1px solid var(--line-2); padding: 4px 8px; height: 26px; }
+  table.x th { background: #E8EBEF; font-weight: 600; text-align: center; color: var(--text-2); font-size: 11.5px; }
+  table.x td.rn { background: #E8EBEF; text-align: center; color: var(--text-3); width: 36px; font-size: 11px; }
+  table.x tr.w td { background: var(--warn-bg); }
+  table.x tr.w td.rn { background: var(--warn-line); }
+  .file { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: var(--surface-2); }
+  .file .ic { width: 34px; height: 40px; border-radius: 4px; background: #1D6F42; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex: none; }
+  .sheet { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+  .sheet:last-child { border-bottom: 0; }
+  .sheet .r { gap: 6px; }
+</style></head>
+<body>
+<div class="body">
+  <aside class="card">
+    <h2><span class="n">3 / 3</span>확인하고 고치기<span class="pill warn">확인 1건</span></h2>
+    <p>엑셀로 채운 파일을 올렸습니다. 시트마다 검사한 결과입니다. 작은 것은 여기서 바로 고치고, 많이 바꿀 거면 엑셀에서 고쳐 다시 올립니다.</p>
+    <div class="file"><span class="ic">XLSX</span><div><b>2025_편성입력.xlsx</b><div class="xs muted">시트 4개 · 방금 올림 · 54 KB</div></div><span class="r"><span class="btn sm">다시 올리기</span></span></div>
+    <div class="box">
+      <h4>시트마다 검사</h4>
+      <div class="sheet">① 구단 정보<span class="r"><span class="muted xs">10줄</span><span class="stat ok">맞음</span></span></div>
+      <div class="sheet">② 시즌 기간과 특별한 날<span class="r"><span class="muted xs">17줄</span><span class="stat warn">확인 1</span></span></div>
+      <div class="sheet">③ 연전 기간<span class="r"><span class="muted xs">45줄</span><span class="stat ok">맞음</span></span></div>
+      <div class="sheet">④ 맞대결 규칙<span class="r"><span class="muted xs">3줄</span><span class="stat ok">맞음</span></span></div>
+    </div>
+    <div class="box warn">
+      <h4>확인할 것 1건</h4>
+      <div class="small">② 12번째 줄 <b>6/3(화) 임시 공휴일</b> — 법정 공휴일 목록에 없는 날입니다. 맞으면 그대로 두고, 아니면 줄을 지웁니다.</div>
+      <div style="margin-top:6px;display:flex;gap:6px"><span class="btn sm">맞아요, 그대로</span><span class="btn sm">줄 지우기</span></div>
+    </div>
+    <div class="box">
+      <h4>경기일 합</h4>
+      <div class="line"><span class="k">연전 기간 45개</span><span class="v">135일 / 필요 135일 <span class="stat ok">맞음</span></span></div>
+      <div class="line"><span class="k">시리즈</span><span class="v">규칙대로 225개 만듦 <span class="stat ok">맞음</span></span></div>
+    </div>
+    <div class="box"><span class="btn sm">⬇ 서식 다시 받기</span> <span class="xs muted">지금 데이터가 채워진 서식</span></div>
+  </aside>
+  <main class="main">
+    <div class="tabs"><span>① 구단 정보 <span class="stat ok">✓</span></span><span class="on">② 시즌 기간과 특별한 날 <span class="stat warn">1</span></span><span>③ 연전 기간 <span class="stat ok">✓</span></span><span>④ 맞대결 규칙 <span class="stat ok">✓</span></span><span class="r muted xs" style="padding:0;border:0;background:none">엑셀 시트 그대로 보입니다 · 칸을 두 번 누르면 고칩니다</span></div>
+    <div class="body2">
+      <table class="x">
+        <tr><th></th><th style="width:150px">A · 종류</th><th style="width:120px">B · 날짜</th><th style="width:120px">C · 끝 날짜</th><th>D · 이름</th><th style="width:260px">E · 구단·구장</th><th style="width:100px">검사</th></tr>
+        <tr><td class="rn">1</td><td>개막일</td><td class="mono">2025-03-22</td><td></td><td></td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">2</td><td>1차 편성 종료일</td><td class="mono">2025-08-31</td><td></td><td></td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">3</td><td>시즌 종료일</td><td class="mono">2025-10-31</td><td></td><td></td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">4</td><td>휴식 요일</td><td>월</td><td></td><td></td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">5</td><td>공휴일</td><td class="mono">2025-05-05</td><td></td><td>어린이날·부처님오신날</td><td></td><td><span class="stat ok">법정</span></td></tr>
+        <tr><td class="rn">6</td><td>공휴일</td><td class="mono">2025-05-06</td><td></td><td>대체공휴일</td><td></td><td><span class="stat ok">법정</span></td></tr>
+        <tr><td class="rn">7</td><td>공휴일</td><td class="mono">2025-06-06</td><td></td><td>현충일</td><td></td><td><span class="stat ok">법정</span></td></tr>
+        <tr><td class="rn">8</td><td>공휴일</td><td class="mono">2025-08-15</td><td></td><td>광복절</td><td></td><td><span class="stat ok">법정</span></td></tr>
+        <tr><td class="rn">9</td><td>휴식일 경기</td><td class="mono">2025-05-05</td><td></td><td>어린이날 월요일 경기</td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">10</td><td>경기 없는 기간</td><td class="mono">2025-05-08</td><td class="mono">2025-05-08</td><td>어린이날 3연전 뒤 휴식</td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">11</td><td>경기 없는 기간</td><td class="mono">2025-07-11</td><td class="mono">2025-07-16</td><td>올스타 휴식기</td><td></td><td><span class="stat ok">맞음</span></td></tr>
+        <tr class="w"><td class="rn">12</td><td>공휴일</td><td class="mono">2025-06-03</td><td></td><td>임시 공휴일</td><td></td><td><span class="stat warn">확인</span></td></tr>
+        <tr><td class="rn">13</td><td>개막전 대진</td><td class="mono">2025-03-22</td><td></td><td>개막전</td><td>LG–롯데 · SSG–두산 · KT–키움 · 한화–KIA · 삼성–NC</td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">14</td><td>구장 지정</td><td class="mono">2025-05-05</td><td></td><td>어린이날</td><td>잠실 · 고척 · 대전 · 창원 · 사직</td><td><span class="stat ok">맞음</span></td></tr>
+        <tr><td class="rn">15</td><td class="muted">…</td><td></td><td></td><td class="muted">외 공휴일 3줄(10월)</td><td></td><td></td></tr>
+      </table>
+      <div class="blk" style="margin-top:14px"><h3>달력으로 보기 <span class="muted">올린 파일대로 · 3월~8월</span><span class="r" id="lg"></span></h3><div id="cal"></div></div>
+    </div>
+  </main>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, S = Object.assign({}, C.S2025, { holidays: C.S2025.holidays.concat([{ date: '2025-06-03', name: '임시 공휴일' }]) }), slots = C.slots(S);
+  C.chrome({ at: 3, prev: '채운 파일 올리기', next: '검토·실행', mode: '엑셀로 입력하기', sum: '엑셀로 입력하기 · 3 / 3 확인하고 고치기', pill: 'warn', pillText: '확인 1건',
+    steps: [{ name: '엑셀 서식 받기', role: '내려받기' }, { name: '채운 파일 올리기', role: '올리기' }, { name: '확인하고 고치기', role: '확인' }] });
+  document.getElementById('lg').innerHTML = C.legend([['game', '경기일'], ['ss', '묶음 시작'], ['rest', '휴식'], ['black', '경기 없는 기간'], ['hol', '공휴일'], ['ev', '정해진 경기']]);
+  document.getElementById('cal').innerHTML = C.strip({ S, from: 3, to: 8, slots });
+</script>
+</body></html>

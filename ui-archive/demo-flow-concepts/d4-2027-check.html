@@ -1,0 +1,14 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>4 · 2027 새 계획 — 모두 채워진 채로 확인하고 바로 자동 편성</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+const band = (cur, subs) => "<div class=\"flow\"><div class=\"lead\"><b>2027 시즌 · 새 계획</b><small>" + (cur ? cur + " / 4단계" : "결과") + "</small></div>" + ["구단 정보","시즌 기간·연전 묶음","공휴일·홈 구장","확인"].map((n,i)=>{const k=i+1<cur||!cur?"done":i+1===cur?"cur":"todo";return "<span class=\"fs "+k+"\"><i>"+(k==="done"?"✓":i+1)+"</i><div><b>"+(i+1)+" "+n+(i+1===cur?"<span class=\"here\">지금 여기</span>":"")+"</b><small>"+subs[i]+"</small></div></span>";}).join("") + "<div class=\"tail\"><a>▦ 모든 표 보기</a></div></div>";
+const SUBS = ["✓ 2025 그대로 · 바뀐 정보 없음", "✓ 3/27~9/5 · 135 / 135일", "✓ 공휴일 · 개막전·어린이날", "모두 맞음"];
+Demo.chrome({ year: 2027, mode: '새 계획', prev: '이전: 3 공휴일·홈 구장', hint: '<b>4 / 4 확인</b> — 2027 원칙이 모두 채워져 있습니다. 맞으면 바로 자동 편성', next: '자동 편성 시작 (약 30초)' });
+const row = (n, t, s, src, tag) => '<div class="rrow done"><i>✓</i><div class="t"><b>' + n + ' ' + t + ' <span class="stat blue" style="margin-left:6px">' + (tag || '2027 원칙대로 채움') + '</span></b><small>' + s + '</small><br><small class="muted">근거: ' + src + '</small></div><span class="btn sm">고치기</span></div>';
+document.querySelector('.body').outerHTML = band(4, SUBS) + '<div class="resume"><div class="rcard" style="width:900px">' +
+  '<div class="kick">4 / 4단계 · 확인</div><h2>2027 시즌 입력이 모두 채워져 있습니다</h2><p class="sub">받은 2027 원칙을 그대로 넣었습니다. 단계마다 눌러 확인할 수 있고, 맞으면 「자동 편성 시작」을 누릅니다.</p>' +
+  row(1, '구단 정보', '10구단 · 구장 간 도로 거리 · 잠실 두산·LG 같이 씀 (2025 그대로)', '가장 최근 시즌 구단 정보', '2025에서 가져옴') +
+  row(2, '시즌 기간·연전 묶음', '개막 3/27(토) 2연전 ~ 1차 편성 9/5(일) · 3연전 43 · 후반기 4연전 7/15~18 · 올스타 휴식기 7/9~7/14 · 경기일 135일', '2027_kbo_135.md · 2027_KBO_일정_예상.xlsx') +
+  row(3, '공휴일·홈 구장', '개막전 홈 KT·삼성·KIA·LG·SSG(대진 한화@KT·NC@삼성·롯데@KIA·키움@LG·두산@SSG) · 어린이날 5/5 홈 두산·키움·한화·롯데·NC', '전년도 상위 5팀 홈 · 어린이날 격년제(홀수 해)') +
+  '<div class="rrow done"><i>✓</i><div class="t"><b>시리즈(규칙대로 자동) <span class="stat blue" style="margin-left:6px">2027 원칙대로 채움</span></b><small>맞대결 16경기 = 1차 편성 15 + 잔여 1 · 홈 73(한화·SSG·KT·롯데·두산) / 71 · 시리즈 225개</small><br><small class="muted">근거: 격년 홈 73/71(홀수 해)</small></div><span class="btn sm">고치기</span></div>' +
+  '<div class="rfoot"><span class="stat ok">✓ 사전 점검 통과</span><span>이 브라우저에 저장됨</span><span class="btn">② 검토·실행에서 자세히</span><span class="btn pri">자동 편성 시작 (약 30초) ›</span></div>' +
+  '</div></div>';
+</script></body></html>

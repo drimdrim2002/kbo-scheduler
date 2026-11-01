@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>2 · 처음 화면 — 2027 결과를 만든 뒤 다시 왔을 때</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ noFoot: true });
+document.querySelector('.body').outerHTML = '<div class="start"><h1>무엇을 할까요?</h1><p class="lead">2027 계획은 지난번에 만든 결과가 있습니다. 이어서 보거나 고칠 수 있습니다.</p><div class="choices">' +
+  '<div class="ch"><div class="kick">확인용 · 고치지 않음</div><div class="y">2025<small>시즌</small></div><div class="t" style="font-size:20px;font-weight:800;color:var(--navy)">계획 보기</div>' +
+  '<p class="what">같은 2025년 조건으로 이 엔진이 짠 일정과, KBO 실제 2025 일정과의 숫자 비교입니다.</p>' +
+  '<ul><li><b>총 이동 거리</b>72,955km → <b style="min-width:0;color:var(--ok)">63,312km (13% 짧음)</b></li><li><b>구단 간 차이</b>1,373km → 554km</li><li><b>휴일 고르게</b>22~33 → 26~29</li></ul>' +
+  '<span class="btn big">2025 계획 보기 ›</span></div>' +
+  '<div class="ch go"><div class="kick"><span class="stat ok">✓ 결과 있음</span> &nbsp;10/31(토) 오후 3:12에 만듦</div><div class="y">2027<small>시즌</small></div><div class="t" style="font-size:20px;font-weight:800;color:var(--navy)">내 2027 계획</div>' +
+  '<p class="what">29초 만에 짠 결과입니다. 규칙 10개를 모두 지켰습니다.</p>' +
+  '<ul><li><b>규칙</b><span class="stat ok">✓ 10 / 10 지킴</span></li><li><b>총 이동 거리</b>63,754km · 구단 간 차이 594km</li><li><b>마지막에 바꾼 것</b>없음(2027 원칙 그대로)</li></ul>' +
+  '<span class="btn pri big">결과 이어서 보기 ›</span><div class="acts"><span class="btn">입력 고치기</span><span class="btn">2027 원칙으로 처음부터</span></div></div>' +
+  '</div><div class="note">데이터는 이 컴퓨터의 브라우저에 저장됩니다.</div></div>';
+</script></body></html>

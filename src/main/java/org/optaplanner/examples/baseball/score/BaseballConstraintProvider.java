@@ -63,18 +63,14 @@ public class BaseballConstraintProvider implements ConstraintProvider {
     private static final BiFunction<Calendar, List<Match>, Long> SERIES_COUNT_DEVIATION =
             (calendar, matches) -> ScoreFormulas.countDeviation(matches.size(), ScoreFormulas.SERIES_PER_DAY);
     private static final BiFunction<Calendar, List<Match>, Long> LENGTH_MISMATCH = ScoreFormulas::seriesLengthMismatch;
-    private static final BiFunction<Calendar, List<Match>, Long> CHILDREN_PENALTY = ScoreFormulas::childrensDayAwayPenalty;
+    private static final BiFunction<Calendar, List<Match>, Long> OBLIGATION_PENALTY = ScoreFormulas::homeObligationPenalty;
 
     private static final Predicate<TeamSummary> HAS_STREAK = summary -> summary.streakPenalty() > 0L;
     private static final ToLongFunction<TeamSummary> STREAK_PENALTY = TeamSummary::streakPenalty;
-    private static final Function<TeamTotals, Long> MOVE_WEIGHT =
-            totals -> ScoreFormulas.moveVariancePenalty(totals.moveCount, totals.settings.getMoveTolerance());
-    private static final Function<TeamTotals, Long> DISTANCE_WEIGHT =
-            totals -> ScoreFormulas.distanceVariancePenalty(totals.distanceTenths, totals.settings.getDistanceToleranceTenths());
-    private static final Function<TeamTotals, Long> HOLIDAY_WEIGHT =
-            totals -> ScoreFormulas.holidayVariancePenalty(totals.holidayWeight, totals.settings.getHolidayTolerance());
-    private static final Function<TeamTotals, Long> TOTAL_DISTANCE_WEIGHT =
-            totals -> ScoreFormulas.totalDistanceKm(totals.distanceTenths);
+    private static final Function<TeamTotals, Long> RANK_1 = totals -> ScoreFormulas.softPenalty(1, totals, totals.settings);
+    private static final Function<TeamTotals, Long> RANK_2 = totals -> ScoreFormulas.softPenalty(2, totals, totals.settings);
+    private static final Function<TeamTotals, Long> RANK_3 = totals -> ScoreFormulas.softPenalty(3, totals, totals.settings);
+    private static final Function<TeamTotals, Long> RANK_4 = totals -> ScoreFormulas.softPenalty(4, totals, totals.settings);
     private static final Predicate<Long> POSITIVE_LONG = value -> value > 0L;
     private static final ToLongFunction<Long> UNBOX_LONG = value -> value;
 
@@ -89,14 +85,14 @@ public class BaseballConstraintProvider implements ConstraintProvider {
                 day(days, STADIUM_COUNT_DEVIATION, "하루 구장 수 위반"),
                 day(days, SERIES_COUNT_DEVIATION, "하루 시리즈 수 위반"),
                 day(days, LENGTH_MISMATCH, "시리즈 길이 불일치"),
-                day(days, CHILDREN_PENALTY, "어린이날 홈 의무"),
+                day(days, OBLIGATION_PENALTY, "홈 구장 지정 의무"),
                 streak(summaries),
                 consecutiveSameMatchup(factory),
                 minimizeUnassigned(factory),
-                league(totals, 1, MOVE_WEIGHT, "이동 횟수 분산"),
-                league(totals, 2, DISTANCE_WEIGHT, "이동 거리 분산"),
-                league(totals, 3, HOLIDAY_WEIGHT, "휴일 가중치 분산"),
-                league(totals, 4, TOTAL_DISTANCE_WEIGHT, "총 이동 거리")
+                league(totals, 1, RANK_1, "목적식 1순위"),
+                league(totals, 2, RANK_2, "목적식 2순위"),
+                league(totals, 3, RANK_3, "목적식 3순위"),
+                league(totals, 4, RANK_4, "목적식 4순위")
         };
     }
 
@@ -116,8 +112,8 @@ public class BaseballConstraintProvider implements ConstraintProvider {
         return day(byDay(regularMatches(factory)), LENGTH_MISMATCH, "시리즈 길이 불일치");
     }
 
-    public Constraint childrensDayHomeObligation(ConstraintFactory factory) {
-        return day(byDay(regularMatches(factory)), CHILDREN_PENALTY, "어린이날 홈 의무");
+    public Constraint homeObligation(ConstraintFactory factory) {
+        return day(byDay(regularMatches(factory)), OBLIGATION_PENALTY, "홈 구장 지정 의무");
     }
 
     public Constraint homeAwayStreakLimit(ConstraintFactory factory) {
@@ -144,19 +140,19 @@ public class BaseballConstraintProvider implements ConstraintProvider {
     }
 
     public Constraint stabilizeMoveCount(ConstraintFactory factory) {
-        return league(leagueOf(factory), 1, MOVE_WEIGHT, "이동 횟수 분산");
+        return league(leagueOf(factory), 1, RANK_1, "목적식 1순위");
     }
 
     public Constraint stabilizeDistance(ConstraintFactory factory) {
-        return league(leagueOf(factory), 2, DISTANCE_WEIGHT, "이동 거리 분산");
+        return league(leagueOf(factory), 2, RANK_2, "목적식 2순위");
     }
 
     public Constraint stabilizeHoliday(ConstraintFactory factory) {
-        return league(leagueOf(factory), 3, HOLIDAY_WEIGHT, "휴일 가중치 분산");
+        return league(leagueOf(factory), 3, RANK_3, "목적식 3순위");
     }
 
     public Constraint minimizeTotalDistance(ConstraintFactory factory) {
-        return league(leagueOf(factory), 4, TOTAL_DISTANCE_WEIGHT, "총 이동 거리");
+        return league(leagueOf(factory), 4, RANK_4, "목적식 4순위");
     }
 
     private static UniConstraintStream<Match> regularMatches(ConstraintFactory factory) {

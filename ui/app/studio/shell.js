@@ -26,6 +26,8 @@
       const sum = '연전 기간 ' + st.calendar.length + ' · 시리즈 ' + st.matches.length + ' · 특별 경기 ' + st.events.length;
       if (errs) return { kind: 'warn', text: '칸 오류 ' + errs, summary: sum, next: '칸 오류 ' + errs };
       if (!st.calendar.length || !st.matches.length) return { kind: 'todo', text: '작성 중', summary: sum, next: !st.calendar.length ? '연전 기간 없음' : '시리즈 없음' };
+      const fl = S.flowStatus ? S.flowStatus() : null; // ① 단계 흐름: 네 단계가 모두 끝나야 완료
+      if (fl && !fl.allDone) return { kind: 'todo', text: '작성 중', summary: sum, next: fl.stop + '단계 「' + fl.steps[fl.stop - 1].name + '」' };
       return { kind: 'ok', text: '완료', summary: sum, next: '입력 완료' };
     }
     if (n === 2) {
@@ -55,6 +57,12 @@
   };
 
   // ───────── 상단 띠 ─────────
+  /** 고른 시즌 연도: 로고 바로 뒤에 크게. 누르면 연도 고르기(지금 연도는 저장해 두고 넘어감). 아직 안 골랐으면 「시즌 연도를 고르세요」 */
+  function yearChip() {
+    const empty = S.flowYearChosen && !S.flowYearChosen() && S.g1 && S.g1.mode === 'year';
+    if (empty) return '<button class="tb-year empty" data-act="year-pick" title="맨 먼저 시즌 연도를 고릅니다">시즌 연도를 고르세요</button>';
+    return '<button class="tb-year" data-act="year-pick" title="눌러서 다른 시즌으로 — 지금 시즌은 이 브라우저에 저장해 두고 넘어갑니다" aria-label="' + S.seasonYear() + ' 시즌 — 눌러서 다른 시즌 고르기">' + S.seasonYear() + ' 시즌' + icon('down') + '</button>';
+  }
   function renderTop() {
     const app = S.app, ex = app.derived().ex;
     const n = ex.violations.length;
@@ -68,7 +76,7 @@
     else if (r && r.status === 'PAUSED') eng = '<span class="eng pause"><span class="dot"></span><b>일시정지</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
     else eng = '<span class="eng"><span class="dot"></span>' + (S.dev() ? '엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? 'REST' : 'Mock') : '자동 편성 <b>대기</b>') + '</span>';
     return '' +
-      '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">KBO 일정 편성 · 2025</span><span class="brand-sub">편성 스튜디오</span></div>' +
+      '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">일정 편성</span>' + yearChip() + '<span class="brand-sub">편성 스튜디오</span></div>' +
       '<span class="tb-sep"></span>' +
       '<div class="tb-group">' + badge +
         (S.dev()
@@ -111,6 +119,7 @@
         '<span class="hint">시즌 운영은 1차 편성과 따로 둡니다. 경기 기록 → 재편성 순서로 씁니다.</span>' +
         S.mock('시안 예시: 경기 기록 저장·재편성');
     }
+    if (S.planFlow) { const f = S.planFlow.footer(); if (f) return f; }
     const n = S.ui.step;
     if (n === 1 && S.guideUI && S.guideUI.footer) { const f = S.guideUI.footer(); if (f) return f; } // ① 단계별 화면: 이전·단계·다음
     const cur = S.stepStatus(n);
@@ -143,7 +152,7 @@
     if (u.drawer && S.drawers[u.drawer]) s += '<div class="drawer-scrim" data-act="close-drawer"></div>' + S.drawers[u.drawer]();
     if (u.modal && S.modals[u.modal]) s += '<div class="scrim" data-act="scrim">' + S.modals[u.modal]() + '</div>';
     if (u.menu && S.menus[u.menu]) s += S.menus[u.menu]();
-    s += '<div class="minw-note">이 화면은 1440px 이상 폭에 맞췄습니다. 창을 넓혀 주세요.</div>';
+    s += '<div class="minw-note">이 화면은 1280px 이상 폭에 맞췄습니다. 창을 넓혀 주세요.</div>';
     return s;
   }
 
@@ -157,35 +166,47 @@
         '<div class="msep"></div><div class="mh">내보내기</div>' +
         '<button role="menuitem" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기' + S.mock() + '</button>' +
         '<button role="menuitem" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식 받기' + S.mock() + '</button>' +
-        (S.dev() ? '<button role="menuitem" data-act="export" data-kind="project">' + icon('db') + '프로젝트 JSON</button>' +
-        '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' : '') +
+        (S.dev() ? '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' : '') +
         (S.feature('D4') ? '<button role="menuitem" data-act="export" data-kind="csv">' + icon('table') + '일정표 CSV</button>' : '') +
-        '<div class="msep"></div><div class="mh">데이터 바꾸기</div>' +
-        '<button role="menuitem" data-act="reset-ask" data-kind="blank">' + icon('plus') + '처음부터 입력하기(초기화)…</button>' +
-        '<button role="menuitem" data-act="reset-ask" data-kind="example">' + icon('db') + '2025 예시 데이터 다시 불러오기…</button>' +
+        '<div class="msep"></div><div class="mh">시즌 데이터 · ' + S.seasonYear() + ' 시즌</div>' +
+        '<button role="menuitem" data-act="repo-export">' + icon('download') + '파일로 내려받기(.json)</button>' +
+        '<button role="menuitem" data-act="repo-import">' + icon('upload') + '파일 올리기(.json)…</button>' +
+        '<button role="menuitem" data-act="year-pick">' + icon('cal') + '시즌 연도 고르기 · 처음부터 다시…</button>' +
       '</div>';
     }
   };
 
   // ───────── 처음부터 입력하기 · 예시 데이터 확인 창 ─────────
   S.modals.reset = function () {
-    const st = S.app.state, kind = S.ui.resetKind || 'blank';
+    const st = S.app.state, kind = S.ui.resetKind || 'blank', ry = S.ui.resetYear || S.seasonYear();
+    if (ry !== S.seasonYear()) return resetOtherYear(kind, ry);
     const cnt = (n, unit) => '<b>' + n + '</b>' + unit;
     const now = '연전 기간 ' + cnt(st.calendar.length, '개') + ' · 시리즈 ' + cnt(st.matches.length, '개') + ' · 특별 경기 ' + cnt(st.events.length, '개') + ' · 공휴일 ' + cnt(st.settings.holidays.length, '일') + ' · 휴식일 경기 ' + cnt(st.settings.restExceptions.length, '일') + ' · 휴식기 ' + cnt(st.settings.blackouts.length, '개');
-    const blank = kind === 'blank';
-    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '">' +
-      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + (blank ? '처음부터 입력하기' : '2025 예시 데이터 다시 불러오기') + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
+    const blank = kind === 'blank', y = S.seasonYear(), b = S.builtinOf && S.builtinOf(y);
+    const title = blank ? y + ' 시즌 처음부터 입력하기' : y === 2025 ? '2025 예시 데이터 다시 불러오기' : y + ' 시즌 ' + (b ? b.tag : '기본 제공') + ' 데이터로 다시';
+    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + esc(title) + '">' +
+      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + esc(title) + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
       '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">' +
       (blank
         ? '<p class="small" style="margin:0">지금 들어 있는 표를 모두 비우고, 빈 상태에서 시즌 정보를 처음부터 적습니다. 직접 적는 것은 날짜 몇 개뿐이고, 연전 기간·시리즈 같은 큰 표는 단추로 만듭니다.</p>' +
-          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 공휴일 · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 특별 경기 · 경기 기록 · 중간 저장</dd>' +
-          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 「구단과 거리」에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다.</dd>' +
+          '<dl class="props"><dt>비우는 것</dt><dd class="small">시즌 날짜(개막일·종료일) · 휴식일 경기 · 휴식기 · 연전 기간 · 시리즈 · 홈 구장 지정 · 경기 기록 · 중간 저장</dd>' +
+          '<dt>남기는 것</dt><dd class="small">구단과 구장 위치, 구장 간 거리 — KBO 10구단은 거의 바뀌지 않습니다. 구단이 바뀌면 1 구단 정보에서 고칩니다.<br>맞대결 ' + st.settings.initialGamesPerPair + '경기(홈 ' + st.settings.homeGamesMajor + ')·휴식 요일 같은 규칙 값도 그대로입니다. 공휴일은 ' + y + '년 법정 공휴일로 다시 넣습니다.</dd>' +
           '<dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>'
-        : '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' +
-          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 2025 실제 일정으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
+        : (y === 2025 ? '<p class="small" style="margin:0">2025 정규시즌 실제 일정(기본 제공)을 다시 불러옵니다. 결과 화면 시연용 위반 3건과 7월까지의 경기 기록이 함께 들어옵니다.</p>' : '<p class="small" style="margin:0">' + esc(b ? b.label + '(' + b.tag + ')' : '기본 제공 데이터') + '을(를) 다시 불러옵니다.</p>') +
+          '<dl class="props"><dt>바뀌는 것</dt><dd class="small">지금 적은 모든 표가 ' + esc(y === 2025 ? '2025 실제 일정' : b ? b.label : '기본 제공 데이터') + '으로 바뀝니다.</dd><dt>지금 데이터</dt><dd class="small">' + now + '</dd></dl>') +
       '<div class="confirm-box">' + icon('info') + '<span>실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div>' +
-      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 기본 설정부터 시작합니다. 단계별로 적으려면 「단계별로 보기」를 누르세요.' : '불러온 뒤에는 연전 기간 화면에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '예시 데이터 불러오기') + '</button></span></div></div>';
+      '</div><div class="modal-foot"><span class="small muted">' + (blank ? '비운 뒤에는 시즌 달력에서 개막일부터 적습니다.' : '불러온 뒤에는 시즌 달력에서 시작합니다.') + '</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '표 비우고 처음부터' : '다시 불러오기') + '</button></span></div></div>';
   };
+  /** 지금 열지 않은 해를 처음부터 다시 · 기본 제공 데이터로 다시: 그 해로 바꾼 뒤 비운다(지금 해는 저장해 둠) */
+  function resetOtherYear(kind, y) {
+    const blank = kind === 'blank', b = S.builtinOf && S.builtinOf(y);
+    const title = blank ? y + ' 시즌 처음부터 입력하기' : y + ' 시즌 ' + (b ? b.tag : '기본 제공') + ' 데이터로 다시';
+    return '<div class="modal narrow reset-modal" role="dialog" aria-modal="true" aria-label="' + esc(title) + '">' +
+      '<div class="modal-head">' + icon(blank ? 'plus' : 'db') + '<h3>' + esc(title) + '</h3><button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div>' +
+      '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><p class="small" style="margin:0">' + (blank ? y + ' 시즌으로 바꾼 뒤 시즌 날짜·연전 묶음·홈 구장 지정·시리즈를 모두 비우고 처음부터 입력합니다. 구단 정보는 그대로 두고 그 해 법정 공휴일을 미리 넣습니다.' : y + ' 시즌으로 바꾼 뒤 ' + esc(b ? b.label : '기본 제공 데이터') + '을(를) 다시 불러옵니다.') + '</p>' +
+      '<div class="confirm-box">' + icon('info') + '<span>지금 ' + S.seasonYear() + ' 시즌은 이 브라우저에 저장해 두고 넘어갑니다. 바꾼 뒤 실행 취소(<span class="kbd">Ctrl</span>+<span class="kbd">Z</span>)로 한 번에 되돌릴 수 있습니다.</span></div></div>' +
+      '<div class="modal-foot"><span style="margin-left:auto;display:flex;gap:8px"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="reset-go" data-kind="' + kind + '">' + icon(blank ? 'plus' : 'db') + (blank ? '처음부터 입력하기' : '다시 불러오기') + '</button></span></div></div>';
+  }
 
   // ───────── 렌더 루프 ─────────
   const els = {};
@@ -196,7 +217,8 @@
     document.querySelectorAll('[data-sk]').forEach((el) => { scrollMem[el.getAttribute('data-sk')] = [el.scrollTop, el.scrollLeft]; });
     document.body.classList.toggle('mode-ops', !!u.ops);
     els.top.innerHTML = renderTop();
-    els.stepper.innerHTML = u.ops ? renderOpsBar() : renderStepper();
+    if (S.planFlow) S.planFlow.beforeRender();
+    els.stepper.innerHTML = u.ops ? renderOpsBar() : S.planFlow ? S.planFlow.stepper() : renderStepper();
     els.stepper.className = u.ops ? 'opsbar' : 'stepper';
     els.body.innerHTML = u.ops ? S.ops.render() : S.steps[u.step].render();
     els.footer.innerHTML = renderFooter();
@@ -208,6 +230,7 @@
     if (u.ops && S.ops.after) S.ops.after();
     if (S.guideAfter) S.guideAfter();
     S.writeHash();
+    document.title = '편성 스튜디오 — KBO 일정 편성 · ' + S.seasonYear() + ' 시즌';
     S.checkScroll();
   };
   S._after = [];
@@ -220,6 +243,12 @@
   };
   S.go = function (patch) { Object.assign(S.ui, patch); S.ui.menu = null; S.render(); };
   S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(S.plain(m), k, ms); };
+  /** 도로거리 받기 결과 알림(구단 정보 카드·표 아래 단추) */
+  S.roadToast = (r) => {
+    if (r.ok) S.toast('도로거리 ' + r.ok + '쌍을 받았습니다(카카오모빌리티 길찾기, 양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (r.failed) S.toast(r.failed + '쌍은 받지 못해 지금 값을 그대로 둡니다 — ' + r.error, 'warn', 7000);
+    if (!r.ok && !r.failed) S.toast('받을 거리가 없습니다.', 'info');
+  };
 
   /** 선택 항목을 보이게 스크롤 */
   S.revealSelected = function (sel, container) {
@@ -252,14 +281,19 @@
     'undo': () => { S.app.undo(); },
     'redo': () => { S.app.redo(); },
     'export': (el) => S.doExport(el.dataset.kind),
-    'reset-ask': (el) => { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 데이터를 바꿀 수 없습니다. 먼저 중지하세요.', 'warn'); return; } S.ui.resetKind = el.dataset.kind || 'blank'; S.go({ modal: 'reset', menu: null }); },
-    'reset-go': (el) => { if (el.dataset.kind === 'example') S.loadExample(); else S.resetAll(); }
+    'reset-ask': (el) => { if (S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED')) { S.toast('자동 편성 중에는 데이터를 바꿀 수 없습니다. 먼저 중지하세요.', 'warn'); return; } S.ui.resetKind = el.dataset.kind || 'blank'; S.ui.resetYear = null; S.go({ modal: 'reset', menu: null }); },
+    'reset-go': (el) => {
+      const y = S.ui.resetYear || S.seasonYear();
+      S.ui.resetYear = null;
+      if (y !== S.seasonYear()) S.switchYear(y, { quiet: true, to: 'stay' });
+      if (el.dataset.kind === 'example') S.loadBuiltin(y); else S.resetAll();
+    }
   });
 
   S.doExport = function (kind) {
     const app = S.app;
     S.ui.menu = null;
-    if (kind === 'project') { app.exportProject(); S.toast('프로젝트 JSON을 내려받았습니다.', 'ok'); }
+    if (kind === 'project') { app.exportProject(); S.toast('시즌 데이터 파일을 내려받았습니다.', 'ok'); }
     else if (kind === 'engine') { app.exportEngine(); S.toast('엔진 호환 JSON(input_2025 형식)을 내려받았습니다.', 'ok'); }
     else if (kind === 'csv') { app.exportCSV(S.ui.team || null); S.toast('일정표 CSV를 내려받았습니다' + (S.ui.team ? ' (' + S.ui.team + ')' : '') + '.', 'ok'); }
     else if (kind === 'xlsx') S.toast('시안 예시: 2025_KBO_편성_배포본.xlsx (시트 6개 · 연전 기간 ' + app.state.calendar.length + ' · 시리즈 ' + app.state.matches.length + ')를 만들었다고 가정합니다.', 'info', 4200);
@@ -301,16 +335,26 @@
       setTimeout(() => KBO.UI.toast('공유 결과의 조건을 실었어요: ' + parts.join(' · '), 'info', 6000), 0);
     }
     app.subscribe(() => S.scheduleRender());
+    // 시즌 연도: 주소의 year= 또는 이 브라우저에서 마지막으로 연 해. 2025를 저장한 적이 없으면 위의 예시 데이터 그대로
+    S.autosave.start();
+    const hy = +(S.parseHash().year || 0);
+    if (hy > 2000) S.repo.setLastYear(hy);
+    const by = hy > 2000 ? hy : S.repo.lastYear();
+    if (by && (by !== 2025 || S.repo.has(2025))) S.switchYear(by, { boot: true, quiet: true, to: 'stay' });
+    app.loadLocalConfig(); // 카카오 지도 키(.env → ui/config.local.json). 없으면 기본 지도
+    app.probeRoad(); // 편성 서버의 도로거리 계산(카카오모빌리티 길찾기 중계)이 되는지
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
     window.addEventListener('hashchange', () => { S.applyRoute(S.parseHash()); S.render(); });
     // 폭·높이 구간(1800px·900px)이 바뀌면 JS로 크기를 정한 차트·달력을 다시 그린다
     window.addEventListener('resize', () => { const w = window.innerWidth >= 1800, t = window.innerHeight >= 900; if (w !== S.wide || t !== S.tall) S.render(); else S.checkScroll(); });
     bindEvents();
+    S.booted = true;
     S.render();
     if (S.ui.demo && S.demos[S.ui.demo]) { S.quiet = true; try { S.demos[S.ui.demo](); } finally { S.quiet = false; } }
     setTimeout(() => S.checkScroll(), 300);
     if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
+    if (q.get('plantest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/plan-selftest.js'; document.body.appendChild(sc); }
   };
   S.demos = {};
   /** 점검용 주소 demo=blank: 처음부터 입력하기 상태로 시작한다(빈 표 화면 점검). 주소의 단계·화면은 그대로 둔다 */

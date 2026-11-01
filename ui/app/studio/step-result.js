@@ -161,7 +161,7 @@
   function renderCalendar() {
     const c = D(), st = app().state, u = S.ui;
     const month = u.month || 4;
-    const y = 2025;
+    const y = S.seasonYear();
     const first = Dates.dayNum(y + '-' + String(month).padStart(2, '0') + '-01');
     const nextMonth = month === 12 ? Dates.dayNum((y + 1) + '-01-01') : Dates.dayNum(y + '-' + String(month + 1).padStart(2, '0') + '-01');
     const last = nextMonth - 1;

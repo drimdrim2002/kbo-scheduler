@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>0 · 다시 왔을 때 — 어디까지 했는지</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="flow.css"></head><body><div class="body" style="position:relative"></div><script src="../input-flow-concepts/concept.js"></script><script src="flow.js"></script><script>
+Flow.chrome({ at: 0, year: 2027, sum: '3 / 4 공휴일·홈 구장에서 멈춤', hint: '<b>① 데이터 준비</b> — 어디까지 했는지 보고 이어서 합니다', next: '이어서: 3 공휴일·홈 구장' });
+const row = (k, n, t, s, btn) => '<div class="rrow ' + k + '"><i>' + (k === 'done' ? '✓' : n) + '</i><div class="t"><b>' + n + ' ' + t + '</b><small>' + s + '</small></div>' + btn + '</div>';
+document.querySelector('.body').outerHTML = '<div class="resume"><div class="rcard">' +
+  '<div class="kick">① 데이터 준비 · 다시 오셨습니다</div><h2>3단계 「공휴일·홈 구장」에서 멈췄습니다</h2>' +
+  '<p class="sub">2027 시즌 · 마지막으로 고친 때 10/27(화) 오후 2:32 · 이 컴퓨터의 브라우저에 저장되어 있습니다.</p>' +
+  row('done', 1, '구단 정보', '10구단 · 구장 위치 · 구장 간 거리 90개 모두 있음', '<span class="btn sm">보기</span>') +
+  row('done', 2, '시즌 기간·연전 묶음', '2027 · 개막 3/27(토) ~ 1차 편성 9/5(일) · 묶음 45개 · 경기일 135 / 135일 ✓', '<span class="btn sm">보기</span>') +
+  row('cur', 3, '공휴일·홈 구장', '공휴일 14일 ✓ · 홈 구장 지정 1 / 2 — 어린이날 5/5(수)가 아직 비어 있습니다', '<span class="btn sm pri">이어서 하기 ›</span>') +
+  row('', 4, '확인', '3단계를 마치면 한 번에 확인합니다', '<span class="btn sm dis">아직</span>') +
+  '<div class="rfoot"><span>다른 시즌을 하시려면</span><span class="btn sm">＋ 새 시즌 처음부터</span><span class="btn sm">2025 예시 데이터 보기</span><span class="btn pri">이어서: 3 공휴일·홈 구장 ›</span></div>' +
+  '</div></div>';
+</script></body></html>

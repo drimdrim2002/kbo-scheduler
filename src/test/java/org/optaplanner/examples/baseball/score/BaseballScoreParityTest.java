@@ -210,7 +210,8 @@ class BaseballScoreParityTest {
         assertThat(pinned).hasSize(10);
         assertThat(pinned).allMatch(BaseballScoreParityTest::isOpeningOrChildrensDay);
         List<Match> opening = matches.stream().filter(BaseballScoreParityTest::isOpeningDay).toList();
-        List<Match> children = matches.stream().filter(match -> match.getCalendar().isChildrenDay()).toList();
+        List<Match> children = matches.stream().filter(match -> match.getCalendar().getHomeObligationMask() != 0
+                && match.getConsecutive() == 3).toList();
         assertThat(opening).hasSize(5).allMatch(Match::isPinned);
         assertThat(children).hasSize(5).allMatch(Match::isPinned);
         assertThat(opening).allMatch(match -> match.getCalendar().getSlotIndex() == 0 && match.getConsecutive() == 2);
@@ -226,7 +227,7 @@ class BaseballScoreParityTest {
     }
 
     private static boolean isOpeningOrChildrensDay(Match match) {
-        return isOpeningDay(match) || match.getCalendar().isChildrenDay();
+        return isOpeningDay(match) || match.getCalendar().getSlotIndex() == 13;
     }
 
     private static List<Long> matchIds(BaseballSolution solution) {

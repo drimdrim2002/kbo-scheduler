@@ -12,15 +12,16 @@
   const ORDER = { block: 0, warn: 1, pass: 2 };
   const KIND = { pass: 'ok', warn: 'warn', block: 'block' };
   const LBL = { pass: '통과', warn: '확인 필요', block: '진행 불가' };
-  const TARGET_LABEL = { teams: '① 구단과 거리', distance: '① 구단과 거리', slots: '① 연전 기간', series: '① 시리즈', events: '① 특별 경기', result: '③ 결과·수정', season: '① 시즌 기본 설정' };
+  // 「입력 위치로」: ①은 시즌 달력 한 화면이라 그 화면의 부분 이름으로 적는다(모든 표 보기에서 왔으면 그 표를 연다)
+  const TARGET_LABEL = { teams: '① 구단 정보', distance: '① 구단 정보', slots: '① 시즌 달력 · 연전 묶음', series: '① 시즌 달력 · 확인(시리즈)', events: '① 시즌 달력 · 홈 구장 지정', result: '③ 결과·수정', season: '① 시즌 달력 · 시즌 기간' };
   // 규칙 설명. 개발자 모드는 코드가 들어간 원문, 일반 모드는 쉬운 문장
   const EXPLAIN = {
     'teams-even': '구단 수가 홀수면 연전 기간마다 한 구단이 쉬어야 해서 H0-a(출전 구단 수)를 만족할 수 없습니다.',
     shared: '같은 구장명을 쓰는 구단은 같이 쓰는 구장으로 봅니다. 한 연전 기간에 둘 다 홈이면 H0-b 위반입니다.',
     distance: '이동거리(S2, S4) 계산에 N×(N−1)개 거리가 모두 필요합니다.',
-    slots: '연전 기간은 ① 연전 기간 표에서 가져옵니다. 규칙대로 만든 안과 다르면 알려 드립니다.',
+    slots: '연전 기간은 ① 시즌 달력의 연전 묶음입니다(묶음이 곧 경기일). 달력에서 직접 고친 묶음은 규칙과 달라도 그대로 씁니다.',
     pairs: '맞대결마다 1차 편성 경기 수가 같아야 공정합니다(기본 15경기).',
-    events: '같은 연전 기간에 한 구단이 두 대진에 나오거나, 구장 지정과 대진 지정이 부딪히면 진행할 수 없습니다.',
+    events: '홈 구장 지정이 한 연전 기간에 쓸 수 있는 구장 수보다 많거나, 예전 방식 대진 지정과 부딪히면 진행할 수 없습니다.',
     pins: '고정 시리즈가 연전 수가 다른 연전 기간에 있으면 H0-d 위반이 남습니다.',
     cap: 'k연전마다 「k연전 시리즈 수 ≤ k연전 기간 수 × (구단 수 / 2)」를 검사합니다. 부족하면 일정 미정(S0)이나 기간 과밀이 불가피해 진행할 수 없고, 남으면 빈 자리는 추가 휴식이라 확인 필요로만 알립니다.'
   };
@@ -97,7 +98,7 @@
       kv('특별 경기', st.events.length, '대진 ' + st.events.filter((e) => e.mode === 'MATCH').length + ' · 구장 ' + st.events.filter((e) => e.mode === 'STADIUM').length) +
       kv('시리즈', st.matches.length, games + '경기') +
       kv('맞대결', st.teams.length * (st.teams.length - 1) / 2, set.initialGamesPerPair + '경기씩') +
-      kv('고정', st.matches.filter((m) => m.pinned).length, '개막전 대진 지정') + '</div>';
+      kv('고정', st.matches.filter((m) => m.pinned).length, '개막전 홈 구장 지정') + '</div>';
   }
 
   /** 시뮬레이션 점수 곡선: t(0..1) → [hardSum, softSum] */
@@ -192,7 +193,7 @@
       '<div class="field"><span id="lbl-init">시작 방식</span><div class="choices big" role="radiogroup" aria-labelledby="lbl-init">' + S.INIT_MODES.map(initCard).join('') + '</div>' +
         (eff.forced ? '<span class="small muted init-forced">' + icon('info') + '지금 일정에 ' + esc(S.termPlain('hardViol')) + ' ' + nViol + '건이 있어 이번 실행은 「처음부터 새로 짜기」로 합니다. 다듬기는 위반이 없을 때 쓸 수 있습니다.</span>' : '') + '</div>' +
       '</div>' +
-      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. ' + (initV === 'SCRATCH' ? '고정은 개막전·어린이날 시리즈만 유지됩니다.' : '고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.') + '</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
+      '<div class="keep-line bc-pick">' + icon('play') + '<span><b>' + esc(cur ? cur.name + ' ' + cur.time : '직접 지정 ' + fmt.time(sv.timeLimitSec * 1000)) + '</b> · <b>' + esc(mode.name) + '</b>로 시작합니다. ' + '고정한 경기 <b>' + pinned + '개</b>는 그대로 둡니다.' + '</span><span class="muted small">고정은 ③ 결과·수정에서 바꿉니다.</span></div>';
   };
 
   /** 개발자 옵션 (W17) — 개발자 모드에서만 DOM에 만든다 */
@@ -331,6 +332,9 @@
   S.startRun = function () {
     if (S.run && S.run.status !== 'DONE') return;
     if (!app().preflight().ok) { S.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); return; }
+    // 개막전·어린이날 지정을 지운 채면 시작 전에 한 번 더 묻는다(노트 「사」 — 막지는 않음)
+    if (S.clearedRuleHomes && S.clearedRuleHomes().length && !S.homeRuleRunOk) { S.ui.homeAsk = { kind: 'run' }; S.go({ modal: 'homeRule' }); return; }
+    S.homeRuleRunOk = false;
     const sv = app().state.settings.solver;
     const limit = S.runLimitMs(sv);
     const eff = S.effectiveInit(sv);
@@ -364,6 +368,7 @@
     S.run = null;
     if (reason === 'ERROR') { S.toast('편성 실패 — ' + (message || '엔진 오류'), 'bad', 7000); S.render(); return; }
     const ex = D().ex;
+    if (S.afterRun && S.afterRun(ex, r, why)) return;
     S.toast('편성 끝 (' + why + ') — ' + S.scoreLine(ex) + ' · ③ 결과·수정으로 이동합니다.', ex.feasible ? 'ok' : 'warn', 4500);
     S.go({ step: 3, sel: ex.violations.length ? 'v:' + S.vsig(ex.violations[0]) : null });
   }

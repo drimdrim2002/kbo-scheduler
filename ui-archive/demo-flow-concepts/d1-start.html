@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>1 · 처음 화면 — 무엇을 할까요?</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ noFoot: true });
+document.querySelector('.body').outerHTML = '<div class="start"><h1>무엇을 할까요?</h1><p class="lead">이미 짠 2025 계획을 확인하거나, 2027 계획을 새로 만듭니다.</p><div class="choices">' +
+  '<div class="ch"><div class="kick">확인용 · 고치지 않음</div><div class="y">2025<small>시즌</small></div><div class="t" style="font-size:20px;font-weight:800;color:var(--navy)">계획 보기</div>' +
+  '<p class="what">같은 2025년 조건(구단·구장·개막일·연전 묶음·개막전·어린이날)으로 이 엔진이 짠 일정입니다. KBO가 실제로 쓴 2025 일정과 숫자를 나란히 봅니다.</p>' +
+  '<ul><li><b>총 이동 거리</b>KBO 실제 72,955km → 이 엔진 <b style="min-width:0;color:var(--ok)">63,312km (13% 짧음)</b></li><li><b>구단 간 차이</b>가장 먼 구단과 가장 가까운 구단 1,373km → 554km</li><li><b>휴일 고르게</b>구단별 휴일 가중치 22~33 → 26~29</li></ul>' +
+  '<span class="btn big">2025 계획 보기 ›</span></div>' +
+  '<div class="ch go"><div class="kick">새로 만들기</div><div class="y">2027<small>시즌</small></div><div class="t" style="font-size:20px;font-weight:800;color:var(--navy)">새 계획 만들기</div>' +
+  '<p class="what">2027 원칙이 모두 채워져 있습니다. 단계를 넘기며 확인하고 「자동 편성 시작」을 누르면 30초 안에 일정이 나옵니다.</p>' +
+  '<ul><li><b>개막</b>3/27(토) 2연전 · 홈 KT·삼성·KIA·LG·SSG</li><li><b>어린이날</b>5/5(수) 홈 두산·키움·한화·롯데·NC</li><li><b>올스타·후반기</b>휴식기 7/9~7/14 · 7/15~18 개막 대진 4연전</li><li><b>1차 편성</b>9/5(일)까지 135경기 · 홈 73 / 71 · 3연전 이상만</li></ul>' +
+  '<span class="btn pri big">2027 새 계획 만들기 ›</span></div>' +
+  '</div><div class="note">데이터는 이 컴퓨터의 브라우저에 저장됩니다. 2025·2027 두 시즌만 다룹니다.</div></div>';
+</script></body></html>

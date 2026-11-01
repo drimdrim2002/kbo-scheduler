@@ -1,6 +1,7 @@
 package org.optaplanner.examples.baseball.domain;
 
 import java.math.BigDecimal;
+import java.time.MonthDay;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -17,7 +18,8 @@ public class Constants {
     public static final String[] HOME_OBLIGATION_CHILDREN_ARR = {"두산", "키움", "한화", "NC", "롯데"};
     public static final HashSet<String> HOME_OBLIGATION_CHILDREN = new HashSet<>(
         Arrays.asList(HOME_OBLIGATION_CHILDREN_ARR));
-    public static String CHILDREN_DAY_START = "2025-05-05";
+    /** 예전 방식(홈 구장 지정이 없을 때)의 어린이날. 시즌 해의 이 날이 든 연전 기간에 기본 홈 구단을 둔다. */
+    public static final MonthDay CHILDREN_DAY = MonthDay.of(5, 5);
     public static String MATCH_START_DATE = "2025-03-22";
     public static String inputFileName = "data/baseball/input_2025.json";
 

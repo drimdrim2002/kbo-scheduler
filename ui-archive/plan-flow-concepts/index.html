@@ -1,0 +1,70 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>계획 흐름 시안 — 값 입력·검증 · 엔진 옵션·실행 · 결과 분석</title>
+<style>
+body{font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#172033;background:#F3F4F6;margin:0}
+main{max-width:1240px;margin:0 auto;padding:28px 24px 60px}
+h1{font-size:24px;margin:0 0 6px;color:#0A1E3C} h2{font-size:18px;margin:34px 0 8px;color:#0A1E3C}
+.lead{color:#435067;margin:0 0 16px}
+.box{background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:14px 18px;margin:10px 0}
+.flow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.flow span{background:#fff;border:1px solid #D2D7DF;border-radius:16px;padding:4px 12px;font-weight:600}
+.flow span.b{border-color:#1F5FD6;color:#1F5FD6}
+figure{margin:12px 0 22px;background:#fff;border:1px solid #E2E5EA;border-radius:8px;overflow:hidden}
+figure img{display:block;width:100%}
+figcaption{padding:10px 16px;border-top:1px solid #E2E5EA;color:#435067}
+figcaption b{color:#0A1E3C}
+ul{margin:4px 0;padding-left:20px} li{margin:3px 0}
+.q{background:#FFF3D9;border-color:#EDCB84}
+a{color:#1F5FD6}
+</style></head><body><main>
+<h1>계획 흐름 시안 — 값 입력·검증 → 엔진 옵션·실행 → 결과 분석</h1>
+<p class="lead">2026-10-31 사용자가 다시 잡은 흐름. 지난 시안(<a href="../demo-flow-concepts/index.html">demo-flow-concepts</a>)의 「2027 모두 ✓ → 바로 실행」(4~7번 화면)을 이 시안이 대신합니다. 정적 시안이라 실제 스튜디오는 아직 바꾸지 않았습니다. <b>표준 10장</b> + 한 영역씩만 다른 <b>대안 3장</b>.</p>
+<div class="box"><b>순서</b><div class="flow"><span class="b">처음 화면</span>→<span>2025 결과 보기(강조 · 보기 전용)</span>&nbsp;또는&nbsp;<span class="b">2027 값 입력·검증</span>(1 구단 정보 → 2 시즌 기간 → 3 공휴일·홈 구장 → 4 확인)→<span class="b">엔진 옵션·실행</span>→<span class="b">결과 분석</span>→<span>버전 저장 · 비교 · 옵션 바꿔 다시</span></div>
+<ul>
+<li><b>정한 것</b>: 목적식 우선순위는 <b>순서만</b> 정함(위가 조금이라도 나으면 그쪽) · 허용 차이는 <b>가장 많은 구단과 가장 적은 구단의 차이</b> · 넘으면 <b>줄이려 노력</b>(반드시는 아님) · 주말과 공휴일은 <b>한 점수로 합침</b>(주말 하루 1점 · 공휴일 2점 · 어린이날 3점, 지금 엔진 그대로).</li>
+<li><b>숫자는 모두 실제로 돌린 값</b>입니다. 모두 2026-10-31 새 엔진(목적식 순서 · 허용 차이 4회 · 600km · 3점)으로 시도 10번 × 3분 실행한 가장 좋은 결과입니다. 2027 기본안 = 개막 대진 1순위 예측, 2순위 대진안 = 2순위 예측. 모두 스튜디오 점검 기능으로 다시 셌습니다.</li>
+<li><b>엔진 고침 완료(2026-10-31)</b>: 목적식 순서와 허용 차이(가장 많은·적은 구단 차이)를 받습니다. 다른 순서로 돌린 결과는 아직 없어 추천 순서 카드에 숫자를 넣지 않았습니다.</li>
+<li><b>허용 차이 기본값 4회 · 600km · 3점</b>(사용자 확인). 결과는 이동 횟수·주말·공휴일 차이가 허용 차이에 딱 붙습니다 — 엔진은 허용 안에 들면 더 줄이지 않고 전체 이동 거리로 넘어가기 때문입니다.</li>
+<li><b>주의 — 결과는 실행마다 흔들립니다.</b> 2025 시도 10번은 60,189~67,057km로 모두 KBO 실제(72,955km)보다 짧았습니다. 2025 화면의 −17%는 그중 가장 좋은 값입니다. <b>주말 홈 시리즈는 KBO(11~12)보다 벌어집니다</b>(2025 9~13, 2027 10~14) — 주말·공휴일을 한 점수로 합쳐서 생긴 차이입니다.</li>
+<li><b>따라 하기 모양</b>은 지금 스튜디오의 「따라 하기 카드」를 그대로 썼습니다. 모양(카드 · 체크리스트 · 말풍선)은 아직 고르지 않은 초기화·튜토리얼 3안 브랜치에서 고르시면 됩니다.</li>
+</ul></div>
+<div class="box" style="border-color:#1F5FD6"><b>화면 글 원칙</b> — 개발 용어는 쓰지 않고, 제목은 짧게 · 설명은 그 밑 줄에.</div>
+<div class="box" style="border-color:#1F5FD6"><b>고른 조합 (2026-10-31 사용자 결정)</b> — 엔진 옵션은 <b>대안 A</b>, 결과 분석은 <b>대안 B</b>, 결과 비교는 <b>네 번째 단계 「실행 결과 비교」</b>로 따로 둡니다(대안 C는 쓰지 않음). 단계 띠는 4칸: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교.
+<div class="flow"><a href="s1-start.html"><span>처음 화면</span></a>→<a href="s2-2025.html"><span>2025 결과</span></a>&nbsp;또는&nbsp;<a href="s3-teams.html"><span class="b">1 값 입력·검증</span></a>(<a href="s3-teams.html">1</a> · <a href="s4-season.html">2</a> · <a href="s5-home.html">3</a> · <a href="s6-check.html">4</a>)→<a href="a-options.html"><span class="b">2 엔진 옵션(A)</span></a>→<a href="s8-running.html"><span>실행 중</span></a>→<a href="b-dashboard.html"><span class="b">3 현재 결과 분석(B)</span></a>→<a href="s10-versions.html"><span class="b">4 실행 결과 비교</span></a></div>
+<ul><li>「실행 결과 비교」는 순서대로 가는 단계가 아니라 <b>저장한 버전이 있으면 언제든 누를 수 있는 탭</b>입니다. 버전 저장은 3 현재 결과 분석에서 합니다.</li></ul></div>
+<h2 style="font-size:20px;margin-top:40px">표준안</h2>
+<h2>표준 1 · 처음 화면</h2>
+<figure><a href="s1-start.html"><img src="shots/s1-start.png" alt=""></a><figcaption><b>2025 보기 / 2027 만들기 — 정보를 줄임.</b> 2025 카드는 핵심 숫자 하나(전체 이동 거리 17% 짧음). 2027 카드는 <b>값 입력·검증 4단계만</b> 알려 줍니다(단계마다 추정값 개수). 엔진 옵션·결과 분석 설명은 뺐습니다.</figcaption></figure>
+<h2>표준 2 · 2025 결과 — 우리가 낫다는 점을 강조</h2>
+<figure><a href="s2-2025.html"><img src="shots/s2-2025.png" alt=""></a><figcaption><b>목적식 4개가 모두 좋아졌다</b>를 맨 위에 크게. 목적식 순위 순으로 KBO 실제 → 이 엔진(이동 횟수 차이 6 → 4회 · 이동 거리 차이 1,372.5 → 415.1km · 주말·공휴일 점수 차이 11 → 3점 · 전체 이동 거리 72,955 → 60,189km). 균형 세 가지는 KBO 실제가 허용 차이를 넘고 이 엔진은 안에 있다는 것도 표시. <b>KBO가 나은 점</b>(주말 홈 시리즈 · 가장 긴 연속 원정)도 숨기지 않습니다. 보기 전용.</figcaption></figure>
+<h2>표준 3 · 2027 1 구단 정보 — 따라 하기 시작</h2>
+<figure><a href="s3-teams.html"><img src="shots/s3-teams.png" alt=""></a><figcaption><b>2027도 1 구단 정보부터 사용자가 검토합니다.</b> 네 단계 모두 「검토 전」에서 시작. 따라 하기 1/4가 「추정값이 섞여 있으니 단계마다 「왜 이 값?」을 읽고 맞아요/고치기」를 설명. 구단 정보는 2025에서 가져온 것이라 「바뀐 정보가 있나요?」 한 가지만 묻습니다.</figcaption></figure>
+<h2>표준 4 · 2027 2 시즌 기간·연전 묶음 — 추정값 검토</h2>
+<figure><a href="s4-season.html"><img src="shots/s4-season.png" alt=""></a><figcaption><b>줄마다 값 · 노란 「추정 · 확정 아님」 · 왜 이 값? · 근거 · 맞아요/고치기.</b> 개막일 3/27, 1차 편성 끝 9/5(경기일 135일), 올스타 휴식기 7/9~14가 추정. 후반기 첫 4연전은 규칙대로 자동. 오른쪽에 경기일·연전 묶음이 값에 따라 바로 다시 계산됩니다. 모든 줄을 확인해야 「다음」이 켜집니다.</figcaption></figure>
+<h2>표준 5 · 2027 3 공휴일·홈 구장 — 개막전·어린이날 홈</h2>
+<figure><a href="s5-home.html"><img src="shots/s5-home.png" alt=""></a><figcaption>공휴일(1차 편성 기간 안 5일)과 홈 73/71은 확인됨, <b>개막 2연전 홈(KT·삼성·KIA·LG·SSG)과 어린이날 홈(두산·키움·한화·롯데·NC)이 추정</b>. 따라 하기가 「전년도 순위로 정해지니 순위가 다르면 고치기」를 안내. 오른쪽은 홈 구단을 지정한 날 한눈에.</figcaption></figure>
+<h2>개막전 근거 (표준 5에서 들어감)</h2>
+<figure><a href="s5b-opening-basis.html"><img src="shots/s5b-opening-basis.png" alt=""></a><figcaption><b>개막일 · 홈 구단 · 대진의 근거와 신뢰도.</b> 「2027 KBO 개막전 예측」 1순위를 입력값으로 썼습니다.</figcaption></figure>
+<h2>표준 6 · 2027 4 확인</h2>
+<figure><a href="s6-check.html"><img src="shots/s6-check.png" alt=""></a><figcaption><b>사용자가 네 단계를 모두 확인한 뒤의 모습</b>(처음부터 ✓가 아님). 단계마다 「추정 N개 확인함」, 사전 점검 통과. 따라 하기 4/4가 다음 엔진 옵션을 예고합니다.</figcaption></figure>
+<h2>표준 7 · 2027 엔진 옵션 — 목적식 순서와 허용 차이</h2>
+<figure><a href="s7-options.html"><img src="shots/s7-options.png" alt=""></a><figcaption><b>위: 반드시 지킴</b>(순서와 상관없이 항상, 바꿀 수 없음). <b>아래: 목적식 4개를 끌어서 순서를 정하고</b>, 균형 세 가지마다 허용 차이(가장 많은·적은 구단 차이)를 적습니다. 칸마다 참고값(2025 KBO 실제 · 이 엔진 2025). 설명: 「1순위가 조금이라도 나은 결과를 고름 · 허용 차이 안이면 만족 → 다음 순위 · 넘으면 줄이려 노력」. <b>실행 시간은 「더 보기」 안</b>으로 숨기고, 기본은 「더 나아지지 않으면 스스로 멈춤」.</figcaption></figure>
+<h2>표준 8 · 2027 실행 중</h2>
+<figure><a href="s8-running.html"><img src="shots/s8-running.png" alt=""></a><figcaption><b>시간 대신 「지금까지 가장 좋은 결과」가 주인공.</b> 목적식 4개를 순위 순 타일로, 허용 차이 안/넘음을 막대로. 「결과를 2초마다 받아 옴(마지막: 1초 전)」. 아래는 구단별 이동 거리와 반드시 지킬 규칙 점검. 숫자는 2027 실제 실행의 최종 결과입니다.</figcaption></figure>
+<h2>표준 9 · 2027 결과 분석 — 목적식마다 탭</h2>
+<figure><a href="s9-analysis.html"><img src="shots/s9-analysis.png" alt=""></a><figcaption><b>맨 위에서 이름을 붙여 버전으로 저장.</b> 목적식 타일 4개(누르면 아래 탭이 바뀜) → 탭(목적식 4개 + 주말 홈 시리즈 · 연속 원정). 이동 거리 균형 탭: 구단별 표(평균과 차이 · 가장 적은 구단과 차이)와 허용 띠가 있는 막대 그래프, 「NC 6,010.5 · SSG 5,453.4 → 차이 557.1km, 허용 600km 안」 한 줄.</figcaption></figure>
+<h2>표준 10 → 4단계 · 2027 실행 결과 비교 — 저장한 버전끼리 (고른 조합에 씀)</h2>
+<figure><a href="s10-versions.html"><img src="shots/s10-versions.png" alt=""></a><figcaption><b>버전 목록에서 두 개를 골라 목적식마다 비교.</b> 실제로 돌린 두 버전: 기본안(개막 대진 1순위 예측) vs 2순위 대진안. 「순위대로 따지면 1~3순위는 둘 다 허용 안 → 4순위 전체 이동 거리에서 이번 실행에서는 기본안이 4,417km 짧았다」를 풀어 씀. <b>단, 이 차이는 실행마다의 흔들림 안에 있습니다</b>(허용 안에 든 시도 기준 기본안 57,249~61,698km · 2순위 61,666~66,015km로 조금 겹침). 그래서 화면에 「수천 km씩 달라질 수 있으니 다시 실행해 확인」을 넣었습니다. 저장은 스튜디오 안(나중에 온라인으로), 내려받기·올리기.</figcaption></figure>
+
+<h2 style="font-size:20px;margin-top:40px">대안 — 한 영역씩만 다름</h2>
+<h2>대안 A · 엔진 옵션 — 추천 순서 카드 + 허용 차이를 그림으로</h2>
+<figure><a href="a-options.html"><img src="shots/a-options.png" alt=""></a><figcaption><b>표준 7을 대신합니다.</b> 순서를 끌어서 정하는 대신 <b>추천 순서 카드</b>(균형 먼저 = 기본 · 거리 먼저 · 주말·공휴일 먼저 · 직접 정하기)에서 고르고, 허용 차이는 <b>2025 구단 10개 점(파랑 이 엔진 · 회색 KBO 실제) 위에 초록 창을 끌어</b> 정합니다. 「이 값이면 어느 구단이 들어오고 나가는지」가 보입니다. 순서별 결과 숫자는 실행해 봐야 알 수 있어 넣지 않았습니다.</figcaption></figure>
+<h2>대안 B · 결과 분석 — 한 장 대시보드</h2>
+<figure><a href="b-dashboard.html"><img src="shots/b-dashboard.png" alt=""></a><figcaption><b>표준 9를 대신합니다.</b> 탭 대신 목적식 4개를 2×2 칸에 한꺼번에(구단별 막대 + 허용 띠), 오른쪽에 <b>구단 × 지표 색 표</b>(평균보다 많으면 주황 · 적으면 파랑). 전체 이동 거리 칸은 2025 KBO 실제 · 2025 이 엔진 · 2027 이 결과를 나란히(해가 달라 참고용).</figcaption></figure>
+<h2>대안 C · 버전 — 분석 화면 옆에 늘 두고 겹쳐 비교</h2>
+<figure><a href="c-versions.html"><img src="shots/c-versions.png" alt=""></a><figcaption><b>표준 9·10을 하나로 합칩니다.</b> 왼쪽에 버전 칸을 늘 두고, 누르면 「보는 중」, 한 번 더 누르면 「비교」. 목적식 타일에 비교 값과 ▲▼ 차이, 구단별 그래프는 두 버전을 겹쳐 그립니다. 비교를 위해 다른 화면으로 가지 않아도 됩니다. (전체 이동 거리 차이는 표준 10과 같은 이유로 「이번 실행에서는」이라고만 씁니다.)</figcaption></figure>
+
+<h2>정해 주실 것</h2>
+<div class="box q"><ul>
+<li><s><b>영역마다 하나씩</b>: 엔진 옵션(표준 7 끌어서 순서 / 대안 A 추천 순서 카드 + 그림) · 결과 분석(표준 9 탭 / 대안 B 한 장 대시보드) · 버전(표준 10 별도 화면 / 대안 C 옆 칸에서 겹쳐 비교).</s> → 정함: A · B · 4단계 「실행 결과 비교」.</li>
+</ul></div>
+</main></body></html>

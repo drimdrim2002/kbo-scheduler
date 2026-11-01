@@ -1,6 +1,7 @@
 /*
- * KBO 공통 코어 — 2025 프리셋 (자동 생성 파일: node web/tools/build-preset.js)
+ * KBO 공통 코어 — 2025 프리셋 (자동 생성 파일: node tools/build-preset.js <input_2025.json>)
  * input_2025.json 원본, 2025 기본 설정·이벤트, 구장 사전, 구단 색상.
+ * 2027 기본 데이터(KBO.Preset2027): 「2027 KBO 일정 예상」 연전 기간 45개 · 2027 원칙 설정 · 개막전·어린이날 홈 구장 지정(구단 정보는 2025 것).
  */
 (function (root, factory) {
   const KBO = root.KBO || (root.KBO = {});
@@ -668,19 +669,22 @@
       { start: '2025-07-11', end: '2025-07-16', label: '올스타 브레이크' }
     ],
     // §5.2.1 검증 기준: 1차 편성 기간에 영향을 주는 공휴일은 5/5·6/6·8/15다.
-    // 5/6(대체공휴일)은 5/5 슬롯 안이라 가중치에 영향이 없다. 6/3(임시공휴일)은 원본 데이터에 반영되지 않아 제외했다.
+    // 6/3(임시공휴일)은 원본 데이터에 반영되지 않아 제외했다.
+    // weight = 홈 경기 공정성에서 이 날의 가치(주말 하루 = 1). 기본값 공휴일 2 · 어린이날 3은 KBO 확인 필요
     holidays: [
-      { date: '2025-05-05', name: '어린이날·부처님오신날' },
-      { date: '2025-05-06', name: '대체공휴일' },
-      { date: '2025-06-06', name: '현충일' },
-      { date: '2025-08-15', name: '광복절' },
-      { date: '2025-10-03', name: '개천절' },
-      { date: '2025-10-05', name: '추석 연휴' },
-      { date: '2025-10-06', name: '추석' },
-      { date: '2025-10-07', name: '추석 연휴' },
-      { date: '2025-10-08', name: '추석 대체공휴일' },
-      { date: '2025-10-09', name: '한글날' }
+      { date: '2025-05-05', name: '어린이날·부처님오신날', weight: 3 },
+      { date: '2025-05-06', name: '대체공휴일', weight: 2 },
+      { date: '2025-06-06', name: '현충일', weight: 2 },
+      { date: '2025-08-15', name: '광복절', weight: 2 },
+      { date: '2025-10-03', name: '개천절', weight: 2 },
+      { date: '2025-10-05', name: '추석 연휴', weight: 2 },
+      { date: '2025-10-06', name: '추석', weight: 2 },
+      { date: '2025-10-07', name: '추석 연휴', weight: 2 },
+      { date: '2025-10-08', name: '추석 대체공휴일', weight: 2 },
+      { date: '2025-10-09', name: '한글날', weight: 2 }
     ],
+    // 올스타 휴식기 시작 금요일(금~수 6일). 「규칙대로 채우기」가 쓴다
+    allStarStart: '2025-07-11',
     gamesPerPair: 16,
     initialGamesPerPair: 15,
     homeGamesMajor: 9,
@@ -690,6 +694,8 @@
     obligationTeams: ['두산', '키움', '한화', 'NC', '롯데'],
     // 평준화 허용오차(손잡이). 편차가 이 값 이상이면 감점. 휴일 1.0 = 주말·공휴일 홈 가중치를 정수로 가능한 한 같게
     distanceToleranceKm: 300, holidayTolerance: 1.0, moveTolerance: 2,
+    // 개막 연전 말고는 이 길이 이상(홈 73/71 원칙 시리즈 생성이 지킴) · 올스타 휴식기 길이(금~수)
+    seriesMinLength: 3, allStarDays: 6, fourGameHome: 'same',
     referenceDate: '',
     longTripKm: 600,
     solver: { timeLimitSec: 10, unimprovedSec: 5, seed: 42, init: 'KEEP' }
@@ -700,11 +706,20 @@
     blackouts: [], units: [], plan: []
   };
 
+  /**
+   * 2025 홈 구장 지정: 개막전(3/22)·어린이날(5/5) 모두 그 날 홈 경기를 해야 하는 구단 5곳(구장 지정).
+   * 개막전 홈 구장은 2025 공식 일정표(잠실 LG·문학 SSG·수원 KT·대구 삼성·광주 KIA)와 엔진 입력 initialPlan이 같다.
+   * 상대는 자동 편성이 정한다. teams는 화면에서 고른 구단(잠실은 두산·LG 중 하나), stadiums는 채점에 쓰는 구장.
+   */
   function presetEvents() {
-    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22'));
-    const events = opening.map((p, i) => ({ id: 'ev-open-' + (i + 1), type: 'OPENING', name: '개막전', slot: 0, date: '2025-03-22', mode: 'MATCH', home: p.home, away: p.away }));
-    events.push({ id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 13, date: '2025-05-05', mode: 'STADIUM', stadiums: ['잠실종합운동장', '고척돔야구장', '한화이글스파크', '창원NC파크', '사직야구장'] });
-    return events;
+    const stadiumOf = (n) => ENGINE_INPUT_2025.teams.find((t) => t.name === n).stadium;
+    const order = ENGINE_INPUT_2025.teams.map((t) => t.name);
+    const opening = ENGINE_INPUT_2025.initialPlan.filter((p) => p.datetime.startsWith('2025-03-22')).map((p) => p.home).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    const children = ['두산', '키움', '한화', 'NC', '롯데'];
+    return [
+      { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2025-03-22', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf) },
+      { id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 13, date: '2025-05-05', mode: 'STADIUM', teams: children, stadiums: children.map(stadiumOf) }
+    ];
   }
 
   /** input_2025.json initialPlan → 매치 인덱스별 슬롯 (BaseballApp.setInitialPlan과 같은 FIFO 키 매칭) */
@@ -735,11 +750,10 @@
     const plan = planFromInitialPlan(input);
     const events = presetEvents();
     const matches = input.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive, pinned: false }));
-    // 개막전 대진 고정 (BaseballApp.setInitialPlan과 동일)
+    // 개막전 홈 구장 지정: 그 날 홈인 시리즈를 고정한다(서버 자동 편성은 어린이날만 알므로 고정으로 지킨다)
     for (const ev of events) {
-      if (ev.mode !== 'MATCH') continue;
-      const mi = matches.findIndex((m, i) => m.home === ev.home && m.away === ev.away && plan[i] === ev.slot);
-      if (mi >= 0) { matches[mi].pinned = true; matches[mi].eventId = ev.id; }
+      if (ev.mode !== 'STADIUM' || ev.type === 'CHILDREN') continue;
+      matches.forEach((m, i) => { if (plan[i] === ev.slot && ev.teams.includes(m.home)) { m.pinned = true; m.eventId = ev.id; } });
     }
     return {
       meta: { schemaVersion: 1, season: 2025, name: '2025 정규시즌 1차안', updatedAt: new Date().toISOString() },
@@ -747,7 +761,7 @@
       distanceMatrix: input.distanceMatrix.map((d) => ({ from: d.from, to: d.to, distance: d.distance, estimated: false })),
       settings: clone(DEFAULT_SETTINGS),
       events,
-      calendar: clone(input.calendar),
+      calendar: KBO.CalendarGen ? KBO.CalendarGen.applyWeights(clone(input.calendar), DEFAULT_SETTINGS) : clone(input.calendar), // 휴일 가중치는 공휴일 표대로 다시 매긴다(엔진 원본 값은 ENGINE_INPUT_2025)
       matches,
       plan: plan.map((c, m) => ({ match: m, calendar: c })),
       games: [],
@@ -755,6 +769,134 @@
       snapshots: []
     };
   }
+
+  // ───────── 2027 기본 데이터 (예상 일정 · 사용자가 정한 2027 원칙, 모두 스튜디오에서 바꿀 수 있음) ─────────
+
+  /** 「2027 KBO 일정 예상」(2027_kbo_135.md · 엑셀)의 연전 기간: [월-일, 연전 수]. 엑셀 46줄 중 1줄은 올스타 휴식기라 연전 기간은 45개 */
+  const SLOTS_2027 = [
+    ['03-27', 2], ['03-30', 3], ['04-02', 3], ['04-06', 3], ['04-09', 3], ['04-13', 3], ['04-16', 3], ['04-20', 3], ['04-23', 3], ['04-27', 3],
+    ['04-30', 3], ['05-04', 3], ['05-07', 3], ['05-11', 3], ['05-14', 3], ['05-18', 3], ['05-21', 3], ['05-25', 3], ['05-28', 3], ['06-01', 3],
+    ['06-04', 3], ['06-08', 3], ['06-11', 3], ['06-15', 3], ['06-18', 3], ['06-22', 3], ['06-25', 3], ['06-29', 3], ['07-02', 3], ['07-06', 3],
+    ['07-15', 4], ['07-20', 3], ['07-23', 3], ['07-27', 3], ['07-30', 3], ['08-03', 3], ['08-06', 3], ['08-10', 3], ['08-13', 3], ['08-17', 3],
+    ['08-20', 3], ['08-24', 3], ['08-27', 3], ['08-31', 3], ['09-03', 3]
+  ];
+
+  /**
+   * 2027 홈 73/71: 홈 73 구단(1차 편성 홈 69 · 미편성 홈 4), 나머지 홈 71(66 · 5). 개막전 홈 구단과는 상관없다.
+   * 후반기 첫 4연전을 개막전 홈 구단 구장에서 하므로(fourGameHome 'same') 1차 편성 홈은 3의 배수.
+   */
+  const HOME_TOTALS_2027 = { moreTeams: ['한화', 'SSG', 'KT', '롯데', '두산'], more: { total: 73, initial: 69 }, less: { total: 71, initial: 66 } };
+
+  const DEFAULT_SETTINGS_2027 = Object.assign(clone(DEFAULT_SETTINGS), {
+    seasonYear: 2027,
+    seasonStart: '2027-03-27',
+    initialEnd: '2027-09-05',
+    seasonEnd: '2027-10-31',
+    restWeekdays: [1],
+    restExceptions: [],
+    blackouts: [{ start: '2027-07-09', end: '2027-07-14', label: '올스타 휴식기' }],
+    // 2027 법정 공휴일(시즌 안). 음력·대체공휴일은 인사혁신처 고시로 최종 확인 필요.
+    // playOnRest = 휴식 요일(월)이어도 그 날 경기 — 기본은 어린이날만. 8/16(월) 대체공휴일은 기본 경기 없음(켜면 그 날 경기 · 그 주 목 휴식)
+    holidays: [
+      { date: '2027-05-05', name: '어린이날', weight: 3, playOnRest: true },
+      { date: '2027-05-13', name: '부처님오신날', weight: 2, playOnRest: false },
+      { date: '2027-06-06', name: '현충일', weight: 2, playOnRest: false },
+      { date: '2027-08-15', name: '광복절', weight: 2, playOnRest: false },
+      { date: '2027-08-16', name: '광복절 대체공휴일', weight: 2, playOnRest: false },
+      { date: '2027-09-14', name: '추석 연휴', weight: 2, playOnRest: false },
+      { date: '2027-09-15', name: '추석', weight: 2, playOnRest: false },
+      { date: '2027-09-16', name: '추석 연휴', weight: 2, playOnRest: false },
+      { date: '2027-10-03', name: '개천절', weight: 2, playOnRest: false },
+      { date: '2027-10-04', name: '개천절 대체공휴일', weight: 2, playOnRest: false },
+      { date: '2027-10-09', name: '한글날', weight: 2, playOnRest: false },
+      { date: '2027-10-11', name: '한글날 대체공휴일', weight: 2, playOnRest: false }
+    ],
+    allStarStart: '2027-07-09',
+    allStarDays: 6,
+    homeTotals: HOME_TOTALS_2027,
+    fourGameHome: 'same',
+    seriesMinLength: 3,
+    obligationTeams: ['두산', '키움', '한화', '롯데', 'NC']
+  });
+
+  const DEFAULT_RESCHEDULE_2027 = Object.assign(clone(DEFAULT_RESCHEDULE), { start: '2027-09-06', end: '2027-10-31' });
+
+  /**
+   * 2027 LG·두산 홈 구장: 잠실야구장이 2026시즌 뒤 철거되어 2027~2031년은 서울 올림픽 주경기장(임시 개조)을 쓴다(「2027 KBO 개막전 예측」 참고 사항).
+   * 같은 종합운동장 안 옆 구장이라 구장 간 거리는 잠실 값을 그대로 쓴다(도로거리를 다시 받으면 바뀔 수 있음). 위치는 대략값.
+   */
+  const SHARED_STADIUM_2027 = { name: '서울 올림픽 주경기장', latitude: 37.5155, longitude: 127.0726, teams: ['LG', '두산'], was: '잠실종합운동장' };
+  const teams2027 = (teams) => teams.map((t) => (SHARED_STADIUM_2027.teams.includes(t.name) ? Object.assign({}, t, { stadium: SHARED_STADIUM_2027.name, latitude: SHARED_STADIUM_2027.latitude, longitude: SHARED_STADIUM_2027.longitude }) : t));
+
+  /** 2027 개막전 근거(화면에 그대로 보여 준다). 공식 일정 발표(통상 12월 중순) 전 예상이다. */
+  const OPENING_BASIS_2027 = {
+    source: '2027 KBO 개막전 예측(2026-10-31 작성)',
+    date: '3월 넷째 토요일 개막(2024 · 2025 · 2026 모두 같음)',
+    homes: '전년도 상위 5팀이 홈. 4위 LG와 구장이 겹치는 5위 두산은 원정, 6위 SSG가 홈을 이어받음(2025 선례). 신뢰도 높음',
+    pairs: '1순위 예측: 2025 개막 대진 재사용. 2027 홈 5팀이 2025와 같아 이동 동선 검토가 끝난 편성. KBO가 상대 배정 기준을 공개하지 않아 신뢰도 낮음~중간'
+  };
+
+  /**
+   * 2027 홈 구장 지정. 개막전 3/27: 홈 KT·삼성·KIA·LG·SSG(2026 최종 순위 상위 5개 팀 홈), 대진은 「2027 KBO 개막전 예측」 1순위(2025 대진 재사용, 공식 발표 전 예상)까지 고정(fix 'pairs').
+   * 어린이날 5/5: 홈 두산·키움·한화·롯데·NC(상대는 자동 편성, fix 'home').
+   */
+  function presetEvents2027() {
+    const stadiumOf = (n) => teams2027(ENGINE_INPUT_2025.teams).find((t) => t.name === n).stadium;
+    const order = ENGINE_INPUT_2025.teams.map((t) => t.name);
+    const byOrder = (a, b) => order.indexOf(a) - order.indexOf(b);
+    const pairs = [{ home: 'KT', away: '한화' }, { home: '삼성', away: '키움' }, { home: 'KIA', away: 'NC' }, { home: 'LG', away: '롯데' }, { home: 'SSG', away: '두산' }];
+    const opening = pairs.map((x) => x.home).sort(byOrder);
+    const children = ['두산', '키움', '한화', '롯데', 'NC'].sort(byOrder);
+    return [
+      { id: 'ev-opening', type: 'OPENING', name: '개막전', slot: 0, date: '2027-03-27', mode: 'STADIUM', teams: opening, stadiums: opening.map(stadiumOf), pairs, fix: 'pairs', basis: OPENING_BASIS_2027 },
+      { id: 'ev-children', type: 'CHILDREN', name: '어린이날', slot: 11, date: '2027-05-05', mode: 'STADIUM', teams: children, stadiums: children.map(stadiumOf), fix: 'home' }
+    ];
+  }
+
+  /** 2027 연전 기간(휴일 가중치는 공휴일 표대로) */
+  function calendar2027(settings) {
+    const cal = SLOTS_2027.map(([md, len], i) => ({ index: i, datetime: '2027-' + md + ' 00:00:00', consecutive: len, weekend: 0, holiday: 0 }));
+    return KBO.CalendarGen ? KBO.CalendarGen.applyWeights(cal, settings || DEFAULT_SETTINGS_2027) : cal;
+  }
+
+  /**
+   * §8 프로젝트 JSON (2027 기본 제공 · 예상). 구단·거리는 2025 것. 시리즈는 2027 원칙(generateSeries + homeTotals)으로 만들고,
+   * 개막전 대진(fix 'pairs')은 그 연전 기간 시리즈를 고정한다. 원칙이 맞지 않아 시리즈를 못 만들면 시리즈는 비어 있다(오류는 generateSeries로 확인).
+   */
+  function buildProject2027() {
+    const base = buildProject();
+    base.teams = teams2027(base.teams);
+    const settings = clone(DEFAULT_SETTINGS_2027);
+    const events = presetEvents2027();
+    const calendar = calendar2027(settings);
+    let matches = [], plan = [];
+    if (KBO.CalendarGen) {
+      const g = KBO.CalendarGen.generateSeries(base.teams, calendar, { initialGamesPerPair: settings.initialGamesPerPair, homeGamesMajor: settings.homeGamesMajor, settings, events });
+      if (!g.errors.length) {
+        matches = g.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive, pinned: false }));
+        plan = g.plan;
+        for (const ev of events) {
+          if (ev.mode !== 'STADIUM' || ev.fix !== 'pairs') continue;
+          matches.forEach((m, i) => { if (plan[i] === ev.slot && (ev.pairs || []).some((x) => x.home === m.home && x.away === m.away)) { m.pinned = true; m.eventId = ev.id; } });
+        }
+      }
+    }
+    return {
+      meta: { schemaVersion: 1, season: 2027, name: '2027 정규시즌 기본 제공(예상)', updatedAt: new Date().toISOString() },
+      teams: base.teams,
+      distanceMatrix: base.distanceMatrix,
+      settings,
+      events,
+      calendar,
+      matches,
+      plan: plan.map((c, m) => ({ match: m, calendar: c })),
+      games: [],
+      reschedule: clone(DEFAULT_RESCHEDULE_2027),
+      snapshots: []
+    };
+  }
+
+  KBO.Preset2027 = { SHARED_STADIUM: SHARED_STADIUM_2027, teams2027, SLOTS_2027, HOME_TOTALS_2027, DEFAULT_SETTINGS: DEFAULT_SETTINGS_2027, DEFAULT_RESCHEDULE: DEFAULT_RESCHEDULE_2027, presetEvents: presetEvents2027, calendar: calendar2027, buildProject: buildProject2027 };
 
   KBO.Preset = { ENGINE_INPUT_2025, TEAM_COLORS, STADIUMS, DEFAULT_SETTINGS, DEFAULT_RESCHEDULE, presetEvents, planFromInitialPlan, buildProject };
 });

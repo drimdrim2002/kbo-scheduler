@@ -1,0 +1,20 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>1 · 구단 정보 — 「있어요」를 누른 뒤(따라 하기)</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="flow.css"></head><body><div class="body" style="position:relative"></div><script src="../input-flow-concepts/concept.js"></script><script src="flow.js"></script><script>
+Flow.chrome({ at: 1, year: 2027, sub: { 1: '고치는 중 · 따라 하기 2 / 3', 2: '아직', 3: '아직', 4: '아직' }, hint: '<b>1 / 4 구단 정보</b> — 따라 하기를 따라 바뀐 구단을 고칩니다', next: '다음: 2 시즌 기간·연전 묶음' });
+const T = Concept.TEAMS, ll = { SSG: [37.4370, 126.6932], 두산: [37.5122, 127.0719], LG: [37.5122, 127.0719], KT: [37.2997, 127.0097], 키움: [37.4983, 126.8671], 한화: [36.3166, 127.4290], 삼성: [35.8411, 128.6815], KIA: [35.1682, 126.8891], NC: [35.2226, 128.5826], 롯데: [35.1940, 129.0615] };
+const d = { SSG: 41.2, 키움: 25.8, KT: 39.6, 한화: 163.5, 삼성: 296.4, KIA: 301.2, NC: 336.0, 롯데: 393.1, 두산: 0 };
+document.querySelector('.body').innerHTML =
+  '<aside class="card"><div class="kick">1 / 4단계</div><h2>2027 시즌 구단 정보</h2>' +
+  '<div class="ask ok"><div class="q"><span class="no">✓</span>바뀐 정보가 있나요?</div><div class="a chips"><span class="chip">없어요 — 그대로</span><span class="chip on">있어요 — 고칠게요</span></div></div>' +
+  '<div class="box"><h4>고칠 구단 <span class="r xs muted">표나 단추에서 고릅니다</span></h4><div style="display:flex;flex-wrap:wrap;gap:4px">' + T.map((t) => '<span class="btn sm"' + (t.name === 'LG' ? ' style="background:var(--blue);color:#fff;border-color:var(--blue)"' : '') + '>' + t.name + '</span>').join('') + '</div></div>' +
+  '<div class="box blue"><h4>고치기 · LG</h4>' +
+  '<div class="field" style="margin-bottom:6px">구단명<span class="in">LG</span></div>' +
+  '<div class="field">구장 <span class="xs muted">— 새 이름을 적고 Enter = 위치 찾기</span><span class="in focus">고척스카이돔(임시)│</span></div>' +
+  '<div class="line" style="margin-top:6px"><span class="k">위도·경도</span><span class="v mono">37.5122, 127.0719 <span class="auto">Enter 뒤 자동</span></span></div>' +
+  '<div class="xs muted" style="margin-top:4px">위치가 바뀌면 다른 구장까지 거리를 다시 계산합니다(도로거리 · 직접 고칠 수도 있음).</div></div>' +
+  '</aside>' +
+  '<main class="main"><div class="head"><b>구단 정보</b><span class="desc">10구단 · 고친 줄은 파랑</span></div><div class="body2"><table class="t"><tr><th>#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr>' +
+  T.map((t, i) => '<tr' + (t.name === 'LG' ? ' class="sel"' : '') + '><td>' + (i + 1) + '</td><td><b>' + t.name + '</b></td><td>' + t.stadium + (t.name === 'LG' ? ' <span class="stat blue">고치는 중</span>' : '') + '</td><td class="num">' + ll[t.name][0].toFixed(4) + '</td><td class="num">' + ll[t.name][1].toFixed(4) + '</td></tr>').join('') +
+  '</table><div class="small muted" style="margin-top:10px">구장 지도·구장 간 거리표는 지금 화면과 같습니다(이 시안에서는 생략).</div></div></main>' +
+  Flow.ring(20, 372, 316, 80) +
+  Flow.coach({ n: 2, of: 3, title: '새 구장 이름을 적고 Enter', text: '① 바뀐 구단(LG)을 골랐습니다. ② 구장 칸에 새 구장 이름을 적고 Enter를 누르면 위치(위도·경도)를 찾아 채웁니다. ③ 다음 카드에서 거리를 확인합니다. 바뀐 구단이 여럿이면 하나씩 같은 방법으로.', x: 350, y: 356, side: 'l' });
+</script></body></html>

@@ -1,0 +1,17 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>6 · 2027 결과 — 걸린 시간 · 규칙 점검표 · 숫자</title><link rel="stylesheet" href="../input-flow-concepts/concept.css"><link rel="stylesheet" href="../step-flow-concepts/flow.css"><link rel="stylesheet" href="demo.css"></head><body><div class="body"></div><script src="demo.js"></script><script>
+Demo.chrome({ year: 2027, mode: '결과', right: '⬇ 파일로 내려받기 &nbsp; ⬇ 엑셀', hint: '<b>2027 결과</b> — 다시 들어와도 이 화면에서 이어집니다', prev: '입력 고치기', next: '조건 바꿔 다시 짜기' });
+const nm = (k, v, u, s) => '<div class="nm"><div class="k">' + k + '</div><div class="v">' + v + '<small>' + u + '</small></div><div class="s">' + s + '</div></div>';
+document.querySelector('.body').outerHTML = '<div class="page">' +
+  '<div class="hero"><div class="big">29<small>초</small></div><div><h2>2027 일정을 짰습니다 — 규칙 10개 모두 지킴</h2><p>2027 원칙 그대로 · 10/31(토) 오후 3:12 · 필수 규칙 위반 0</p></div><span class="r"><span class="btn">일정 자세히 보기</span><span class="btn">구단별 공정성</span></span></div>' +
+  '<div class="grid" style="grid-template-columns:minmax(0,1fr) 520px;flex:1">' +
+  '<div class="panel"><h3>규칙 점검표 <span class="muted">결과를 다시 셈해서 확인</span></h3>' + Demo.rules(Demo.RULES_2027) + '</div>' +
+  '<div style="display:flex;flex-direction:column;gap:12px;min-height:0"><div class="panel"><h3>2027 숫자</h3><div class="nums">' +
+  nm('총 이동 거리', '63,754', 'km', '10구단 합 · 구단 평균 6,375km') +
+  nm('구단 간 이동 거리 차이', '594', 'km', '두산 6,081 ~ NC 6,676') +
+  nm('구단별 이동 횟수', '31~34', '회', '차이 3회') +
+  nm('휴일 가중치', '26~27', '', '구단끼리 차이 1') +
+  nm('주말 홈 시리즈', '11~13', '개', '구단별') +
+  nm('연속 원정 최장', '3', '시리즈', '규칙 한도 3 안') +
+  '</div></div><div class="panel" style="flex:1"><h3>구단별 총 이동 거리</h3>' + Demo.bar1(Demo.KM_2027) + '</div></div>' +
+  '</div></div>';
+</script></body></html>

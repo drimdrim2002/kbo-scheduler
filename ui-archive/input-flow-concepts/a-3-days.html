@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천안 A · 3 / 5 특별한 날 — 달력 하나에서</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .two { display: flex; gap: 14px; min-height: 0; }
+  .two .l { flex: 1; min-width: 0; }
+  .two .d { width: 320px; flex: none; border: 1px solid var(--blue-line); border-radius: 6px; background: var(--blue-weak); padding: 12px; align-self: flex-start; }
+  .d h3 { margin: 0 0 8px; font-size: 14px; }
+  .d .opt { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--blue-line); font-size: 12.5px; }
+  .d .opt:last-child { border-bottom: 0; }
+  .d .opt small { color: var(--text-3); margin-left: auto; white-space: nowrap; }
+  .kind { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+  .kind:last-child { border-bottom: 0; }
+  .kind i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; flex: none; }
+  .kind .cnt { margin-left: auto; font-family: var(--mono); font-size: 12px; }
+  .mlist { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 12px; }
+  .mlist div { display: flex; gap: 8px; align-items: center; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+  .mlist .mono { width: 64px; flex: none; }
+</style></head>
+<body>
+<div class="body">
+  <aside class="card">
+    <h2><span class="n">3 / 5</span>특별한 날<span class="pill ok">✓ 문제 없음</span></h2>
+    <p>달력에서 날을 누르고, 그 날이 어떤 날인지 표시합니다. 공휴일·휴식일 경기·경기 없는 기간·날짜가 정해진 경기를 <b>한 달력</b>에서 봅니다.</p>
+    <div class="box">
+      <h4>표시된 날</h4>
+      <div class="kind"><i style="background:#fff;box-shadow:inset 0 0 0 2px var(--bad);border-radius:50%"></i>공휴일<span class="cnt">10일</span></div>
+      <div class="xs muted" style="margin:-4px 0 4px 20px">법정 공휴일은 자동으로 들어오고, 임시 공휴일만 더합니다</div>
+      <div class="kind"><i style="box-shadow:inset 0 0 0 2px #E39A2E;background:#fff"></i>휴식 요일이지만 경기하는 날<span class="cnt">1일</span></div>
+      <div class="kind"><i style="background:repeating-linear-gradient(135deg,#F3D9B5 0 3px,#FBEEDB 3px 6px)"></i>경기 없는 기간<span class="cnt">2개</span></div>
+      <div class="kind"><i style="box-shadow:inset 0 0 0 2px var(--navy);background:#fff"></i>날짜가 정해진 경기<span class="cnt">2건</span></div>
+      <div class="xs muted" style="margin:-4px 0 4px 20px">개막전 대진 5경기 · 어린이날 홈 구장 5곳</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="btn sm">⚡ 법정 공휴일 채우기</span><span class="btn sm">⚡ 개막전 대진 추가</span><span class="btn sm">⚡ 어린이날 구장 지정 추가</span></div>
+    </div>
+    <div class="box">
+      <h4>경기일 합</h4>
+      <div class="line" style="flex-direction:column;align-items:stretch;gap:2px"><span class="k">경기할 수 있는 날</span><span>140일 + 휴식일 경기 1일 − 경기 없는 기간 6일 = <b>135일</b></span></div>
+      <div class="line"><span class="k">필요한 경기일</span><span class="v">135일 <span class="stat ok">맞음</span></span></div>
+      <div class="small muted" style="margin-top:6px">많으면 경기 없는 기간(올스타 휴식기 등)을 더 넣고, 모자라면 1차 편성 종료일을 늦춥니다.</div>
+    </div>
+    <div class="box ok"><b>✓ 지금 상태</b> &nbsp;특별한 날 15건 · 경기일 합 맞음</div>
+  </aside>
+  <main class="main">
+    <div class="head"><b>시즌 달력</b><span class="desc">3월~10월 · 날을 누르면 오른쪽에서 표시합니다</span><span class="r" id="lg"></span></div>
+    <div class="body2">
+      <div class="two">
+        <div class="l">
+          <div id="cal"></div>
+          <div class="blk" style="margin-top:12px"><h3>5월의 특별한 날 <span class="muted">누른 달</span></h3><div class="mlist" style="margin:0;padding:8px 12px">
+            <div><span class="mono">5/5(월)</span>어린이날·부처님오신날 <span class="stat warn">휴식 요일 · 경기함</span></div>
+            <div><span class="mono">5/5(월)</span>어린이날 홈 구장 5곳 <span class="stat blue">구장 지정</span></div>
+            <div><span class="mono">5/6(화)</span>대체공휴일</div>
+            <div><span class="mono">5/8(목)</span>어린이날 3연전 뒤 휴식 <span class="stat todo">경기 없음</span></div>
+          </div></div>
+        </div>
+        <div class="d">
+          <h3>5/5(월) <span class="muted small">어린이날·부처님오신날</span></h3>
+          <div class="opt"><span class="tog"><i class="on"></i>공휴일</span><small>법정 공휴일 · 자동</small></div>
+          <div class="opt"><span class="tog"><i class="on"></i>휴식 요일이지만 경기함</span><small>월요일인데 경기</small></div>
+          <div class="opt"><span class="tog"><i></i>경기 없는 날</span><small>기간이면 끝 날도 고름</small></div>
+          <div class="opt" style="flex-direction:column;align-items:stretch;gap:4px"><span class="tog"><i class="on"></i>날짜가 정해진 경기</span>
+            <div class="small" style="padding-left:38px">구장 지정 · 이 날 홈 경기를 해야 하는 구장<br><b>잠실 · 고척 · 대전 · 창원 · 사직</b> <a class="xs">고치기</a></div></div>
+          <div class="small muted" style="margin-top:8px">메모: 어린이날 시리즈는 5/3(토)~5/5(월) — 5/6(화)·5/7(수) 2연전은 연전 기간에서 봅니다.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="concept.js"></script>
+<script>
+  const C = Concept, S = C.S2025;
+  C.chrome({ at: 3, prev: '시즌 기간', next: '연전 기간', mode: '새로 입력하기', sum: '새로 입력하기 · 3 / 5 특별한 날',
+    steps: [{ name: '구단 정보', role: '확인' }, { name: '시즌 기간', role: '적기' }, { name: '특별한 날', role: '달력에 표시' }, { name: '연전 기간', role: '규칙 + 달력에서 고치기' }, { name: '시리즈 규칙', role: '확인' }] });
+  document.getElementById('lg').innerHTML = C.legend([['game', '경기일'], ['rest', '휴식'], ['black', '경기 없는 기간'], ['hol', '공휴일'], ['rex', '휴식일 경기'], ['ev', '정해진 경기'], ['re', '재편성 기간']]);
+  document.getElementById('cal').innerHTML = C.strip({ S, from: 3, to: 10, layers: { slot: 0 }, onCell: (n) => (C.D.iso(n) === '2025-05-05' ? 'pick' : '') });
+</script>
+</body></html>

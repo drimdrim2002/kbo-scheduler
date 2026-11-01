@@ -2,6 +2,7 @@ package org.optaplanner.examples.baseball.domain;
 
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 
@@ -15,7 +16,8 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
     private int holiday;
     private boolean dummy;
     private int slotIndex;
-    private boolean childrenDay;
+    /** 이 연전 기간에 홈이어야 하는 구단({@link Team#getIndex()} 비트). 0이면 홈 구장 지정이 없다. */
+    private int homeObligationMask;
     private boolean allStarBreakTuesday;
 
     public Calendar(long id, LocalDateTime startTime, int consecutive, int weekend, int holiday) {
@@ -88,8 +90,27 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
         return dummy;
     }
 
-    public boolean isChildrenDay() {
-        return childrenDay;
+    public int getHomeObligationMask() {
+        return homeObligationMask;
+    }
+
+    public void setHomeObligationMask(int homeObligationMask) {
+        this.homeObligationMask = homeObligationMask;
+    }
+
+    /** 홈 구장 지정으로 이 연전 기간에 홈이어야 하는 구단인가. */
+    public boolean requiresHome(Team team) {
+        int index = team.getIndex();
+        return homeObligationMask != 0 && index >= 0 && index < Integer.SIZE && (homeObligationMask & (1 << index)) != 0;
+    }
+
+    /** 시작일부터 연전 수만큼의 날 안에 date가 드는가(화면 {@code CalendarGen.slotIndexOfDate}와 같은 규칙). */
+    public boolean containsDate(LocalDate date) {
+        if (startTime == null || date == null || !isRegular()) {
+            return false;
+        }
+        LocalDate start = startTime.toLocalDate();
+        return !date.isBefore(start) && date.isBefore(start.plusDays(consecutive));
     }
 
     public boolean isAllStarBreakTuesday() {
@@ -107,8 +128,6 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
     private void refreshPreprocessingFlags() {
         dummy = id != null && id == 9999L;
         slotIndex = (dummy || id == null) ? -1 : id.intValue();
-        childrenDay = startTime != null
-                && startTime.toLocalDate().toString().equals(Constants.CHILDREN_DAY_START);
         allStarBreakTuesday = startTime != null
                 && startTime.getMonth() == Month.JULY
                 && startTime.getDayOfMonth() == 2;
