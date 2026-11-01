@@ -63,7 +63,8 @@ test('규칙대로 채우기: 휴식 요일 공휴일(그 날 경기·목 휴식
 
 test('내장 공휴일: 2027·2028 음력·대체공휴일, 기본 가중치(어린이날 3 · 나머지 2)', () => {
   const y27 = CalendarGen.builtinHolidays(2027).map((h) => h.date);
-  for (const d of ['2027-05-13', '2027-08-16', '2027-09-14', '2027-09-15', '2027-09-16', '2027-10-04', '2027-10-11']) assert(y27.includes(d), d);
+  for (const d of ['2027-05-01', '2027-05-13', '2027-07-17', '2027-09-14', '2027-09-15', '2027-09-16', '2027-10-04', '2027-10-11']) assert(y27.includes(d), d);
+  assert(!y27.includes('2027-08-16'), '8/16(월)은 경기가 없어 넣지 않음');
   const y28 = CalendarGen.builtinHolidays(2028).map((h) => h.date);
   for (const d of ['2028-05-02', '2028-10-02', '2028-10-03', '2028-10-04', '2028-10-05']) assert(y28.includes(d), d);
   const w = (y, d) => CalendarGen.builtinHolidays(y).find((h) => h.date === d).weight;
@@ -186,7 +187,7 @@ test('휴식 요일 공휴일 경기(playOnRest): 없으면 어린이날만, fal
 test('2027 규칙대로 채우기 = 첨부 일정: 45개(개막 2연전 3/27~28 · 3연전 43 · 후반기 4연전 7/15~18) · 135일 · 9/5 종료 · 올스타 7/9~14', () => {
   const set = Object.assign({}, P27.DEFAULT_SETTINGS, { restExceptions: [], blackouts: [] });
   const rs = CalendarGen.ruleSettings(set);
-  eq(rs.restExceptions, [], '8/16(월) 대체공휴일 기본 경기 없음');
+  eq(rs.restExceptions, [], '월요일 기본 경기 없음');
   eq(rs.blackouts.map((b) => [b.start, b.end, b.label]), [['2027-07-09', '2027-07-14', '올스타 휴식기']]);
   const g = CalendarGen.generateSlots(rs).slots;
   eq(g.map((c) => [c.datetime.slice(5, 10), c.consecutive]), P27.SLOTS_2027, '첨부 일정과 같은 연전 기간');
@@ -196,8 +197,8 @@ test('2027 규칙대로 채우기 = 첨부 일정: 45개(개막 2연전 3/27~28 
   eq(g.findIndex((c) => c.datetime.startsWith('2027-05-04')), 11, '어린이날 5/4~6 3연전');
   // 올스타 휴식기 길이도 설정
   eq(CalendarGen.ruleSettings(Object.assign({}, set, { allStarDays: 4 })).blackouts[0].end, '2027-07-12');
-  // 8/16을 켜면 그 날 경기 · 8/19(목) 휴식
-  const on = CalendarGen.ruleSettings(Object.assign({}, set, { holidays: set.holidays.map((h) => (h.date === '2027-08-16' ? Object.assign({}, h, { playOnRest: true }) : h)) }));
+  // 8/16(월) 공휴일을 더해 켜면 그 날 경기 · 8/19(목) 휴식
+  const on = CalendarGen.ruleSettings(Object.assign({}, set, { holidays: set.holidays.concat({ date: '2027-08-16', name: '임시 공휴일', weight: 2, playOnRest: true }) }));
   eq(on.restExceptions, ['2027-08-16']); assert(on.blackouts.some((b) => b.start === '2027-08-19'), '8/19 휴식');
   // 묶음에서 만든 휴식기·휴식일 경기 = 기본 설정
   const d = CalendarGen.deriveRestDays(P27.calendar(), P27.DEFAULT_SETTINGS);
@@ -208,7 +209,7 @@ test('2027 기본 데이터: 설정 · 공휴일 가중치 · 개막전(대진 �
   const p = P27.buildProject();
   const s = p.settings;
   eq([s.seasonYear, s.seasonStart, s.initialEnd, s.restWeekdays, s.allStarStart, s.allStarDays, s.seriesMinLength, s.fourGameHome], [2027, '2027-03-27', '2027-09-05', [1], '2027-07-09', 6, 3, 'same']);
-  eq(s.holidays.find((h) => h.date === '2027-05-05').weight, 3); eq(s.holidays.find((h) => h.date === '2027-08-16').playOnRest, false);
+  eq(s.holidays.find((h) => h.date === '2027-05-05').weight, 3); eq(s.holidays.find((h) => h.date === '2027-07-17').weight, 2); assert(!s.holidays.some((h) => h.date === '2027-08-16'), '8/16 없음');
   eq(p.calendar.length, 45); eq(p.calendar[11].holiday, 3, '어린이날 묶음 값');
   eq(p.teams.map((t) => t.name), Preset.ENGINE_INPUT_2025.teams.map((t) => t.name));
   const op = p.events.find((e) => e.type === 'OPENING'), ch = p.events.find((e) => e.type === 'CHILDREN');

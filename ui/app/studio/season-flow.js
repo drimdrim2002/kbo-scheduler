@@ -344,8 +344,8 @@
     const u0 = app().store.undoStack.length;
     click('.fl-open-ask [data-act="cal-open"][data-date="2027-03-27"]'); flush();
     const h = CalendarGen.lengthHistogram(st().calendar), bl = st().settings.blackouts.map((b) => b.start.slice(5) + '~' + b.end.slice(5) + ' ' + b.label).join(',');
-    ok('2027: 개막 3/27(토)만 고르면 — 1차 편성 종료 9/5(일, 자동) · 묶음 45개(2연전 1 · 3연전 43 · 4연전 1) · 경기일 135 · 8/16(월) 대체공휴일 경기 없음 · 올스타 휴식기 7/9~7/14 · 후반기 7/15 4연전 · 실행 취소 한 번',
-      st().settings.initialEnd === '2027-09-05' && st().calendar.length === 45 && h[2] === 1 && h[3] === 43 && h[4] === 1 && S.gameDaysCheck().ok && !st().settings.restExceptions.includes('2027-08-16') && /07-09~07-14 올스타 휴식기/.test(bl) && st().calendar.some((c) => c.datetime.startsWith('2027-07-15') && c.consecutive === 4) && app().store.undoStack.length === u0 + 1 && st().settings.initialEndAuto !== false, st().settings.initialEnd + ' · ' + st().calendar.length + ' · ' + bl);
+    ok('2027: 개막 3/27(토)만 고르면 — 1차 편성 종료 9/5(일, 자동) · 묶음 45개(2연전 1 · 3연전 43 · 4연전 1) · 경기일 135 · 월요일 경기 없음 · 올스타 휴식기 7/9~7/14 · 후반기 7/15 4연전 · 실행 취소 한 번',
+      st().settings.initialEnd === '2027-09-05' && st().calendar.length === 45 && h[2] === 1 && h[3] === 43 && h[4] === 1 && S.gameDaysCheck().ok && !st().settings.restExceptions.length && /07-09~07-14 올스타 휴식기/.test(bl) && st().calendar.some((c) => c.datetime.startsWith('2027-07-15') && c.consecutive === 4) && app().store.undoStack.length === u0 + 1 && st().settings.initialEndAuto !== false, st().settings.initialEnd + ' · ' + st().calendar.length + ' · ' + bl);
     ok('따라 하기 2 / 2: 개막일을 고르면 「달력을 훑어보고, 고칠 곳만」 · 마치기 · 자동 표시와 이유', S.flowTour.cur && S.flowTour.cur.k === 1 && /고칠 곳만/.test(card()) && qa('.sc-auto .tag.auto').length === 2 && /경기일 135일이 되는 날/.test(q('.sc-auto').textContent) && /7월 둘째 금요일/.test(q('.sc-auto').textContent));
     click('#guide .ct-acts [data-act="tour-end"]'); flush();
     app().undo(); flush();
@@ -373,15 +373,16 @@
     click('.sc-relay [data-act="cal-relay-no"]'); flush();
     ok('직접 고친 묶음(4/6 지움)이 있으면 올스타 길이를 바꿔도 묶음은 그대로 + 「묶음에 반영할까요?」 · 「그대로 둠」', kept && !q('.sc-relay'));
     app().undo(); app().undo(); flush(); C.edit = null;
-    // 3단계: 2027 공휴일(1차 편성 기간 5일) · 8/16 「월 경기」 켜기 → 반영 → 8/16 경기 · 8/19 휴식
+    // 3단계: 2027 공휴일(1차 편성 기간 6일) · 시험용 8/16(월) 줄의 「월 경기」 켜기 → 반영 → 8/16 경기 · 8/19 휴식
     click('.footer [data-act="fl-next"]'); flush();
     const hols = Array.from(qa('.sc-hols tbody tr')).map((tr) => tr.querySelector('.sc-hd').value).join();
+        ok('3단계(2027): 공휴일 6일(5/1·5/5·5/13·6/6·7/17·8/15) · 홈 구장 지정 0 / 2(개막전·어린이날 — 코어 격년제 기본값이 있으면 어린이날 두산·키움·한화·롯데·NC가 채워져 1 / 2)', G.fs === 3 && hols === '5/1(토),5/5(수),5/13(목),6/6(일),7/17(토),8/15(일)' && (CalendarGen.defaultChildrenHosts ? /1 \/ 2/.test(q('.sc-homes h4').textContent) && S.evTeams(st().events.find((e) => e.type === 'CHILDREN')).join() === '두산,키움,한화,NC,롯데' : /0 \/ 2/.test(q('.sc-homes h4').textContent)), hols);
+    app().commit('시험: 8/16(월) 공휴일', (x) => { x.settings.holidays.push({ date: '2027-08-16', name: '임시 공휴일', weight: 2, playOnRest: false }); x.settings.holidays.sort((p, q) => (p.date < q.date ? -1 : 1)); }, ['settings']); flush();
     const i816 = st().settings.holidays.findIndex((x) => x.date === '2027-08-16');
-    ok('3단계(2027): 공휴일 5일(5/5·5/13·6/6·8/15·8/16) · 8/16(월) 「월 경기」 꺼짐 · 홈 구장 지정 0 / 2(개막전·어린이날 — 코어 격년제 기본값이 있으면 어린이날 두산·키움·한화·롯데·NC가 채워져 1 / 2)', G.fs === 3 && hols === '5/5(수),5/13(목),6/6(일),8/15(일),8/16(월)' && !q('.sc-hols [data-act="cal-por"][data-row="' + i816 + '"]').classList.contains('on') && (CalendarGen.defaultChildrenHosts ? /1 \/ 2/.test(q('.sc-homes h4').textContent) && S.evTeams(st().events.find((e) => e.type === 'CHILDREN')).join() === '두산,키움,한화,NC,롯데' : /0 \/ 2/.test(q('.sc-homes h4').textContent)), hols);
     click('.sc-hols [data-act="cal-por"][data-row="' + i816 + '"]'); flush();
     click('.sc-relay [data-act="cal-relay-go"]'); flush();
     ok('8/16 「월 경기」 켜기 → 반영 → 8/16 경기(휴식일 경기) · 8/19(목) 휴식 · 경기일 135 그대로', st().settings.restExceptions.includes('2027-08-16') && /08-19~08-19/.test(st().settings.blackouts.map((b) => b.start.slice(5) + '~' + b.end.slice(5)).join()) && S.gameDaysCheck().ok);
-    app().undo(); app().undo(); flush();
+    app().undo(); app().undo(); app().undo(); flush();
     // 홈 구장 지정: 개막전 KT·삼성·KIA·LG·SSG, 어린이날 두산·키움·한화·롯데·NC
     const pick = (iso, names) => { click('.sc-homes .sc-hrow[data-d="' + dn(iso) + '"]'); flush(); if (q('.sc-day [data-act="cal-home-on"]')) { click('.sc-day [data-act="cal-home-on"]'); flush(); } const on = (n) => { const x = q('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); return !!x && x.classList.contains('on'); }; for (const n of app().state.teams.map((t) => t.name)) if (on(n) && !names.includes(n)) { click('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); flush(); } for (const n of names) if (!on(n)) { click('.sc-day [data-act="cal-home-team"][data-team="' + n + '"]'); flush(); } }; // 코어 격년제 기본값으로 어린이날이 채워져 있으면 그대로
     pick('2027-03-27', ['KT', '삼성', 'KIA', 'LG', 'SSG']);
