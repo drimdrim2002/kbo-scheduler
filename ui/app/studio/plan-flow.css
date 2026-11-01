@@ -2,6 +2,11 @@
 body.pf-ro { grid-template-rows: var(--top-h) minmax(0, 1fr) var(--foot-h); }
 body.pf-ro #stepper { display: none; }
 body.pf-nores .tb-group .badge { display: none; }
+/* 좁은 화면에서 달 단추가 잘려 8월로 못 가지 않게 줄을 바꾼다 */
+body.pf .toolbar { flex-wrap: wrap; }
+body.pf .toolbar .seg, body.pf .toolbar .month-tabs { flex: none; }
+/* 낮은 화면에서 6주짜리 달의 경기 줄이 겹치지 않게, 주마다 최소 높이를 두고 안에서 내린다 */
+body.pf .cal-grid { grid-template-rows: none !important; grid-auto-rows: minmax(100px, 1fr); overflow-y: auto; }
 body.pf .eng:not(.run):not(.pause) { display: none; } /* 실행 중이 아닐 때 「자동 편성 대기」를 띄우지 않는다 */
 body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], body.pf-home .tb-year { display: none; }
 .pf-ro-tag { font-size: 11.5px; font-weight: 700; color: #FFE7A3; border: 1px solid #FFE7A3; border-radius: 10px; padding: 1px 9px; }

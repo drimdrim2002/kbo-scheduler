@@ -304,6 +304,12 @@
       S.ui.step = 1; S.g1.mode = 'all'; S.render(); flush();
       ok('모든 표 보기: 동작하지 않는 가져오기 단추 없음', !q('[data-act="import-xlsx"]') && !q('[data-act="import-gsheet"]') && !q('.band [data-act="export"]') && !!q('.band'));
       S.g1.mode = 'flow';
+      S.go({ step: 3, view: 'calendar', month: 4 }); flush();
+      ok('일정 달력: 그 해 날짜로 그려짐(연도가 2025로 고정되지 않음)', qa('.cal-week').length >= 4 && /vs/.test(q('.cal-grid').innerText));
+      const mt = q('.month-tabs');
+      ok('일정 달력: 달 단추가 잘리지 않음', mt.scrollWidth <= mt.clientWidth + 1);
+      S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
+      ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
       const menuHtml = S.menus.data();
       ok('데이터 메뉴: 동작하지 않는 항목 없음 · 실제로 받는 항목은 남음', !/tag mock|import-xlsx|import-gsheet|엑셀/.test(menuHtml) && /파일로 내려받기/.test(menuHtml) && !/가져오기/.test(menuHtml));
       const found = [];
