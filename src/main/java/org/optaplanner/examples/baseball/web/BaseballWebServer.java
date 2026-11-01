@@ -58,7 +58,7 @@ public final class BaseballWebServer {
             Map.entry("html", "text/html; charset=utf-8"), Map.entry("js", "text/javascript; charset=utf-8"),
             Map.entry("css", "text/css; charset=utf-8"), Map.entry("json", "application/json; charset=utf-8"),
             Map.entry("svg", "image/svg+xml"), Map.entry("png", "image/png"), Map.entry("jpg", "image/jpeg"),
-            Map.entry("jpeg", "image/jpeg"), Map.entry("ico", "image/x-icon"), Map.entry("woff2", "font/woff2"),
+            Map.entry("jpeg", "image/jpeg"), Map.entry("webp", "image/webp"), Map.entry("ico", "image/x-icon"), Map.entry("woff2", "font/woff2"),
             Map.entry("woff", "font/woff"), Map.entry("txt", "text/plain; charset=utf-8"),
             Map.entry("md", "text/markdown; charset=utf-8"), Map.entry("map", "application/json"));
 
