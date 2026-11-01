@@ -126,7 +126,7 @@
     if (fromSeed) for (const v of a.derived().ex.violations) S.virtualSigs.add(S.vsig(v));
     else if (virtualByYear.has(y)) for (const x of virtualByYear.get(y)) S.virtualSigs.add(x);
     virtualYear = y;
-    Object.assign(S.ui, { cell: null, edit: null, sel: null, vizChanged: null, lastImport: null, exported: false, preflightSel: null, teamFind: null, mapPick: null, modal: null, menu: null });
+    Object.assign(S.ui, { cell: null, edit: null, sel: null, vizChanged: null, lastImport: null, exported: false, preflightSel: null, teamFind: null, teamPop: false, mapPick: null, modal: null, menu: null });
     S.lastRun = null;
     if (S.calOnReset) S.calOnReset();
     if (S.flowOnYear) S.flowOnYear(y, o.to || 'resume');

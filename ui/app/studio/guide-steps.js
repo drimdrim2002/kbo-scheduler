@@ -143,49 +143,46 @@
     const a = app(), busy = a.roadBusy && (a.roadBusy === 'all' || a.roadBusy.has(t.name));
     const dist = (o) => '<div class="gs-line gs-dist">' + S.team(o.n) + '<span class="gs-v">' + (o.est ? '<span class="tag ref" title="직선거리 × 도로계수로 추정한 값">추정</span>' : o.road ? '<span class="tag road" title="카카오모빌리티 길찾기(자동차)로 받은 도로거리">도로</span>' : '') +
       '<input class="input xs mono gs-km" data-in="team-dist" data-from="' + esc(t.name) + '" data-to="' + esc(o.n) + '" value="' + (o.d == null ? '' : Number(o.d).toFixed(1)) + '" inputmode="decimal" aria-label="' + esc(t.name + ' → ' + o.n + ' 거리(km)') + '"></span></div>';
-    const pickRow = '<div class="gs-pickteam" role="radiogroup" aria-label="고칠 구단">' + st.teams.map((x, k) => '<button class="gs-tbtn' + (k === i ? ' on' : '') + '" data-act="team-sel" data-row="' + k + '" role="radio" aria-checked="' + (k === i) + '" style="--tc:' + esc(x.color || '#555') + '"><i></i>' + esc(x.name) + '</button>').join('') + '</div>';
-    return '<div class="gs-sub">고칠 구단 <small>단추나 가운데 표·지도에서 고릅니다</small></div>' + pickRow +
-      '<div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
+    return '<div class="gs-edit-l"><div class="gs-sub">고치기 <small>' + esc(t.name) + '</small></div>' +
       '<div class="gs-form gs-team"><div class="gs-form-row">' + inp('name', '구단명', t.name) + inp('stadium', '구장 (Enter = 위치 찾기)', stdV, '구장 이름') + '</div><div class="gs-form-row">' + ro('위도', t.latitude.toFixed(4)) + ro('경도', t.longitude.toFixed(4)) + '</div></div>' +
       (kakaoMap ? (picking
         ? '<div class="gs-find pick">' + icon('move') + ' 오른쪽 지도에서 새 구장 자리를 누르세요. 누른 곳의 위도·경도로 채웁니다. <button class="btn xs" data-act="g1-map-pick-off">취소</button></div>'
         : '<div class="gs-mappick"><button class="btn xs" data-act="g1-map-pick" data-row="' + i + '">' + icon('move') + '지도에서 찍기</button><span>카카오 지도에서 자리를 눌러 위도·경도를 넣습니다</span></div>') : '') +
       (picking ? '' : findBox(i, t)) +
       '<div class="gs-hint">위도·경도는 직접 고치지 않습니다. 구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 찾아 채우고' + (kakaoMap ? ', 「지도에서 찍기」로도 고를 수 있습니다' : '') + '. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
-      '<div class="gs-sub gs-sub-row">' + esc(t.name) + '에서 다른 구장까지 거리 <small>km</small>' + (a.roadApi ? (busy ? '<span class="gs-road-busy">' + icon('clock') + '도로거리 받는 중…</span>' : '<button class="btn xs" data-act="g1-road" data-name="' + esc(t.name) + '" title="카카오모빌리티 길찾기로 이 구단의 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '도로거리 받기</button>') : '') + '</div>' + '<div class="gs-dists">' + others.map(dist).join('') + '</div>' +
-      '<div class="gs-hint">' + (a.roadApi ? '「도로」는 카카오모빌리티 길찾기(자동차)로 받은 도로거리, 「추정」은 직선거리 × 도로계수입니다. 구장 위치가 바뀌면 도로거리를 자동으로 다시 받습니다. 숫자를 고치고 Enter를 누르면 직접 적은 값이 됩니다.' : '「추정」은 직선거리 × 도로계수로 계산한 값입니다. 실제 도로거리를 알면 숫자를 고치고 Enter를 누릅니다.' + (a.roadChecked ? ' 도로거리 자동 계산은 편성 서버에서만 됩니다.' : '')) + ' 숫자를 고치면 ' + esc(t.name) + '에서 가는 길만 바뀝니다. 오는 길은 상대 구단을 골라 고칩니다.</div>';
+      '</div><div class="gs-edit-r"><div class="gs-sub gs-sub-row">' + esc(t.name) + '에서 다른 구장까지 거리 <small>km</small>' + (a.roadApi ? (busy ? '<span class="gs-road-busy">' + icon('clock') + '도로거리 받는 중…</span>' : '<button class="btn xs" data-act="g1-road" data-name="' + esc(t.name) + '" title="카카오모빌리티 길찾기로 이 구단의 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '도로거리 받기</button>') : '') + '</div>' + '<div class="gs-dists">' + others.map(dist).join('') + '</div>' +
+      '<div class="gs-hint">' + (a.roadApi ? '「도로」는 카카오모빌리티 길찾기(자동차)로 받은 도로거리, 「추정」은 직선거리 × 도로계수입니다. 구장 위치가 바뀌면 도로거리를 자동으로 다시 받습니다. 숫자를 고치고 Enter를 누르면 직접 적은 값이 됩니다.' : '「추정」은 직선거리 × 도로계수로 계산한 값입니다. 실제 도로거리를 알면 숫자를 고치고 Enter를 누릅니다.' + (a.roadChecked ? ' 도로거리 자동 계산은 편성 서버에서만 됩니다.' : '')) + ' 숫자를 고치면 ' + esc(t.name) + '에서 가는 길만 바뀝니다. 오는 길은 상대 구단을 골라 고칩니다.</div></div>';
   }
 
 
   // ───────── 1 구단 정보 ─────────
-  function teamsLeft() {
-    const st = app().state, fl = st.meta.flow || {}, y = S.seasonYear(), ans = fl.teams;
-    const dm = st.distanceMatrix.filter((d) => d.from !== d.to), road = dm.filter((d) => d.source === 'ROAD').length, est = dm.filter((d) => d.estimated).length;
-    const shared = Array.from(app().sharedStadiums()).map(([x, n]) => x.replace(/종합운동장$/, '') + '(' + n.join('·') + ')').join(', ');
+  S.teamsLead = function () {
+    const st = app().state, fl = st.meta.flow || {}, ans = fl.teams;
+    const dm = st.distanceMatrix.filter((d) => d.from !== d.to);
     const ask = '<div class="fl-ask ' + (ans ? 'ok' : 'now') + '"><div class="q"><span class="no">' + (ans ? icon('check') : '1') + '</span>바뀐 정보가 있나요?' + (ans ? '' : ' <span class="tag now">지금</span>') + '</div>' +
       '<div class="a chips"><button class="chip' + (ans === 'same' ? ' on' : '') + '" data-act="fl-teams-same">없어요 — 그대로</button><button class="chip' + (ans === 'changed' ? ' on' : '') + '" data-act="fl-teams-changed">있어요 — 고칠게요</button></div>' +
-      (ans ? '' : '<div class="why">「없어요」 → 바로 2단계로. 「있어요」 → 따라 하기가 고치는 법을 차례로 알려 드립니다.</div>') + '</div>';
-    const now = '<section class="sc-box"><h4>지금 들어 있는 것</h4><div class="sc-line"><span class="k">구단</span><span class="v">' + st.teams.length + '구단</span></div>' +
-      '<div class="sc-line"><span class="k">구장 간 거리</span><span class="v">' + dm.length + '개' + (road ? '(도로거리 ' + road + '개)' : est ? '(추정 ' + est + '개)' : '') + '</span></div>' +
-      (shared ? '<div class="sc-line"><span class="k">같이 쓰는 구장</span><span class="v">' + esc(shared) + '</span></div>' : '') + '</section>' +
-      '<section class="sc-box blue"><h4>다음 단계</h4><div class="sc-note">2 시즌 기간·연전 묶음 — 개막일을 고르면 연전 묶음이 규칙대로 깔립니다.</div></section>';
+      (ans ? '<button class="lnk" data-act="fl-teams-reask">다시 고르기</button>' : '<div class="why">「없어요」 → 바로 2단계로. 「있어요」 → 따라 하기가 고치는 법을 차례로 알려 드립니다.</div>') + '</div>';
 
     // 답하기 전: 이 질문이 이 화면에서 가장 먼저 할 일이다
     const askBig = '<div class="fl-ask now ask-big"><div class="ask-q">바뀐 정보가 있나요?</div><p class="ask-d">구단 이름·구장·위치가 작년과 달라진 곳이 있는지 답해 주세요.</p><!--ask-note--><div class="ask-btns">' +
       '<button class="ask-btn" data-act="fl-teams-same"><b>없어요 — 그대로</b><span>바로 2단계로 갑니다</span></button>' +
       '<button class="ask-btn" data-act="fl-teams-changed"><b>있어요 — 고칠게요</b><span>고치는 법을 차례로 알려 드립니다</span></button></div></div>';
-    if (!ans) return '<div class="fl-kick">1 / 4단계</div><h2 class="sc-h2">' + y + ' 시즌 구단 정보</h2>' + askBig + (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '') + now;
-    return '<div class="fl-kick">1 / 4단계</div><h2 class="sc-h2">' + y + ' 시즌 구단 정보</h2>' +
-      (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '') +
+    if (!ans) return askBig + (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '');
+    return (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '') +
       '<p class="gs-why">구장 사이 이동거리는 구장 위치로 계산합니다. 구단 이름·구장·위치가 바뀐 해만 고칩니다(예: 잠실 공사로 임시 구장).</p>' +
-      '<!--ask-note-->' + ask + (ans === 'changed' ? teamEditor() : now);
-  }
+      '<!--ask-note-->' + ask;
+  };
+  /** 구단 줄을 누르면 구단 표 아래에 펼쳐지는 고치는 칸: 구장 정보와 거리 계산 */
+  S.teamsPopup = function () {
+    if (!S.ui.teamPop || (app().state.meta.flow || {}).teams !== 'changed') return '';
+    return '<section class="gs-card gs-edit" aria-label="구단 고치기" data-page="teams"><button class="btn sm icon ghost gs-pop-x" data-act="team-pop-close" aria-label="닫기">' + icon('x') + '</button><div class="gs-body">' + teamEditor() + '</div></section>';
+  };
   function teamsScreen(R) {
     const st = app().state;
     if (st.teams.length) { const c = S.ui.cell; if (!c || c.sheet !== 'teams' || !st.teams[c.row]) S.ui.cell = { sheet: 'teams', row: 0, col: 'name' }; }
     S.ui.tab = 'teams';
     const waiting = !(st.meta.flow || {}).teams;
-    return S.flowWrap('<div class="gs-work' + (waiting ? ' ask-wait' : '') + '"><aside class="gs-card" aria-label="구단 정보" data-page="teams"><div class="gs-body" data-sk="gs-card">' + teamsLeft() + '</div></aside><section class="pane main">' + R.teams() + '</section></div>', 'gs');
+    return S.flowWrap('<div class="gs-work two' + (waiting ? ' ask-wait' : '') + '"><section class="pane main">' + R.teams() + '</section></div>', 'gs');
   }
 
   /** step-data.js의 S.steps[1].render가 부른다. null이면 지금까지의 ① 전체 화면(모든 표 보기). R = { sheet, season, teams, calendar } */
@@ -207,6 +204,7 @@
       if (S.ui.step !== 1 || G.mode !== 'flow' || S.guideBlocked()) return false;
       if (G.fs === 1) {
         if (e.key === 'Escape' && S.ui.mapPick) { S.ui.mapPick = null; S.render(); return true; }
+        if (e.key === 'Escape' && S.ui.teamPop) { S.ui.teamPop = false; S.ui.teamFind = null; S.render(); return true; }
         // 카드의 구장 칸: Enter = 구장 위치 찾기(이름 저장과 위치 채우기를 한 번에 → 실행 취소 한 번)
         // 한글 입력 중(마지막 글자 조합 중)의 Enter는 조합을 끝내는 키라 건너뛴다 — 맥 Chrome은 조합 Enter 뒤에 보통 Enter를 한 번 더 보낸다
         if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target.matches && e.target.matches('.gs-team input[data-k="stadium"]')) { e.preventDefault(); G.findP = findStadium(+e.target.dataset.row, e.target.value); return true; }
@@ -249,23 +247,36 @@
     const card0 = () => q('.gs-card');
     // 1 구단 정보: 「바뀐 정보가 있나요?」 → 「있어요」면 왼쪽 카드에서 고치기(구단 고르기 → 구장 이름 + Enter → 거리) + 구단 표·구장 지도
     S.flowGo(1);
-    ok('1 구단 정보: 단계 띠(4칸 · 지금 여기) · 「바뀐 정보가 있나요?」 없어요/있어요 · 구단 표·구장 지도 · 주소 fs=1', !!q('.fl-band') && qa('.fl-band .fb-step').length === 4 && /지금 여기/.test(q('.fb-step.here').textContent) && q('.fb-step.here').dataset.fs === '1' && !!q('[data-act="fl-teams-same"]') && !!q('[data-act="fl-teams-changed"]') && !!q('.pane.main .tm-table') && !!q('#teamMapHost') && /fs=1/.test(S.lastHash));
+    ok('1 구단 정보: 단계 띠(4칸 · 지금 여기) · 「바뀐 정보가 있나요?」 없어요/있어요 · 구단 표·구장 지도 · 주소 fs=1', !!q('.fl-band') && qa('.fl-band .fb-step').length === 4 && /지금 여기/.test(q('.fb-step.here').textContent) && q('.fb-step.here').dataset.fs === '1' && !!q('[data-act="fl-teams-same"]') && !!q('[data-act="fl-teams-changed"]') && !!q('.pane.main .tm-table') && !q('#teamMapHost') && /fs=1/.test(S.lastHash));
+    click('[data-act="tm-map-toggle"]'); flush();
+    ok('1 구단 정보: 지도는 기본으로 접힘 · 펼치면 보임', !!q('#teamMapHost'));
     click('[data-act="fl-teams-changed"]'); flush();
-    ok('1 구단 정보: 「있어요」 → 고칠 구단 단추·고치기 칸 · 따라 하기 1 / 3 「바뀐 구단을 고르세요」(누를 때마다) · 답을 저장', !!card0().querySelector('.gs-pickteam') && st().meta.flow.teams === 'changed' && S.flowTour.cur && S.flowTour.cur.id === 'teams' && /따라 하기 1 \/ 3/.test((q('#guide .ct-card') || {}).textContent || ''));
-    click('.gs-card .gs-pickteam .gs-tbtn[data-row="1"]'); flush();
+    { // 「다시 고르기」: 답만 지워 큰 질문·흐린 표로 돌아가고, 고친 값은 그대로
+      const km0 = app().distanceOf('LG', 'KT').distance;
+      const had = !!q('[data-act="fl-teams-reask"]') && !q('.ask-big');
+      click('[data-act="fl-teams-reask"]'); flush();
+      const back = !!q('.ask-big') && !!q('.gs-work.ask-wait') && !q('[data-act="fl-teams-reask"]') && !S.flowTour.cur && !(st().meta.flow || {}).teams && app().distanceOf('LG', 'KT').distance === km0;
+      ok('1 구단 정보: 「다시 고르기」 → 큰 질문·흐린 표로 돌아감 · 따라 하기 닫힘 · 값은 그대로', had && back, 'had ' + had + ' · back ' + back);
+      click('[data-act="fl-teams-changed"]'); flush();
+    }
+    ok('1 구단 정보: 「있어요」 → 고치는 창은 아직 닫힘 · 따라 하기 1 / 3 「바뀐 구단을 고르세요」(누를 때마다) · 답을 저장', !card0() && st().meta.flow.teams === 'changed' && S.flowTour.cur && S.flowTour.cur.id === 'teams' && /따라 하기 1 \/ 3/.test((q('#guide .ct-card') || {}).textContent || ''));
+    click('.pane.main tbody tr[data-row="1"] td.rn'); flush();
     ok('따라 하기 2 / 3: 구단을 고르면 「새 구장 이름을 적고 Enter」', S.flowTour.cur && S.flowTour.cur.k === 1 && /Enter/.test(q('#guide .ct-card').textContent));
     click('#guide [data-act="tour-skip"]'); flush();
     ok('따라 하기 3 / 3: 「다른 구장까지 거리 확인」 · 마치기', S.flowTour.cur && S.flowTour.cur.k === 2 && /거리 확인/.test(q('#guide .ct-card').textContent) && !!q('#guide [data-act="tour-end"].primary'));
     click('#guide .ct-card .ct-acts [data-act="tour-end"]'); flush();
-    click('.gs-card .gs-pickteam .gs-tbtn[data-row="0"]'); flush();
+    click('.pane.main tbody tr[data-row="0"] td.rn'); flush();
     // 카드에서 바로 고르기: 첫 구단이 골라져 있고, 구단 단추 10개 · 표 줄에 「눌러서 고치기」(고른 줄은 「고치는 중」)
-    const btns = () => qa('.gs-card .gs-pickteam .gs-tbtn');
-    const pick0 = btns().length === 10 && btns()[0].classList.contains('on') && q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[0] && qa('.pane.main .tm-edit-hint').length === 10 && /왼쪽 카드에서 고치는 중/.test(q('.pane.main tbody tr.sel .tm-edit-hint').textContent) && /눌러서 고치기/.test(qa('.pane.main .tm-edit-hint')[1].textContent) && q('#teamMapHost .kmap-active').getAttribute('data-id') === '0';
-    click('.gs-card .gs-pickteam .gs-tbtn[data-row="3"]'); flush();
-    const pick3 = /고치기 KT/.test(card0().textContent) && btns()[3].classList.contains('on') && q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[3];
+    const pick0 = q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[0] && qa('.pane.main .tm-edit-hint').length === 10 && /고치는 중/.test(q('.pane.main tbody tr.sel .tm-edit-hint').textContent) && /눌러서 고치기/.test(qa('.pane.main .tm-edit-hint')[1].textContent) && q('#teamMapHost .kmap-active').getAttribute('data-id') === '0';
+    click('.pane.main tbody tr[data-row="3"] td.rn'); flush();
+    const pick3 = /고치기 KT/.test(card0().textContent) && q('.pane.main tbody tr.sel') === qa('.pane.main tbody tr')[3];
     click('.pane.main tbody tr[data-row="5"] td.rn'); flush();
     const rowPick = /고치기 한화/.test(card0().textContent);
-    ok('구단 정보: 구단 정보 — 첫 구단이 골라진 채 시작 · 카드의 구단 단추 10개로 바꿈 · 표 줄(번호 칸 포함) 눌러도 바뀜 · 줄에 「눌러서 고치기」', pick0 && pick3 && rowPick, 'pick0 ' + pick0 + ' · pick3 ' + pick3 + ' · row ' + rowPick);
+    click('.gs-edit [data-act="team-pop-close"]'); flush();
+    const popShut = !card0() && !q('.pane.main tbody tr.sel') && !!q('#teamMapHost');
+    click('.pane.main tbody tr[data-row="5"] td.rn'); flush();
+    ok('구단 정보: 2단 화면 — 고치는 창을 닫으면 표·거리표·지도가 그대로 · 줄을 누르면 다시 열림 · 거리표가 지도 위', popShut && !!card0() && q('.tm-two-r .tm-dist').compareDocumentPosition(q('.tm-two-r .tm-mapblk')) === Node.DOCUMENT_POSITION_FOLLOWING, 'shut ' + popShut);
+    ok('구단 정보: 표 줄(번호 칸 포함)을 누르면 표 아래 고치는 칸이 그 구단으로 바뀜 · 줄에 「눌러서 고치기」', pick0 && pick3 && rowPick, 'pick0 ' + pick0 + ' · pick3 ' + pick3 + ' · row ' + rowPick);
     // 구단 고치기: 표에서 구단을 누르면 카드에 칸 4개, 구장·위도를 바꾸면 거리가 추정값으로
     const li = st().teams.findIndex((t) => t.name === 'LG');
     click('.pane.main [data-act="team-sel"][data-row="' + li + '"]'); flush();
@@ -289,7 +300,7 @@
     ok('구단 정보: 구장 이름만 바꾸면 거리 그대로 · 거리 칸 LG→KT 31.5 → 그 방향만 · 잘못된 값 거부 · 실행 취소로 복귀', renamed && kmSet && kmRejected && app().distanceOf('LG', 'KT').distance === ktKm0 && app().distanceOf('KT', 'LG').distance === lgKm0 && st().teams[li].stadium !== '고척스카이돔(임시)', 'renamed ' + renamed + ' · kmSet ' + kmSet + ' · rejected ' + kmRejected);
     // 구장 지도: 키가 없으면 내장 지도(구장 10개, 고른 구단 강조) + 설정 안내 한 줄, 지도에서 구단을 눌러 고르기
     const mk = () => qa('#teamMapHost .tm-map svg.kmap .kmap-marker');
-    ok('구단 정보: 구장 지도 — 키 없음 → 내장 지도 · 표시 10개 · 고른 LG 강조 · 「설정 › 카카오 지도 키」 안내 · 개발 글줄 없음', mk().length === 10 && qa('#teamMapHost .kmap-active').length === 1 && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(li) && /설정 › 카카오 지도 키를 넣으면 카카오 지도로 보입니다/.test(q('.tm-foot').textContent) && !!q('.tm-foot [data-act="open-settings"]') && !q('#teamMapHost .k-map-caption') && q('.tm-mapblk').getBoundingClientRect().width >= q('.tm-left').getBoundingClientRect().width * 0.5, 'markers ' + mk().length + ' · map ' + Math.round(q('.tm-mapblk').getBoundingClientRect().width) + ' · table ' + Math.round(q('.tm-left').getBoundingClientRect().width));
+    ok('구단 정보: 구장 지도 — 키 없음 → 내장 지도 · 표시 10개 · 고른 LG 강조 · 「설정 › 카카오 지도 키」 안내 · 개발 글줄 없음', mk().length === 10 && qa('#teamMapHost .kmap-active').length === 1 && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(li) && /설정 › 카카오 지도 키를 넣으면 카카오 지도로 보입니다/.test(q('.tm-foot').textContent) && !!q('.tm-foot [data-act="open-settings"]') && !q('#teamMapHost .k-map-caption') && q('.tm-mapblk').getBoundingClientRect().width >= q('.tm-two-l').getBoundingClientRect().width * 0.5, 'markers ' + mk().length + ' · map ' + Math.round(q('.tm-mapblk').getBoundingClientRect().width) + ' · table ' + Math.round(q('.tm-two-l').getBoundingClientRect().width));
     const ki = st().teams.findIndex((t) => t.name === 'KIA');
     q('#teamMapHost .kmap-marker[data-id="' + ki + '"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); flush();
     const mapPick = S.ui.cell && S.ui.cell.row === ki && /고치기 KIA/.test(card0().textContent) && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(ki);
@@ -334,40 +345,27 @@
       return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: ps.map((p, k) => (k === 0 ? { error: '길을 찾지 못했습니다' } : { km: 100 + k })) }) });
     };
     app().roadApi = true; flush();
-    const roadUi = !!q('.gs-card [data-act="g1-road"]') && !!q('.tm-road [data-act="road-all"]') && /도로 0개/.test(q('.tm-road').textContent);
+    const roadUi = !!q('.gs-card [data-act="g1-road"]') && !!q('.tm-road [data-act="road-all"]');
     const top0r = us()[us().length - 1];
     const rr = await app().fetchRoadDistances(['LG']); flush();
     const roadPairs = st().distanceMatrix.filter((d) => d.source === 'ROAD' && (d.from === 'LG' || d.to === 'LG'));
     const roadDirs = new Set(roadPairs.map((d) => d.distance)).size === 17; // 가짜 응답은 줄마다 값이 달라, 반대 방향으로 베끼면 줄어든다
-    const roadOk = calls === 1 && rr.ok === 17 && rr.failed === 1 && roadPairs.length === 17 && roadDirs && roadPairs.every((d) => !d.estimated && d.distance >= 101) && qa('.gs-card .gs-dist .tag.road').length === roadPairs.filter((d) => d.from === 'LG').length && /도로 17개/.test(q('.tm-road').textContent) && us()[us().length - 2] === top0r;
+    const roadOk = calls === 1 && rr.ok === 17 && rr.failed === 1 && roadPairs.length === 17 && roadDirs && roadPairs.every((d) => !d.estimated && d.distance >= 101) && qa('.gs-card .gs-dist .tag.road').length === roadPairs.filter((d) => d.from === 'LG').length && us()[us().length - 2] === top0r;
     app().undo(); flush();
     window.fetch = realFetch; app().roadApi = false; flush();
     ok('구단 정보: 도로거리 받기(서버 중계 흉내) → 방향별 17개 「도로」 · 못 받은 1개는 그대로 · 실행 취소 한 번으로 복귀 · 서버가 없으면 단추 없음', roadUi && roadOk && !st().distanceMatrix.some((d) => d.source === 'ROAD') && back() && !q('.gs-card [data-act="g1-road"]'), 'ui ' + roadUi + ' · ok ' + rr.ok + ' · failed ' + rr.failed + ' · pairs ' + roadPairs.length + ' · calls ' + calls);
-    // 연도별 거리(편성 서버 저장): 가짜 응답으로 — 서버가 없으면 단추 없음 · 다른 해를 방향별로 불러오기 · 저장은 비밀번호
+    // 연도별 거리 저장(편성 서버): 가짜 응답으로 — 서버에 비밀번호가 없으면 단추 없음 · 저장은 비밀번호
     const realFetch2 = window.fetch, posts = [];
-    const lgAt = st().teams[li], savedTeams = st().teams.map((t) => ({ name: t.name, latitude: t.latitude, longitude: t.longitude }));
-    savedTeams[li] = { name: 'LG', latitude: lgAt.latitude + 0.05, longitude: lgAt.longitude };
     const pause = () => new Promise((r) => setTimeout(r, 0));
     window.fetch = (url, o) => {
       const reply = (status, j) => Promise.resolve({ ok: status === 200, status, json: () => Promise.resolve(j) });
       if (url === '/api/v1/distances') return reply(200, { years: [{ year: 2025, savedAt: '2026-11-01T00:00:00Z', count: 2 }] });
-      if (url === '/api/v1/distances/2025' && !(o && o.method === 'POST')) return reply(200, { year: 2025, savedAt: '2026-11-01T00:00:00Z', teams: savedTeams, distances: [{ from: 'LG', to: 'KT', distance: 77.7, estimated: false, source: 'ROAD' }, { from: 'KT', to: 'LG', distance: 88.8, estimated: false }, { from: 'LG', to: '없는구단', distance: 9, estimated: false }] });
       if (/^\/api\/v1\/distances\/\d{4}$/.test(url) && o && o.method === 'POST') { const b = JSON.parse(o.body); posts.push(b); return b.password === '맞는값' ? reply(200, { year: 2027, count: b.distances.length }) : reply(403, { error: '관리자 비밀번호가 맞지 않습니다.' }); }
       return realFetch2(url, o);
     };
-    const noBtn = !q('[data-act="dist-load-open"]');
-    app().distanceApi = true; app().distanceSave = false; flush();
-    const saveHidden = !!q('[data-act="dist-load-open"]') && !q('[data-act="dist-save-open"]');
-    const lk0 = app().distanceOf('LG', 'KT').distance, kl0 = app().distanceOf('KT', 'LG').distance, topD = us()[us().length - 1];
-    click('[data-act="dist-load-open"]'); await pause(); await pause(); flush();
-    click('[data-act="dist-load-pick"][data-year="2025"]'); await pause(); await pause(); flush();
-    const warned = /구장 위치가 지금과 다른 구단: LG/.test(q('.modal').textContent);
-    click('[data-act="dist-load"]'); flush();
-    const loaded = app().distanceOf('LG', 'KT').distance === 77.7 && app().distanceOf('LG', 'KT').source === 'ROAD' && app().distanceOf('KT', 'LG').distance === 88.8 && !app().distanceOf('KT', 'LG').source && !S.ui.modal && us()[us().length - 2] === topD;
-    app().undo(); flush();
-    const undone = app().distanceOf('LG', 'KT').distance === lk0 && app().distanceOf('KT', 'LG').distance === kl0;
-    ok('구단 정보: 다른 해 거리 불러오기 — 서버가 없으면 단추 없음 · 위치가 다른 구단 알림 · 방향별로 넣음 · 없는 구단은 건너뜀 · 실행 취소 한 번으로 복귀', noBtn && saveHidden && warned && loaded && undone, 'noBtn ' + noBtn + ' · saveHidden ' + saveHidden + ' · warned ' + warned + ' · loaded ' + loaded + ' · undone ' + undone);
+    const noBtn = !q('[data-act="dist-save-open"]');
     app().distanceSave = true; flush();
+    const sameRow = !!q('.tm-road [data-act="dist-save-open"]') && !q('[data-act="dist-load-open"]');
     click('[data-act="dist-save-open"]'); await pause(); await pause(); await pause(); flush();
     click('.modal-foot [data-act="dist-save"]'); await pause(); await pause(); await pause(); flush();
     const emptyStop = posts.length === 0 && /비밀번호를 적어 주세요/.test(q('.modal').textContent);
@@ -376,8 +374,8 @@
     const wrong = posts.length === 1 && S.ui.modal === 'distSave' && /맞지 않습니다/.test(q('.modal').textContent) && q('#distPw').value === '';
     setPw('맞는값'); click('.modal-foot [data-act="dist-save"]'); await pause(); await pause(); await pause(); flush();
     const saved = posts.length === 2 && !S.ui.modal && posts[1].distances.length === st().distanceMatrix.length && posts[1].teams.length === st().teams.length;
-    window.fetch = realFetch2; app().distanceApi = false; app().distanceSave = false; flush();
-    ok('구단 정보: 거리 저장 — 비밀번호를 비우면 안 보냄 · 틀리면 창에 이유 · 맞으면 저장하고 닫힘', emptyStop && wrong && saved && !q('[data-act="dist-load-open"]'), 'empty ' + emptyStop + ' · wrong ' + wrong + ' · saved ' + saved + ' · posts ' + posts.length);
+    window.fetch = realFetch2; app().distanceSave = false; flush();
+    ok('구단 정보: 거리 저장 — 서버에 비밀번호가 없으면 단추 없음 · 도로거리 단추와 같은 줄 · 비밀번호를 비우면 안 보냄 · 틀리면 창에 이유 · 맞으면 저장하고 닫힘', noBtn && sameRow && emptyStop && wrong && saved && !q('[data-act="dist-save-open"]'), 'noBtn ' + noBtn + ' · sameRow ' + sameRow + ' · empty ' + emptyStop + ' · wrong ' + wrong + ' · saved ' + saved + ' · posts ' + posts.length);
     const topN = us()[us().length - 1];
     await findT('없는구장이름');
     const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '없는구장이름' && us()[us().length - 1] === topN;
@@ -395,6 +393,7 @@
     'g1-road': (el) => { if (S.locked()) return; app().fetchRoadDistances([el.dataset.name]).then(S.roadToast); },
     'g1-find-close': () => { S.ui.teamFind = null; S.render(); },
     'g1-map-pick': (el) => { if (S.locked()) return; S.ui.mapPick = { row: +el.dataset.row }; S.ui.teamFind = null; S.render(); },
+    'team-pop-close': () => { S.ui.teamPop = false; S.ui.teamFind = null; S.ui.mapPick = null; S.render(); },
     'g1-map-pick-off': () => { S.ui.mapPick = null; S.render(); }
   });
 })();

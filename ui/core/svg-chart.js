@@ -197,7 +197,7 @@
   }
 
   /**
-   * 히트맵. opts: { rows:[label], cols:[label], values:[[number]], format, cellW, cellH, scale: (v, max) => css색, titles:[[string]] }
+   * 히트맵. opts: { rows:[label], cols:[label], values:[[number]], format, cellW, cellH, scale: (v, max) => css색, darkAt: 글자를 밝게 바꿀 값 비율(기본 0.6), titles:[[string]] }
    */
   function heatmap(opts) {
     const rows = opts.rows || [], cols = opts.cols || [];
@@ -223,7 +223,7 @@
         const k = (v - min) / ((max - min) || 1);
         const title = opts.titles && opts.titles[i] ? opts.titles[i][j] : r + ' · ' + c + ': ' + fmt(v);
         s += '<g class="kc-cell"' + (opts.keys ? ' data-key="' + esc(opts.keys[i][j]) + '"' : '') + '><rect x="' + x + '" y="' + yy + '" width="' + (cw - 2) + '" height="' + (ch - 2) + '" rx="2" fill="' + scale(v, max, min) + '"><title>' + esc(title) + '</title></rect>';
-        s += '<text x="' + (x + cw / 2 - 1) + '" y="' + (yy + ch / 2 + 3) + '" text-anchor="middle" class="kc-cell-text' + (k > 0.6 ? ' kc-on-dark' : '') + '">' + esc(fmt(v)) + '</text></g>';
+        s += '<text x="' + (x + cw / 2 - 1) + '" y="' + (yy + ch / 2 + 3) + '" text-anchor="middle" class="kc-cell-text' + (k > (opts.darkAt != null ? opts.darkAt : 0.6) ? ' kc-on-dark' : '') + '">' + esc(fmt(v)) + '</text></g>';
       });
     });
     return s + '</svg>';

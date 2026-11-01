@@ -149,7 +149,7 @@
     G.mode = 'flow'; G.fs = Math.max(1, Math.min(4, n | 0 || 1));
     S.cal.slotAt = null; S.cal.edit = null; S.cal.pickOpen = false;
     if (G.fs !== 3) S.cal.day = null;
-    S.ui.teamFind = null; S.ui.mapPick = null;
+    S.ui.teamFind = null; S.ui.mapPick = null; S.ui.teamPop = false;
     S.go({ step: 1, ops: null, cell: null, edit: null, modal: null, drawer: null });
   };
   /** 1단계 「바뀐 정보가 있나요?」 답(저장한다 — 다시 와도 기억) */
@@ -165,6 +165,11 @@
       if (G.fs === 1 && !(app().state.meta.flow || {}).teams) S.flowSetTeams('same');
       if (G.fs === 2 && !app().state.settings.seasonStart) { S.toast('개막일을 먼저 골라 주세요.', 'warn'); return; }
       S.flowGo(G.fs + 1);
+    },
+    'fl-teams-reask': () => {
+      if (S.flowTour.cur) S.flowTour.end();
+      S.ui.teamPop = false;
+      app().commit('구단 정보: 다시 고르기', (s) => { s.meta.flow = Object.assign({}, s.meta.flow || {}, { teams: null }); }, ['meta']);
     },
     'fl-teams-same': () => { S.flowSetTeams('same'); S.flowGo(2); },
     'fl-teams-changed': () => { S.flowSetTeams('changed'); if (!S.ui.cell || S.ui.cell.sheet !== 'teams') S.ui.cell = { sheet: 'teams', row: 0, col: 'name' }; S.flowTour.start('teams'); },
@@ -222,7 +227,7 @@
   const seenKey = (id) => S.KEY + 'tour:' + id;
   const TOURS = {
     teams: [
-      { anchor: () => q('.gs-card .gs-pickteam'), title: '바뀐 구단을 고르세요', text: () => '단추나 가운데 표에서 바뀐 구단을 누릅니다. 바뀐 구단이 여럿이면 하나씩 같은 방법으로 고칩니다. 구단 이름이 바뀌었으면 구단명 칸에서 고칩니다.', done: () => !!(T.cur && T.cur.picked) },
+      { anchor: () => q('.tm-table'), title: '바뀐 구단을 고르세요', text: () => '표에서 바뀐 구단을 누르면 고치는 창이 열립니다. 바뀐 구단이 여럿이면 하나씩 같은 방법으로 고칩니다. 구단 이름이 바뀌었으면 구단명 칸에서 고칩니다.', done: () => !!(T.cur && T.cur.picked) },
       { anchor: () => q('.gs-card .gs-team input[data-k="stadium"]'), title: '새 구장 이름을 적고 Enter', text: () => '구장 칸에 새 구장 이름을 적고 Enter를 누르면 위치(위도·경도)를 찾아 채웁니다. 결과가 여럿이면 맞는 곳을 고릅니다.', done: () => !!(T.cur && T.cur.found) },
       { anchor: () => q('.gs-card .gs-dists'), title: '다른 구장까지 거리 확인', text: () => '위치가 바뀌면 이 구단의 구장 간 거리를 다시 계산합니다(도로거리 받기 · 숫자를 직접 고칠 수도 있음). 맞으면 「다음」으로 갑니다.', last: true }
     ],
@@ -313,7 +318,11 @@
   S.actions['team-sel'] = function (el, e) {
     if (G.mode === 'flow' && G.fs === 1 && (app().state.meta.flow || {}).teams !== 'changed') S.flowSetTeams('changed');
     if (T.cur && T.cur.id === 'teams') T.cur.picked = true;
-    return teamSel0 ? teamSel0(el, e) : undefined;
+    if (G.mode === 'flow' && G.fs === 1) S.ui.teamPop = true;
+    const r = teamSel0 ? teamSel0(el, e) : undefined;
+    const edit = q('.gs-edit');
+    if (edit && edit.scrollIntoView) edit.scrollIntoView({ block: 'nearest' }); // 표 아래에 펼쳐진 칸이 보이게
+    return r;
   };
 
   // ───────── 자가 점검 (guide-steps.js의 selftest가 부른다) ─────────
@@ -327,7 +336,7 @@
     // 새 연도 2027(기본 제공이 있으면 처음부터 다시)
     // 2027 기본 제공(코어 KBO.Preset2027)이 있어도 「새로 입력」 길을 본다: 새 연도 프로젝트로 연다
     S.switchYear(2027, S.builtinOf(2027) ? { quiet: true, to: 'resume', project: S.newYearProject(2027) } : { quiet: true, to: 'resume' }); flush();
-    ok('2027 새로 입력 → 바로 1 구단 정보 · 2025 구단 정보를 가져왔습니다 · 「바뀐 정보가 있나요?」 · 단계 띠 1 지금 여기', G.mode === 'flow' && G.fs === 1 && /가장 최근\(2025\)/.test(q('.gs-card').textContent) && /바뀐 정보가 있나요/.test(q('.fb-step.here').textContent));
+    ok('2027 새로 입력 → 바로 1 구단 정보 · 2025 구단 정보를 가져왔습니다 · 「바뀐 정보가 있나요?」 · 단계 띠 1 지금 여기', G.mode === 'flow' && G.fs === 1 && /가장 최근\(2025\)/.test(q('.tm-two-lead').textContent) && /바뀐 정보가 있나요/.test(q('.fb-step.here').textContent));
     click('[data-act="fl-teams-same"]'); flush();
     ok('「없어요」 → 2단계 · 개막일 후보 3/20 · 3/27(추천) · 4/3 · 나머지는 자동(접힘) · 연도 칸 「2027 시즌」', G.fs === 2 && S.calOpeningChoices().join() === '2027-03-20,2027-03-27,2027-04-03' && /3\/27\(토\) 추천/.test(q('.fl-open-ask').textContent) && !!q('.sc-dash') && /2027 시즌/.test(q('.tb-year').textContent));
     S.flowTour.start('season'); flush();
