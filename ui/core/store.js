@@ -254,6 +254,7 @@
     // 공휴일 가중치: 예전 저장 데이터(weight 없음)는 2로 읽는다. 연전 기간의 주말·휴일 가중치는 공휴일 표에서 다시 매긴다
     // 「휴식 요일이어도 경기」(playOnRest): 저장값이 없으면 어린이날만 켜짐으로 채운다
     project.settings.holidays = (project.settings.holidays || []).map((h) => (typeof h === 'string' ? { date: h, name: '공휴일', weight: KBO.CalendarGen.HOLIDAY_WEIGHT, playOnRest: KBO.CalendarGen.holidayPlaysOnRest(h) } : Object.assign({}, h, { weight: h.weight != null && Number.isFinite(Number(h.weight)) ? Math.max(0, Math.round(Number(h.weight))) : KBO.CalendarGen.HOLIDAY_WEIGHT, playOnRest: KBO.CalendarGen.holidayPlaysOnRest(h) })));
+    fixHolidays2027(project.settings);
     normalizeSeasonRules(project.settings, (p.settings || {}));
     project.calendar = KBO.CalendarGen.applyWeights((project.calendar || []).map((c, i) => ({ index: i, datetime: c.datetime, consecutive: c.consecutive | 0, weekend: c.weekend | 0, holiday: c.holiday | 0 })), project.settings);
     project.events = project.events.map((e) => {
@@ -270,6 +271,19 @@
     for (const e of project.plan || []) if (e && e.match >= 0 && e.match < M) planArr[e.match] = (e.calendar == null || e.calendar >= project.calendar.length) ? -1 : e.calendar;
     project.plan = planArr.map((c, m) => ({ match: m, calendar: c }));
     return project;
+  }
+
+  /**
+   * 2027 공휴일을 고치기 전(8/16 대체공휴일 포함, 노동절·제헌절 없음)에 저장한 시즌을 바로잡는다.
+   * 그 날이 그대로일 때만 8/16을 빼고 5/1·7/17을 넣는다. 고친 뒤에는 8/16이 없어 다시 돌지 않으므로 사용자가 지운 날이 되살아나지 않는다.
+   * 8/16 「월 경기」를 켠 시즌은 사용자가 고친 것이라 그대로 둔다.
+   */
+  function fixHolidays2027(set) {
+    const old = set.holidays.find((h) => h.date === '2027-08-16' && h.name === '광복절 대체공휴일');
+    if (!old || old.playOnRest === true) return;
+    const have = new Set(set.holidays.map((h) => h.date));
+    const add = KBO.CalendarGen.builtinHolidays(2027).filter((h) => (h.date === '2027-05-01' || h.date === '2027-07-17') && !have.has(h.date));
+    set.holidays = set.holidays.filter((h) => h !== old).concat(add).sort((a, b) => (a.date < b.date ? -1 : 1));
   }
 
   /**
