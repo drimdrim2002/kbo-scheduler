@@ -293,7 +293,7 @@
   S.doExport = function (kind) {
     const app = S.app;
     S.ui.menu = null;
-    if (kind === 'project') { app.exportProject(); S.toast('프로젝트 JSON을 내려받았습니다.', 'ok'); }
+    if (kind === 'project') { app.exportProject(); S.toast('시즌 데이터 파일을 내려받았습니다.', 'ok'); }
     else if (kind === 'engine') { app.exportEngine(); S.toast('엔진 호환 JSON(input_2025 형식)을 내려받았습니다.', 'ok'); }
     else if (kind === 'csv') { app.exportCSV(S.ui.team || null); S.toast('일정표 CSV를 내려받았습니다' + (S.ui.team ? ' (' + S.ui.team + ')' : '') + '.', 'ok'); }
     else if (kind === 'xlsx') S.toast('시안 예시: 2025_KBO_편성_배포본.xlsx (시트 6개 · 연전 기간 ' + app.state.calendar.length + ' · 시리즈 ' + app.state.matches.length + ')를 만들었다고 가정합니다.', 'info', 4200);

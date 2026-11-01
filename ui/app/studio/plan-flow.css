@@ -2,6 +2,7 @@
 body.pf-ro { grid-template-rows: var(--top-h) minmax(0, 1fr) var(--foot-h); }
 body.pf-ro #stepper { display: none; }
 body.pf-nores .tb-group .badge { display: none; }
+body.pf .eng:not(.run):not(.pause) { display: none; } /* 실행 중이 아닐 때 「자동 편성 대기」를 띄우지 않는다 */
 body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], body.pf-home .tb-year { display: none; }
 .pf-ro-tag { font-size: 11.5px; font-weight: 700; color: #FFE7A3; border: 1px solid #FFE7A3; border-radius: 10px; padding: 1px 9px; }
 .pf-page { flex: 1; min-height: 0; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
