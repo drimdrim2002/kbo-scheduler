@@ -162,12 +162,12 @@
           </svg>
         </div>
       </div>
-      <!-- 카카오맵: 탭할 때만 SDK를 읽는다(외부 스크립트는 이 블록이 유일). 키는 공개 JavaScript 키이고 카카오 콘솔의 도메인 등록으로 보호한다 -->
+      <!-- 카카오맵: 탭할 때만 SDK를 읽는다(외부 스크립트는 이 블록이 유일). 키는 설정 파일에서 읽는다(show.js SHOW.kakaoKey) -->
       <div class="sh-kmap" id="rt-kmap" hidden>
         <div class="sh-seg sh-seg-s" role="group" aria-label="지도에서 실제 일정과 매치봇 일정 전환"><button type="button" data-km="real" aria-pressed="true">실제 1,338km</button><button type="button" data-km="engine" aria-pressed="false">매치봇 567km</button></div>
         <div class="sh-kmap-box" id="rt-kmap-box" role="img" aria-label="롯데 8월 원정길 지도"></div>
       </div>
-      <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn" data-kakao-key="dd04ee384353180b67c19cfab63bb763">카카오맵으로 보기</button></div>
+      <div class="sh-kmap-tools"><button type="button" class="k-btn" id="rt-kmap-btn">카카오맵으로 보기</button></div>
       <p class="sh-viz-note">같은 기간(8/1~8/15) 롯데가 버스로 다닌 거리예요. 실제 일정은 고척에 갔다가 사직으로 내려와 홈 2연전을 하고, 다시 대전에 올라갔다 내려와요. 매치봇 일정은 사직에서 세 시리즈를 치른 뒤 광주만 다녀와요.</p>
     </div>
     </div>
