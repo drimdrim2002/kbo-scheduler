@@ -285,7 +285,7 @@
     const had27 = S.repo.has(2027) || !!S.builtinOf(2027);
     click('.yc[data-year="2027"] [data-act="year-open"]'); flush();
     const y27 = S.seasonYear() === 2027 && /2027 시즌/.test(q('.tb-year').textContent) && !app().store.canUndo() && st().teams.length === 10 && /year=2027/.test(S.lastHash) && document.title.indexOf('2027 시즌') >= 0;
-    const newOk = had27 || (st().settings.holidays.some((h) => h.date === '2027-08-16') && st().settings.seasonStart === '' && !st().calendar.length && st().meta.flow && st().meta.flow.from === 2025 && st().settings.allStarStart === '2027-07-09');
+    const newOk = had27 || (st().settings.holidays.some((h) => h.date === '2027-07-17') && st().settings.seasonStart === '' && !st().calendar.length && st().meta.flow && st().meta.flow.from === 2025 && st().settings.allStarStart === '2027-07-09');
     ok('2027 열기 → 상단 띠 「2027 시즌」 · 실행 취소 기록 비움 · 주소 year=2027 · (새로 입력이면) 2025 구단 정보 + 2027 법정 공휴일 + 올스타 7/9', y27 && newOk, 'had27 ' + had27);
     app().updateSettings({ seasonEnd: '2027-10-31' }, '시험: 시즌 종료일'); flush();
     S.autosave.flush();

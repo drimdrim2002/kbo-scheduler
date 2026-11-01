@@ -44,7 +44,7 @@
   const weightOf = (h) => (h && h.weight != null ? Number(h.weight) : CalendarGen.HOLIDAY_WEIGHT);
 
   // ───────── 규칙대로 깔기 ─────────
-  /** 공휴일 「휴식 요일이어도 경기」: 값이 없으면 어린이날(5/5)만 켜짐(2025 5/5(월) 경기 재현, 2027 8/16(월) 대체공휴일은 경기 없음). 코어에 같은 판단(CalendarGen.holidayPlaysOnRest)이 있으면 그것을 쓴다 */
+  /** 공휴일 「휴식 요일이어도 경기」: 값이 없으면 어린이날(5/5)만 켜짐(2025 5/5(월) 경기 재현, 그 밖의 월요일 공휴일은 경기 없음). 코어에 같은 판단(CalendarGen.holidayPlaysOnRest)이 있으면 그것을 쓴다 */
   S.playOnRest = (h) => (CalendarGen.holidayPlaysOnRest ? CalendarGen.holidayPlaysOnRest(h) : h && h.playOnRest != null ? !!h.playOnRest : /-05-05$/.test((h && h.date) || ''));
   /**
    * 규칙대로 깔 때 쓰는 설정(CalendarGen.ruleSettings): 휴식 요일 공휴일 중 「경기」를 끈 날은 넘기지 않고, 올스타 휴식기 길이(allStarDays)를 맞춘다.

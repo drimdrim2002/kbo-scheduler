@@ -180,13 +180,14 @@
     restExceptions: [],
     blackouts: [{ start: '2027-07-09', end: '2027-07-14', label: '올스타 휴식기' }],
     // 2027 법정 공휴일(시즌 안). 음력·대체공휴일은 인사혁신처 고시로 최종 확인 필요.
-    // playOnRest = 휴식 요일(월)이어도 그 날 경기 — 기본은 어린이날만. 8/16(월) 대체공휴일은 기본 경기 없음(켜면 그 날 경기 · 그 주 목 휴식)
+    // playOnRest = 휴식 요일(월)이어도 그 날 경기 — 기본은 어린이날만(켜면 그 날 경기 · 그 주 목 휴식). 월요일 대체공휴일은 8/16처럼 경기가 없어 시즌 중이면 표에 넣지 않는다
     holidays: [
+      { date: '2027-05-01', name: '노동절', weight: 2, playOnRest: false },
       { date: '2027-05-05', name: '어린이날', weight: 3, playOnRest: true },
       { date: '2027-05-13', name: '부처님오신날', weight: 2, playOnRest: false },
       { date: '2027-06-06', name: '현충일', weight: 2, playOnRest: false },
+      { date: '2027-07-17', name: '제헌절', weight: 2, playOnRest: false },
       { date: '2027-08-15', name: '광복절', weight: 2, playOnRest: false },
-      { date: '2027-08-16', name: '광복절 대체공휴일', weight: 2, playOnRest: false },
       { date: '2027-09-14', name: '추석 연휴', weight: 2, playOnRest: false },
       { date: '2027-09-15', name: '추석', weight: 2, playOnRest: false },
       { date: '2027-09-16', name: '추석 연휴', weight: 2, playOnRest: false },
