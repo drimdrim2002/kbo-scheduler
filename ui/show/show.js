@@ -433,13 +433,28 @@
   }
   function shareText() { return document.title; }
   function shareDesc() { const m = document.querySelector('meta[property="og:description"]'); return m ? m.getAttribute('content') : ''; }
-  SHOW.KAKAO_KEY = 'dd04ee384353180b67c19cfab63bb763'; // JavaScript 키(카카오맵과 같은 앱, 도메인 제한이 보호). 카카오톡 공유 카드에 쓴다
+  /** 카카오 JavaScript 키: 코드에 두지 않고 설정 파일(/config.local.json, 커밋하지 않음, scripts/ui-config.sh)에서 한 번만 읽는다. 없거나 file://면 cb(null) */
+  let kakaoKeyVal, kakaoKeyWait = null;
+  SHOW.kakaoKey = function (cb) {
+    if (kakaoKeyVal !== undefined) { cb(kakaoKeyVal); return; }
+    if (kakaoKeyWait) { kakaoKeyWait.push(cb); return; }
+    if (isFile) { kakaoKeyVal = null; cb(null); return; }
+    kakaoKeyWait = [cb];
+    load('/config.local.json', (err, cfg) => {
+      kakaoKeyVal = !err && cfg && typeof cfg.kakaoKey === 'string' && cfg.kakaoKey.trim() || null;
+      const wait = kakaoKeyWait; kakaoKeyWait = null;
+      wait.forEach((f) => f(kakaoKeyVal));
+    });
+  };
   /** 카카오톡 공유: 누를 때만 SDK를 읽고(이 사이트의 외부 요청은 Jua·카카오맵·이 SDK 셋) 제목·설명·OG 이미지 카드를 보낸다. 실패하면 cb(false) → 공유 창·링크 복사로 대체 */
   function kakaoShare(url, title, desc, cb) {
+    SHOW.kakaoKey((key) => { if (key) kakaoShareWith(key, url, title, desc, cb); else cb(false); });
+  }
+  function kakaoShareWith(key, url, title, desc, cb) {
     const send = () => {
       try {
         const K = window.Kakao;
-        if (!K.isInitialized()) K.init(SHOW.KAKAO_KEY);
+        if (!K.isInitialized()) K.init(key);
         const id = document.body.getAttribute('data-page') === 'r' ? (query.get('id') || 'default') : 'default';
         K.Share.sendDefault({ objectType: 'feed', content: { title, description: desc, imageUrl: SHOW.PUBLIC + '/og/' + id + '.png', link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: '보러 가기', link: { mobileWebUrl: url, webUrl: url } }] });
         cb(true);
@@ -466,6 +481,7 @@
     }
   };
   function bindShare() {
+    if ($('[data-share]')) SHOW.kakaoKey(() => {}); // 미리 읽어 둔다: 누른 순간 바로 보내야 공유 창이 막히지 않는다
     $$('[data-share]').forEach((b) => b.addEventListener('click', () => SHOW.share(b.getAttribute('data-share'))));
   }
   /** 위저드 링크: file://이면 ../index.html, 서버면 /studio/ (해시는 유지) */
@@ -643,7 +659,6 @@
    */
   function routeMap() {
     const btn = $('#rt-kmap-btn'), wrap = $('#rt-kmap'), box = $('#rt-kmap-box'); if (!btn || !wrap || !box) return;
-    const key = btn.getAttribute('data-kakao-key');
     let map = null, layer = [], kind = 'real';
     function clear() { layer.forEach((o) => o.setMap(null)); layer = []; }
     function curve(a, b, side) {
@@ -693,11 +708,14 @@
       wrap.hidden = false; btn.disabled = true; btn.textContent = '지도를 불러오는 중…';
       const done = () => { btn.hidden = true; try { window.kakao.maps.load(init); } catch (e) { fail('지도를 불러오지 못했어요. ' + e.message); } };
       if (window.kakao && window.kakao.maps) { done(); return; }
-      const sc = document.createElement('script');
-      sc.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(key) + '&autoload=false';
-      sc.onload = done;
-      sc.onerror = () => { btn.hidden = true; fail('지도를 불러오지 못했어요. 카카오 개발자 콘솔에 이 주소(' + location.host + ')가 등록돼 있는지 확인해 주세요.'); };
-      document.head.appendChild(sc);
+      SHOW.kakaoKey((key) => {
+        if (!key) { btn.hidden = true; fail('지금은 지도를 볼 수 없어요.'); return; }
+        const sc = document.createElement('script');
+        sc.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(key) + '&autoload=false';
+        sc.onload = done;
+        sc.onerror = () => { btn.hidden = true; fail('지도를 불러오지 못했어요. 카카오 개발자 콘솔에 이 주소(' + location.host + ')가 등록돼 있는지 확인해 주세요.'); };
+        document.head.appendChild(sc);
+      });
     });
     $$('[data-km]', wrap).forEach((b) => b.addEventListener('click', () => { kind = b.getAttribute('data-km'); draw(); }));
   }
