@@ -82,22 +82,20 @@
   <!-- ① 첫 화면 = 문제: 드라마 대본(→ 공평할까요? → 기준은?) → 기준 세 가지 -->
   <section class="sh-sec sh-story" id="hero" aria-labelledby="hero-h">
     <div class="sh-chap sh-chap-why">
-    <!-- 첫 화면(2026-10-25 확정, 사용자: 대본 종이와 「공평할까요?」 블록을 합치기 → c): 표제어(사용자 문구) → 대본 한 장. 쪽 제목 h1 「우리 팀 일정, 공평할까요?」는 종이 안 손글씨 메모와 한 줄로. 머리글 "2025 KBO 일정"은 표제어가 그 자리를 맡아 뺐다.
+    <!-- 첫 화면(2026-10-25 확정, 사용자: 대본 종이와 「공평할까요?」 블록을 합치기 → c): 표제어(사용자 문구) → 대본 한 장(그림) → 쪽 제목 h1 「우리 팀 일정, 공평할까요?」. 머리글 "2025 KBO 일정"은 표제어가 그 자리를 맡아 뺐다.
          두 대사 모두 백승수 단장(사용자 확인). 장면 번호·회차·쪽 번호는 모르므로 비워 둔다. 드라마 정보: SBS 금토드라마, 2019-12-13~2020-02-14, 제56회 백상예술대상 TV 드라마 작품상. 영상·캡처·로고는 쓰지 않는다(2026-10-22 결정) -->
     <p class="sh-kicker sh-q1-k">드라마 스토브리그 · 단장 회의 장면</p>
     <h2 class="sh-h2 sh-q1-h">여기에서 매치봇이 탄생했어요</h2>
-    <div class="sh-q1c">
-      <div class="sh-q1c-paper">
-        <i class="sh-q1c-holes" aria-hidden="true"></i>
-        <p class="sh-q1c-top"><span>스토브리그</span><span>대본</span></p>
-        <p class="sh-q1c-scene">S#. 단장 회의</p>
-        <dl class="sh-q1c-talk">
-          <dt>백승수</dt>
-          <dd><p>서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다.</p><p class="sh-q1c-key"><mark>야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</mark></p><div class="sh-q1c-memo"><span class="sh-q1c-note"><span aria-hidden="true">↑</span> 여기서 영감을 받았어요.</span> <h1 class="sh-h1 sh-q1c-ask" id="hero-h">우리 팀 일정, 공평할까요?</h1> <span class="sh-q1c-next">그렇다면 그 기준은 무엇일까요?</span></div></dd>
-        </dl>
-        <p class="sh-q1c-foot">드라마 스토브리그 · SBS 금토드라마 · 2019~2020 · 백상예술대상 드라마 작품상</p>
-      </div>
-    </div>
+    <!-- 대본 한 장은 그림(2026-11-01, 사용자: CSS 종이가 아쉬움 → 실제 대본처럼). 종이·스테이플·빨간 펜 동그라미·손글씨 메모를 그림에 구워 둔다. 휴대폰(343폭)·PC(688폭) 두 장, 2배 해상도, 배경 투명. 다시 만들기: ui/tools/show/script-img/render.sh. 쪽 제목 h1과 "기준은?" 질문은 그림 아래 글로 -->
+    <figure class="sh-q1c">
+      <picture>
+        <source media="(min-width: 768px)" srcset="stove-script-pc.webp" width="1376" height="1108">
+        <img src="stove-script-m.webp" width="686" height="1118" alt="드라마 대본 한 장. S#. 단장 회의. 백승수: 서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다. 야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요. 이 대사에 빨간 펜으로 동그라미를 치고 '여기서 영감을 받았어요'라고 적어 두었어요.">
+      </picture>
+      <figcaption class="sh-q1c-foot">드라마 스토브리그 · SBS 금토드라마 · 2019~2020 · 백상예술대상 드라마 작품상</figcaption>
+    </figure>
+    <h1 class="sh-h1" id="hero-h">우리 팀 일정, 공평할까요?</h1>
+    <p class="sh-lead sh-q1-next">그렇다면 그 기준은 무엇일까요?</p>
     <h2 class="sh-story-h">기준은 세 가지예요</h2>
     <p class="sh-lead">모든 구단이 144경기 중 절반을 원정으로 치러서, 전국을 돌며 경기를 해요. 이때 이동 일수·이동거리와 주말·공휴일 홈 경기를 공평하게 나눠야 해요. 2025년 기준으로는 아래와 같아요.</p>
     <!-- 기준 세 가지(2026-10-25 확정, 이동 일수 → 이동거리 → 주말·공휴일): 이전 아이콘 카드 + 가장 적은~많은 구단 막대(가운데 눈금 = 구단 평균, 실제라 주황) -->

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>대본 그림 틀</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gaegu:wght@400;700&display=block">
+<style>
+html, body { margin: 0; background: transparent; }
+body { box-sizing: border-box; padding: 26px 22px 30px; }
+#noteWrap { text-align: right; padding-right: 6px; }
+.paper { position: relative; box-sizing: border-box; background: linear-gradient(140deg, #fdfbf6 0%, #f8f4ea 60%, #f3eee2 100%); color: #232019;
+  font-family: 'AppleMyungjo', 'Nanum Myeongjo', 'Batang', serif; box-shadow: 0 1px 1px rgba(0,0,0,.10), 0 8px 22px rgba(20,30,50,.16), 0 28px 50px -18px rgba(20,30,50,.22); }
+.paper::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .32; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55 0 0 0 0 .52 0 0 0 0 .45 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.paper::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, rgba(0,0,0,.035), transparent 30%, transparent 70%, rgba(0,0,0,.04)); }
+.in { position: relative; }
+.top { display: flex; justify-content: space-between; margin: 0 0 14px; padding-bottom: 6px; border-bottom: 1px solid #cdc7b8; font-size: 12px; color: #7a7466; letter-spacing: .08em; }
+.scene { margin: 0 0 14px; font-size: 15px; font-weight: 700; letter-spacing: .02em; }
+.talk { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 0 10px; }
+.who { font-size: 14px; font-weight: 700; padding-top: 2px; }
+.say p { margin: 0 0 10px; font-size: 15px; line-height: 1.75; word-break: keep-all; }
+.say p.key { font-size: 18px; font-weight: 700; line-height: 1.7; display: inline-block; padding: 2px 4px; margin-left: -4px; }
+.note { position: relative; display: inline-block; margin: 28px 0 0; font-family: 'Nanum Pen Script', 'Jua', cursive; font-size: 27px; line-height: 1.1; color: #d0271d; transform: rotate(-2.5deg); white-space: nowrap; }
+.foot { height: 26px; }
+svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.staple { position: absolute; left: 10px; top: 7px; width: 24px; height: 7px; transform: rotate(-38deg); border: 1.5px solid #8d9096; border-bottom: 0; border-radius: 2px 2px 0 0; box-shadow: inset 0 1px 0 #fff, 0 1px 1px rgba(0,0,0,.25); background: linear-gradient(#e9ebee, #b9bdc4); }
+.holes { position: absolute; left: 12px; top: 0; bottom: 0; width: 14px; }
+.holes i { position: absolute; left: 0; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 45% 40%, #ece9e1 55%, #cfcbc0 70%, #b9b4a7 100%); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+.holes i:nth-child(1) { top: 24%; } .holes i:nth-child(2) { top: 72%; }
+/* 형광펜 */
+.v-b .say p.key { display: inline; padding: 0 2px; margin-left: -2px; background: linear-gradient(transparent 50%, #ffe55e 50%, #ffe55e 93%, transparent 93%); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.v-b .say p.key + div { margin-top: 10px; }
+/* 포스트잇 */
+.sticky { position: absolute; right: -8px; bottom: -16px; width: 176px; padding: 14px 12px 16px; text-align: center; background: linear-gradient(#fff3a1, #ffe95f); color: #1c1a16; font-family: 'Nanum Pen Script', 'Jua', cursive; font-size: 26px; line-height: 1.05; transform: rotate(3deg); box-shadow: 0 2px 2px rgba(0,0,0,.08), 0 10px 18px rgba(20,30,50,.18); }
+.sticky::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(0,0,0,.04); }
+/* PC 폭(688) */
+.w688 .top { font-size: 13px; margin-bottom: 20px; }
+.w688 .paper { }
+.w688 .scene { font-size: 17px; margin-bottom: 18px; }
+.w688 .talk { grid-template-columns: 72px minmax(0, 1fr); gap: 0 16px; }
+.w688 .who { font-size: 16px; }
+.w688 .say p { font-size: 17px; }
+.w688 .say p.key { font-size: 24px; }
+.w688 .note { font-size: 34px; margin-top: 36px; }
+.w688 .foot { height: 40px; }
+.w688 .staple { left: 16px; top: 12px; width: 30px; }
+.w688 .sticky { width: 220px; font-size: 32px; right: -14px; bottom: -22px; }
+</style>
+</head>
+<body>
+<div class="paper" id="paper">
+  <div class="in" id="in">
+    <p class="top"><span>스토브리그</span><span id="topR">대본</span></p>
+    <p class="scene">S#. 단장 회의</p>
+    <div class="talk">
+      <div class="who">백승수</div>
+      <div class="say">
+        <p>서울·수도권에 많은 팀이 몰려 있어서, 지방 팀들은 경기하러 이동하다 보면 버스 안에서 굉장히 많은 시간을 보내게 됩니다.</p>
+        <p class="key" id="key">야구를 못하는 만큼만 지고 싶지, 멀리서 이동하느라 피곤해서 지는 경기는 없어야겠지요.</p>
+        <div id="noteWrap"><span class="note" id="note">여기서 영감을 받았어요</span></div>
+      </div>
+    </div>
+    <div class="foot"></div>
+  </div>
+  <svg class="ink" id="ink" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+      <filter id="pencil" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3" result="t"/><feColorMatrix in="t" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 -.3" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+    </defs>
+    <g id="pen"></g>
+  </svg>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var W = +q.get('w') || 343, V = q.get('v') || 'a';
+  document.body.classList.add('w' + W, 'v-' + V);
+  document.body.style.width = W + 'px';
+  var paper = document.getElementById('paper');
+  var padL = W >= 688 ? 44 : 22, padR = W >= 688 ? 44 : 20, padT = W >= 688 ? 38 : 28, padB = W >= 688 ? 30 : 16;
+  if (V === 'b') { padL += W >= 688 ? 30 : 20; var h = document.createElement('div'); h.className = 'holes'; h.innerHTML = '<i></i><i></i>'; paper.appendChild(h); }
+  else { var s = document.createElement('i'); s.className = 'staple'; paper.appendChild(s); }
+  paper.style.padding = padT + 'px ' + padR + 'px ' + padB + 'px ' + padL + 'px';
+  var rot = V === 'a' ? -1.4 : V === 'b' ? 0 : 1.1;
+  paper.style.transform = 'rotate(' + rot + 'deg)';
+  var color = V === 'a' ? '#d0271d' : V === 'b' ? '#1f3fa8' : '#4a4640';
+  var note = document.getElementById('note');
+  if (V === 'c') { // 포스트잇: 메모 글을 종이 오른쪽 아래에 붙인 쪽지로
+    note.parentNode.removeChild(note);
+    var st = document.createElement('div'); st.className = 'sticky'; st.textContent = '여기서 영감을 받았어요'; paper.appendChild(st);
+    document.getElementById('noteWrap').style.height = (W >= 688 ? 48 : 40) + 'px';
+  } else { note.style.color = color; if (V === 'b') { note.style.transform = 'rotate(-1.5deg)'; } }
+  // 종이를 돌리기 전 좌표로 잰다(svg도 종이 안에 있어 같이 돈다)
+  paper.style.transform = 'none';
+  var P = paper.getBoundingClientRect(), K = document.getElementById('key').getBoundingClientRect();
+  var cx = K.left - P.left + K.width / 2, cy = K.top - P.top + K.height / 2;
+  var rx = K.width / 2 + (W >= 688 ? 16 : 10), ry = K.height / 2 + (W >= 688 ? 10 : 7);
+  var seed = 11; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  function loop(turns, start) {
+    var n = 48, pts = [], total = Math.round(n * turns);
+    for (var i = 0; i <= total; i++) {
+      var t = start + i / n * Math.PI * 2, f = i / total;
+      var jx = 1 + (rnd() - .5) * .05, jy = 1 + (rnd() - .5) * .10;
+      pts.push([cx + Math.cos(t) * rx * jx + f * 4, cy + Math.sin(t) * ry * jy + f * 5]);
+    }
+    var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    for (var j = 0; j < pts.length - 1; j++) {
+      var p0 = pts[Math.max(j - 1, 0)], p1 = pts[j], p2 = pts[j + 1], p3 = pts[Math.min(j + 2, pts.length - 1)];
+      var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += 'C' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ' ' + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+    }
+    return d;
+  }
+  var pen = document.getElementById('pen');
+  var sw = W >= 688 ? 3 : 2.4;
+  var penStyle = V === 'c' ? 'stroke:' + color + ';stroke-width:' + (sw * .9) + ';opacity:.85;filter:url(#pencil)' : 'stroke:' + color + ';stroke-width:' + sw + ';opacity:.92;filter:url(#rough)';
+  var html = '<path d="' + loop(1.28, -0.5) + '" fill="none" stroke-linecap="round" stroke-linejoin="round" style="' + penStyle + '"/>';
+  if (V !== 'c') { // 메모 → 동그라미 화살표
+    var N = note.getBoundingClientRect();
+    var x1 = N.left - P.left - 4, y1 = N.top - P.top + N.height * .55;
+    var x2 = cx - rx * .12, y2 = cy + ry + 4;
+    var mx = x1 - (W >= 688 ? 40 : 26), my = y2 + (y1 - y2) * .85;
+    var ang = Math.atan2(y2 - my, x2 - mx), ah = W >= 688 ? 13 : 10;
+    var a1 = [x2 - Math.cos(ang - .45) * ah, y2 - Math.sin(ang - .45) * ah], a2 = [x2 - Math.cos(ang + .45) * ah, y2 - Math.sin(ang + .45) * ah];
+    html += '<path d="M' + x1 + ' ' + y1 + ' Q' + mx + ' ' + my + ' ' + x2 + ' ' + y2 + ' M' + a1[0] + ' ' + a1[1] + ' L' + x2 + ' ' + y2 + ' L' + a2[0] + ' ' + a2[1] + '" fill="none" stroke-linecap="round" stroke-linejoin="round" style="' + penStyle + '"/>';
+  }
+  pen.innerHTML = html;
+  paper.style.transform = 'rotate(' + rot + 'deg)';
+  function report() { document.documentElement.setAttribute('data-h', Math.ceil(document.body.getBoundingClientRect().height + (V === 'c' ? 24 : 0))); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(report); else report();
+  setTimeout(report, 1500);
+})();
+</script>
+</body>
+</html>
