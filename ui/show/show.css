@@ -474,8 +474,7 @@ body.sh-body { --accent: var(--mb-blue); --accent-soft: var(--mb-screen); }
 .sh-brand { gap: 7px; }
 .sh-mark { width: 28px; height: 28px; background: none; border-radius: 0; color: inherit; }
 .sh-wm { font-family: 'Jua', var(--font); font-weight: 400; font-size: 21px; line-height: 1; color: var(--mb-blue); letter-spacing: -.01em; padding-top: 2px; }
-.sh-site { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 2px; padding-left: 9px; border-left: 1px solid var(--line); line-height: 1.2; }
-@media (max-width: 479px) { .sh-site { display: none; } }
+/* .sh-site(헤더 "KBO 일정 톺아보기")는 2026-11-01 사용자 요청으로 뺐다 */
 .sh-veil span { background: var(--mb-deep); }
 .sh-why-i i { color: var(--mb-deep); }
 .sh-trip2 .t2-node circle { fill: var(--mb-deep); }
