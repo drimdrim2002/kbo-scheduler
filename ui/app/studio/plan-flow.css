@@ -33,23 +33,18 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 /* 처음 화면 */
 .pf-start { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: 16px; overflow: auto; }
 .pf-start h1 { margin: 0; font-size: 26px; color: var(--navy); letter-spacing: -.5px; }
-.pf-start .lead { margin: -8px 0 0; color: var(--text-2); font-size: 14px; }
 .pf-choices { display: grid; grid-template-columns: repeat(2, 540px); gap: 18px; align-items: stretch; }
 .pf-ch { background: #fff; border: 1px solid var(--line-2); border-radius: 12px; padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 24px rgba(10,30,60,.06); }
-.pf-ch.go { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak), 0 8px 24px rgba(10,30,60,.08); }
-.pf-ch .kick { font-size: 12px; font-weight: 700; color: var(--text-3); } .pf-ch.go .kick { color: var(--blue); }
-.pf-ch .y { font-size: 46px; font-weight: 800; color: var(--navy); letter-spacing: -1.5px; line-height: 1; }
-.pf-ch .y small { font-size: 18px; letter-spacing: 0; margin-left: 6px; color: var(--text-2); font-weight: 700; }
-.pf-ch .what { font-size: 14px; color: var(--text-2); margin: 0; }
+.pf-ch h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; }
+.pf-ch .what { font-size: 14px; color: var(--text-2); margin: -6px 0 0; }
+.pf-yr { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.pf-yr .y { font-size: 28px; font-weight: 800; color: var(--navy); letter-spacing: -1px; line-height: 1; flex: none; }
+.pf-yr .what { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--text-3); }
+.pf-yr .what b { color: var(--navy); font-size: 14px; } .pf-yr .what b.good { color: var(--ok); }
+.pf-yr .acts { flex: none; } .pf-yr .acts .btn { height: 40px; font-size: 14px; justify-content: center; }
 .pf-ch ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .pf-ch li { display: flex; gap: 8px; font-size: 13px; padding: 7px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); align-items: center; }
 .pf-ch li b { color: var(--navy); min-width: 134px; flex: none; }
-.pf-ch .grow { flex: 1; }
-.pf-ch .acts { display: flex; gap: 8px; } .pf-ch .acts .btn { flex: 1; justify-content: center; height: 44px; font-size: 15px; }
-.pf-kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-.pf-kpi .k { font-size: 12px; color: var(--text-2); font-weight: 600; }
-.pf-kpi .v { font-size: 22px; font-weight: 800; color: var(--ok); }
-.pf-kpi .s { font-size: 12px; color: var(--text-3); }
 
 /* 값 검토 줄 */
 .pf-rv { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; }

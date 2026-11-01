@@ -21,6 +21,10 @@
 
   async function run() {
     try {
+      // ── 처음 화면: 목적 아래에 연도
+      const heads = qa('.pf-ch h2').map((h) => h.innerText), yrs = (i) => [...qa('.pf-ch')[i].querySelectorAll('.pf-yr .y')].map((y) => y.innerText);
+      ok('처음 화면: 결과 확인(2025 · 2027) / 새 계획 만들기(2027)', heads.join() === '결과 확인,새 계획 만들기' && yrs(0).join() === '2025,2027' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
+      ok('결과가 없으면 2027은 보기 단추 대신 「아직 결과 없음」', /아직 결과 없음/.test(qa('.pf-ch')[0].innerText) && !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]').innerText.includes('검토 시작'));
       // ── 검토 게이트
       click('[data-act="pf-open-2027"]'); flush();
       ok('처음 들어가면 값은 있어도 「검토 전」', !S.flowStatus().allDone && S.flowStatus().stop === 1 && S.seasonYear() === 2027);
@@ -287,6 +291,12 @@
       const none = q('[data-act="pf-save"]') ? (click('[data-act="pf-save"]'), flush(), P.versions.list(2027).length) : -1;
       S.ls.set = ls;
       ok('저장 공간 부족: 버전이 늘지 않고 화면에 남음', none === before && S.ui.step === 5);
+
+      // ── 처음 화면: 결과가 생긴 뒤
+      S.actions['pf-home'](); flush();
+      ok('결과가 있으면 결과 확인 > 2027 「보기」와 새 계획 > 2027 「값 다시 검토」로 나뉨', !!qa('.pf-ch')[0].querySelector('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]:not([data-to])').innerText.includes('값 다시 검토'));
+      click('[data-act="pf-open-2027"][data-to="result"]'); flush();
+      ok('결과 확인 > 2027 → 현재 결과 화면', S.ui.step === 5 && S.seasonYear() === 2027);
 
       // ── 2025 · 주소
       S.switchYear(2025, { quiet: true, to: 'stay' }); S.go({ step: 2 }); flush();

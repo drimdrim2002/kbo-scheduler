@@ -1,6 +1,6 @@
 /*
  * 편성 스튜디오 — 계획 흐름 (시안 ui-archive/plan-flow-concepts, 사용자 확정 2026-10-31)
- *  처음 화면: 2025 계획 보기(보기 전용, KBO 실제와 비교) / 2027 새 계획 만들기.
+ *  처음 화면: 결과 확인(2025 · 2027) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「고치기」는 기존 달력을 연다.
  *   2 엔진 옵션: 추천 순서 카드 + 허용 차이(가장 많은·적은 구단 차이) → settings.objective로 서버에 보낸다.
@@ -308,16 +308,19 @@
     const ours = P.builtin['2025-best'], kbo = kboData();
     const pct = ours ? Math.round((1 - ours.gaps.totalKm / kbo.gaps.totalKm) * 100) : null;
     const step = (n, t, s, est) => '<li><b>' + n + ' ' + t + '</b><span>' + s + (est ? ' <span class="pf-tag est">추정 ' + est + '개</span>' : '') + '</span></li>';
-    const res = savedResult27(), hasResult = res && !(inPlan() && resultStale(app().state));
-    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>무엇을 할까요?</h1><p class="lead">2025는 결과 확인, 2027은 새 계획 만들기</p><div class="pf-choices">' +
-      '<div class="pf-ch"><div class="kick">확인용</div><div class="y">2025<small>계획 보기</small></div><p class="what">KBO 실제 일정과 이 엔진의 일정을 비교합니다.</p>' +
-      '<div class="pf-kpi"><div class="k">전체 이동 거리</div>' + (ours ? '<div class="v">' + pct + '% 짧음</div><div class="s">KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</div>' : '<div class="s">' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</div>') + '</div>' +
-      '<div class="grow"></div><div class="acts"><button class="btn" data-act="pf-open-2025">2025 결과 보기' + icon('right') + '</button></div></div>' +
-      '<div class="pf-ch go"><div class="kick">새 계획</div><div class="y">2027<small>새 계획 만들기</small></div><p class="what">먼저 미리 채운 2027 값을 4단계로 검토합니다.</p><ul>' +
-      step(1, '구단 정보', 'LG·두산 구장 바뀜 · 그 밖에 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') +
-      '</ul><div class="small muted">노란 <span class="pf-tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 말풍선이 안내합니다.</div><div class="grow"></div>' +
-      '<div class="acts">' + (hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">결과 이어서 보기' + icon('right') + '</button><button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">검토 시작' + icon('right') + '</button>') + '</div></div>' +
-      '</div></div>';
+    const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27;
+    const row = (y, what, act) => '<div class="pf-yr"><div class="y">' + y + '</div><div class="what">' + what + '</div><div class="acts">' + act + '</div></div>';
+    const r25 = ours ? '<b class="good">전체 이동 거리 ' + pct + '% 짧음</b><span>KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</span>' : '<span>' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</span>';
+    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>무엇을 할까요?</h1><div class="pf-choices">' +
+      '<div class="pf-ch"><h2>결과 확인</h2><p class="what">만들어 둔 일정을 봅니다</p>' +
+      row(2025, '<b>KBO 실제 일정과 비교</b>' + r25, '<button class="btn" data-act="pf-open-2025">보기' + icon('right') + '</button>') +
+      row(2027, hasResult ? '<b>지난 실행 결과</b><span>값 검토와 실행을 마친 일정</span>' : '<span>' + (stale27 ? '연전이 바뀌어 다시 실행해야 합니다' : '아직 결과 없음') + '</span>', hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">보기' + icon('right') + '</button>' : '') +
+      '</div>' +
+      '<div class="pf-ch"><h2>새 계획 만들기</h2><p class="what">값을 검토하고 실행합니다</p>' +
+      row(2027, '<b>미리 채운 값을 4단계로 검토</b>', hasResult ? '<button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">검토 시작' + icon('right') + '</button>') +
+      '<ul>' + step(1, '구단 정보', 'LG·두산 구장 바뀜 · 그 밖에 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') + '</ul>' +
+      '<div class="small muted">노란 <span class="pf-tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 말풍선이 안내합니다.</div>' +
+      '</div></div></div>';
   }
   /** 저장해 둔 2027이 개막 대진을 정하기 전 것이고 아직 검토하지 않았으면 기본 제공 값으로 다시 연다 */
   function open2027() {
@@ -740,7 +743,7 @@
     const u = S.ui, y = S.seasonYear();
     if (u.step === 5 && y === YEAR_VIEW) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 이 엔진의 일정을 비교합니다</span>' + (!P.builtin['2025-best'] ? '' : P.view25 === 'dash' ? '<button class="btn primary" data-act="pf-25" data-v="compare">KBO와 비교로 돌아가기</button>' : '<button class="btn primary" data-act="pf-25" data-v="dash">평가 기준별 자세히 보기' + icon('right') + '</button>');
     if (u.step === 1) {
-      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — 2025 결과를 확인하거나 2027 새 계획을 만듭니다</span>';
+      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — 결과를 확인하거나 새 계획을 만듭니다</span>';
       if (G.mode === 'all') return '<button class="btn" data-act="g1-cal">' + icon('left') + '단계별로 돌아가기</button><span class="hint"><b>모든 표 보기</b> — 표에서 직접 고칩니다. 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>';
       if (P.calEdit) return '<span class="hint"><b>달력에서 고치기</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
       const n = G.fs, steps = S.FLOW_STEPS, st = app().state;
