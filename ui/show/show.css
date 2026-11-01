@@ -775,3 +775,7 @@ html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
 .sh-how .sh-stats-msg .sh-stat-d b { font-variant-numeric: tabular-nums; }
 .sh-body .sh-how-deep { margin: 20px 0 0; font-size: 16px; }
 .sh-how-deep .sh-link { white-space: normal; }
+
+/* 결정구 세 가지(how.html, 2026-11-01): 말풍선 아래 머리글 + 4·5·6번으로 가는 칩 */
+.sh-how .sh-how-k3 { margin: 20px 0 8px; }
+.sh-how .sh-how-jump { margin: 0; }

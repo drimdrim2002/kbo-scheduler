@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>매치봇 엔진 설명 (KBO 실무자·연구자용) — 매치봇</title>
+<title>매치봇 작동 원리 (KBO 실무자·연구자용) — 매치봇</title>
 <meta name="description" content="매치봇이 KBO 1차 일정을 어떤 문제로 보고, 어떤 규칙 두 층으로 풀고, 어디서 출발해 어떻게 고쳐 나가는지. 출발점 여러 개를 쓰는 근거 숫자와 매치봇이 모르는 조건까지, 실무자·연구자용으로 정리했어요.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="매치봇 엔진 설명 — 무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지">
+<meta property="og:title" content="매치봇 작동 원리 — 무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지">
 <meta property="og:description" content="시리즈 225개를 날짜 칸 45개에. 반드시 지키는 규칙 7가지 안에서 5가지를 차례로 맞추고, 규칙 위반 0인 출발점에서 10초 동안 고쳐 나가요. 출발점 4개를 동시에 돌리는 이유와 벤치마크 숫자.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -50,7 +50,7 @@
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span><span class="sh-site">KBO 일정 톺아보기</span></a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="compare.html">숫자와 근거</a><a href="how.html" aria-current="page">엔진 설명</a></nav>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="compare.html">숫자와 근거</a><a href="how.html" aria-current="page">결정구</a></nav>
   </div>
 </header>
 
@@ -59,8 +59,8 @@
        블록 2·4·5·6·7·8 바로 밑의 「방법」 줄에만 전문 용어를 쓴다(공통 글 9블록의 대응 행). -->
   <section class="sh-sec" aria-labelledby="eng-h">
     <p class="sh-kicker">KBO 실무자·연구자용</p>
-    <h1 class="sh-h1" id="eng-h">매치봇 엔진 설명</h1>
-    <p class="sh-lead">무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지. 숫자는 <a href="compare.html">숫자와 근거</a> 쪽과 같은 값이에요. 팬을 위한 짧은 설명은 <a href="how.html">엔진 설명</a> 쪽에 있어요.</p>
+    <h1 class="sh-h1" id="eng-h">매치봇 작동 원리</h1>
+    <p class="sh-lead">무엇을 어떤 규칙으로 풀고, 어떻게 탐색하고, 무엇을 모르는지. 숫자는 <a href="compare.html">숫자와 근거</a> 쪽과 같은 값이에요. 팬을 위한 짧은 설명은 <a href="how.html">매치봇의 결정구</a> 쪽에 있어요.</p>
     <div class="sh-facts sh-eng-facts" role="group" aria-label="한눈에 보는 숫자 네 개">
       <div class="sh-fact"><b>10 · 225 · 45</b><span>구단 · 시리즈 · 날짜 칸</span></div>
       <div class="sh-fact"><b>7 · 5</b><span>반드시 지키는 것 · 되도록 맞추는 것</span></div>
@@ -282,7 +282,7 @@
   <div class="sh-wrap">
     <p class="sh-foot-promo">스케줄랩의 다른 서비스 · <a href="https://www.everyshift.co.kr/" target="_blank" rel="noopener">에브리시프트</a> — 병원·기업의 교대 근무표를 AI가 자동으로 만들어 드려요 →</p>
     <p>이 사이트는 KBO와 관계없는 개인 프로젝트예요. 데이터는 KBO가 발표한 2025 정규시즌 1차 일정을 바탕으로 만들었어요.</p>
-    <p><a href="index.html">소개로</a> · <a href="compare.html">숫자와 근거</a> · <a href="how.html">엔진 설명</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
+    <p><a href="index.html">소개로</a> · <a href="compare.html">숫자와 근거</a> · <a href="how.html">결정구</a> · <a href="../index.html" data-studio>편성 스튜디오(PC)</a></p>
   </div>
 </footer>
 <script src="show.js?v=20261101a"></script>
