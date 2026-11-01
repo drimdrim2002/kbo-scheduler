@@ -28,7 +28,7 @@
     this.kakaoKeyLocal = LS.get(KAKAO_KEY) || ''; // 설정에 직접 넣은 키(이 브라우저)
     this.kakaoKeyEnv = ''; // 설정 파일(ui/config.local.json ← .env·서버 환경 파일)의 키
     this.kakaoKey = this.kakaoKeyLocal;
-    this.distanceApi = false; this.distanceSave = false; // 편성 서버의 연도별 거리 저장 — probeRoad()
+    this.distanceSave = false; // 편성 서버의 연도별 거리 저장 — probeRoad()
     this.roadApi = false; // 편성 서버가 도로거리(카카오모빌리티 길찾기 중계)를 해 주는가 — probeRoad()
     this.roadChecked = false;
     this.roadBusy = null; // 받는 중인 구단 이름들(Set) 또는 'all'
@@ -240,8 +240,7 @@
     return fetch('/api/v1/info', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((info) => {
       this.roadApi = !!(info && info.name === 'kbo-scheduler' && info.roadDistance);
       this.roadChecked = true;
-      this.distanceApi = !!(info && info.name === 'kbo-scheduler' && info.distanceStore); // 연도별 거리 불러오기
-      this.distanceSave = !!(this.distanceApi && info.distanceSave); // 저장(서버에 관리자 비밀번호가 있을 때)
+      this.distanceSave = !!(info && info.name === 'kbo-scheduler' && info.distanceSave); // 연도별 거리 저장(서버에 관리자 비밀번호가 있을 때)
       this.emitUI(['map']);
       return this.roadApi;
     });
@@ -290,10 +289,6 @@
   App.prototype.listSavedDistances = function () {
     return distanceRequest('/api/v1/distances', { cache: 'no-store' }).then((j) => j.years || []);
   };
-  /** 그 해 저장된 거리: { year, savedAt, teams, distances } */
-  App.prototype.loadSavedDistances = function (year) {
-    return distanceRequest('/api/v1/distances/' + year, { cache: 'no-store' });
-  };
   /** 지금 거리표와 구장 위치를 그 해 값으로 서버에 저장한다. 돌려주는 값: { year, savedAt, count } */
   App.prototype.saveDistances = function (year, password) {
     const st = this.state;
@@ -303,22 +298,6 @@
       distances: st.distanceMatrix.map((d) => Object.assign({ from: d.from, to: d.to, distance: d.distance, estimated: !!d.estimated }, d.source === 'ROAD' ? { source: 'ROAD' } : {}))
     };
     return distanceRequest('/api/v1/distances/' + year, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  };
-  /** 저장된 거리를 지금 거리표에 방향별로 넣는다. 지금 구단끼리의 거리만 넣고 나머지는 그대로. 한 번의 실행 취소 단계. 돌려주는 값: 넣은 개수 */
-  App.prototype.applySavedDistances = function (saved) {
-    const names = new Set(this.state.teams.map((t) => t.name));
-    const rows = (saved.distances || []).filter((x) => x.from !== x.to && names.has(x.from) && names.has(x.to));
-    if (!rows.length) return 0;
-    const ok = this.commit(saved.year + ' 거리 불러오기 ' + rows.length + '개', (s) => {
-      for (const x of rows) {
-        const d = s.distanceMatrix.find((y) => y.from === x.from && y.to === x.to);
-        const t = d || { from: x.from, to: x.to };
-        t.distance = x.distance; t.estimated = !!x.estimated;
-        if (x.source === 'ROAD') t.source = 'ROAD'; else delete t.source;
-        if (!d) s.distanceMatrix.push(t);
-      }
-    }, ['distance']);
-    return ok ? rows.length : 0;
   };
   /** from → to 한 방향만 고친다(반대 방향은 그대로) */
   App.prototype.setDistance = function (from, to, km) {

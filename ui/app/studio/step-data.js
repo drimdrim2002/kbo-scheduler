@@ -496,22 +496,32 @@
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
     const shared = app().sharedStadiums();
     const stepwise = !!(S.g1 && S.g1.mode === 'flow' && S.g1.fs === 1); // 1 구단 정보 단계면 왼쪽 카드, 모든 표 보기면 오른쪽 자세히에서 고친다
-    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 ' + (stepwise ? '왼쪽 카드' : '오른쪽') + '에서 고칩니다. 구장 사이 거리표는 표 아래에 있습니다.</span></div>';
-    s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">';
-    s += '<div class="blk" style="--tm-n:' + st.teams.length + '"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
+    const pop = stepwise ? !!u.teamPop : true; // 1 구단 정보 단계에서는 고치는 창이 열렸을 때만 그 줄을 「고치는 중」으로 보인다
+    const table = '<div class="blk" style="--tm-n:' + st.teams.length + '"><table class="sheet tm-table"><colgroup><col style="width:40px"><col style="width:84px"><col><col style="width:80px"><col style="width:88px"></colgroup><thead><tr><th class="rn">#</th><th>구단</th><th>구장</th><th class="num">위도</th><th class="num">경도</th></tr></thead><tbody>' +
       st.teams.map((t, i) => {
         const sh = shared.get(t.stadium);
         const tip = t.stadium + (sh ? ' · 같이 쓰는 구장(' + sh.join('·') + ')' : '');
-        const hint = i === sel ? (stepwise ? '왼쪽 카드에서 고치는 중' : '오른쪽에서 고치는 중') : '눌러서 고치기';
-        return '<tr class="' + (i === sel ? 'sel' : '') + '" data-act="team-sel" data-row="' + i + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '<span class="tm-edit-hint">' + (i === sel ? icon('left') : icon('edit')) + hint + '</span></td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
+        const on = i === sel && pop;
+        const hint = on ? (stepwise ? '고치는 중' : '오른쪽에서 고치는 중') : '눌러서 고치기';
+        return '<tr class="' + (on ? 'sel' : '') + '" data-act="team-sel" data-row="' + i + '"><td class="rn">' + (i + 1) + '</td><td class="cell" data-act="team-sel" data-row="' + i + '">' + S.team(t.name) + '</td><td class="cell tm-std" data-act="team-sel" data-row="' + i + '" title="' + esc(tip) + '"><span class="tm-std-n">' + esc(t.stadium) + '</span>' + (sh ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '<span class="tm-edit-hint">' + (on ? icon('left') : icon('edit')) + hint + '</span></td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.latitude.toFixed(4) + '</td><td class="num mono cell" data-act="team-sel" data-row="' + i + '">' + t.longitude.toFixed(4) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
-    if (app().roadApi) {
-      const dm = st.distanceMatrix.filter((d) => d.from !== d.to);
-      const nRoad = dm.filter((d) => d.source === 'ROAD').length, nEst = dm.filter((d) => d.estimated).length, nAll = st.teams.length * (st.teams.length - 1);
-      s += '<div class="tm-road">' + (app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 받는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 구장 사이 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '모든 구장 도로거리 받기 (' + nAll + '개)</button>') +
-        '<span class="muted small">도로 ' + nRoad + '개 · 추정 ' + nEst + '개</span></div>';
+    const roadBtn = !app().roadApi ? '' : app().roadBusy === 'all' ? '<span class="gs-road-busy">' + icon('clock') + '모든 구장 도로거리 계산하는 중…</span>' : '<button class="btn sm" data-act="road-all" title="카카오모빌리티 길찾기로 구장 사이 거리를 가는 길·오는 길 따로 계산합니다">' + icon('map') + '모든 구장 도로거리 계산하기</button>';
+    const saveBtn = S.distSaveBtn();
+    const road = roadBtn || saveBtn ? '<div class="tm-road">' + roadBtn + saveBtn + '</div>' : '';
+    const mapBlock = (cls) => '<div class="' + cls + '"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">' + (app().kakao && app().kakaoKey ? 'Kakao' : '내장 SVG') + '</span></span>' : '') + '</div><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>';
+    if (stepwise) {
+      // 1 구단 정보: 왼쪽 = 질문·구단 표(줄을 누르면 고치는 창), 오른쪽 = 거리표 위·지도 아래를 한 칸에
+      const names = st.teams.map((t) => t.name);
+      const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
+      const mapOpen = !!(u.tmMapOpen || u.mapPick || findCands());
+      const dist = S.feature('T7') ? '<div class="blk tm-dist"><div class="blk-head">' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></div><div class="chart-box tm-heat">' +
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: Math.max(40, Math.floor(((window.innerWidth - 36) / 2 - 62) / Math.max(1, names.length))), cellH: 30, labelW: 44, darkAt: 2, scale: (v, max, min) => ((v - min) / ((max - min) || 1) > 0.75 ? '#FFE8CC' : '#FFFFFF'), format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></div>' : '';
+      S.afterRender(mountTeamMap);
+      return '<div class="pane-body tm-two" data-sk="d-teams"><div class="tm-two-lead">' + S.teamsLead() + '</div><div class="tm-wait tm-two-l">' + table + road + S.teamsPopup() + '</div>' +
+        '<div class="tm-wait tm-two-r">' + dist + '<div class="blk tm-mapwrap"><button class="tm-mapbar" data-act="tm-map-toggle" aria-expanded="' + mapOpen + '">' + icon('map') + '구장 지도<span class="muted">' + (mapOpen ? '접기' : '펼치기') + '</span></button>' + (mapOpen ? '<div class="tm-mapblk"><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>' : '') + '</div></div></div>';
     }
-    s += S.distYearsRow();
+    let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 오른쪽에서 고칩니다. 구장 사이 거리표는 표 아래에 있습니다.</span></div>';
+    s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">' + table + road;
     if (S.feature('T7')) {
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
@@ -519,7 +529,7 @@
         KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: 43, cellH: (tmCellLast = tmCellH()), labelW: 44, format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></details>';
     }
     s += '</div>';
-    s += '<div class="blk tm-mapblk"><div class="blk-head">' + icon('map') + '구장 지도' + (S.dev() ? '<span class="r"><span class="tag ref">' + (app().kakao && app().kakaoKey ? 'Kakao' : '내장 SVG') + '</span></span>' : '') + '</div><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>';
+    s += mapBlock('blk tm-mapblk');
     s += '</div></div>';
     S.afterRender(mountTeamMap);
     return s;
@@ -823,6 +833,7 @@
       S.toast('어린이날(' + fmt.date(date) + ') 구장 지정을 넣었습니다: ' + teams.join('·') + ' 홈.' + (inSlot ? ' 구장 칸에서 바꿀 수 있습니다.' : ' 아직 어느 연전 기간에도 없는 날짜입니다 — 시즌 달력에서 ' + fmt.date(date) + '이 든 묶음을 만드세요(휴식 요일이면 그 날을 눌러 끌기).'), inSlot ? 'ok' : 'warn', 7000);
       S.go({ tab: 'events' });
     },
+    'tm-map-toggle': (el) => { S.ui.tmMapOpen = el.getAttribute('aria-expanded') !== 'true'; if (!S.ui.tmMapOpen) S.ui.mapPick = null; S.render(); },
     'road-all': () => { if (locked()) return; app().fetchRoadDistances(null).then(S.roadToast); },
     'team-sel': (el) => { S.ui.cell = { sheet: 'teams', row: +el.dataset.row, col: 'name' }; S.ui.teamFind = null; S.ui.mapPick = null; S.render(); },
     'rest-wd': (el) => {

@@ -1188,9 +1188,6 @@ svg.mc text { font-family: var(--font); }
 .gs-road-busy { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--blue); font-weight: 600; letter-spacing: 0; }
 .tm-road { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .dist-lead { margin: 0 0 10px; }
-.dist-years { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 10px; }
-.dist-years .chip { justify-content: flex-start; font-weight: 600; }
-.dist-years .chip small { font-weight: 400; margin-left: 6px; }
 .dist-warn { margin: 0 0 8px; color: var(--warn); }
 .dist-err { margin: 8px 0 0; color: var(--bad); }
 .gs-pickteam { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 6px; }
@@ -1199,7 +1196,7 @@ svg.mc text { font-family: var(--font); }
 .gs-tbtn:hover { border-color: var(--blue); background: var(--blue-weak); }
 .gs-tbtn.on { border-color: var(--blue); background: var(--blue); color: #fff; font-weight: 700; }
 .gs-tbtn.on i { outline: 1px solid #fff; }
-.tm-table tbody tr { cursor: pointer; }
+.tm-table tbody tr, .tm-table tbody td.cell { cursor: pointer; }
 .tm-table td.tm-std { position: relative; }
 .tm-edit-hint { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 10px; background: var(--blue); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .tm-table tbody tr:hover .tm-edit-hint { display: inline-flex; }
@@ -1478,7 +1475,28 @@ svg.mc text { font-family: var(--font); }
 .fl-ask .no { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .fl-ask.ok .no { background: var(--ok); }
 /* 구단 정보: 답하기 전의 큰 질문 — 오른쪽 표·지도는 흐리게 */
-.gs-work.ask-wait > .pane.main { opacity: .4; pointer-events: none; }
+.gs-work.ask-wait .tm-wait { opacity: .4; pointer-events: none; }
+/* 구단 정보 2단: 왼쪽 질문·구단 표(줄을 누르면 고치는 창) / 오른쪽 거리표 위·지도 아래 */
+.gs-work.two { grid-template-columns: minmax(0, 1fr); }
+.pane-body.tm-two { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-rows: max-content; align-content: start; gap: 12px; padding: 12px; overflow-y: auto; }
+.tm-two-lead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
+.tm-two-lead > * { flex: none; }
+.tm-two-lead .gs-why { margin: 0; }
+.tm-two-l, .tm-two-r { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.tm-two-l > *, .tm-two-r > * { flex: none; }
+.tm-two .ask-btns { flex-direction: row; }
+.tm-two .ask-btn { flex: 1; }
+.tm-two-r .tm-heat { padding: 3px 6px 1px; overflow-x: auto; }
+.tm-mapwrap { overflow: hidden; }
+.tm-two-r .tm-mapblk { height: 420px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.gs-card.gs-edit { flex: none; position: relative; border: 1px solid var(--line); border-radius: 8px; }
+.stepview.fl .gs-edit .gs-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; overflow: visible; }
+.gs-edit-l, .gs-edit-r { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.gs-edit .gs-edit-r .gs-sub-row { padding-right: 30px; }
+.tm-two .tm-table tbody td, .tm-two .tm-table tbody th { height: 34px; }
+.tm-mapbar { width: 100%; appearance: none; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 3px 12px; border: 0; background: var(--surface-2); color: var(--navy); font: inherit; font-weight: 700; }
+.tm-mapbar .muted { margin-left: auto; font-weight: 400; }
+.gs-pop-x { position: absolute; top: 6px; right: 6px; z-index: 1; }
 .fl-ask.ask-big { gap: 10px; padding: 16px; }
 .ask-q { font-size: 20px; line-height: 1.35; font-weight: 800; color: var(--navy); }
 .ask-d { margin: 0; color: var(--text-2); line-height: 1.55; }
