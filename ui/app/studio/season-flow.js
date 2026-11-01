@@ -328,7 +328,7 @@
     // 2027 기본 제공(코어 KBO.Preset2027)이 있어도 「새로 입력」 길을 본다: 새 연도 프로젝트로 연다
     S.switchYear(2027, S.builtinOf(2027) ? { quiet: true, to: 'resume', project: S.newYearProject(2027) } : { quiet: true, to: 'resume' }); flush();
     ok('2027 새로 입력 → 바로 1 구단 정보 · 2025 구단 정보를 가져왔습니다 · 「바뀐 정보가 있나요?」 · 단계 띠 1 지금 여기', G.mode === 'flow' && G.fs === 1 && /가장 최근\(2025\)/.test(q('.gs-card').textContent) && /바뀐 정보가 있나요/.test(q('.fb-step.here').textContent));
-    click('.gs-card [data-act="fl-teams-same"]'); flush();
+    click('[data-act="fl-teams-same"]'); flush();
     ok('「없어요」 → 2단계 · 개막일 후보 3/20 · 3/27(추천) · 4/3 · 나머지는 자동(접힘) · 연도 칸 「2027 시즌」', G.fs === 2 && S.calOpeningChoices().join() === '2027-03-20,2027-03-27,2027-04-03' && /3\/27\(토\) 추천/.test(q('.fl-open-ask').textContent) && !!q('.sc-dash') && /2027 시즌/.test(q('.tb-year').textContent));
     S.flowTour.start('season'); flush();
     ok('따라 하기(2단계) 1 / 2: 개막일 고르기를 가리킴', S.flowTour.cur && S.flowTour.cur.k === 0 && /개막일을 하나 눌러 보세요/.test(card()) && !!q('#guide .ct-ring'));

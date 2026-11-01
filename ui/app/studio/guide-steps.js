@@ -169,16 +169,23 @@
       '<div class="sc-line"><span class="k">구장 간 거리</span><span class="v">' + dm.length + '개' + (road ? '(도로거리 ' + road + '개)' : est ? '(추정 ' + est + '개)' : '') + '</span></div>' +
       (shared ? '<div class="sc-line"><span class="k">같이 쓰는 구장</span><span class="v">' + esc(shared) + '</span></div>' : '') + '</section>' +
       '<section class="sc-box blue"><h4>다음 단계</h4><div class="sc-note">2 시즌 기간·연전 묶음 — 개막일을 고르면 연전 묶음이 규칙대로 깔립니다.</div></section>';
+
+    // 답하기 전: 이 질문이 이 화면에서 가장 먼저 할 일이다
+    const askBig = '<div class="fl-ask now ask-big"><div class="ask-q">바뀐 정보가 있나요?</div><p class="ask-d">구단 이름·구장·위치가 작년과 달라진 곳이 있는지 답해 주세요.</p><!--ask-note--><div class="ask-btns">' +
+      '<button class="ask-btn" data-act="fl-teams-same"><b>없어요 — 그대로</b><span>바로 2단계로 갑니다</span></button>' +
+      '<button class="ask-btn" data-act="fl-teams-changed"><b>있어요 — 고칠게요</b><span>고치는 법을 차례로 알려 드립니다</span></button></div></div>';
+    if (!ans) return '<div class="fl-kick">1 / 4단계</div><h2 class="sc-h2">' + y + ' 시즌 구단 정보</h2>' + askBig + (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '') + now;
     return '<div class="fl-kick">1 / 4단계</div><h2 class="sc-h2">' + y + ' 시즌 구단 정보</h2>' +
       (fl.from ? '<div class="sc-box blue sc-from"><b>가장 최근(' + fl.from + ') 구단 정보를 가져왔습니다.</b><div class="sc-note">' + st.teams.length + '구단 · 구장 · 위치 · 구장 간 거리 ' + dm.length + '개</div></div>' : '') +
       '<p class="gs-why">구장 사이 이동거리는 구장 위치로 계산합니다. 구단 이름·구장·위치가 바뀐 해만 고칩니다(예: 잠실 공사로 임시 구장).</p>' +
-      ask + (ans === 'changed' ? teamEditor() : now);
+      '<!--ask-note-->' + ask + (ans === 'changed' ? teamEditor() : now);
   }
   function teamsScreen(R) {
     const st = app().state;
     if (st.teams.length) { const c = S.ui.cell; if (!c || c.sheet !== 'teams' || !st.teams[c.row]) S.ui.cell = { sheet: 'teams', row: 0, col: 'name' }; }
     S.ui.tab = 'teams';
-    return S.flowWrap('<div class="gs-work"><aside class="gs-card" aria-label="구단 정보" data-page="teams"><div class="gs-body" data-sk="gs-card">' + teamsLeft() + '</div></aside><section class="pane main">' + R.teams() + '</section></div>', 'gs');
+    const waiting = !(st.meta.flow || {}).teams;
+    return S.flowWrap('<div class="gs-work' + (waiting ? ' ask-wait' : '') + '"><aside class="gs-card" aria-label="구단 정보" data-page="teams"><div class="gs-body" data-sk="gs-card">' + teamsLeft() + '</div></aside><section class="pane main">' + R.teams() + '</section></div>', 'gs');
   }
 
   /** step-data.js의 S.steps[1].render가 부른다. null이면 지금까지의 ① 전체 화면(모든 표 보기). R = { sheet, season, teams, calendar } */
@@ -242,8 +249,8 @@
     const card0 = () => q('.gs-card');
     // 1 구단 정보: 「바뀐 정보가 있나요?」 → 「있어요」면 왼쪽 카드에서 고치기(구단 고르기 → 구장 이름 + Enter → 거리) + 구단 표·구장 지도
     S.flowGo(1);
-    ok('1 구단 정보: 단계 띠(4칸 · 지금 여기) · 「바뀐 정보가 있나요?」 없어요/있어요 · 구단 표·구장 지도 · 주소 fs=1', !!q('.fl-band') && qa('.fl-band .fb-step').length === 4 && /지금 여기/.test(q('.fb-step.here').textContent) && q('.fb-step.here').dataset.fs === '1' && !!q('.gs-card [data-act="fl-teams-same"]') && !!q('.gs-card [data-act="fl-teams-changed"]') && !!q('.pane.main .tm-table') && !!q('#teamMapHost') && /fs=1/.test(S.lastHash));
-    click('.gs-card [data-act="fl-teams-changed"]'); flush();
+    ok('1 구단 정보: 단계 띠(4칸 · 지금 여기) · 「바뀐 정보가 있나요?」 없어요/있어요 · 구단 표·구장 지도 · 주소 fs=1', !!q('.fl-band') && qa('.fl-band .fb-step').length === 4 && /지금 여기/.test(q('.fb-step.here').textContent) && q('.fb-step.here').dataset.fs === '1' && !!q('[data-act="fl-teams-same"]') && !!q('[data-act="fl-teams-changed"]') && !!q('.pane.main .tm-table') && !!q('#teamMapHost') && /fs=1/.test(S.lastHash));
+    click('[data-act="fl-teams-changed"]'); flush();
     ok('1 구단 정보: 「있어요」 → 고칠 구단 단추·고치기 칸 · 따라 하기 1 / 3 「바뀐 구단을 고르세요」(누를 때마다) · 답을 저장', !!card0().querySelector('.gs-pickteam') && st().meta.flow.teams === 'changed' && S.flowTour.cur && S.flowTour.cur.id === 'teams' && /따라 하기 1 \/ 3/.test((q('#guide .ct-card') || {}).textContent || ''));
     click('.gs-card .gs-pickteam .gs-tbtn[data-row="1"]'); flush();
     ok('따라 하기 2 / 3: 구단을 고르면 「새 구장 이름을 적고 Enter」', S.flowTour.cur && S.flowTour.cur.k === 1 && /Enter/.test(q('#guide .ct-card').textContent));
@@ -376,7 +383,7 @@
     const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '없는구장이름' && us()[us().length - 1] === topN;
     ok('구단 정보: 없는 이름 + Enter → 「찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요」 · 아무것도 바꾸지 않음(실행 취소 항목 없음)', none && back(), 'none ' + none + ' · back ' + back());
     S.ui.teamFind = null;
-    click('.gs-card [data-act="fl-teams-same"]'); flush();
+    click('[data-act="fl-teams-same"]'); flush();
     ok('1 구단 정보: 「없어요」 → 2단계로 · 1단계 띠 ✓', S.g1.fs === 2 && st().meta.flow.teams === 'same' && q('.fb-step[data-fs="1"]').classList.contains('done'));
 
   };

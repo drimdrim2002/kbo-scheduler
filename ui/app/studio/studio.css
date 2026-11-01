@@ -1477,6 +1477,19 @@ svg.mc text { font-family: var(--font); }
 .fl-ask .q .tag { margin-left: auto; }
 .fl-ask .no { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .fl-ask.ok .no { background: var(--ok); }
+/* 구단 정보: 답하기 전의 큰 질문 — 오른쪽 표·지도는 흐리게 */
+.gs-work.ask-wait > .pane.main { opacity: .4; pointer-events: none; }
+.fl-ask.ask-big { gap: 10px; padding: 16px; }
+.ask-q { font-size: 20px; line-height: 1.35; font-weight: 800; color: var(--navy); }
+.ask-d { margin: 0; color: var(--text-2); line-height: 1.55; }
+.ask-big .pf-note { margin: 0; }
+.ask-btns { display: flex; flex-direction: column; gap: 8px; }
+.ask-btn { appearance: none; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--blue); border-radius: 8px; background: var(--surface); color: var(--navy); font: inherit; }
+.ask-btn b { font-size: 15px; }
+.ask-btn span { font-size: var(--fs-s); color: var(--text-3); }
+.ask-btn:hover { background: var(--blue); color: #fff; }
+.ask-btn:hover span { color: #fff; }
+.ask-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .fl-ask .no .i { width: 12px; height: 12px; }
 .fl-ask .why { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.55; }
 .fl-ask > .lnk { align-self: flex-start; font-size: var(--fs-xs); }
