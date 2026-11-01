@@ -43,6 +43,10 @@ import org.slf4j.LoggerFactory;
  * POST /api/v1/score                     { problem, plan?, mode } → { score, scoreString }
  * POST /api/v1/road-distance             { pairs: [{ from: {lat, lon}, to: {lat, lon} }] } → { results: [{ km } | { error }] }
  *                                        (카카오모빌리티 길찾기 중계, 서버 환경 변수 KAKAO_REST_KEY가 있을 때만)
+ * GET  /api/v1/distances                 저장된 해 목록 → { years: [{ year, savedAt, count }] }
+ * GET  /api/v1/distances/{year}          그 해 구단 간 거리 → { year, savedAt, teams, distances }
+ * POST /api/v1/distances/{year}          { password, teams, distances } → { year, savedAt, count }
+ *                                        (data/distances/{year}.json, 서버 환경 변수 KBO_ADMIN_PASSWORD가 있을 때만)
  * GET  /...                              ui/ 아래 정적 파일 (/ → index.html)
  * </pre>
  *
@@ -69,6 +73,8 @@ public final class BaseballWebServer {
     private final Showcase showcase;
     private final SolutionManager<BaseballSolution, BendableLongScore> scorer;
     private final RoadDistance road;
+    private final DistanceStore distances;
+    private final AdminPassword admin;
     private HttpServer server;
 
     BaseballWebServer(ServerLimits limits, Path uiRoot, Path dataDir, Path inputFile) throws IOException {
@@ -78,6 +84,8 @@ public final class BaseballWebServer {
     BaseballWebServer(ServerLimits limits, Path uiRoot, Path dataDir, Path inputFile, RoadDistance road) throws IOException {
         this.limits = limits;
         this.road = road;
+        this.distances = new DistanceStore(dataDir.toAbsolutePath().normalize().resolveSibling("distances")); // 결과 폴더 옆
+        this.admin = AdminPassword.fromEnv();
         this.uiRoot = uiRoot == null ? null : uiRoot.toAbsolutePath().normalize();
         this.showRoot = this.uiRoot == null ? null : this.uiRoot.resolve("show");
         ResultStore store = new ResultStore(dataDir);
@@ -195,7 +203,8 @@ public final class BaseballWebServer {
                     "defaultResult", showcase.defaultStatus(),
                     "defaultSeconds", limits.defaultSeconds(), "maxSeconds", limits.maxSeconds(),
                     "defaultSeeds", (long) limits.defaultSeeds(), "maxSeeds", (long) limits.maxSeeds(),
-                    "queueLength", (long) jobs.queueLength(), "roadDistance", road.available()));
+                    "queueLength", (long) jobs.queueLength(), "roadDistance", road.available(),
+                    "distanceStore", true, "distanceSave", admin.configured()));
             return;
         }
         if ("road-distance".equals(rest) && "POST".equals(method)) {
@@ -204,6 +213,27 @@ public final class BaseballWebServer {
                 return;
             }
             sendJson(ex, 200, road.handle(readJsonObject(ex), clientIp(ex)));
+            return;
+        }
+        if ("distances".equals(rest) && "GET".equals(method)) {
+            sendJson(ex, 200, Json.obj("years", distances.list()));
+            return;
+        }
+        if (rest.startsWith("distances/") && "GET".equals(method)) {
+            int year = DistanceStore.parseYear(rest.substring("distances/".length()));
+            Optional<JSONObject> saved = distances.load(year);
+            if (saved.isPresent()) {
+                sendJson(ex, 200, saved.get());
+            } else {
+                sendJson(ex, 404, Json.obj("error", year + " 거리가 저장되어 있지 않습니다."));
+            }
+            return;
+        }
+        if (rest.startsWith("distances/") && "POST".equals(method)) {
+            int year = DistanceStore.parseYear(rest.substring("distances/".length()));
+            JSONObject body = readJsonObject(ex);
+            admin.check(Json.asString(body.get("password"), ""), clientIp(ex));
+            sendJson(ex, 200, distances.save(year, body));
             return;
         }
         if ("solve".equals(rest) && "POST".equals(method)) {

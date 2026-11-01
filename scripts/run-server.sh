@@ -8,6 +8,11 @@ if [ -z "${KAKAO_REST_KEY:-}" ] && [ -f .env ]; then
   KAKAO_REST_KEY="$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}KAKAO_REST_KEY[[:space:]]*=[[:space:]]*//p' .env | tail -n 1 | tr -d '"'"'"' \r')"
   [ -n "$KAKAO_REST_KEY" ] && export KAKAO_REST_KEY
 fi
+# 관리자 비밀번호(연도별 거리 저장): 같은 방식으로 .env 의 KBO_ADMIN_PASSWORD 줄만 읽는다
+if [ -z "${KBO_ADMIN_PASSWORD:-}" ] && [ -f .env ]; then
+  KBO_ADMIN_PASSWORD="$(sed -n 's/^[[:space:]]*\(export[[:space:]]\{1,\}\)\{0,1\}KBO_ADMIN_PASSWORD[[:space:]]*=[[:space:]]*//p' .env | tail -n 1 | tr -d '"'"'"' \r')"
+  [ -n "$KBO_ADMIN_PASSWORD" ] && export KBO_ADMIN_PASSWORD
+fi
 bash scripts/ui-config.sh >/dev/null || true
 mvn -q compile -DskipTests
 mvn -q dependency:build-classpath -Dmdep.outputFile=target/cp.txt
