@@ -437,13 +437,15 @@
     const chips = (a) => (a || []).map((t) => '<span class="pf-chip">' + esc(t) + '</span>').join('');
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {}, ch = (st.events || []).find((e) => e.type === 'CHILDREN') || {};
     const hol = s.holidays.filter((h) => h.date >= s.seasonStart && h.date <= s.initialEnd);
+    const hol2 = s.holidays.filter((h) => h.date > s.initialEnd && h.date <= (s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31'));
+    const holLine = (a) => a.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · ');
     const ht = s.homeTotals;
     const stad = new Map(st.teams.map((t) => [t.name, t.stadium])), list = op.pairs || [];
     const pairs = list.length ? '<div class="pf-open">' + list.map((x) => '<div class="g"><span class="pf-chip">' + esc(x.home) + '</span><div class="a">vs ' + esc(x.away) + '</div><div class="s">' + esc(stad.get(x.home) || '구장 미정') + '</div></div>').join('') + '</div>' : '';
     const more = ' <button class="pf-link" data-act="pf-basis">자세히 ›</button>';
     const homesOk = openingHomesOk(st);
     const rows = [
-      { t: '공휴일', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 안 ' + hol.length + '일', v2: hol.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · '), why: '정부 공휴일 달력 그대로입니다. 홈 경기 점수는 주말 하루 1점, 공휴일 2점, 어린이날 3점으로 셉니다.' },
+      { t: '공휴일', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: '정부 공휴일 달력 그대로입니다. 휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
       ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals } : null,
       { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart) + (pairs ? '' : ' &nbsp;' + chips(op.teams)), v2: pairs, more, ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05') + ' &nbsp;' + chips(ch.teams), ...BASIS.childrenHome },
