@@ -39,7 +39,7 @@ sudo REPO_URL=https://github.com/drimdrim2002/kbo-scheduler.git bash -c "$(curl 
 ## 3-1. 카카오 키 (편성 스튜디오 ① 구단 정보: 지도·장소 검색 / 도로거리 자동 계산)
 키는 저장소에 넣지 않는다(저장소가 공개). 두 가지를 쓴다.
 - `KAKAO_JS_KEY`(JavaScript 키): 지도·장소 검색. 방문자 브라우저가 받는 키라 화면에서 볼 수 있다 — 막는 것은 카카오 콘솔의 **Web 플랫폼 사이트 도메인** 등록(`https://schedulelab.kr`, `https://www.schedulelab.kr`, 개발용 `http://localhost:8093`·`http://localhost:8080`처럼 실제로 여는 주소).
-- `KAKAO_REST_KEY`(REST API 키): 구장 사이 도로거리(카카오모빌리티 길찾기). **비밀 키** — 편성 서버만 갖고 화면에는 보내지 않는다(`POST /api/v1/road-distance` 중계, 한 번에 45쌍·방문자당 10분 200건·하루 3000건·좌표 캐시). 키가 없으면 서버는 그대로 뜨고 도로거리 단추만 안 보인다.
+- `KAKAO_REST_KEY`(REST API 키): 구장 사이 도로거리(카카오모빌리티 길찾기). **비밀 키** — 편성 서버만 갖고 화면에는 보내지 않는다(`POST /api/v1/road-distance` 중계, 방향별로 묻는다(10구장 전체 90건), 한 번에 45건·방문자당 10분 200건·하루 3000건·좌표 캐시). 키가 없으면 서버는 그대로 뜨고 도로거리 단추만 안 보인다.
 
 1. https://developers.kakao.com → 내 애플리케이션 → 앱 키에서 **JavaScript 키**·**REST API 키** 복사, 플랫폼 → Web에 위 도메인 등록, 카카오맵 사용 설정 켬. 카카오모빌리티 길찾기 사용량 한도는 콘솔에서 확인.
 2. 서버(비밀 값이라 kbo 그룹만 읽게):

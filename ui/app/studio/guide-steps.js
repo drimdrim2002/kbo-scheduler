@@ -152,21 +152,21 @@
         : '<div class="gs-mappick"><button class="btn xs" data-act="g1-map-pick" data-row="' + i + '">' + icon('move') + '지도에서 찍기</button><span>카카오 지도에서 자리를 눌러 위도·경도를 넣습니다</span></div>') : '') +
       (picking ? '' : findBox(i, t)) +
       '<div class="gs-hint">위도·경도는 직접 고치지 않습니다. 구장 칸에 이름을 적고 Enter를 누르면 ' + (app().kakaoKey ? '카카오 장소 검색' : '기본 구장 목록') + '에서 찾아 채우고' + (kakaoMap ? ', 「지도에서 찍기」로도 고를 수 있습니다' : '') + '. 위치가 바뀌면 이 구단의 구장 간 거리를 직선거리로 다시 추정합니다.</div>' +
-      '<div class="gs-sub gs-sub-row">다른 구장까지 거리 <small>km · 고치면 반대 방향도 함께</small>' + (a.roadApi ? (busy ? '<span class="gs-road-busy">' + icon('clock') + '도로거리 받는 중…</span>' : '<button class="btn xs" data-act="g1-road" data-name="' + esc(t.name) + '" title="카카오모빌리티 길찾기로 이 구단의 9개 거리를 도로거리로 받습니다">' + icon('map') + '도로거리 받기</button>') : '') + '</div>' + '<div class="gs-dists">' + others.map(dist).join('') + '</div>' +
-      '<div class="gs-hint">' + (a.roadApi ? '「도로」는 카카오모빌리티 길찾기(자동차)로 받은 도로거리, 「추정」은 직선거리 × 도로계수입니다. 구장 위치가 바뀌면 도로거리를 자동으로 다시 받습니다. 숫자를 고치고 Enter를 누르면 직접 적은 값이 됩니다.' : '「추정」은 직선거리 × 도로계수로 계산한 값입니다. 실제 도로거리를 알면 숫자를 고치고 Enter를 누릅니다.' + (a.roadChecked ? ' 도로거리 자동 계산은 편성 서버에서만 됩니다.' : '')) + '</div>';
+      '<div class="gs-sub gs-sub-row">' + esc(t.name) + '에서 다른 구장까지 거리 <small>km</small>' + (a.roadApi ? (busy ? '<span class="gs-road-busy">' + icon('clock') + '도로거리 받는 중…</span>' : '<button class="btn xs" data-act="g1-road" data-name="' + esc(t.name) + '" title="카카오모빌리티 길찾기로 이 구단의 거리를 가는 길·오는 길 따로 받습니다">' + icon('map') + '도로거리 받기</button>') : '') + '</div>' + '<div class="gs-dists">' + others.map(dist).join('') + '</div>' +
+      '<div class="gs-hint">' + (a.roadApi ? '「도로」는 카카오모빌리티 길찾기(자동차)로 받은 도로거리, 「추정」은 직선거리 × 도로계수입니다. 구장 위치가 바뀌면 도로거리를 자동으로 다시 받습니다. 숫자를 고치고 Enter를 누르면 직접 적은 값이 됩니다.' : '「추정」은 직선거리 × 도로계수로 계산한 값입니다. 실제 도로거리를 알면 숫자를 고치고 Enter를 누릅니다.' + (a.roadChecked ? ' 도로거리 자동 계산은 편성 서버에서만 됩니다.' : '')) + ' 숫자를 고치면 ' + esc(t.name) + '에서 가는 길만 바뀝니다. 오는 길은 상대 구단을 골라 고칩니다.</div>';
   }
 
 
   // ───────── 1 구단 정보 ─────────
   function teamsLeft() {
     const st = app().state, fl = st.meta.flow || {}, y = S.seasonYear(), ans = fl.teams;
-    const dm = st.distanceMatrix.filter((d) => d.from !== d.to), road = Math.floor(dm.filter((d) => d.source === 'ROAD').length / 2), est = Math.floor(dm.filter((d) => d.estimated).length / 2);
+    const dm = st.distanceMatrix.filter((d) => d.from !== d.to), road = dm.filter((d) => d.source === 'ROAD').length, est = dm.filter((d) => d.estimated).length;
     const shared = Array.from(app().sharedStadiums()).map(([x, n]) => x.replace(/종합운동장$/, '') + '(' + n.join('·') + ')').join(', ');
     const ask = '<div class="fl-ask ' + (ans ? 'ok' : 'now') + '"><div class="q"><span class="no">' + (ans ? icon('check') : '1') + '</span>바뀐 정보가 있나요?' + (ans ? '' : ' <span class="tag now">지금</span>') + '</div>' +
       '<div class="a chips"><button class="chip' + (ans === 'same' ? ' on' : '') + '" data-act="fl-teams-same">없어요 — 그대로</button><button class="chip' + (ans === 'changed' ? ' on' : '') + '" data-act="fl-teams-changed">있어요 — 고칠게요</button></div>' +
       (ans ? '' : '<div class="why">「없어요」 → 바로 2단계로. 「있어요」 → 따라 하기가 고치는 법을 차례로 알려 드립니다.</div>') + '</div>';
     const now = '<section class="sc-box"><h4>지금 들어 있는 것</h4><div class="sc-line"><span class="k">구단</span><span class="v">' + st.teams.length + '구단</span></div>' +
-      '<div class="sc-line"><span class="k">구장 간 거리</span><span class="v">' + dm.length + '개' + (road ? '(도로거리 ' + road + '쌍)' : est ? '(추정 ' + est + '쌍)' : '') + '</span></div>' +
+      '<div class="sc-line"><span class="k">구장 간 거리</span><span class="v">' + dm.length + '개' + (road ? '(도로거리 ' + road + '개)' : est ? '(추정 ' + est + '개)' : '') + '</span></div>' +
       (shared ? '<div class="sc-line"><span class="k">같이 쓰는 구장</span><span class="v">' + esc(shared) + '</span></div>' : '') + '</section>' +
       '<section class="sc-box blue"><h4>다음 단계</h4><div class="sc-note">2 시즌 기간·연전 묶음 — 개막일을 고르면 연전 묶음이 규칙대로 깔립니다.</div></section>';
     return '<div class="fl-kick">1 / 4단계</div><h2 class="sc-h2">' + y + ' 시즌 구단 정보</h2>' +
@@ -269,16 +269,17 @@
     putT('stadium', '고척스카이돔(임시)');
     const renamed = st().teams[li].stadium === '고척스카이돔(임시)' && st().distanceMatrix.filter((d) => d.estimated).length === est0;
     app().undo(); flush();
-    // 거리 칸: LG → KT 를 31.5로 → 양쪽 방향 31.5 · 추정 아님, 잘못된 값은 거부
+    // 거리 칸: LG → KT 를 31.5로 → 그 방향만 31.5(KT → LG는 그대로) · 추정 아님, 잘못된 값은 거부
     const kmIn = () => q('.gs-card input[data-in="team-dist"][data-to="KT"]');
     const putKm = (v) => { const i = kmIn(); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
     const ktKm0 = app().distanceOf('LG', 'KT').distance;
+    const lgKm0 = app().distanceOf('KT', 'LG').distance;
     putKm('31.5');
-    const kmSet = app().distanceOf('LG', 'KT').distance === 31.5 && app().distanceOf('KT', 'LG').distance === 31.5 && !app().distanceOf('LG', 'KT').estimated && kmIn().value === '31.5';
+    const kmSet = app().distanceOf('LG', 'KT').distance === 31.5 && app().distanceOf('KT', 'LG').distance === lgKm0 && !app().distanceOf('LG', 'KT').estimated && kmIn().value === '31.5';
     putKm('먼 거리');
     const kmRejected = app().distanceOf('LG', 'KT').distance === 31.5;
     app().undo(); flush();
-    ok('구단 정보: 구장 이름만 바꾸면 거리 그대로 · 거리 칸 LG→KT 31.5 → 양쪽 방향 · 잘못된 값 거부 · 실행 취소로 복귀', renamed && kmSet && kmRejected && app().distanceOf('LG', 'KT').distance === ktKm0 && app().distanceOf('KT', 'LG').distance === ktKm0 && st().teams[li].stadium !== '고척스카이돔(임시)', 'renamed ' + renamed + ' · kmSet ' + kmSet + ' · rejected ' + kmRejected);
+    ok('구단 정보: 구장 이름만 바꾸면 거리 그대로 · 거리 칸 LG→KT 31.5 → 그 방향만 · 잘못된 값 거부 · 실행 취소로 복귀', renamed && kmSet && kmRejected && app().distanceOf('LG', 'KT').distance === ktKm0 && app().distanceOf('KT', 'LG').distance === lgKm0 && st().teams[li].stadium !== '고척스카이돔(임시)', 'renamed ' + renamed + ' · kmSet ' + kmSet + ' · rejected ' + kmRejected);
     // 구장 지도: 키가 없으면 내장 지도(구장 10개, 고른 구단 강조) + 설정 안내 한 줄, 지도에서 구단을 눌러 고르기
     const mk = () => qa('#teamMapHost .tm-map svg.kmap .kmap-marker');
     ok('구단 정보: 구장 지도 — 키 없음 → 내장 지도 · 표시 10개 · 고른 LG 강조 · 「설정 › 카카오 지도 키」 안내 · 개발 글줄 없음', mk().length === 10 && qa('#teamMapHost .kmap-active').length === 1 && q('#teamMapHost .kmap-active').getAttribute('data-id') === String(li) && /설정 › 카카오 지도 키를 넣으면 카카오 지도로 보입니다/.test(q('.tm-foot').textContent) && !!q('.tm-foot [data-act="open-settings"]') && !q('#teamMapHost .k-map-caption') && q('.tm-mapblk').getBoundingClientRect().width >= q('.tm-left').getBoundingClientRect().width * 0.5, 'markers ' + mk().length + ' · map ' + Math.round(q('.tm-mapblk').getBoundingClientRect().width) + ' · table ' + Math.round(q('.tm-left').getBoundingClientRect().width));
@@ -316,7 +317,7 @@
     const mapPicked = st().teams[li].stadium === '마산' && st().teams[li].latitude === 35.222564 && !q('#teamMapHost .kmap-marker[data-id^="c"]') && /창원NC파크/.test(q('.gs-card .gs-find.ok').textContent);
     app().undo(); flush();
     ok('구단 정보: 「마산」 + Enter → 결과 2곳이 지도에도 파란 번호로 · 지도의 1번을 누르면 채움 · 키가 없으면 「지도에서 찍기」 없음 · 실행 취소로 복귀', onMap && mapPicked && back(), 'onMap ' + onMap + ' · mapPicked ' + mapPicked + ' · back ' + back());
-    // 도로거리 받기(편성 서버 중계): file:// 점검이라 서버 대신 가짜 응답으로 — 9쌍 양쪽 방향 「도로」, 실패 쌍은 그대로, 실행 취소 한 번
+    // 도로거리 받기(편성 서버 중계): file:// 점검이라 서버 대신 가짜 응답으로 — LG가 낀 18개를 방향별로 「도로」, 실패한 것은 그대로, 실행 취소 한 번
     const realFetch = window.fetch;
     let calls = 0;
     window.fetch = (url, o) => {
@@ -326,14 +327,15 @@
       return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: ps.map((p, k) => (k === 0 ? { error: '길을 찾지 못했습니다' } : { km: 100 + k })) }) });
     };
     app().roadApi = true; flush();
-    const roadUi = !!q('.gs-card [data-act="g1-road"]') && !!q('.tm-road [data-act="road-all"]') && /도로 0쌍/.test(q('.tm-road').textContent);
+    const roadUi = !!q('.gs-card [data-act="g1-road"]') && !!q('.tm-road [data-act="road-all"]') && /도로 0개/.test(q('.tm-road').textContent);
     const top0r = us()[us().length - 1];
     const rr = await app().fetchRoadDistances(['LG']); flush();
     const roadPairs = st().distanceMatrix.filter((d) => d.source === 'ROAD' && (d.from === 'LG' || d.to === 'LG'));
-    const roadOk = calls === 1 && rr.ok === 8 && rr.failed === 1 && roadPairs.length === 16 && roadPairs.every((d) => !d.estimated && d.distance >= 101) && qa('.gs-card .gs-dist .tag.road').length === 8 && /도로 8쌍/.test(q('.tm-road').textContent) && us()[us().length - 2] === top0r;
+    const roadDirs = new Set(roadPairs.map((d) => d.distance)).size === 17; // 가짜 응답은 줄마다 값이 달라, 반대 방향으로 베끼면 줄어든다
+    const roadOk = calls === 1 && rr.ok === 17 && rr.failed === 1 && roadPairs.length === 17 && roadDirs && roadPairs.every((d) => !d.estimated && d.distance >= 101) && qa('.gs-card .gs-dist .tag.road').length === roadPairs.filter((d) => d.from === 'LG').length && /도로 17개/.test(q('.tm-road').textContent) && us()[us().length - 2] === top0r;
     app().undo(); flush();
     window.fetch = realFetch; app().roadApi = false; flush();
-    ok('구단 정보: 도로거리 받기(서버 중계 흉내) → 8쌍 양쪽 방향 「도로」 · 못 받은 1쌍은 그대로 · 실행 취소 한 번으로 복귀 · 서버가 없으면 단추 없음', roadUi && roadOk && !st().distanceMatrix.some((d) => d.source === 'ROAD') && back() && !q('.gs-card [data-act="g1-road"]'), 'ui ' + roadUi + ' · ok ' + rr.ok + ' · failed ' + rr.failed + ' · pairs ' + roadPairs.length + ' · calls ' + calls);
+    ok('구단 정보: 도로거리 받기(서버 중계 흉내) → 방향별 17개 「도로」 · 못 받은 1개는 그대로 · 실행 취소 한 번으로 복귀 · 서버가 없으면 단추 없음', roadUi && roadOk && !st().distanceMatrix.some((d) => d.source === 'ROAD') && back() && !q('.gs-card [data-act="g1-road"]'), 'ui ' + roadUi + ' · ok ' + rr.ok + ' · failed ' + rr.failed + ' · pairs ' + roadPairs.length + ' · calls ' + calls);
     const topN = us()[us().length - 1];
     await findT('없는구장이름');
     const none = !!q('.gs-card .gs-find.warn') && /찾지 못했습니다 — 다른 이름으로 다시 찾아 주세요/.test(q('.gs-card .gs-find.warn').textContent) && st().teams[li].stadium === lg0.stadium && q('.gs-card input[data-k="stadium"]').value === '없는구장이름' && us()[us().length - 1] === topN;

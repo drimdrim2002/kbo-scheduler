@@ -76,13 +76,12 @@
 
   // ───────────── 거리 행렬 (FR-T6, T7) ─────────────
   P.distance = function (el, app) {
-    let symmetric = true;
     const render = () => {
       const st = app.state;
       const map = new Map(st.distanceMatrix.map((d) => [d.from + '|' + d.to, d]));
       const max = Math.max(1, ...st.distanceMatrix.map((d) => Number(d.distance) || 0));
       let missing = 0;
-      let h = lockNote(app) + '<div class="k-toolbar"><label class="k-check"><input type="checkbox" data-act="sym"' + (symmetric ? ' checked' : '') + '> 대칭 편집 (A→B를 바꾸면 B→A도)</label>' +
+      let h = lockNote(app) + '<div class="k-toolbar">' +
         '<label class="k-field-inline">도로계수 <input class="k-input k-w-xs" type="number" step="0.05" min="1" data-act="rf" data-fk="rf" value="' + esc(st.settings.roadFactor) + '"' + dis(app) + '></label>' +
         '<button class="k-btn" data-act="estimate"' + dis(app) + '>누락 거리 추정</button><span class="k-muted">행 = 출발 구단, 열 = 도착 구단, km. <i>≈</i> = 하버사인 직선거리 × 도로계수 추정값.</span></div>';
       h += '<div class="k-table-wrap" data-scroll-key="dist"><table class="k-table k-matrix"><thead><tr><th>출발 \\ 도착</th>' + st.teams.map((t) => '<th>' + esc(t.name) + '</th>').join('') + '</tr></thead><tbody>';
@@ -101,8 +100,7 @@
       h += '</tbody></table></div>' + (missing ? '<p>' + UI.stateChip('bad', '누락 ' + missing + '건 — 사전 점검에서 차단됩니다.') + '</p>' : '');
       el.innerHTML = h;
     };
-    on(el, 'change', 'input.k-cell-input', (e, inp) => { if (inp.value === '') return; app.setDistance(inp.dataset.from, inp.dataset.to, inp.value, symmetric); });
-    on(el, 'change', '[data-act=sym]', (e, c) => { symmetric = c.checked; });
+    on(el, 'change', 'input.k-cell-input', (e, inp) => { if (inp.value === '') return; app.setDistance(inp.dataset.from, inp.dataset.to, inp.value); });
     on(el, 'change', '[data-act=rf]', (e, inp) => app.updateSettings({ roadFactor: Math.max(1, Number(inp.value) || 1.25) }, '도로계수 변경'));
     on(el, 'click', '[data-act=estimate]', () => app.estimateMissingDistances());
     return UI.mount(el, app, render, ['teams', 'distance', 'run', 'settings']);

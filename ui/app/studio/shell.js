@@ -245,8 +245,8 @@
   S.toast = (m, k, ms) => { if (!S.quiet) KBO.UI.toast(S.plain(m), k, ms); };
   /** 도로거리 받기 결과 알림(구단 정보 카드·표 아래 단추) */
   S.roadToast = (r) => {
-    if (r.ok) S.toast('도로거리 ' + r.ok + '쌍을 받았습니다(카카오모빌리티 길찾기, 양쪽 방향). 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
-    if (r.failed) S.toast(r.failed + '쌍은 받지 못해 지금 값을 그대로 둡니다 — ' + r.error, 'warn', 7000);
+    if (r.ok) S.toast('도로거리 ' + r.ok + '개를 받았습니다(카카오모빌리티 길찾기). 실행 취소로 되돌릴 수 있습니다.', 'ok', 5000);
+    if (r.failed) S.toast(r.failed + '개는 받지 못해 지금 값을 그대로 둡니다 — ' + r.error, 'warn', 7000);
     if (!r.ok && !r.failed) S.toast('받을 거리가 없습니다.', 'info');
   };
 
