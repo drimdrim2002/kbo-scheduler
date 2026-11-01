@@ -251,10 +251,12 @@
       ok('비교: 규칙을 어긴 버전은 숫자가 좋아도 이기지 않음', /규칙 어김/.test(page()) && /시험 어김」은 반드시 지킬 규칙/.test(page()) && !/이번 실행에서는/.test(page()));
       P.cmp = ['t-good', 't-tol']; S.render(); flush();
       ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 차이가 달라/.test(page()));
+      ok('비교: 순위가 같으면 줄마다 순위 하나', qa('.pf-t tbody tr .pf-rk').length === 4);
       const vOrd = cv('t-ord', '시험 순서', { objective: Object.assign({}, v1.objective, { order: ['total', 'distance', 'moves', 'holiday'] }) });
       P.versions.put(2027, keepList.concat([vGood, vOrd]));
       P.cmp = ['t-good', 't-ord']; S.render(); flush();
       ok('비교: 순서가 다르면 그렇다고 말하고 숫자만', /순서·허용 차이가 달라/.test(page()) && !/이번 실행에서는/.test(page()));
+      ok('비교: 순위가 다르면 버전마다 순위', qa('.pf-t tbody tr .pf-rk').length === 8 && /두 버전의 순위가 다릅니다/.test(page()));
       P.versions.put(2027, keepList); P.cmp = []; P.cmpPicked = false;
       // 표·엑셀로 홈 구단이 달라진 경우
       app().commit('시험: 홈 구단 바꿈', (s) => { const e = s.events.find((x) => x.type === 'OPENING'); e.teams = e.teams.map((t) => (t === 'KT' ? '한화' : t)); }, ['events']);

@@ -693,7 +693,10 @@
       if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
       const ob = a.objective;
       const sameOb = JSON.stringify(a.objective) === JSON.stringify(b.objective);
-      const cell = (me, other, id) => { const g = GOALS[id], v = goalValue(me, id), w = goalValue(other, id), obm = me.objective; const inT = within(me, id, obm); return '<td class="' + (v < w ? 'good' : '') + '">' + goalShow(me, id) + g.unit + (g.tol ? ' <span class="pf-tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
+      // 순위가 같으면 줄 이름에 한 번, 다르면 버전마다 보인다
+      const sameOrder = a.objective.order.join() === b.objective.order.join();
+      const rank = (v, id) => '<span class="pf-rk">' + (v.objective.order.indexOf(id) + 1) + '순위</span>';
+      const cell = (me, other, id) => { const g = GOALS[id], v = goalValue(me, id), w = goalValue(other, id), obm = me.objective; const inT = within(me, id, obm); return '<td class="' + (v < w ? 'good' : '') + '">' + (sameOrder ? '' : rank(me, id) + ' ') + goalShow(me, id) + g.unit + (g.tol ? ' <span class="pf-tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
       const d = decide(a, b, ob);
       const aBad = a.feasible === false, bBad = b.feasible === false;
       // 반드시 지킬 규칙을 어긴 일정은 숫자가 좋아도 쓸 수 없으므로 순위로 따지지 않는다
@@ -702,8 +705,8 @@
       const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
       const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
       return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols" style="grid-template-columns:400px minmax(0,1fr)">' + list +
-        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>목적식마다 비교</h3><p class="pf-d">순위 순 · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>목적식</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
-        ob.order.map((id) => '<tr><td><b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
+        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>목적식마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>목적식</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
+        ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
         '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + GOALS[id].name.replace(' 균형', '') + '</button>').join('') + '</div><h3>구단별 ' + tg.name.replace(' 균형', '') + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 차이</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
     }
