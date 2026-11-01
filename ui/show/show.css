@@ -653,6 +653,7 @@ html[data-lay] .sh-story-h { font-size: var(--sh-fs-h3); margin-top: var(--ly-su
 
 /* ── 첫 화면: 표제어 → 대본 그림 → 쪽 제목 h1 → 기준 질문(모양은 위 "첫 화면: 드라마 대본 한 장 = 그림" 블록) ── */
 .sh-body .sh-q1-h { margin: 0 0 16px; } /* 표제어(사용자 문구) → 종이 */
+html[data-lay] .sh-lead + .sh-h1 { margin-top: var(--ly-sub); } /* 드라마 이야기(그림·근거 문장)와 쪽 제목 사이: 소블록 여백(사용자: 윗문장에 붙어 보임) */
 
 /* ── 질문 접기: 결과 카드 맨 아래 줄처럼 붙인 단추(점 지도 카드의 「경기 일정 보기 →」 줄과 같은 자리), 닫힌 채 시작. 열면 같은 틀 안에 칩 + 답 말풍선 ── */
 .sh-ask-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; font: inherit; text-align: left; cursor: pointer; }
