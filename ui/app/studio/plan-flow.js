@@ -147,6 +147,9 @@
   const stepReviewed = (p, n) => (n === 1 ? !!(p.meta.flow || {}).teams : (KEYS[n] || []).every((k) => review(p)[k]) && (n !== 3 || openingHomesOk(p)));
   const yearOf = (p) => S.seasonYearOf(p);
   const inPlan = (p) => yearOf(p || app().state) === YEAR_NEW;
+  /** 2027은 앞 단계가 끝나야 다음 단계로 간다(뒤로는 언제든 갈 수 있다) */
+  S.flowLocked = (n) => S.seasonYear() === YEAR_NEW && n > S.flowStatus().stop;
+  const reviewDone = () => S.flowStatus().done.slice(0, 3).every(Boolean);
   const origStatus = S.flowStatus;
   /** 2027은 추정값을 검토해야 그 단계가 끝난다(값이 들어 있어도 처음에는 「검토 전」) */
   S.flowStatus = function (p0) {
@@ -788,7 +791,7 @@
       if (P.calEdit) return '<span class="hint"><b>달력에서 수정</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
       const n = G.fs, steps = S.FLOW_STEPS, st = app().state;
       const prev = n > 1 ? '<button class="btn" data-act="pf-go" data-fs="' + (n - 1) + '">' + icon('left') + '이전: ' + (n - 1) + ' ' + esc(steps[n - 2].name) + '</button>' : '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>';
-      const canNext = n === 1 ? !!(st.meta.flow || {}).teams : n === 4 ? S.flowStatus().done.slice(0, 3).every(Boolean) : stepReviewed(st, n);
+      const canNext = n === 4 ? reviewDone() : S.flowStatus().done[n - 1];
       const next = n < 4 ? '<button class="btn primary" data-act="pf-go" data-fs="' + (n + 1) + '"' + (canNext ? '' : ' disabled title="이 단계의 편성 조건을 모두 확인해 주세요"') + '>다음: ' + (n + 1) + ' ' + esc(steps[n].name) + icon('right') + '</button>'
         : '<button class="btn primary" data-act="cal-next"' + (canNext ? '' : ' disabled title="앞 단계를 모두 확인해 주세요"') + '>다음: 엔진 옵션·실행' + icon('right') + '</button>';
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 엔진 옵션입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
@@ -807,6 +810,8 @@
     // 주소를 직접 쳐도 흐름 밖 화면으로 가지 않게: 2025는 비교 화면만, 다른 해는 처음 화면으로
     const y = S.seasonYear(), onHome = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
     if (y === YEAR_NEW && S.ui.step === 7 && !P.final.id(y)) { S.ui.step = 1; G.mode = 'year'; } // 확정이 없으면 볼 일정도 없다
+    if (y === YEAR_NEW && S.ui.step === 1 && !S.ui.ops && G.mode === 'flow' && !P.calEdit && S.flowLocked(G.fs)) G.fs = S.flowStatus().stop; // 주소로도 앞 단계를 건너뛰지 못한다
+    if (y === YEAR_NEW && S.ui.step === 2 && !isRunning() && !reviewDone()) { S.ui.step = 1; G.mode = 'flow'; G.fs = S.flowStatus().stop; }
     if (y === YEAR_NEW && !isRunning() && resultStale(app().state)) S.ui.modal = 'pfCalChange'; // 어느 화면에서 바꿨든 여기서 묻는다
     if (y !== YEAR_NEW && !onHome && !isRunning()) {
       S.ui.ops = null;
@@ -861,12 +866,13 @@
       const k = +el.dataset.stage;
       if (S.seasonYear() !== YEAR_NEW && !isRunning()) open2027();
       if (k === 1) { const fs = S.flowStatus(); if (S.ui.step === 1 && G.mode === 'flow') return; go1(fs.allDone ? 4 : fs.stop); return; }
+      if (k === 2 && !isRunning() && !reviewDone()) { S.toast('앞 단계의 편성 조건을 모두 확인해 주세요.', 'warn'); go1(S.flowStatus().stop); return; }
       S.go({ step: { 2: 2, 3: 5, 4: 6 }[k], ops: null, sel: null, edit: null });
     },
     'g1-cal': () => { const fs = S.flowStatus(); go1(fs.allDone ? 4 : fs.stop); }, // 예전처럼 「어디까지 했는지」가 아니라 검토 단계로
     'pf-go': (el) => {
       const n = +el.dataset.fs;
-      if (G.fs === 1 && n === 2 && !(app().state.meta.flow || {}).teams) { S.toast('「바뀐 정보가 있나요?」에 먼저 답해 주세요.', 'warn'); return; }
+      if (S.flowLocked(n)) { S.toast(G.fs === 1 && !(app().state.meta.flow || {}).teams ? '「바뀐 정보가 있나요?」에 먼저 답해 주세요.' : '이 단계의 편성 조건을 모두 확인해 주세요.', 'warn'); return; }
       go1(n);
     },
     'pf-ok': (el) => confirmKey(el.dataset.k),

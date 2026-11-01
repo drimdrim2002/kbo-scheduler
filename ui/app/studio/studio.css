@@ -1448,6 +1448,7 @@ svg.mc text { font-family: var(--font); }
 .fb-step { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 20px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; text-align: left; cursor: pointer; position: relative; color: var(--text); }
 .fb-step + .fb-step::before { content: ''; position: absolute; left: 0; top: 50%; width: 9px; height: 9px; border-top: 1px solid #B8BFCC; border-right: 1px solid #B8BFCC; transform: translate(-3px, -50%) rotate(45deg); }
 .fb-step:hover { background: var(--hover); }
+.fb-step:disabled { cursor: not-allowed; opacity: .55; background: transparent; }
 .fb-step > i { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 12px; border: 1px solid #B8BFCC; color: var(--text-3); background: var(--surface); }
 .fb-step > i .i { width: 13px; height: 13px; }
 .fb-step.done > i { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }

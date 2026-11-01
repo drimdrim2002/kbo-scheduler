@@ -28,7 +28,7 @@
     const fs = S.flowStatus(), here = G.mode === 'flow' ? G.fs : 0, y = S.seasonYear();
     const cell = (s) => {
       const k = s.n === here ? 'here' : s.kind === 'done' ? 'done' : 'todo';
-      return '<button class="fb-step ' + k + '" data-act="fl-go" data-fs="' + s.n + '"' + (s.n === here ? ' aria-current="step"' : '') + '><i>' + (s.kind === 'done' && s.n !== here ? icon('check') : s.n) + '</i>' +
+      return '<button class="fb-step ' + k + '" data-act="fl-go" data-fs="' + s.n + '"' + (s.n === here ? ' aria-current="step"' : '') + (S.flowLocked && S.flowLocked(s.n) ? ' disabled title="앞 단계를 먼저 마쳐 주세요"' : '') + '><i>' + (s.kind === 'done' && s.n !== here ? icon('check') : s.n) + '</i>' +
         '<span class="fb-t"><b>' + s.n + ' ' + esc(s.name) + (s.n === here ? '<span class="fb-here">지금 여기</span>' : '') + '</b><small>' + (s.kind === 'done' ? '✓ ' : '') + esc(shortText(s.n, s)) + '</small></span></button>';
     };
     return '<nav class="fl-band" aria-label="데이터 준비 단계"><div class="fb-lead"><b>' + y + ' 시즌 · ' + S.CIRCLED[1] + ' 데이터 준비</b><small>' + (here ? here + ' / 4단계' : '어디까지 했는지') + '</small></div>' +
