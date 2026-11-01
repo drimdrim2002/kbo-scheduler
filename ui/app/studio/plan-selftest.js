@@ -40,9 +40,10 @@
       click('.footer .btn.primary'); flush();
       click('[data-act="pf-tour-ok"]'); flush();
       ok('2단계: 하나도 확인 안 하면 다음이 잠김', q('.footer .btn.primary').disabled && qa('.pf-rv[data-k]').length === 3);
-      S.go({ step: 2 });
-      click('[data-act="pf-run"]'); flush();
-      ok('검토 전 실행 → 시작하지 않고 멈춘 단계로', !S.run && S.ui.step === 1 && S.g1.fs === 2);
+      S.go({ step: 2 }); flush();
+      ok('검토 전 엔진 옵션 → 들어가지 않고 멈춘 단계로', !S.run && S.ui.step === 1 && S.g1.fs === 2 && !q('[data-act="pf-run"]'));
+      S.flowGo(4); flush();
+      ok('주소로 앞 단계를 건너뛰어도 멈춘 단계로 · 단계 띠의 앞 단계는 잠김', S.g1.fs === 2 && q('.fb-step[data-fs="3"]').disabled && q('.fb-step[data-fs="4"]').disabled && !q('.fb-step[data-fs="1"]').disabled);
 
       // ── 고치기
       click('.pf-rv[data-k="opening"] [data-act="pf-cal"]'); flush();
