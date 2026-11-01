@@ -309,6 +309,21 @@
       '<div class="small muted" style="margin-top:6px">출처: KBO 보도자료(2026 일정 발표), 뉴스서울(2024 · 2025 일정 발표), 위키트리(2026 최종 순위), 스포츠경향(올림픽 주경기장 이전)</div></div></div></div>';
   };
 
+  const yearsBasis = (label, title, lead, head, rows, note, source) => {
+    const tr = (c, b) => '<tr>' + c.map((x) => '<td>' + (b ? '<b>' + esc(x) + '</b>' : esc(x)) + '</td>').join('') + '</tr>';
+    return '<div class="modal" role="dialog" aria-label="' + label + '" style="width:720px;max-width:94vw"><div class="modal-head"><h3>' + label + '</h3><span class="muted small">공식 일정 발표(보통 12월 중순) 전 예상입니다</span>' +
+      '<button class="btn sm icon ghost" style="margin-left:auto" data-act="close-modal" aria-label="닫기">' + icon('x') + '</button></div><div class="modal-body" style="padding:14px;overflow:auto;max-height:76vh">' +
+      '<div class="pf-sec pf-years"><h3>' + title + '</h3><p class="pf-d">' + lead + '</p><table class="pf-t"><thead><tr><th>시즌</th><th>' + head + '</th></tr></thead><tbody>' + rows.map((r, i) => tr(r, i === rows.length - 1)).join('') + '</tbody></table>' +
+      (note ? '<div class="pf-note">' + note + '</div>' : '') +
+      '<div class="small muted" style="margin-top:6px">출처: ' + source + '</div></div></div></div>';
+  };
+  S.modals.pfBasisChildren = () => yearsBasis('2027 어린이날 근거', '어린이날 홈 구단', '두 묶음이 해마다 번갈아 홈을 맡습니다. 2027은 홀수 해라 2025와 같은 묶음으로 예상합니다.', '홈 구단', [
+    ['2024', 'LG · SSG · KT · 삼성 · KIA'], ['2025', '두산 · 키움 · 한화 · 롯데 · NC'], ['2026', 'LG · SSG · KT · 삼성 · KIA'], ['2027 예상', '두산 · 키움 · 한화 · 롯데 · NC']
+  ], '구장을 같이 쓰는 LG와 두산의 어린이날 맞대결은 두 구단이 번갈아 홈을 맡습니다.', 'KBO 리그 2024 · 2025 실제 일정, 뉴시스 · 국민일보(2026 어린이날 경기)');
+  S.modals.pfBasisHomes = () => yearsBasis('2027 홈 경기 수 근거', '홈 73경기 구단', '10구단이 144경기를 치르면 홈과 원정이 72경기씩이지만, 2023부터 다섯 구단은 홈 73경기, 다섯 구단은 홈 71경기로 해마다 번갈아 맡습니다.', '홈 73경기', [
+    ['2024', '키움 · LG · KIA · NC · 삼성'], ['2025', '두산 · KT · SSG · 롯데 · 한화'], ['2026', 'LG · 삼성 · NC · KIA · 키움'], ['2027 예상', '한화 · SSG · KT · 롯데 · 두산']
+  ], '', 'KBO 일정 발표 보도(2024 · 2025 · 2026 시즌)');
+
   // ───────── 처음 화면 ─────────
   function savedResult27() { const r = S.repo.load(YEAR_NEW); return r && r.project.meta && r.project.meta.result ? r.project.meta.result : app().state.meta.result && inPlan() ? app().state.meta.result : null; }
   const runningNote = () => '<div class="pf-note warn" style="margin:0 0 12px">계획을 실행하는 중입니다. 끝나면 결과 화면으로 넘어갑니다. <button class="pf-link" data-act="pf-stage" data-stage="2">실행 화면으로 ›</button></div>';
@@ -396,14 +411,14 @@
       opening: () => fmt.date(b.settings.seasonStart),
       initialEnd: () => fmt.date(b.settings.initialEnd),
       allStar: () => fmt.date(starOf(b).start) + ' ~ ' + fmt.date(starOf(b).end),
-      openingHome: () => evOf(b, 'OPENING').pairs.map((x) => x.away + '@' + x.home).join(' · '),
+      openingHome: () => evOf(b, 'OPENING').pairs.map((x) => x.home + ' vs ' + x.away).join(' · '),
       childrenHome: () => evOf(b, 'CHILDREN').teams.join(' · ')
     }[key]();
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
   function rv(r0, cur) {
     const note = r0.key ? editedNote(r0.key) : null;
-    const r = note ? Object.assign({}, r0, { tag: 'mine', why: note, more: '' }) : r0;
+    const r = note ? Object.assign({}, r0, { tag: 'mine', why: note }) : r0;
     const ok = r.key ? !!review()[r.key] : false;
     const tag = r.tag === 'est' ? (ok ? '' : '<span class="pf-tag est">추정 · 확정 아님</span>') : r.tag === 'got' ? '<span class="pf-tag got">' + esc(r.tagText || '2025에서 가져옴') + '</span>' : r.tag === 'rule' ? '<span class="pf-tag blue">규칙대로 자동</span>' : r.tag === 'mine' ? '<span class="pf-tag blue">직접 고침</span>' : '';
     const to = ' data-to="' + (r.key || r.to || '') + '"';
@@ -434,26 +449,30 @@
   }
   function renderHomeReview() {
     const st = app().state, s = st.settings, cur = firstOpen(3);
-    const chips = (a) => (a || []).map((t) => '<span class="pf-chip">' + esc(t) + '</span>').join('');
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {}, ch = (st.events || []).find((e) => e.type === 'CHILDREN') || {};
     const hol = s.holidays.filter((h) => h.date >= s.seasonStart && h.date <= s.initialEnd);
     const hol2 = s.holidays.filter((h) => h.date > s.initialEnd && h.date <= (s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31'));
     const holLine = (a) => a.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · ');
     const ht = s.homeTotals;
-    const stad = new Map(st.teams.map((t) => [t.name, t.stadium])), list = op.pairs || [];
-    const pairs = list.length ? '<div class="pf-open">' + list.map((x) => '<div class="g"><span class="pf-chip">' + esc(x.home) + '</span><div class="a">vs ' + esc(x.away) + '</div><div class="s">' + esc(stad.get(x.home) || '구장 미정') + '</div></div>').join('') + '</div>' : '';
-    const more = ' <button class="pf-link" data-act="pf-basis">자세히 ›</button>';
+    const stad = new Map(st.teams.map((t) => [t.name, t.stadium]));
+    // 홈 구단마다 카드 하나. 상대를 정하지 않은 구단은 엔진이 상대를 정한다
+    const homeCards = (e) => {
+      const list = e.pairs || [], homes = list.map((x) => x.home).concat((e.teams || []).filter((t) => !list.some((x) => x.home === t)));
+      if (!homes.length) return '<div class="pf-open-none">지정 없음</div>';
+      return '<div class="pf-open">' + homes.map((h) => { const x = list.find((p) => p.home === h); return '<div class="g"><span class="pf-chip">' + esc(h) + '</span><div class="a' + (x ? '' : ' auto') + '">' + (x ? 'vs ' + esc(x.away) : '상대 자동') + '</div><div class="s">' + esc(stad.get(h) || '구장 미정') + '</div></div>'; }).join('') + '</div>';
+    };
+    const more = (act) => ' <button class="pf-link" data-act="' + act + '">자세히 ›</button>';
     const homesOk = openingHomesOk(st);
     const rows = [
-      { t: '공휴일', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: '정부 공휴일 달력 그대로입니다. 휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
-      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals } : null,
-      { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart) + (pairs ? '' : ' &nbsp;' + chips(op.teams)), v2: pairs, more, ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
-      { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05') + ' &nbsp;' + chips(ch.teams), ...BASIS.childrenHome },
-      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막 대진을 고치면 함께 바뀝니다.' }
+      { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart), v2: homeCards(op), more: more('pf-basis'), ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
+      { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05'), v2: homeCards(ch), ...BASIS.childrenHome, more: more('pf-basis-children') },
+      { t: '공휴일·가중치', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: (s.seasonStart.startsWith('2027') ? '정부 공휴일 달력 기준입니다(8/16 광복절 대체공휴일은 뺐습니다). ' : '정부 공휴일 달력 그대로입니다. ') + '휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
+      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막 대진을 고치면 함께 바뀝니다.' },
+      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page"><div class="pf-cols" style="grid-template-columns:minmax(0,1fr) 340px">' +
-      '<div class="pf-sec"><h3>공휴일·홈 구장<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
+      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
       '<div class="pf-sec"><h3>개막전 근거</h3><p class="pf-d">공식 발표(보통 12월 중순) 전 예상입니다.</p><div class="small" style="line-height:1.7">홈 구단 <span class="pf-tag ok">신뢰도 높음</span><br>전년도 상위 5팀. 2026 최종 순위 기준.<div style="height:8px"></div>대진 <span class="pf-tag est">신뢰도 낮음~중간</span><br>2025 개막 대진 재사용(1순위 예측).</div><div class="pf-note"><button class="pf-link" data-act="pf-basis">근거 자세히 보기 ›</button></div></div></div></div>';
   }
   const origStep1 = S.guideUI.renderStep1;
@@ -866,6 +885,8 @@
     },
     'pf-cal-done': () => { P.calEdit = false; S.render(); },
     'pf-basis': () => S.go({ modal: 'pfBasis' }),
+    'pf-basis-children': () => S.go({ modal: 'pfBasisChildren' }),
+    'pf-basis-homes': () => S.go({ modal: 'pfBasisHomes' }),
     'pf-cal-undo': () => { S.ui.modal = null; app().undo(); S.render(); },
     'pf-cal-clear': () => {
       S.ui.modal = null;
