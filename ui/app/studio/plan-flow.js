@@ -320,16 +320,17 @@
     const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27, final27 = P.final.version(YEAR_NEW);
     const row = (y, what, act) => '<div class="pf-yr"><div class="y">' + y + '</div><div class="what">' + what + '</div><div class="acts">' + act + '</div></div>';
     const r25 = ours ? '<b class="good">전체 이동 거리 ' + pct + '% 짧음</b><span>KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</span>' : '<span>' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</span>';
-    const new27 = hasResult ? '<b>실행 결과 있음</b><span>실행 결과 비교에서 버전을 확정합니다</span>' : stale27 ? '<b>연전이 바뀌어 다시 실행해야 합니다</b>' : '<b>미리 채운 값을 4단계로 검토</b>';
+    const C = S.homeCopy; // 「새 계획 만들기」 카드 문구는 home-copy.js에 모아 둔다
+    const new27 = hasResult ? '<b>' + esc(C.resultLine) + '</b><span>' + esc(C.resultNote1) + '</span><span>' + esc(C.resultNote2) + '</span>' : stale27 ? '<b>' + esc(C.staleLine) + '</b><span>' + esc(C.staleNote) + '</span>' : '<b>' + esc(C.newLine) + '</b>';
     return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>무엇을 할까요?</h1><div class="pf-choices">' +
       '<div class="pf-ch"><h2>결과 확인</h2><p class="what">확정한 일정을 봅니다</p>' +
       row(2025, '<b>KBO 실제 일정과 비교</b>' + r25, '<button class="btn" data-act="pf-open-2025">보기' + icon('right') + '</button>') +
       (final27 ? row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>', '<button class="btn" data-act="pf-open-final">보기' + icon('right') + '</button>') : '') +
       '</div>' +
-      '<div class="pf-ch"><h2>새 계획 만들기</h2><p class="what">값을 검토하고 실행합니다</p>' +
-      row(YEAR_NEW, new27, hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">실행 결과 보기' + icon('right') + '</button><button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">' + (stale27 ? '값 다시 검토' : '검토 시작') + icon('right') + '</button>') +
-      '<ul>' + step(1, '구단 정보', 'LG·두산 구장 바뀜 · 그 밖에 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') + '</ul>' +
-      '<div class="small muted">노란 <span class="pf-tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 말풍선이 안내합니다.</div>' +
+      '<div class="pf-ch"><h2>' + esc(C.title) + '</h2><p class="what">' + esc(C.lead) + '</p>' +
+      row(YEAR_NEW, new27, hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">' + esc(C.resultButton) + icon('right') + '</button><button class="btn" data-act="pf-open-2027">' + esc(C.reviewButton) + '</button>' : '<button class="btn primary" data-act="pf-open-2027">' + esc(stale27 ? C.reviewButton : C.startButton) + icon('right') + '</button>') +
+      '<ul>' + step(1, esc(C.step1), esc(C.step1Note)) + step(2, esc(C.step2), esc(C.step2Note), 3) + step(3, esc(C.step3), esc(C.step3Note), 2) + step(4, esc(C.step4), esc(C.step4Note)) + '</ul>' +
+      '<div class="small muted">' + esc(C.bottomNote).replace('{추정}', '<span class="pf-tag est">추정</span>') + '</div>' +
       '</div></div></div>';
   }
   /** 저장해 둔 2027이 개막 대진을 정하기 전 것이고 아직 검토하지 않았으면 기본 제공 값으로 다시 연다 */
