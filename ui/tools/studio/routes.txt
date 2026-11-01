@@ -82,6 +82,7 @@ pf-2027-2|step=1&fs=2&year=2027
 pf-2027-3|step=1&fs=3&year=2027
 pf-2027-4|step=1&fs=4&year=2027
 pf-options|step=2&year=2027
+pf-options-explain|step=2&year=2027&drawer=explain
 pf-result-none|step=5&year=2027
 pf-compare-none|step=6&year=2027
 pf-all|step=1&g=all&year=2027
