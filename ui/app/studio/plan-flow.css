@@ -41,7 +41,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-yr .y { font-size: 28px; font-weight: 800; color: var(--navy); letter-spacing: -1px; line-height: 1; flex: none; }
 .pf-yr .what { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--text-3); }
 .pf-yr .what b { color: var(--navy); font-size: 14px; } .pf-yr .what b.good { color: var(--ok); }
-.pf-yr .acts { flex: none; } .pf-yr .acts .btn { height: 40px; font-size: 14px; justify-content: center; }
+.pf-yr .acts { flex: none; display: flex; gap: 6px; } .pf-yr .acts .btn { height: 40px; font-size: 14px; justify-content: center; }
 .pf-ch ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .pf-ch li { display: flex; gap: 8px; font-size: 13px; padding: 7px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); align-items: center; }
 .pf-ch li b { color: var(--navy); min-width: 134px; flex: none; }

@@ -1,6 +1,6 @@
 /*
  * 편성 스튜디오 — 계획 흐름 (시안 ui-archive/plan-flow-concepts, 사용자 확정 2026-10-31)
- *  처음 화면: 결과 확인(2025 · 2027) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다(사용자 결정 2026-11-01).
+ *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「고치기」는 기존 달력을 연다.
  *   2 엔진 옵션: 추천 순서 카드 + 허용 차이(가장 많은·적은 구단 차이) → settings.objective로 서버에 보낸다.
@@ -62,6 +62,15 @@
     },
     get(y, id) { return P.versions.all(y).find((v) => v.id === id) || null; }
   };
+  /** 확정: 저장한 버전 중 해마다 하나. 버전은 사본이라 값을 고치거나 다시 실행해도 확정한 일정은 그대로다 */
+  const fKey = (y) => S.KEY + 'final:' + y;
+  P.final = {
+    id(y) { return S.ls.get(fKey(y)) || null; },
+    set(y, id) { return S.ls.set(fKey(y), id); },
+    clear(y) { S.ls.del(fKey(y)); },
+    version(y) { const id = P.final.id(y); return id ? P.versions.get(y, id) : null; }
+  };
+  const canFinal = (v) => v.feasible !== false && !(v.engine && v.engine !== 'REST');
   const BUILTIN_IDS = ['2027-rank1', '2027-rank2', '2025-best'];
   BUILTIN_IDS.forEach((id) => {
     const failed = () => { P.builtinFailed = true; if (S.booted) S.scheduleRender(); };
@@ -308,16 +317,17 @@
     const ours = P.builtin['2025-best'], kbo = kboData();
     const pct = ours ? Math.round((1 - ours.gaps.totalKm / kbo.gaps.totalKm) * 100) : null;
     const step = (n, t, s, est) => '<li><b>' + n + ' ' + t + '</b><span>' + s + (est ? ' <span class="pf-tag est">추정 ' + est + '개</span>' : '') + '</span></li>';
-    const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27;
+    const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27, final27 = P.final.version(YEAR_NEW);
     const row = (y, what, act) => '<div class="pf-yr"><div class="y">' + y + '</div><div class="what">' + what + '</div><div class="acts">' + act + '</div></div>';
     const r25 = ours ? '<b class="good">전체 이동 거리 ' + pct + '% 짧음</b><span>KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</span>' : '<span>' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</span>';
+    const new27 = hasResult ? '<b>실행 결과 있음</b><span>실행 결과 비교에서 버전을 확정합니다</span>' : stale27 ? '<b>연전이 바뀌어 다시 실행해야 합니다</b>' : '<b>미리 채운 값을 4단계로 검토</b>';
     return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>무엇을 할까요?</h1><div class="pf-choices">' +
-      '<div class="pf-ch"><h2>결과 확인</h2><p class="what">만들어 둔 일정을 봅니다</p>' +
+      '<div class="pf-ch"><h2>결과 확인</h2><p class="what">확정한 일정을 봅니다</p>' +
       row(2025, '<b>KBO 실제 일정과 비교</b>' + r25, '<button class="btn" data-act="pf-open-2025">보기' + icon('right') + '</button>') +
-      row(2027, hasResult ? '<b>지난 실행 결과</b><span>값 검토와 실행을 마친 일정</span>' : '<span>' + (stale27 ? '연전이 바뀌어 다시 실행해야 합니다' : '아직 결과 없음') + '</span>', hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">보기' + icon('right') + '</button>' : '') +
+      (final27 ? row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>', '<button class="btn" data-act="pf-open-final">보기' + icon('right') + '</button>') : '') +
       '</div>' +
       '<div class="pf-ch"><h2>새 계획 만들기</h2><p class="what">값을 검토하고 실행합니다</p>' +
-      row(2027, '<b>미리 채운 값을 4단계로 검토</b>', hasResult ? '<button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">검토 시작' + icon('right') + '</button>') +
+      row(YEAR_NEW, new27, hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">실행 결과 보기' + icon('right') + '</button><button class="btn" data-act="pf-open-2027">값 다시 검토</button>' : '<button class="btn primary" data-act="pf-open-2027">' + (stale27 ? '값 다시 검토' : '검토 시작') + icon('right') + '</button>') +
       '<ul>' + step(1, '구단 정보', 'LG·두산 구장 바뀜 · 그 밖에 확인') + step(2, '시즌 기간·연전 묶음', '개막일 · 올스타 휴식기 · 1차 편성 기간', 3) + step(3, '공휴일·홈 구장', '개막전 · 어린이날 홈 구단', 2) + step(4, '확인', '모두 맞으면 다음으로') + '</ul>' +
       '<div class="small muted">노란 <span class="pf-tag est">추정</span> 값은 확정 전이라 꼭 확인하세요. 단계마다 말풍선이 안내합니다.</div>' +
       '</div></div></div>';
@@ -693,11 +703,11 @@
       if (all.length < 1) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전이 없습니다</h3><p class="pf-d">현재 결과 분석에서 「버전으로 저장」을 누르면 여기에 쌓입니다.</p></div></div></div>';
       P.cmp = P.cmp.filter((id) => all.some((v) => v.id === id));
       if (!P.cmpPicked) for (const v of all) if (P.cmp.length < 2 && !P.cmp.includes(v.id)) P.cmp.push(v.id);
-      const ver = (v) => { const on = P.cmp.includes(v.id);
-        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
+      const ver = (v) => { const on = P.cmp.includes(v.id), isFinal = y === YEAR_NEW && P.final.id(y) === v.id;
+        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
           '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => GOALS[id].name.replace(' 균형', '') + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
-          '<div class="acts">' + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button><button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>') + '</div></div>'; };
-      const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 고름</span></h3><p class="pf-d">두 개를 골라 비교합니다.</p>' + all.map(ver).join('') +
+          '<div class="acts">' + (isFinal ? '<button class="btn sm" data-act="pf-final-off">확정 취소</button>' : y === YEAR_NEW && canFinal(v) ? '<button class="btn sm primary" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '') + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>')) + '</div></div>'; };
+      const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 고름</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
         '<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button><span class="xs muted">저장한 버전은 이 브라우저에 있습니다(나중에 온라인으로 옮김).</span></div></div>';
       const [a, b] = P.cmp.map((id) => all.find((v) => v.id === id));
       if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
@@ -719,6 +729,15 @@
         ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
         '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + GOALS[id].name.replace(' 균형', '') + '</button>').join('') + '</div><h3>구단별 ' + tg.name.replace(' 균형', '') + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 차이</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
+    }
+  };
+
+  // ───────── 확정 일정 보기 ─────────
+  S.steps[7] = {
+    render() {
+      const v = P.final.version(YEAR_NEW);
+      if (!v) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>' + (P.builtinFailed ? '확정한 일정을 읽지 못했습니다' : '확정한 일정을 불러오는 중입니다') + '</h3></div></div></div>';
+      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec" style="padding:8px 14px"><div class="pf-save"><b>' + esc(v.name) + '</b><span class="pf-tag ok">확정</span><span class="small muted" style="flex:1">' + esc(v.note || '') + '</span><button class="btn" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button></div></div>' + dashboard(v, v.objective, { title: v.name }) + '</div></div>';
     }
   };
 
@@ -756,6 +775,7 @@
     }
     if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 값 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">최대 ' + P.timeSec / 60 + '분 실행' + icon('right') + '</button>'); }
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '엔진 옵션 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
+    if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
     return null;
@@ -765,6 +785,7 @@
     document.body.classList.add('pf');
     // 주소를 직접 쳐도 흐름 밖 화면으로 가지 않게: 2025는 비교 화면만, 다른 해는 처음 화면으로
     const y = S.seasonYear(), onHome = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
+    if (y === YEAR_NEW && S.ui.step === 7 && !P.final.id(y)) { S.ui.step = 1; G.mode = 'year'; } // 확정이 없으면 볼 일정도 없다
     if (y === YEAR_NEW && !isRunning() && resultStale(app().state)) S.ui.modal = 'pfCalChange'; // 어느 화면에서 바꿨든 여기서 묻는다
     if (y !== YEAR_NEW && !onHome && !isRunning()) {
       S.ui.ops = null;
@@ -774,7 +795,7 @@
     const home = S.ui.step === 1 && !S.ui.ops && (G.mode === 'year' || G.mode === 'resume');
     document.body.classList.toggle('pf-home', home);
     document.body.classList.toggle('pf-nores', !freshResult(app().state)); // 실행 전에는 규칙 위반 표시를 띄우지 않는다
-    document.body.classList.toggle('pf-ro', home || (S.seasonYear() === YEAR_VIEW && S.ui.step === 5));
+    document.body.classList.toggle('pf-ro', home || (S.seasonYear() === YEAR_VIEW && S.ui.step === 5) || (S.seasonYear() === YEAR_NEW && S.ui.step === 7));
   };
 
   // ───────── 동작 ─────────
@@ -794,6 +815,26 @@
       open2027();
       if (el.dataset.to === 'result') { S.go({ step: 5, ops: null }); return; }
       go1(S.flowStatus().stop);
+    },
+    'pf-open-final': () => {
+      if (S.locked && S.locked()) return;
+      open2027();
+      S.go({ step: 7, ops: null, modal: null, drawer: null });
+    },
+    'pf-final': (el) => {
+      const v = P.versions.get(YEAR_NEW, el.dataset.id), cur = P.final.version(YEAR_NEW);
+      if (!v || !canFinal(v)) return;
+      if (!window.confirm((cur ? '지금 확정한 「' + cur.name + '」 대신 ' : '') + '「' + v.name + '」을(를) 2027 일정으로 확정할까요? 처음 화면의 결과 확인에 나옵니다.')) return;
+      if (!P.final.set(YEAR_NEW, v.id)) { noRoom(); return; }
+      S.toast('「' + v.name + '」을(를) 확정했습니다.', 'ok');
+      S.render();
+    },
+    'pf-final-off': () => {
+      const cur = P.final.version(YEAR_NEW);
+      if (!window.confirm('「' + (cur ? cur.name : '') + '」 확정을 취소할까요? 결과 확인에서 빠집니다. 버전은 그대로 남습니다.')) return;
+      P.final.clear(YEAR_NEW);
+      S.toast('확정을 취소했습니다.', 'info');
+      S.render();
     },
     'pf-stage': (el) => {
       const k = +el.dataset.stage;

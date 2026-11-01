@@ -23,8 +23,8 @@
     try {
       // ── 처음 화면: 목적 아래에 연도
       const heads = qa('.pf-ch h2').map((h) => h.innerText), yrs = (i) => [...qa('.pf-ch')[i].querySelectorAll('.pf-yr .y')].map((y) => y.innerText);
-      ok('처음 화면: 결과 확인(2025 · 2027) / 새 계획 만들기(2027)', heads.join() === '결과 확인,새 계획 만들기' && yrs(0).join() === '2025,2027' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
-      ok('결과가 없으면 2027은 보기 단추 대신 「아직 결과 없음」', /아직 결과 없음/.test(qa('.pf-ch')[0].innerText) && !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]').innerText.includes('검토 시작'));
+      ok('처음 화면: 결과 확인(2025) / 새 계획 만들기(2027) — 확정 전 2027은 결과 확인에 없음', heads.join() === '결과 확인,새 계획 만들기' && yrs(0).join() === '2025' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
+      ok('결과가 없으면 새 계획 > 2027은 「검토 시작」', !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]').innerText.includes('검토 시작'));
       // ── 검토 게이트
       click('[data-act="pf-open-2027"]'); flush();
       ok('처음 들어가면 값은 있어도 「검토 전」', !S.flowStatus().allDone && S.flowStatus().stop === 1 && S.seasonYear() === 2027);
@@ -292,11 +292,40 @@
       S.ls.set = ls;
       ok('저장 공간 부족: 버전이 늘지 않고 화면에 남음', none === before && S.ui.step === 5);
 
-      // ── 처음 화면: 결과가 생긴 뒤
+      // ── 처음 화면: 결과가 생긴 뒤 · 확정
       S.actions['pf-home'](); flush();
-      ok('결과가 있으면 결과 확인 > 2027 「보기」와 새 계획 > 2027 「값 다시 검토」로 나뉨', !!qa('.pf-ch')[0].querySelector('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]:not([data-to])').innerText.includes('값 다시 검토'));
+      const cards = () => qa('.pf-ch'), yrsOf = (c) => [...c.querySelectorAll('.pf-yr .y')].map((y) => y.innerText).join();
+      ok('실행만 끝나면 결과 확인에 2027이 나오지 않음', yrsOf(cards()[0]) === '2025' && !cards()[0].querySelector('[data-act="pf-open-2027"]'));
+      ok('실행 결과는 새 계획 > 2027에서 「실행 결과 보기」 · 「값 다시 검토」', cards()[1].querySelector('[data-act="pf-open-2027"][data-to="result"]').innerText.includes('실행 결과 보기') && cards()[1].querySelector('[data-act="pf-open-2027"]:not([data-to])').innerText.includes('값 다시 검토'));
       click('[data-act="pf-open-2027"][data-to="result"]'); flush();
-      ok('결과 확인 > 2027 → 현재 결과 화면', S.ui.step === 5 && S.seasonYear() === 2027);
+      ok('실행 결과 보기 → 현재 결과 화면', S.ui.step === 5 && S.seasonYear() === 2027);
+      const finalKeep = P.versions.list(2027), vFinal = Object.assign({}, finalKeep[0], { id: 'v-final', name: '확정할 버전', engine: 'REST', feasible: true, inputs: finalKeep[0].inputs, gaps: Object.assign({}, finalKeep[0].gaps, { totalKm: 12345 }) }), vTest = Object.assign({}, vFinal, { id: 'v-test', name: '시험 버전', engine: 'MOCK' }), vRule = Object.assign({}, vFinal, { id: 'v-bad', name: '규칙 어긴 버전', feasible: false }), vNext = Object.assign({}, vFinal, { id: 'v-next', name: '다음 버전' });
+      P.versions.put(2027, finalKeep.concat([vFinal, vTest, vRule, vNext]));
+      S.go({ step: 6 }); flush();
+      ok('시험 엔진·규칙 어긴 버전에는 확정 단추가 없음', !!q('[data-act="pf-final"][data-id="v-final"]') && !q('[data-act="pf-final"][data-id="v-test"]') && !q('[data-act="pf-final"][data-id="v-bad"]'));
+      const askedConfirm = window.confirm; let asked = 0; window.confirm = () => { asked++; return false; };
+      click('[data-act="pf-final"][data-id="v-final"]'); flush();
+      ok('확정은 한 번 묻고, 아니요면 그대로', asked === 1 && !P.final.id(2027));
+      window.confirm = () => true;
+      click('[data-act="pf-final"][data-id="v-final"]'); flush();
+      const row27 = q('.pf-ver input[data-id="v-final"]').closest('.pf-ver');
+      ok('확정 → 표시 · 「확정 취소」 · 지우기 숨김', P.final.id(2027) === 'v-final' && /확정/.test(row27.querySelector('.pf-tag.ok').innerText) && !!row27.querySelector('[data-act="pf-final-off"]') && !row27.querySelector('[data-act="pf-del"]'));
+      click('[data-act="pf-final"][data-id="v-next"]'); flush();
+      ok('다른 버전을 확정하면 하나만 남음', P.final.id(2027) === 'v-next' && qa('[data-act="pf-final-off"]').length === 1);
+      click('[data-act="pf-final"][data-id="v-final"]'); flush();
+      const planAtFinal = JSON.stringify(st().plan), resAtFinal = JSON.stringify(st().meta.result);
+      S.actions['pf-home'](); flush();
+      ok('확정하면 결과 확인에 2027 줄', yrsOf(cards()[0]) === '2025,2027' && /확정할 버전/.test(cards()[0].innerText) && !!cards()[0].querySelector('[data-act="pf-open-final"]'));
+      click('[data-act="pf-open-final"]'); flush();
+      ok('결과 확인 > 2027 → 확정 일정 화면(단계 띠 없음 · 확정한 숫자)', S.ui.step === 7 && document.body.classList.contains('pf-ro') && /확정할 버전/.test(page()) && /12,345km/.test(page()), S.ui.step);
+      ok('확정 일정을 봐도 작업 중인 값·결과는 그대로', JSON.stringify(st().plan) === planAtFinal && JSON.stringify(st().meta.result) === resAtFinal);
+      S.go({ step: 6 }); flush();
+      click('[data-act="pf-final-off"]'); flush();
+      S.actions['pf-home'](); flush();
+      ok('확정 취소 → 결과 확인에서 빠지고 버전은 남음', !P.final.id(2027) && yrsOf(cards()[0]) === '2025' && !!P.versions.get(2027, 'v-final'));
+      S.go({ step: 7 }); flush();
+      ok('확정 없이 확정 화면 주소로 오면 처음 화면', S.ui.step === 1);
+      window.confirm = askedConfirm; P.versions.put(2027, finalKeep); P.cmp = []; P.cmpPicked = false; flush();
 
       // ── 2025 · 주소
       S.switchYear(2025, { quiet: true, to: 'stay' }); S.go({ step: 2 }); flush();
