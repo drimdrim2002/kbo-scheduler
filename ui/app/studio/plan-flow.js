@@ -539,6 +539,7 @@
   // 허용 차이는 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
   // 그림 없이 문장 하나와 숫자로만 받는다. −·+ 한 번의 폭은 지난 결과가 아니라 여기 고정값이다.
   const GAP_STEP = { moveGap: 1, distanceGapKm: 50, holidayGap: 1 };
+  const TIME_MIN = 1, TIME_MAX = 5; // 실행 시간(분)
   function slider(id, ob) {
     const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol];
     return '<div class="pf-sl"><div class="k"><b>' + g.name + '</b></div>' +
@@ -550,13 +551,13 @@
     const ob = objective(), pf = app().preflight();
     const rest = app().engineConfig.kind === 'REST', info = (app().engineConfig && app().engineConfig.info) || {};
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
-    const times = [60, 120, 180, 300];
+    const min = P.timeSec / 60;
     return '<div class="pf-page">' + explainLink() +
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
       '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">가장 많은 구단과 가장 적은 구단의 차이를 얼마까지 봐줄지 정합니다. 차이가 이 안이면 만족으로 보고 다음 순위로 넘어가고, 넘으면 넘은 만큼 줄이려 노력합니다(반드시 지키는 것은 아님). 실제 차이는 실행해 봐야 압니다.</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
-      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '고른 시간은 최대치입니다. 고른 시간의 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
-      '<span class="pf-time">' + times.map((t) => '<button class="' + (P.timeSec === t ? 'on' : '') + '" data-act="pf-time" data-v="' + t + '">최대 ' + t / 60 + '분</button>').join('') + '</span>' +
+      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
+      '<div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div>' +
       (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
       '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
@@ -916,7 +917,7 @@
       P.customOrder = true;
       app().updateSettings({ objective: Object.assign({}, objective(), { order }) }, '평가 기준 순서 바꾸기');
     },
-    'pf-time': (el) => { P.timeSec = +el.dataset.v; S.render(); },
+    'pf-time-step': (el) => { P.timeSec = Math.min(TIME_MAX, Math.max(TIME_MIN, P.timeSec / 60 + +el.dataset.d)) * 60; S.render(); },
     'pf-run': () => {
       const fs = S.flowStatus();
       if (!fs.allDone) { S.toast('편성 조건 입력·검증을 먼저 마쳐 주세요.', 'warn'); go1(fs.stop); return; }
@@ -995,6 +996,11 @@
     const k = el.dataset.k, v = Math.max(0, objective()[k] + +el.dataset.d);
     if (v === objective()[k]) return;
     app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 차이 바꾸기');
+  };
+  S.inputs['pf-time'] = (el) => {
+    const v = Number(String(el.value).trim());
+    if (!Number.isInteger(v) || v < TIME_MIN || v > TIME_MAX) { el.classList.add('err'); S.toast(TIME_MIN + '~' + TIME_MAX + '분 사이의 정수를 적어 주세요.', 'bad'); return; }
+    P.timeSec = v * 60; S.render();
   };
   S.inputs['pf-name'] = (el) => { P.name = el.value; };
   S.inputs['pf-cmp'] = (el) => {
