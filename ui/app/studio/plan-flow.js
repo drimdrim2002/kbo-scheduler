@@ -320,12 +320,12 @@
     const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27, final27 = P.final.version(YEAR_NEW);
     const row = (y, what, act) => '<div class="pf-yr"><div class="y">' + y + '</div><div class="what">' + what + '</div><div class="acts">' + act + '</div></div>';
     const r25 = ours ? '<b class="good">전체 이동 거리 ' + pct + '% 짧음</b><span>KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</span>' : '<span>' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</span>';
-    const C = S.homeCopy; // 「새 계획 만들기」 카드 문구는 home-copy.js에 모아 둔다
+    const C = S.homeCopy; // 처음 화면 카드 문구는 home-copy.js에 모아 둔다
     const new27 = hasResult ? '<b>' + esc(C.resultLine) + '</b><span>' + esc(C.resultNote1) + '</span><span>' + esc(C.resultNote2) + '</span>' : stale27 ? '<b>' + esc(C.staleLine) + '</b><span>' + esc(C.staleNote) + '</span>' : '<b>' + esc(C.newLine) + '</b>';
-    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>무엇을 할까요?</h1><div class="pf-choices">' +
-      '<div class="pf-ch"><h2>결과 확인</h2><p class="what">확정한 일정을 봅니다</p>' +
-      row(2025, '<b>KBO 실제 일정과 비교</b>' + r25, '<button class="btn" data-act="pf-open-2025">보기' + icon('right') + '</button>') +
-      (final27 ? row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>', '<button class="btn" data-act="pf-open-final">보기' + icon('right') + '</button>') : '') +
+    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<div class="pf-choices">' +
+      '<div class="pf-ch"><h2>' + esc(C.checkTitle) + '</h2><p class="what">' + esc(C.checkLead) + '</p>' +
+      row(2025, '<b>' + esc(C.check2025) + '</b>' + r25, '<button class="btn" data-act="pf-open-2025">' + esc(C.checkButton) + icon('right') + '</button>') +
+      (final27 ? row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>', '<button class="btn" data-act="pf-open-final">' + esc(C.checkButton) + icon('right') + '</button>') : '') +
       '</div>' +
       '<div class="pf-ch"><h2>' + esc(C.title) + '</h2><p class="what">' + esc(C.lead) + '</p>' +
       row(YEAR_NEW, new27, hasResult ? '<button class="btn primary" data-act="pf-open-2027" data-to="result">' + esc(C.resultButton) + icon('right') + '</button><button class="btn" data-act="pf-open-2027">' + esc(C.reviewButton) + '</button>' : '<button class="btn primary" data-act="pf-open-2027">' + esc(stale27 ? C.reviewButton : C.startButton) + icon('right') + '</button>') +
@@ -763,7 +763,7 @@
     const u = S.ui, y = S.seasonYear();
     if (u.step === 5 && y === YEAR_VIEW) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 이 엔진의 일정을 비교합니다</span>' + (!P.builtin['2025-best'] ? '' : P.view25 === 'dash' ? '<button class="btn primary" data-act="pf-25" data-v="compare">KBO와 비교로 돌아가기</button>' : '<button class="btn primary" data-act="pf-25" data-v="dash">평가 기준별 자세히 보기' + icon('right') + '</button>');
     if (u.step === 1) {
-      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — 결과를 확인하거나 새 계획을 만듭니다</span>';
+      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — ' + esc(S.homeCopy.footer) + '</span>';
       if (G.mode === 'all') return '<button class="btn" data-act="g1-cal">' + icon('left') + '단계별로 돌아가기</button><span class="hint"><b>모든 표 보기</b> — 표에서 직접 고칩니다. 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>';
       if (P.calEdit) return '<span class="hint"><b>달력에서 고치기</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
       const n = G.fs, steps = S.FLOW_STEPS, st = app().state;
