@@ -22,7 +22,7 @@ body { box-sizing: border-box; padding: 26px 22px 30px; }
 .say p { margin: 0 0 10px; font-size: 15px; line-height: 1.75; word-break: keep-all; }
 .say p.key { font-size: 18px; font-weight: 700; line-height: 1.7; display: inline-block; padding: 2px 4px; margin-left: -4px; }
 .note { position: relative; display: inline-block; margin: 28px 0 0; font-family: 'Nanum Pen Script', 'Jua', cursive; font-size: 27px; line-height: 1.1; color: #d0271d; transform: rotate(-2.5deg); white-space: nowrap; }
-.foot { height: 26px; }
+.foot { height: 22px; }
 svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .staple { position: absolute; left: 10px; top: 7px; width: 24px; height: 7px; transform: rotate(-38deg); border: 1.5px solid #8d9096; border-bottom: 0; border-radius: 2px 2px 0 0; box-shadow: inset 0 1px 0 #fff, 0 1px 1px rgba(0,0,0,.25); background: linear-gradient(#e9ebee, #b9bdc4); }
 .holes { position: absolute; left: 12px; top: 0; bottom: 0; width: 14px; }
@@ -43,7 +43,7 @@ svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: vis
 .w688 .say p { font-size: 17px; }
 .w688 .say p.key { font-size: 24px; }
 .w688 .note { font-size: 34px; margin-top: 36px; }
-.w688 .foot { height: 40px; }
+.w688 .foot { height: 24px; }
 .w688 .staple { left: 16px; top: 12px; width: 30px; }
 .w688 .sticky { width: 220px; font-size: 32px; right: -14px; bottom: -22px; }
 </style>
@@ -89,7 +89,7 @@ svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: vis
   if (V === 'c' || V === 'd') { // 포스트잇: 메모 글을 종이 오른쪽 아래에 붙인 쪽지로(d는 빨간 펜 글씨)
     note.parentNode.removeChild(note);
     var st = document.createElement('div'); st.className = 'sticky'; st.textContent = '여기서 영감을 받았어요'; if (V === 'd') st.style.color = color; paper.appendChild(st);
-    document.getElementById('noteWrap').style.height = (W >= 688 ? 48 : 40) + 'px';
+    document.getElementById('noteWrap').style.height = (W >= 688 ? 16 : 24) + 'px';
   } else { note.style.color = color; if (V === 'b') { note.style.transform = 'rotate(-1.5deg)'; } }
   // 종이를 돌리기 전 좌표로 잰다(svg도 종이 안에 있어 같이 돈다)
   paper.style.transform = 'none';
