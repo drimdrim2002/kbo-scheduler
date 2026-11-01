@@ -2,7 +2,7 @@
  * 편성 스튜디오 — 계획 흐름 (시안 ui-archive/plan-flow-concepts, 사용자 확정 2026-10-31)
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교.
- *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「고치기」는 기존 달력을 연다.
+ *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
  *   2 엔진 옵션: 추천 순서 카드 + 허용 차이(가장 많은·적은 구단 차이) → settings.objective로 서버에 보낸다.
  *   3 현재 결과 분석: 한 장 대시보드 + 이름 붙여 버전 저장. 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
@@ -138,7 +138,7 @@
   const freshResult = (st) => (st.meta.result && !resultStale(st) ? st.meta.result : null);
 
   // ───────── 값 검토 상태 ─────────
-  const KEYS = { 2: ['opening', 'initialEnd', 'allStar'], 3: ['openingHome', 'childrenHome'] };
+  const KEYS = { 2: ['opening', 'allStar', 'initialEnd'], 3: ['openingHome', 'childrenHome'] };
   const review = (p) => (p || app().state).meta.review || {};
   /** 개막전 홈 구단은 전년도 순위가 정한다(사용자 결정 2026-10-31): 상대만 고칠 수 있고, 표·엑셀·파일로 달라졌으면 그 단계가 끝나지 않는다 */
   const OPENING_HOMES = () => (preset27().events.find((e) => e.type === 'OPENING') || {}).teams || [];
@@ -238,7 +238,7 @@
   const origSeriesOk = S.seriesOkOf;
   S.seriesOkOf = (p) => origSeriesOk(p) && (!inPlan(p) || seriesFollows(p));
   function confirmKey(k) {
-    app().commit('검토: 맞아요', (s) => { s.meta.review = Object.assign({}, s.meta.review || {}, { [k]: true }); }, ['meta']);
+    app().commit('검토: 수락', (s) => { s.meta.review = Object.assign({}, s.meta.review || {}, { [k]: true }); }, ['meta']);
   }
 
   // 「다음」: 전 결과가 있으면 시리즈를 통째로 새로 까는 대신 바뀐 것만 바꾼다
@@ -283,13 +283,12 @@
 
   // ───────── 근거 ─────────
   const BASIS = {
-    opening: { why: '3월 넷째 토요일에 2연전으로 엽니다(2024 · 2025 · 2026 모두 같음).', src: '2027 개막전 예측' },
-    initialEnd: { why: '개막부터 경기일을 세어 135일이 되는 첫 일요일입니다. 남은 경기는 그 뒤에 따로 짭니다.', src: '2027 일정 원칙' },
-    allStar: { why: '7월 둘째 금요일부터 6일로 잡았습니다.', src: '2027 일정 예상 엑셀' },
-    four: { why: '올스타 휴식기 바로 뒤 목~일을 4연전으로 묶습니다. 휴식기를 고치면 함께 옮겨집니다.', src: '2027 원칙' },
-    openingHome: { why: '2026 상위 5팀이 홈(두산은 LG와 구장이 겹쳐 원정, SSG가 이어받음). 대진은 2025 개막 대진을 다시 쓴 1순위 예측입니다.', src: '2027 개막전 예측' },
-    childrenHome: { why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).', src: '2027 일정 원칙' },
-    homeTotals: { why: '남는 홈 경기는 해마다 번갈아 가집니다(2027 = 홀수 해).', src: '2027 원칙' }
+    opening: { why: '3월 넷째 토요일에 2연전으로 엽니다(2024 · 2025 · 2026 모두 같음).' },
+    initialEnd: { why: '개막부터 경기일을 세어 135일이 되는 첫 일요일입니다. 남은 경기는 그 뒤에 따로 짭니다.' },
+    allStar: { why: '7월 둘째주 토요일을 올스타전으로 잡았고, 그 주 금요일부터 다음주 수요일까지를 올스타전 휴식기로 잡았습니다. 휴식기 바로 뒤 목~일은 4연전으로 묶으며, 휴식기를 수정하면 함께 옮겨집니다.' },
+    openingHome: { why: '2026 상위 5팀이 홈(두산은 LG와 구장이 겹쳐 원정, SSG가 이어받음). 대진은 2025 개막 대진을 다시 쓴 1순위 예측입니다.' },
+    childrenHome: { why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).' },
+    homeTotals: { why: '남는 홈 경기는 해마다 번갈아 가집니다(2027 = 홀수 해).' }
   };
   S.modals.pfCalChange = function () {
     return '<div class="modal" role="dialog" aria-label="연전이 바뀜" style="width:480px;max-width:94vw"><div class="modal-head"><h3>연전이 바뀌었습니다</h3></div><div class="modal-body" style="padding:14px">' +
@@ -404,15 +403,15 @@
   }
   function rv(r0, cur) {
     const note = r0.key ? editedNote(r0.key) : null;
-    const r = note ? Object.assign({}, r0, { tag: 'mine', why: note, src: '', more: '' }) : r0;
-    const tag = r.tag === 'est' ? '<span class="pf-tag est">추정 · 확정 아님</span>' : r.tag === 'got' ? '<span class="pf-tag got">' + esc(r.tagText || '2025에서 가져옴') + '</span>' : r.tag === 'rule' ? '<span class="pf-tag blue">규칙대로 자동</span>' : r.tag === 'mine' ? '<span class="pf-tag blue">직접 고침</span>' : '';
+    const r = note ? Object.assign({}, r0, { tag: 'mine', why: note, more: '' }) : r0;
     const ok = r.key ? !!review()[r.key] : false;
+    const tag = r.tag === 'est' ? (ok ? '' : '<span class="pf-tag est">추정 · 확정 아님</span>') : r.tag === 'got' ? '<span class="pf-tag got">' + esc(r.tagText || '2025에서 가져옴') + '</span>' : r.tag === 'rule' ? '<span class="pf-tag blue">규칙대로 자동</span>' : r.tag === 'mine' ? '<span class="pf-tag blue">직접 고침</span>' : '';
     const to = ' data-to="' + (r.key || r.to || '') + '"';
     const acts = r.key
-      ? (ok ? '<span class="pf-tag ok">✓ 확인함</span><button class="btn sm" data-act="pf-cal"' + to + '>다시 고치기</button>' : '<button class="btn sm pf-okb" data-act="pf-ok" data-k="' + r.key + '">✓ 맞아요</button><button class="btn sm" data-act="pf-cal"' + to + '>고치기</button>')
-      : '<button class="btn sm" data-act="pf-cal"' + to + '>' + (r.editText || '고치기') + '</button>';
+      ? (ok ? '<span class="pf-tag ok">✓ 수락</span><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>' : '<button class="btn sm pf-okb" data-act="pf-ok" data-k="' + r.key + '">✓ 수락</button><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>')
+      : '<button class="btn sm" data-act="pf-cal"' + to + '>' + (r.editText || '수정') + '</button>';
     return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
-      '<div class="why"><em>왜 이 값?</em> ' + esc(r.why) + (r.src ? ' <em>· 근거:</em> ' + esc(r.src) : '') + (r.more || '') + '</div>' + (r.warn || '') + '</div><div class="acts">' + acts + '</div></div>';
+      (r.why || r.more ? '<div class="why">' + esc(r.why || '') + (r.more || '') + '</div>' : '') + (r.warn || '') + '</div><div class="acts">' + acts + '</div></div>';
   }
   const firstOpen = (n) => (KEYS[n] || []).find((k) => !review()[k]);
   function renderSeasonReview() {
@@ -420,19 +419,18 @@
     const star = (s.blackouts || []).find((b) => /올스타/.test(b.label || ''));
     const four = st.calendar.find((c) => c.consecutive === 4);
     const rows = [
+      { t: '쉬는 요일', to: 'rest', tag: 'got', v: esc(s.restWeekdays.map((w) => '일월화수목금토'[w] + '요일').join('·') || '없음') },
       { key: 'opening', t: '개막일', tag: 'est', v: fmt.date(s.seasonStart) + ' · 개막 2연전', ...BASIS.opening },
-      { key: 'initialEnd', t: '1차 편성이 끝나는 날', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd },
-      { key: 'allStar', t: '올스타 휴식기', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', ...BASIS.allStar },
-      { t: '후반기 첫 4연전', to: 'allStar', tag: 'rule', v: four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음', ...BASIS.four },
-      { t: '쉬는 요일', to: 'rest', tag: 'got', v: esc(s.restWeekdays.map((w) => '일월화수목금토'[w] + '요일').join('·') || '없음'), why: '2025와 같은 관행입니다.', src: '2025 일정' }
+      { key: 'allStar', t: '올스타 휴식기·후반기 첫 4연전', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', v2: '후반기 첫 4연전 ' + (four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음'), ...BASIS.allStar },
+      { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd }
     ];
     const sum = (KEYS[2].filter((k) => review()[k]).length);
     return '<div class="pf-page"><div class="pf-cols" style="grid-template-columns:minmax(0,1fr) 340px">' +
-      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 확인함</span></h3><p class="pf-d">줄마다 「맞아요」 또는 「고치기」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>자동 계산</h3><p class="pf-d">편성 조건을 고치면 바로 다시 셉니다.</p><div class="pf-nums">' +
+      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
+      '<div class="pf-sec"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums">' +
       '<div class="pf-num"><div class="k">경기일</div><div class="v">' + gd.have + '<small> / ' + gd.need + '일</small></div></div><div class="pf-num"><div class="k">연전 묶음</div><div class="v">' + st.calendar.length + '<small>개</small></div><div class="s">3연전 ' + (h[3] || 0) + ' · 2연전 ' + (h[2] || 0) + ' · 4연전 ' + (h[4] || 0) + '</div></div>' +
       '<div class="pf-num" style="grid-column:1/3"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' +
-      '<div class="pf-note"><b>달력으로 보기</b> — 「고치기」를 누르면 시즌 달력이 열립니다.</div></div></div></div>';
+      '</div></div></div>';
   }
   function renderHomeReview() {
     const st = app().state, s = st.settings, cur = firstOpen(3);
@@ -448,11 +446,11 @@
       ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals } : null,
       { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart) + ' &nbsp;' + chips(op.teams), v2: pairs ? '대진 ' + esc(pairs) : '', more, ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05') + ' &nbsp;' + chips(ch.teams), ...BASIS.childrenHome },
-      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막 대진을 고치면 함께 바뀝니다.', src: '2027 원칙' }
+      { t: '후반기 첫 4연전 홈', to: 'rules', tag: 'rule', v: s.fourGameHome === 'swap' ? '개막 대진에서 홈 바꿈' : '개막 대진 그대로', why: '개막 대진을 고치면 함께 바뀝니다.' }
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page"><div class="pf-cols" style="grid-template-columns:minmax(0,1fr) 340px">' +
-      '<div class="pf-sec"><h3>공휴일·홈 구장<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 확인함</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
+      '<div class="pf-sec"><h3>공휴일·홈 구장<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
       '<div class="pf-sec"><h3>개막전 근거</h3><p class="pf-d">공식 발표(보통 12월 중순) 전 예상입니다.</p><div class="small" style="line-height:1.7">홈 구단 <span class="pf-tag ok">신뢰도 높음</span><br>전년도 상위 5팀. 2026 최종 순위 기준.<div style="height:8px"></div>대진 <span class="pf-tag est">신뢰도 낮음~중간</span><br>2025 개막 대진 재사용(1순위 예측).</div><div class="pf-note"><button class="pf-link" data-act="pf-basis">근거 자세히 보기 ›</button></div></div></div></div>';
   }
   const origStep1 = S.guideUI.renderStep1;
@@ -476,9 +474,9 @@
 
   // ───────── 말풍선 ─────────
   const TOUR = {
-    1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '편성 조건은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 「왜 이 값?」을 읽고, 맞으면 「맞아요」, 다르면 「고치기」를 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
-    2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '「추정」 표시는 확정 전 값입니다. 맞으면 「맞아요」, KBO 계획과 다르면 「고치기」로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
-    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「고치기」를 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
+    1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '편성 조건은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 설명을 읽고, 맞으면 「수락」, 다르면 「수정」을 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
+    2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '「추정」 표시는 확정 전 값입니다. 맞으면 「수락」, KBO 계획과 다르면 「수정」으로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
+    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「수정」을 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
     4: { a: '.footer .btn.primary', title: '다음은 엔진 옵션', text: () => '무엇을 먼저 맞출지와 구단 사이 차이를 얼마까지 허용할지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
   };
   const tourKey = (n) => S.KEY + 'tour:plan' + n;
@@ -767,7 +765,7 @@
     if (u.step === 1) {
       if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — ' + esc(S.homeCopy.footer) + '</span>';
       if (G.mode === 'all') return '<button class="btn" data-act="g1-cal">' + icon('left') + '단계별로 돌아가기</button><span class="hint"><b>모든 표 보기</b> — 표에서 직접 고칩니다. 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>';
-      if (P.calEdit) return '<span class="hint"><b>달력에서 고치기</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
+      if (P.calEdit) return '<span class="hint"><b>달력에서 수정</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
       const n = G.fs, steps = S.FLOW_STEPS, st = app().state;
       const prev = n > 1 ? '<button class="btn" data-act="pf-go" data-fs="' + (n - 1) + '">' + icon('left') + '이전: ' + (n - 1) + ' ' + esc(steps[n - 2].name) + '</button>' : '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>';
       const canNext = n === 1 ? !!(st.meta.flow || {}).teams : n === 4 ? S.flowStatus().done.slice(0, 3).every(Boolean) : stepReviewed(st, n);
