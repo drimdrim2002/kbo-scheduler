@@ -87,25 +87,26 @@
 
       // ── 운영 방침 → settings.objective
       const cardNames = () => qa('.pf-oc h4').map((h) => h.innerText.replace('고름', '').trim()).join();
-      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울 그림 · 설명 링크', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
+      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울(이동 횟수·거리의 공평 ↔ 주말·공휴일 홈의 공평) · 설명 링크', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /이동 횟수·거리의 공평/.test(q('.pf-head').innerText) && /주말·공휴일 홈의 공평/.test(q('.pf-head').innerText) && !/리그 전체 효율/.test(page()) && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
       ok('단계 띠·아래 줄: 「운영 방침·실행」', /운영 방침·실행/.test(q('#stepper').innerText) && /운영 방침/.test(q('.footer').innerText));
-      ok('카드 이름: 공평·효율·흥행 우선 + 직접 정하기', cardNames() === '공평 우선 (기본),효율 우선,흥행 우선,직접 정하기', cardNames());
-      ok('카드마다 지키는 것·내주는 것, 내주는 것은 단정하지 않음', qa('.pf-oc[data-id] .pf-kg').length === 3 && qa('.pf-oc[data-id] .pf-kg div:nth-child(2) dd').every((d) => /수 있음$/.test(d.innerText)));
+      ok('카드 이름: 이동 공평 우선·흥행 공평 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음)', cardNames() === '이동 공평 우선 (기본),흥행 공평 우선,직접 정하기', cardNames());
+      ok('우선순위 설명: 전체 이동 거리는 늘 마지막', /전체 이동 거리는 늘 마지막/.test(page()));
+      ok('카드마다 지키는 것·내주는 것, 내주는 것은 단정하지 않음', qa('.pf-oc[data-id] .pf-kg').length === 2 && qa('.pf-oc[data-id] .pf-kg div:nth-child(2) dd').every((d) => /수 있음$/.test(d.innerText)));
       ok('추천 카드의 순서 목록은 접혀 있고 직접 정하기는 바로 보임', !qa('.pf-oc[data-id] ol').length && qa('[data-act="pf-order-custom"] ol li').length === 4);
       const before = P.objective().order.join(); // 카드를 누르기 전에는 저장된 값이 없고 기본값이다
-      click('[data-act="pf-order-peek"][data-id="distance"]'); flush();
-      ok('「순서 보기」 → 그 카드의 순서 4줄이 펼쳐지고 고른 카드는 바뀌지 않음', qa('.pf-oc[data-id="distance"] ol li').length === 4 && !qa('.pf-oc[data-id="balance"] ol').length && P.objective().order.join() === before && !st().settings.objective && /순서 접기/.test(q('[data-act="pf-order-peek"][data-id="distance"]').innerText));
-      click('[data-act="pf-order-peek"][data-id="distance"]'); flush();
-      ok('「순서 접기」 → 다시 접힘', !qa('.pf-oc[data-id="distance"] ol').length);
+      click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
+      ok('「순서 보기」 → 그 카드의 순서 4줄이 펼쳐지고(전체 이동 거리가 맨 끝) 고른 카드는 바뀌지 않음', qa('.pf-oc[data-id="holiday"] ol li').length === 4 && /전체 이동 거리$/.test(qa('.pf-oc[data-id="holiday"] ol li')[3].innerText) && !qa('.pf-oc[data-id="balance"] ol').length && P.objective().order.join() === before && !st().settings.objective && /순서 접기/.test(q('[data-act="pf-order-peek"][data-id="holiday"]').innerText));
+      click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
+      ok('「순서 접기」 → 다시 접힘', !qa('.pf-oc[data-id="holiday"] ol').length);
       ok('카드 아래 다리 한 줄', /1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다/.test(page()));
-      click('[data-act="pf-order"][data-id="distance"]'); flush();
-      ok('「효율 우선」 → 순서', ob().order.join() === 'total,distance,moves,holiday');
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
-      ok('「흥행 우선」 → 순서', ob().order.join() === 'holiday,moves,distance,total');
+      ok('「흥행 공평 우선」 → 순서(전체 이동 거리는 마지막)', ob().order.join() === 'holiday,moves,distance,total');
       click('[data-act="pf-order-custom"]'); flush();
       click('[data-act="pf-move"][data-k="0"][data-d="1"]'); flush();
       ok('직접 정하기 ▼ → 순서가 바뀌고 직접 정하기로 남음', ob().order.join() === 'moves,holiday,distance,total' && /직접 정하기/.test(q('.pf-oc.on').innerText));
-      ok('맨 위 ▲·맨 아래 ▼는 눌리지 않음', q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="3"][data-d="1"]').disabled);
+      ok('맨 위 ▲·셋째 ▼는 눌리지 않고 전체 이동 거리 줄에는 화살표가 없음(늘 마지막)', q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="2"][data-d="1"]').disabled && !q('[data-act="pf-move"][data-k="3"]') && /늘 마지막/.test(q('[data-act="pf-order-custom"]').innerText));
+      S.actions['pf-move']({ dataset: { k: '2', d: '1' } }); flush();
+      ok('셋째를 아래로 내리려 해도 전체 이동 거리는 마지막 그대로', ob().order.join() === 'moves,holiday,distance,total');
       setBox(1, '800');
       ok('허용 차이 숫자 칸 800', ob().distanceGapKm === 800);
       setBox(1, '');
@@ -139,13 +140,13 @@
       setBox(1, '600'); setBox(0, '4');
       ok('방침 요약: 직접 정한 순서', /지금 방침: 직접 정한 순서 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText), q('.pf-policy').innerText);
       click('[data-act="pf-order"][data-id="balance"]'); flush();
-      ok('방침 요약: 공평 우선 · 허용 수준 셋', /지금 방침: 공평 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
+      ok('방침 요약: 이동 공평 우선 · 허용 수준 셋', /지금 방침: 이동 공평 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
       ok('실행 단추: 「이 방침으로 최대 N분 실행」', /^이 방침으로 최대 \d분 실행$/.test(q('[data-act="pf-run"]').innerText.trim()));
       // ── 운영 방침 설명하기 → 오른쪽 설명 창(뒤 화면은 가리지 않음)
       click('[data-act="pf-explain"]'); flush();
       ok('「운영 방침 설명하기」 → 설명 창이 열리고 방침 화면은 그대로', S.ui.drawer === 'explain' && !!q('.drawer.explain') && !q('.drawer-scrim') && !!q('[data-act="pf-run"]') && /운영 방침 설명하기/.test(q('.drawer.explain .pane-title').innerText));
       ok('설명 창: 지금 허용 수준 숫자를 보여 줌', /4회/.test(q('.drawer.explain').innerText) && /600km/.test(q('.drawer.explain').innerText) && /3점/.test(q('.drawer.explain').innerText));
-      ok('설명 창: 왜 운영자가 정하나 · 균형점 · 시험 실행 수치는 예시 · 2025 숫자·개발 용어 없음', /왜 운영자가 정하나/.test(q('.drawer.explain').innerText) && /더 좋아질 곳이 없는 균형점/.test(q('.drawer.explain').innerText) && /시험 실행에서 본 수치/.test(q('.drawer.explain').innerText) && /예시입니다/.test(q('.drawer.explain').innerText) && /58,352/.test(q('.drawer.explain').innerText) && !/2025|파레토|시드|JSON|잠실/.test(q('.drawer.explain').innerText));
+      ok('설명 창: 왜 운영자가 정하나 · 균형점 · 시험 실행 수치는 예시 · 2025 숫자·개발 용어 없음', /왜 운영자가 정하나/.test(q('.drawer.explain').innerText) && /더 좋아질 곳이 없는 균형점/.test(q('.drawer.explain').innerText) && /시험 실행에서 본 수치/.test(q('.drawer.explain').innerText) && /예시입니다/.test(q('.drawer.explain').innerText) && /58,352/.test(q('.drawer.explain').innerText) && /언제나 마지막 순위/.test(q('.drawer.explain').innerText) && !/2025|파레토|시드|JSON|잠실|리그 전체 효율/.test(q('.drawer.explain').innerText));
       ok('설명 창: 구장 사이 평균 거리는 입력에서 센 값', /KT 171km/.test(q('.drawer.explain').innerText) && /롯데 293km/.test(q('.drawer.explain').innerText));
       click('.drawer.explain [data-act="close-drawer"]'); flush();
       ok('설명 창 닫기', !S.ui.drawer && !q('.drawer.explain'));
@@ -245,7 +246,7 @@
       app().engine.solve = orig2;
       ok('이어 풀기가 끝나면 결과 기록', !S.run && S.ui.step === 5 && !!st().meta.result);
       S.go({ step: 2 }); flush();
-      click('[data-act="pf-order"][data-id="distance"]'); flush();
+      click('[data-act="pf-order"][data-id="holiday"]'); flush();
       let sent3 = null;
       const orig3 = app().engine.solve;
       app().engine.solve = function (state, opts) { sent3 = opts; return orig3.call(this, state, Object.assign({}, opts, { timeLimitSec: 1, unimprovedSec: 1 })); };

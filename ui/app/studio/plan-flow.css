@@ -119,7 +119,8 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-vs .it i { font-style: normal; font-weight: 800; }
 .pf-vs .it.ok i { color: var(--ok); }
 .pf-vs .it.over { color: var(--bad); font-weight: 600; }
-.pf-orders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.pf-orders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.pf-last { font-size: 11px; color: var(--text-3); margin-left: 6px; }
 .pf-oc { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .pf-oc.on { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
 .pf-oc h4 { margin: 0 0 2px; font-size: 14.5px; color: var(--navy); display: flex; gap: 6px; align-items: center; }

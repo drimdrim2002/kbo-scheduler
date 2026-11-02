@@ -32,12 +32,13 @@
     total: { name: '전체 이동 거리', desc: '10구단 이동 거리를 모두 더한 값', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
   };
   const DEFAULT_OBJECTIVE = { order: ['moves', 'distance', 'holiday', 'total'], moveGap: 4, distanceGapKm: 600, holidayGap: 3 };
-  // 카드 이름은 운영자가 무엇을 지키고 무엇을 내주는지로 읽힌다(사용자 결정 2026-11-02). 순서 값은 그대로. 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
+  // 공평은 두 가지다: 이동 횟수·거리의 공평과 주말·공휴일 홈의 공평. 방침은 이 둘 사이의 균형이고, 전체 이동 거리는 언제나 마지막 순위다(사용자 결정 2026-11-02).
+  // 카드 이름은 어느 공평을 먼저 지키는지로 읽힌다. 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
   const ORDERS = [
-    { id: 'balance', name: '공평 우선 (기본)', desc: '구단 사이 공평함을 가장 먼저', keep: '구단 사이 이동 횟수·거리 차이를 좁힘', give: '리그 전체 이동 거리가 늘 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
-    { id: 'distance', name: '효율 우선', desc: '리그 전체 이동을 가장 줄이고, 균형은 그다음', keep: '리그 전체 이동 거리를 줄임', give: '구단 사이 이동 차이와 주말·공휴일 차이가 벌어질 수 있음', order: ['total', 'distance', 'moves', 'holiday'] },
-    { id: 'holiday', name: '흥행 우선', desc: '흥행 날짜의 홈 경기를 고르게 나누는 것이 먼저', keep: '주말·공휴일 홈 경기를 구단마다 고르게', give: '구단 사이 이동 횟수·거리 차이가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
+    { id: 'balance', name: '이동 공평 우선 (기본)', desc: '이동 횟수·거리의 공평을 먼저', keep: '구단 사이 이동 횟수·거리 차이를 좁힘', give: '주말·공휴일 홈 차이가 벌어질 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
+    { id: 'holiday', name: '흥행 공평 우선', desc: '주말·공휴일 홈의 공평을 먼저', keep: '주말·공휴일 홈 경기를 구단마다 고르게', give: '구단 사이 이동 횟수·거리 차이가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
   ];
+  const LAST = 'total'; // 직접 정하기에서도 늘 마지막
   const objective = () => app().state.settings.objective || DEFAULT_OBJECTIVE;
   const goalValue = (data, id) => data.gaps[GOALS[id].gap];
   const goalShow = (data, id) => num(goalValue(data, id), GOALS[id].d);
@@ -532,14 +533,14 @@
   // 그 가운데 어디에 설지는 운영자가 고른다. 「파레토」 같은 말은 화면에 쓰지 않는다. 2025 숫자(이 엔진·KBO 실제)도 쓰지 않는다.
   P.policyCopy = {
     title: '운영 방침 정하기',
-    lead: '네 목표를 모두 최고로 만들 수는 없습니다. 어디에 무게를 둘지 정하는 것이 운영자의 일이고, 여기가 운영의 묘가 드러나는 자리입니다.',
-    left: '구단 사이 공평함', right: '리그 전체 효율',
+    lead: '이동의 공평과 주말·공휴일 홈의 공평을 둘 다 최고로 만들 수는 없습니다. 둘 사이 어디에 무게를 둘지 정하는 것이 운영자의 일이고, 여기가 운영의 묘가 드러나는 자리입니다.',
+    left: '이동 횟수·거리의 공평', right: '주말·공휴일 홈의 공평',
     caption: '받침점을 어디에 둘지는 운영자가 정합니다',
     bridge: '1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다.',
     levelsTitle: '목표마다 허용 수준',
-    levelsLead: '가장 많은 구단과 가장 적은 구단의 차이를 어디까지 봐줄지 목표마다 정합니다. 좁힐수록 그 목표는 좋아지고 다른 목표를 내주게 됩니다.'
+    levelsLead: '가장 많은 구단과 가장 적은 구단의 차이를 어디까지 봐줄지 목표마다 정합니다. 좁힐수록 그 공평은 좋아지고 다른 쪽 공평을 내주게 됩니다.'
   };
-  /** 머리글 그림: 수평을 잡은 저울. 왼쪽 접시 「구단 사이 공평함」, 오른쪽 접시 「리그 전체 효율」, 받침점에 작은 손잡이(기울어진 저울이 아니다) */
+  /** 머리글 그림: 수평을 잡은 저울. 왼쪽 접시 「이동 횟수·거리의 공평」, 오른쪽 접시 「주말·공휴일 홈의 공평」, 받침점에 작은 손잡이(기울어진 저울이 아니다) */
   function scaleFigure() {
     const C = P.policyCopy;
     const pan = (cx) => '<line x1="' + cx + '" y1="30" x2="' + cx + '" y2="56" stroke="#0A1E3C" stroke-width="1.5"/>' +
@@ -564,8 +565,9 @@
       return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + (on ? '<span class="pf-tag blue">고름</span>' : '') + esc(o.name) + '</h4>' + kg(o) +
         '<button class="pf-link xs" data-act="pf-order-peek" data-id="' + o.id + '" aria-expanded="' + open + '">' + (open ? '순서 접기 ▴' : '순서 보기 ▾') + '</button>' +
         (open ? '<ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol>' : '') + '</div>'; };
-    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + (custom ? '<span class="pf-tag blue">고름</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다</p><ol>' +
-      ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k === 3 ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : '') + '</li>').join('') + '</ol></div>';
+    const lastFixed = ob.order[3] === LAST, top = lastFixed ? 2 : 3; // 전체 이동 거리가 마지막이면 그 줄은 움직이지 않는다(옛 버전으로 순서가 다르면 모두 움직일 수 있게)
+    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + (custom ? '<span class="pf-tag blue">고름</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다. 전체 이동 거리는 늘 마지막</p><ol>' +
+      ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : lastFixed && i === LAST ? '<span class="pf-last">늘 마지막</span>' : '') + '</li>').join('') + '</ol></div>';
     return ORDERS.map(card).join('') + diy;
   }
   // 허용 수준은 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
@@ -583,8 +585,8 @@
   P.DEFAULT_OBJECTIVE = DEFAULT_OBJECTIVE;
   // 줄마다: 좁히면 / 넓히면 두 토막. 내주는 쪽은 단정하지 않는다
   const TOL_MOVE = {
-    moves: { narrow: '구단 사이 이동 횟수가 더 공평 · 전체 이동 거리가 늘고 주말·공휴일 차이가 벌어질 수 있음', wide: '전체 이동 거리가 줄 여지 · 구단 사이 이동 횟수 차이가 커질 수 있음' },
-    distance: { narrow: '구단 사이 이동 거리가 더 공평 · 전체 이동 거리가 늘고 이동 횟수 차이가 벌어질 수 있음', wide: '전체 이동 거리가 줄 여지 · 구단 사이 이동 거리 차이가 커질 수 있음' },
+    moves: { narrow: '구단 사이 이동 횟수가 더 공평 · 주말·공휴일 홈 차이가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 횟수 차이가 커질 수 있음' },
+    distance: { narrow: '구단 사이 이동 거리가 더 공평 · 주말·공휴일 홈 차이가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 거리 차이가 커질 수 있음' },
     holiday: { narrow: '주말·공휴일 홈이 더 고르게 · 이동 횟수·거리 차이가 벌어질 수 있음', wide: '이동 횟수·거리를 맞출 여지 · 주말·공휴일 홈 차이가 커질 수 있음' }
   };
   /** 값에 따라 바뀌는 안내는 두 끝에서만: 0이면 반드시 맞추려는 것, 기본값의 3배 이상이면 사실상 보지 않는 것. 그 사이에는 없다 */
@@ -619,7 +621,7 @@
     const min = P.timeSec / 60;
     return '<div class="pf-page">' +
       '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p></div>' + scaleFigure() + '</div>' +
-      '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">무엇을 먼저 지킬지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
+      '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 공평을 먼저 지킬지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 공평이 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
       '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
       '<div class="pf-sec"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
@@ -981,13 +983,14 @@
     'pf-explain': () => { S.go({ drawer: S.ui.drawer === 'explain' ? null : 'explain' }); },
     'pf-tour-ok': () => { S.ls.set(tourKey(G.fs), '1'); S.render(); },
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
-    'pf-order': (el, e) => { if (e && e.target.closest('[data-act="pf-order-peek"]')) return; P.customOrder = false; const o = ORDERS.find((x) => x.id === el.dataset.id); app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
+    'pf-order': (el, e) => { if (e && e.target.closest('[data-act="pf-order-peek"]')) return; const o = ORDERS.find((x) => x.id === el.dataset.id); if (!o) return; P.customOrder = false; app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
     'pf-order-custom': (el, e) => { if (e && e.target.closest('[data-act="pf-move"]')) return; P.customOrder = true; S.render(); },
     'pf-order-peek': (el, e) => { if (e) e.stopPropagation(); P.orderPeek[el.dataset.id] = !P.orderPeek[el.dataset.id]; S.render(); },
     'pf-relevel': () => { const jump = () => { const el = document.getElementById('pf-levels'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }; S.afterRender(jump); S.actions['pf-stage']({ dataset: { stage: '2' } }); setTimeout(jump, 50); }, // 그리고 난 뒤 허용 수준 구역으로(뒤따르는 다시 그리기가 있어도 한 번 더)
     'pf-move': (el, e) => {
       if (e) e.stopPropagation();
       const k = +el.dataset.k, d = +el.dataset.d, order = objective().order.slice(), t = order[k];
+      if (k + d < 0 || k + d > 3 || order[k] === LAST || (order[3] === LAST && order[k + d] === LAST)) return; // 전체 이동 거리는 늘 마지막
       order[k] = order[k + d]; order[k + d] = t;
       P.customOrder = true;
       app().updateSettings({ objective: Object.assign({}, objective(), { order }) }, '평가 기준 순서 바꾸기');
