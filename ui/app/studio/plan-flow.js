@@ -445,12 +445,12 @@
       { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd }
     ];
     const sum = (KEYS[2].filter((k) => review()[k]).length);
-    return '<div class="pf-page"><div class="pf-cols pf-fill" style="grid-template-columns:minmax(0,1fr) 340px">' +
-      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums">' +
+    return '<div class="pf-page">' +
+      '<div class="pf-sec pf-fill"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
+      '<div class="pf-sec"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums row">' +
       '<div class="pf-num"><div class="k">경기일</div><div class="v">' + gd.have + '<small> / ' + gd.need + '일</small></div></div><div class="pf-num"><div class="k">연전 묶음</div><div class="v">' + st.calendar.length + '<small>개</small></div><div class="s">3연전 ' + (h[3] || 0) + ' · 2연전 ' + (h[2] || 0) + ' · 4연전 ' + (h[4] || 0) + '</div></div>' +
-      '<div class="pf-num" style="grid-column:1/3"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' +
-      '</div></div></div>';
+      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' +
+      '</div></div>';
   }
   function renderHomeReview() {
     const st = app().state, s = st.settings, cur = firstOpen(3);
