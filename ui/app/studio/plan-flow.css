@@ -270,3 +270,18 @@ body.pf .ck-card > .ck-row { flex: 1 0 auto; }
 .pf-cal-leg .pf-cal-btn { margin-left: auto; }
 .pf-cal.live .pf-cal-tip { margin-left: 12px; }
 
+/* 3단계(주요 이벤트 일정) 달력: 이벤트 날은 칸 안에 글자 · 공휴일은 빨간 테두리와 이름 · 토(파랑)·일(빨강)은 칸 아래 띠 */
+.pf-strip.f3 { --cal-row: clamp(26px, 2.6vh, 34px); }
+.pf-strip.f3 .sd.ss { box-shadow: none; }
+.pf-strip.f3 .sd.sat, .pf-cal-leg .sd.sat { box-shadow: inset 0 -3px 0 var(--blue); }
+.pf-strip.f3 .sd.sun, .pf-cal-leg .sd.sun { box-shadow: inset 0 -3px 0 var(--bad); }
+.pf-strip.f3 .sd.hol::after { display: none; }
+.pf-strip.f3 .sd.lab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.05; padding: 0 1px; overflow: hidden; }
+.pf-strip.f3 .sd.lab b { font-size: 10.5px; }
+.pf-strip.f3 .sd .lb { font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: -.6px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: clip; border-radius: 3px; padding: 0 1px; color: #fff; background: var(--ev); }
+.pf-strip.f3 .sd.lab { outline: 2px solid var(--ev); outline-offset: -2px; }
+.pf-strip.f3 .sd.e-hol { --ev: var(--bad); background: #FDECEC; }
+.pf-strip.f3 .sd.e-hol .lb { color: var(--bad); background: none; padding: 0; }
+.e-op { --ev: #13703F; } .e-ch { --ev: #D9480F; } .e-as { --ev: #7048E8; } .e-4 { --ev: #1F5FD6; } .e-end { --ev: #8D5A00; } .e-hol { --ev: var(--bad); }
+.pf-cal-leg i.sd.lab { background: var(--ev); box-shadow: none; }
+.pf-cal-leg i.sd.e-hol { background: #FDECEC; box-shadow: inset 0 0 0 2px var(--bad); }

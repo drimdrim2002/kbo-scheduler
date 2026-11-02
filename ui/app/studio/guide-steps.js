@@ -1,7 +1,7 @@
 /*
  * 편성 스튜디오 — ① 데이터 준비: 보여 주는 방식(단계 흐름) · 1단계 구단 정보
  * ①은 맨 먼저 시즌 연도(season-year.js) → 그 해 「어디까지 했는지」 한 장 → 가로 4칸 단계 띠의 네 단계(season-flow.js):
- *   1 구단 정보(이 파일) → 2 시즌 기간·연전 묶음 → 3 공휴일·홈 구장(season-calendar.js, 같은 달력) → 4 확인(season-flow.js).
+ *   1 구단 정보(이 파일) → 2 시즌 기간·연전 묶음 → 3 주요 이벤트 일정(season-calendar.js, 같은 달력) → 4 확인(season-flow.js).
  *   모든 표 보기(전문가용): 지금까지의 ① 전체 화면(가져오기 띠·왼쪽 목록·오른쪽 자세히) — 단계 띠 오른쪽 끝에서.
  * 1 구단 정보: 「바뀐 정보가 있나요?」 — 「없어요」면 2단계로, 「있어요」면 왼쪽 카드에서 고치기(구단명·구장 + Enter = 위치 찾기·지도에서 찍기·거리) + 구단 표·구장 지도.
  * 주소: #step=1&pick=year(연도 고르기) · &resume=1(어디까지 했는지) · &fs=1~4(단계) · &day=YYYY-MM-DD·&slot=(2·3단계 고른 날·묶음) · &tour=0|season.2(따라 하기) · &tab=…(모든 표 보기).
@@ -198,7 +198,7 @@
     footer() { if (S.ui.step !== 1 || S.ui.ops) return null; return S.flowFooter(); },
     stepSummary() { return S.flowSummary(); },
     /** 띠(모든 표 보기)의 단추 */
-    button() { return '<button class="btn sm gs-open" data-act="g1-cal" title="데이터 준비를 단계별로(구단 정보 → 시즌 기간·연전 묶음 → 공휴일·홈 구장 → 확인)">' + icon('cal') + '단계별로</button>'; },
+    button() { return '<button class="btn sm gs-open" data-act="g1-cal" title="데이터 준비를 단계별로(구단 정보 → 시즌 기간·연전 묶음 → 주요 이벤트 일정 → 확인)">' + icon('cal') + '단계별로</button>'; },
     after(el) { if (S.flowTour) S.flowTour.after(el); else if (el) el.innerHTML = ''; },
     onKey(e) {
       if (S.ui.step !== 1 || G.mode !== 'flow' || S.guideBlocked()) return false;

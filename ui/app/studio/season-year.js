@@ -190,12 +190,12 @@
     const have = new Set(p.distanceMatrix.map((d) => d.from + '|' + d.to));
     return p.teams.every((a) => p.teams.every((b) => a.name === b.name || have.has(a.name + '|' + b.name)));
   }
-  S.FLOW_STEPS = [{ n: 1, name: '구단 정보' }, { n: 2, name: '시즌 기간·연전 묶음' }, { n: 3, name: '공휴일·홈 구장' }, { n: 4, name: '확인' }];
+  S.FLOW_STEPS = [{ n: 1, name: '구단 정보' }, { n: 2, name: '시즌 기간·연전 묶음' }, { n: 3, name: '주요 이벤트 일정' }, { n: 4, name: '확인' }];
   /**
    * 단계마다 { n, name, kind: 'done'|'cur'|'todo', text } + stop(멈춘 단계, 모두 끝났으면 4) — 프로젝트(저장본 포함)로 판단한다.
    * 1 구단 정보: 구단 짝수·거리 모두 있음, 그리고 새 연도면 「바뀐 정보가 있나요?」에 답함
    * 2 시즌 기간·연전 묶음: 개막일·1차 편성 종료일이 있고 경기일 합이 맞음
-   * 3 공휴일·홈 구장: 개막전·어린이날 홈 구장 지정을 다 정함
+   * 3 주요 이벤트 일정: 개막전·어린이날 홈 구장 지정을 다 정함
    * 4 확인: 1~3 끝, 시리즈가 묶음과 맞음(「다음」 때 규칙대로 만든다)
    */
   S.flowStatus = function (p0) {

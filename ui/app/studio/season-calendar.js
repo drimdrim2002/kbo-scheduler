@@ -3,7 +3,7 @@
  *  2 시즌 기간·연전 묶음: 연도는 이미 골랐으니 개막일(토요일 중 고르기)만 고르면 바로 규칙대로 묶음을 깐다(단추 없이, 실행 취소 한 번).
  *    1차 편성 종료일 = 경기일 135일이 되는 첫 일요일(자동), 올스타 휴식기 = 7월 둘째 금요일부터 6일(자동) — 자동으로 채운 값은 「자동」 표시와 이유 + 고치기.
  *    고칠 곳만 달력에서: 날짜를 끌면 2·3·4연전 묶음, 묶음을 누르면 연전 수 바꾸기·둘로 나누기·지우기.
- *  3 공휴일·홈 구장: 왼쪽 공휴일 표(가중치 · 공휴일별 「휴식 요일이어도 경기」 — 켜고 끌 때만 「묶음에 반영할까요?」)와 홈 구장 지정 목록,
+ *  3 주요 이벤트 일정: 왼쪽 공휴일 표(가중치 · 공휴일별 「휴식 요일이어도 경기」 — 켜고 끌 때만 「묶음에 반영할까요?」)와 홈 구장 지정 목록,
  *    달력에서 날을 누르면 오른쪽에서 그 날 홈 경기 구단(개막전은 「대진까지 고정 / 홈 구장만 지정」, 대진 고르기 포함).
  *
  * 연전 묶음이 곧 경기일: 묶음이 없는 날은 경기 없는 날, 휴식 요일에 묶음을 그리면 그 날 경기.
@@ -357,7 +357,7 @@
       '<div class="sc-note">달력에서 날을 누르면 오른쪽에서 그 날 홈 경기 구단 ' + half() + '곳을 고릅니다. 개막전은 대진까지 고정할 수도 있습니다.</div>');
   }
   function leftStep3() {
-    return '<div class="fl-kick">3 / 4단계</div><h2 class="sc-h2">공휴일·홈 구장</h2>' +
+    return '<div class="fl-kick">3 / 4단계</div><h2 class="sc-h2">주요 이벤트 일정</h2>' +
       '<p class="sc-intro">연전 묶음(2단계)이 깔린 같은 달력에서, 날짜에 붙는 두 가지를 정합니다.</p>' + relayBar() + holidaysBox() + homesBox();
   }
 
@@ -373,7 +373,17 @@
     const selSlot = !view && fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
     const star = view ? (s.blackouts || []).find((b) => /올스타/.test(b.label || '')) : null, sa = star ? dn(star.start) : null, sb = star ? dn(star.end) : null;
     const mo = ' style="--m:' + (m1 - m0 + 1) + '"'; // 달 수(검토 화면 달력의 최소 높이)
-    let h = view ? '<div class="strip pf-strip" role="img" aria-label="' + y + ' 시즌 달력"' + mo + '>' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력"' + mo + '>';
+    // 3단계(주요 이벤트 일정) 보기 전용: 이벤트 날은 칸 안에 글자로. 공휴일은 이름(줄인 것)으로
+    const f3 = view && fs() === 3, mark = new Map();
+    if (f3) {
+      const evDate = (t) => { const e = st.events.find((x) => x.type === t); return e ? dn(e.date) : null; };
+      const four = st.calendar.find((c) => c.consecutive === 4);
+      let asGame = null; for (let d = sa; sa != null && d <= sb; d++) if (Dates.weekday(d) === 6) { asGame = d; break; } // 올스타전 = 휴식기 안 첫 토요일
+      [[a, '개막전', 'e-op'], [evDate('CHILDREN'), '어린이날', 'e-ch'], [asGame, '올스타전', 'e-as'], [four ? dn(four.datetime) : null, '후반기', 'e-4'], [e1, '1차종료', 'e-end']]
+        .forEach(([d, t, c]) => { if (d != null && !mark.has(d)) mark.set(d, { t, c }); });
+      s.holidays.forEach((h) => { const d = dn(h.date); if (!mark.has(d)) mark.set(d, { t: /대체/.test(h.name) ? '대체휴일' : h.name.replace(/\s*연휴$/, '').slice(0, 4), c: 'e-hol' }); });
+    }
+    let h = view ? '<div class="strip pf-strip' + (f3 ? ' f3' : '') + '" role="img" aria-label="' + y + ' 시즌 달력"' + mo + '>' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력"' + mo + '>';
     for (let mo = m0; mo <= m1; mo++) {
       h += '<div class="strip-row" role="row"><span class="m">' + mo + '월</span><div class="strip-days">';
       for (let d = 1; d <= 31; d++) {
@@ -397,7 +407,9 @@
         if (view && n === e1) { cls.push('end'); tt.push('1차 편성 종료일'); }
         if (view && sa != null && n >= sa && n <= sb) { cls.push('as'); tt.push('올스타 휴식기'); }
         const lab = !view && x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : ''; // 보기 전용은 칸이 작아 왼쪽 굵은 선으로만 묶음 시작을 보인다
-        if (view) { h += '<span class="' + cls.join(' ') + '"' + (fs() === 3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>'; continue; }
+        const mk = f3 ? mark.get(n) : null;
+        if (mk) { cls.push('lab', mk.c); tt.push(mk.t); }
+        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + esc(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
         h += '<span class="' + cls.join(' ') + '" role="gridcell" data-d="' + n + '"' + (x ? ' data-slot="' + x.b.i + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>';
       }
       h += '</div></div>';
@@ -444,9 +456,11 @@
       line('연전', b ? esc(bundleText(b.d, b.len)) : '<span class="muted">' + (inRange(d) ? '경기 없는 날(묶음 없음)' : '1차 편성 기간 밖') + '</span>') +
       S.calHomeBox(d, b));
   }
-  /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 공휴일·홈 구장 단계(홈 구장 지정일 표시) */
+  /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 주요 이벤트 일정 단계(홈 구장 지정일 표시) */
   S.seasonStripView = function (f3, tail) {
-    const legend = [['game', '경기일'], ['game we', '주말 경기'], ['game ss', '연전 묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일']].concat(f3 ? [['ev', '홈 구장 지정']] : [['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']]);
+    const legend = f3
+      ? [['game', '경기일'], ['game we sat', '토요일'], ['game we sun', '일요일'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기'], ['lab e-op', '개막전'], ['lab e-ch', '어린이날'], ['lab e-as', '올스타전'], ['lab e-4', '후반기 첫 4연전'], ['lab e-end', '1차 편성 종료']]
+      : [['game', '경기일'], ['game we', '주말 경기'], ['game ss', '연전 묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일'], ['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']];
     return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + (tail || '') + '</div>' + calendarStrip(true) + '</div>';
   };
   /** 검토 화면(plan-flow.js) 줄 안에서 펼치는 입력칸. key: opening · rest · allstar · initialEnd */
@@ -471,7 +485,7 @@
     const right = f === 3 ? '<aside class="sc-right" aria-label="고른 날" data-sk="sc-right">' + (locked ? '<div class="lockbar">' + icon('lock') + '자동 편성 중에는 입력이 잠깁니다.</div>' : '') + dayBox() +
       '<section class="sc-box warn-soft"><h4>공휴일을 바꾸면</h4><div class="sc-note">공휴일 날짜·가중치를 고쳐도 연전 묶음은 그대로입니다. 「월 경기」를 켜고 끌 때만 「묶음에 반영할까요?」를 묻습니다.</div></section></aside>' : '';
     const html = '<div class="sc' + (f === 3 ? ' s3' : ' s2') + (locked ? ' locked' : '') + '" data-mode="cal" data-fs="' + f + '">' +
-      '<aside class="sc-left" aria-label="' + (f === 2 ? '시즌 기간·연전 묶음' : '공휴일·홈 구장') + '" data-sk="sc-left-' + f + '">' + (f === 2 ? leftStep2() : leftStep3()) + '</aside>' +
+      '<aside class="sc-left" aria-label="' + (f === 2 ? '시즌 기간·연전 묶음' : '주요 이벤트 일정') + '" data-sk="sc-left-' + f + '">' + (f === 2 ? leftStep2() : leftStep3()) + '</aside>' +
       mainPane() + right + '</div>';
     S.afterRender(placePopover);
     if (C.focus) { const x = C.focus; setTimeout(() => { if (C.focus === x) C.focus = null; }, 1600); }

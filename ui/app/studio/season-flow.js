@@ -1,6 +1,6 @@
 /*
  * 편성 스튜디오 — ① 데이터 준비 단계 흐름: 가로 4칸 단계 띠 · 다시 왔을 때 「어디까지 했는지」 · 4 확인 · 하단 이전/다음 · 따라 하기
- *  단계 띠: 「2027 시즌 · ① 데이터 준비」 + 1 구단 정보 → 2 시즌 기간·연전 묶음 → 3 공휴일·홈 구장 → 4 확인(단계마다 상태 한 줄 + 「지금 여기」),
+ *  단계 띠: 「2027 시즌 · ① 데이터 준비」 + 1 구단 정보 → 2 시즌 기간·연전 묶음 → 3 주요 이벤트 일정 → 4 확인(단계마다 상태 한 줄 + 「지금 여기」),
  *           오른쪽 끝에 작게 「어디까지 했는지」·「모든 표 보기」. 단계를 누르면 그 단계로.
  *  단계 완료는 데이터로 판단한다(season-year.js S.flowStatus).
  *  4 확인: 단계별 요약 + 「고치기」, 시리즈는 규칙대로 자동, 맞대결 경기 수·격년 홈 73/71도 여기서 고친다 → 「다음: ② 검토·실행」.
@@ -114,7 +114,7 @@
       '<p class="fl-sub">아래가 맞으면 「다음: ② 검토·실행」을 누릅니다. 고칠 곳이 있으면 그 줄의 「고치기」로 그 단계에 갑니다.</p>' +
       row(1, '1 구단 정보', esc(st.teams.length + '구단 · 구장 간 거리 ' + dm + '개' + (shared ? ' · 같이 쓰는 구장 ' + shared : '')), fix(1)) +
       row(2, '2 시즌 기간·연전 묶음', esc(s.seasonStart ? '개막 ' + fmt.date(s.seasonStart) + ' ~ 1차 편성 ' + fmt.date(s.initialEnd) + ' · 시즌 종료 ' + fmt.date(s.seasonEnd) + ' · 묶음 ' + st.calendar.length + '개(2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ') · 경기일 ' + gd.have + ' / ' + gd.need + '일' : '개막일을 아직 고르지 않았습니다'), fix(2)) +
-      row(3, '3 공휴일·홈 구장', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
+      row(3, '3 주요 이벤트 일정', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
       row(4, '시리즈(규칙대로 자동)', esc('맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + '(홈 ' + s.homeGamesMajor + '·원정 ' + (s.initialGamesPerPair - s.homeGamesMajor) + ') + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + ht + g4 + ' · ' + sr.text), '<span class="ck-btns"><button class="btn sm" data-act="fl-edit-rules">' + (F.edit === 'rules' ? '닫기' : '고치기') + '</button><button class="btn sm" data-act="g1-all" data-tab="series">표 보기</button></span>') +
       (S.cal.seriesError ? '<div class="sc-warn ck-err">' + icon('warn') + '<span><b>시리즈를 만들 수 없습니다.</b> ' + esc(S.cal.seriesError) + '</span></div>' : '') +
       (F.edit === 'rules' ? rulesEditor() : '') +

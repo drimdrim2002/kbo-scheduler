@@ -40,7 +40,7 @@ Studio.homeCopy = {
   step1Note: 'LG·두산 구장 바뀜 · 그 밖에 확인',
   step2: '시즌 기간·연전 묶음',
   step2Note: '개막일 · 올스타 휴식기 · 1차 편성 기간',
-  step3: '공휴일·홈 구장',
+  step3: '주요 이벤트 일정',
   step3Note: '개막전 · 어린이날 홈 구단',
   step4: '확인',
   step4Note: '모두 맞으면 다음으로',
