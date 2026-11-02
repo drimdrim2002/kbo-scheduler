@@ -362,8 +362,8 @@
   }
 
   // ───────── 가운데 달력 ─────────
-  /** 달력 칸 글자: 세 글자 이상이면 두 줄로(띄어쓰기가 있으면 거기서, 없으면 가운데서) */
-  const twoLines = (t) => { if (t.length < 3) return esc(t); const sp = t.indexOf(' '), k = sp > 0 ? sp : Math.ceil(t.length / 2); return esc(t.slice(0, k)) + '<br>' + esc(t.slice(sp > 0 ? k + 1 : k)); };
+  /** 달력 칸 글자: 세 글자까지는 한 줄, 넷 이상이면 두 줄(띄어쓰기가 있으면 거기서, 없으면 세 글자 뒤에서) */
+  const twoLines = (t) => { if (t.replace(/\s/g, '').length <= 3) return esc(t); const sp = t.indexOf(' '), k = sp > 0 ? sp : 3; return esc(t.slice(0, k)) + '<br>' + esc(t.slice(sp > 0 ? k + 1 : k)); };
   /** view = 보기 전용(검토 화면 아래 달력): 누르고 끄는 칸이 아니고, 개막일·올스타 휴식기·1차 편성 종료일을 표시한다 */
   function calendarStrip(view) {
     const st = app().state, s = st.settings, y = S.seasonYear(), [m0, m1] = months();
