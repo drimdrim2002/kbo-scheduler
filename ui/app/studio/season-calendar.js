@@ -362,6 +362,8 @@
   }
 
   // ───────── 가운데 달력 ─────────
+  /** 달력 칸 글자: 세 글자 이상이면 두 줄로(띄어쓰기가 있으면 거기서, 없으면 가운데서) */
+  const twoLines = (t) => { if (t.length < 3) return esc(t); const sp = t.indexOf(' '), k = sp > 0 ? sp : Math.ceil(t.length / 2); return esc(t.slice(0, k)) + '<br>' + esc(t.slice(sp > 0 ? k + 1 : k)); };
   /** view = 보기 전용(검토 화면 아래 달력): 누르고 끄는 칸이 아니고, 개막일·올스타 휴식기·1차 편성 종료일을 표시한다 */
   function calendarStrip(view) {
     const st = app().state, s = st.settings, y = S.seasonYear(), [m0, m1] = months();
@@ -379,9 +381,9 @@
       const evDate = (t) => { const e = st.events.find((x) => x.type === t); return e ? dn(e.date) : null; };
       const four = st.calendar.find((c) => c.consecutive === 4);
       let asGame = null; for (let d = sa; sa != null && d <= sb; d++) if (Dates.weekday(d) === 6) { asGame = d; break; } // 올스타전 = 휴식기 안 첫 토요일
-      [[a, '개막전', 'e-op'], [evDate('CHILDREN'), '어린이날', 'e-ch'], [asGame, '올스타전', 'e-as'], [four ? dn(four.datetime) : null, '후반기', 'e-4'], [e1, '1차종료', 'e-end']]
+      [[a, '개막전', 'e-op'], [evDate('CHILDREN'), '어린이날', 'e-ch'], [asGame, '올스타전', 'e-as'], [four ? dn(four.datetime) : null, '후반기 4연전', 'e-4'], [e1, '1차 종료', 'e-end']]
         .forEach(([d, t, c]) => { if (d != null && !mark.has(d)) mark.set(d, { t, c }); });
-      s.holidays.forEach((h) => { const d = dn(h.date); if (!mark.has(d)) mark.set(d, { t: /대체/.test(h.name) ? '대체휴일' : h.name.replace(/\s*연휴$/, '').slice(0, 4), c: 'e-hol' }); });
+      s.holidays.forEach((h) => { const d = dn(h.date); if (!mark.has(d)) mark.set(d, { t: /대체/.test(h.name) ? '대체휴일' : h.name.replace(/\s*연휴$/, ''), c: 'e-hol' }); });
     }
     let h = view ? '<div class="strip pf-strip' + (f3 ? ' f3' : '') + '" role="img" aria-label="' + y + ' 시즌 달력"' + mo + '>' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력"' + mo + '>';
     for (let mo = m0; mo <= m1; mo++) {
@@ -409,7 +411,7 @@
         const lab = !view && x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : ''; // 보기 전용은 칸이 작아 왼쪽 굵은 선으로만 묶음 시작을 보인다
         const mk = f3 ? mark.get(n) : null;
         if (mk) { cls.push('lab', mk.c); tt.push(mk.t); }
-        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + esc(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
+        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + twoLines(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
         h += '<span class="' + cls.join(' ') + '" role="gridcell" data-d="' + n + '"' + (x ? ' data-slot="' + x.b.i + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>';
       }
       h += '</div></div>';
