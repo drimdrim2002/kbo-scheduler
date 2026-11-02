@@ -1,6 +1,6 @@
 /*
  * 편성 스튜디오 — ① 데이터 준비 단계 흐름: 가로 4칸 단계 띠 · 다시 왔을 때 「어디까지 했는지」 · 4 확인 · 하단 이전/다음 · 따라 하기
- *  단계 띠: 「2027 시즌 · ① 데이터 준비」 + 1 구단 정보 → 2 시즌 기간·연전 묶음 → 3 공휴일·홈 구장 → 4 확인(단계마다 상태 한 줄 + 「지금 여기」),
+ *  단계 띠: 「2027 시즌 · ① 데이터 준비」 + 1 구단 정보 → 2 시즌 기간·연전 묶음 → 3 주요 이벤트 일정 → 4 확인(단계마다 상태 한 줄 + 「지금 여기」),
  *           오른쪽 끝에 작게 「어디까지 했는지」·「모든 표 보기」. 단계를 누르면 그 단계로.
  *  단계 완료는 데이터로 판단한다(season-year.js S.flowStatus).
  *  4 확인: 단계별 요약 + 「고치기」, 시리즈는 규칙대로 자동, 맞대결 경기 수·격년 홈 73/71도 여기서 고친다 → 「다음: ② 검토·실행」.
@@ -82,6 +82,13 @@
         [['same', '개막전 홈 구단 그대로'], ['swap', '홈 바꿈']].map(([v, t]) => '<button class="' + ((s.fourGameHome || 'same') === v ? 'on' : '') + '" data-act="fl-4g" data-v="' + v + '" role="radio" aria-checked="' + ((s.fourGameHome || 'same') === v) + '">' + t + (v === 'same' ? ' <small>(기본)</small>' : '') + '</button>').join('') + '</div>' +
       '<div class="sc-note">개막 대진의 두 구단이 후반기 첫 4연전에서 다시 만납니다. 「그대로」면 개막전 홈 구단의 구장에서(1차 편성 홈 기본 69 / 66), 「홈 바꿈」이면 상대 구장에서 합니다(68 / 67 — 이때 홈 68 구단은 개막전 홈 구단).</div>' +
       '<div class="sc-note">맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + ' + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + '(재편성에서). 1차 편성 경기 수를 바꾸면 필요한 경기일(' + s.initialGamesPerPair + ' × ' + (names.length - 1) + ')도 바뀝니다.</div>';
+    return h + homeTotalsEd() + '</div>';
+  }
+  /** 격년 홈 73 / 71: 4 확인의 시리즈 규칙과 2단계 「홈 경기 수」 줄 안(plan-flow.js)에서 같이 쓴다 */
+  function homeTotalsEd() {
+    const s = app().state.settings, ht = s.homeTotals, names = app().state.teams.map((t) => t.name), half = names.length >> 1;
+    const total = (s.gamesPerPair || 16) * (names.length - 1);
+    let h = '';
     if (ht && Array.isArray(ht.moreTeams)) {
       const more = (ht.more && ht.more.total) || Math.ceil(total / 2) + 1, less = (ht.less && ht.less.total) || total - more;
       const auto = !(ht.more && ht.more.initial != null) && !(ht.less && ht.less.initial != null), d = S.htInitDefault();
@@ -91,9 +98,12 @@
           : '홈 ' + more + ' 구단: 1차 편성 홈 ' + ht.more.initial + ' · 미편성 홈 ' + (more - ht.more.initial) + ' / 홈 ' + less + ' 구단: 1차 편성 홈 ' + ht.less.initial + ' · 미편성 홈 ' + (less - ht.less.initial) + '. <button class="lnk" data-act="fl-ht-init" data-v="auto">1차 편성 홈은 자동으로</button>') +
         ' · 해마다 바뀝니다(다음 해는 반대로). 홈 ' + more + ' 구단은 개막전 홈 구단(3 홈 구장)과 따로 고릅니다. <button class="lnk" data-act="fl-ht-off">쓰지 않기</button></div>';
     } else h += '<div class="sc-note">격년 홈 73 / 71경기(구단마다 홈 경기 수가 해마다 번갈아 다름)를 쓰지 않습니다. <button class="lnk" data-act="fl-ht-on">격년 홈 73 / 71 쓰기</button></div>';
-    return h + '</div>';
+    return h;
   }
-  S.renderCheck = function () {
+  S.homeTotalsEditor = () => '<div class="pf-ht-ed">' + homeTotalsEd() + '</div>';
+  /** 4 확인. o.grid = 줄을 두 칸씩, o.below = 줄 아래(맨 아래 단추 줄 위)에 붙일 것(2027 흐름의 시즌 달력), o.noNext = 카드 안 「다음」 단추를 빼기(아래 줄에 같은 단추가 있을 때) */
+  S.renderCheck = function (o) {
+    o = o || {};
     const st = app().state, s = st.settings, fs = S.flowStatus(), gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), sr = S.calSeriesState(), y = S.seasonYear();
     const icn = (done) => '<i class="ck-i ' + (done ? 'done' : 'cur') + '">' + (done ? icon('check') : '!') + '</i>';
     const row = (n, title, text, btn) => '<div class="ck-row' + (fs.done[n - 1] ? '' : ' cur') + '">' + icn(n <= 3 ? fs.done[n - 1] : sr.ok) + '<div class="ck-t"><b>' + title + '</b><small>' + text + '</small></div>' + btn + '</div>';
@@ -104,14 +114,17 @@
     return '<div class="ck-wrap" data-sk="ck"><div class="fl-card ck-card" aria-label="확인">' +
       '<div class="fl-kick">4 / 4단계 · 확인</div><h2>' + (fs.allDone || (fs.done[0] && fs.done[1] && fs.done[2]) ? y + ' 시즌 데이터가 모두 준비됐습니다' : y + ' 시즌 — 아직 맞지 않는 곳이 있습니다') + '</h2>' +
       '<p class="fl-sub">아래가 맞으면 「다음: ② 검토·실행」을 누릅니다. 고칠 곳이 있으면 그 줄의 「고치기」로 그 단계에 갑니다.</p>' +
+      (o.grid ? '<div class="ck-grid">' : '') +
       row(1, '1 구단 정보', esc(st.teams.length + '구단 · 구장 간 거리 ' + dm + '개' + (shared ? ' · 같이 쓰는 구장 ' + shared : '')), fix(1)) +
       row(2, '2 시즌 기간·연전 묶음', esc(s.seasonStart ? '개막 ' + fmt.date(s.seasonStart) + ' ~ 1차 편성 ' + fmt.date(s.initialEnd) + ' · 시즌 종료 ' + fmt.date(s.seasonEnd) + ' · 묶음 ' + st.calendar.length + '개(2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ') · 경기일 ' + gd.have + ' / ' + gd.need + '일' : '개막일을 아직 고르지 않았습니다'), fix(2)) +
-      row(3, '3 공휴일·홈 구장', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
+      row(3, '3 주요 이벤트 일정', esc('공휴일 ' + hol.length + '일 · 홈 구장 지정 ' + S.calHomeLine()), fix(3)) +
       row(4, '시리즈(규칙대로 자동)', esc('맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + '(홈 ' + s.homeGamesMajor + '·원정 ' + (s.initialGamesPerPair - s.homeGamesMajor) + ') + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + ht + g4 + ' · ' + sr.text), '<span class="ck-btns"><button class="btn sm" data-act="fl-edit-rules">' + (F.edit === 'rules' ? '닫기' : '고치기') + '</button><button class="btn sm" data-act="g1-all" data-tab="series">표 보기</button></span>') +
+      (o.grid ? '</div>' : '') +
       (S.cal.seriesError ? '<div class="sc-warn ck-err">' + icon('warn') + '<span><b>시리즈를 만들 수 없습니다.</b> ' + esc(S.cal.seriesError) + '</span></div>' : '') +
       (F.edit === 'rules' ? rulesEditor() : '') +
+      (o.below || '') +
       '<div class="fl-foot ck-foot"><span>' + esc(S.savedText()) + '</span><button class="btn sm" data-act="repo-export">' + icon('download') + '파일로 내려받기</button><span class="sc-xl"><button class="btn sm" data-act="cal-xl-down" title="구단 정보 · 시즌 기간과 공휴일 · 연전 기간 · 홈 구장 지정 시트 4개">' + icon('sheet') + '엑셀 서식 내려받기</button><button class="btn sm" data-act="cal-xl-up">' + icon('upload') + '채운 엑셀 올리기</button></span>' +
-      '<button class="btn primary" data-act="cal-next">다음: ' + S.CIRCLED[2] + ' 검토·실행' + icon('right') + '</button></div>' +
+      (o.noNext ? '' : '<button class="btn primary" data-act="cal-next">다음: ' + S.CIRCLED[2] + ' 검토·실행' + icon('right') + '</button>') + '</div>' +
       '</div></div>';
   };
 

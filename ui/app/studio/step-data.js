@@ -488,9 +488,11 @@
     const free = window.innerHeight - 679; // 위아래 띠·여백과, 칸 높이와 상관없이 고정인 부분
     return Math.max(19, Math.min(34, Math.floor(free <= 240 ? free / 10 : 24 + (free - 240) / 20)));
   };
+  // 1 구단 정보 2단 화면: 거리표 칸 높이를 창 높이에 맞춘다(22~46px). 위아래 띠 196px · 위 안내 칸 약 180px · 거리표 머리·지도 줄 79px을 빼고 11줄(머리 줄 포함)로 나눈다
+  const tmTwoCellH = () => Math.max(22, Math.min(46, Math.floor((window.innerHeight - 196 - 36 - 180 - 79) / 11)));
   document.addEventListener('click', (e) => { const d = e.target.closest && e.target.closest('.tm-dist > summary'); if (d) S.ui.tmDistOpen = !d.parentNode.open; });
-  let tmCellLast = 0, tmResize = 0;
-  window.addEventListener('resize', () => { clearTimeout(tmResize); tmResize = setTimeout(() => { if (document.querySelector('.tm-dist') && tmCellH() !== tmCellLast) S.render(); }, 120); });
+  let tmCellLast = 0, tmTwoLast = 0, tmResize = 0;
+  window.addEventListener('resize', () => { clearTimeout(tmResize); tmResize = setTimeout(() => { if (document.querySelector('.tm-dist') && (tmCellH() !== tmCellLast || (tmTwoLast && tmTwoCellH() !== tmTwoLast))) S.render(); }, 120); });
   function renderTeams() {
     const st = app().state, u = S.ui;
     const sel = u.cell && u.cell.sheet === 'teams' ? u.cell.row : -1;
@@ -515,9 +517,10 @@
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
       const mapOpen = !!(u.tmMapOpen || u.mapPick || findCands());
       const dist = S.feature('T7') ? '<div class="blk tm-dist"><div class="blk-head">' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></div><div class="chart-box tm-heat">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: Math.max(40, Math.floor(((window.innerWidth - 36) / 2 - 62) / Math.max(1, names.length))), cellH: 30, labelW: 44, darkAt: 2, scale: (v, max, min) => ((v - min) / ((max - min) || 1) > 0.75 ? '#FFE8CC' : '#FFFFFF'), format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></div>' : '';
+        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: Math.max(40, Math.floor(((window.innerWidth - 36) / 2 - 62) / Math.max(1, names.length))), cellH: (tmTwoLast = tmTwoCellH()), labelW: 44, darkAt: 2, scale: (v, max, min) => ((v - min) / ((max - min) || 1) > 0.75 ? '#FFE8CC' : '#FFFFFF'), format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></div>' : '';
       S.afterRender(mountTeamMap);
-      return '<div class="pane-body tm-two" data-sk="d-teams"><div class="tm-two-lead">' + S.teamsLead() + '</div><div class="tm-wait tm-two-l">' + table + road + S.teamsPopup() + '</div>' +
+      // 왼쪽 구단 표 줄 높이: 오른쪽 거리표·지도 줄과 아래 끝이 맞게
+      return '<div class="pane-body tm-two" data-sk="d-teams" style="--tm-r:' + Math.round((11 * tmTwoLast + 47) / 10) + 'px"><div class="tm-two-lead">' + S.teamsLead() + '</div><div class="tm-wait tm-two-l">' + table + road + S.teamsPopup() + '</div>' +
         '<div class="tm-wait tm-two-r">' + dist + '<div class="blk tm-mapwrap"><button class="tm-mapbar" data-act="tm-map-toggle" aria-expanded="' + mapOpen + '">' + icon('map') + '구장 지도<span class="muted">' + (mapOpen ? '접기' : '펼치기') + '</span></button>' + (mapOpen ? '<div class="tm-mapblk"><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>' : '') + '</div></div></div>';
     }
     let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 오른쪽에서 고칩니다. 구장 사이 거리표는 표 아래에 있습니다.</span></div>';

@@ -47,7 +47,7 @@
 
       // ── 고치기
       click('.pf-rv[data-k="opening"] [data-act="pf-cal"]'); flush();
-      ok('개막일 고치기 → 달력에서 개막일 고르기가 열림', P.calEdit && S.cal.pickOpen && !!q('[data-act="cal-open"][data-date="2027-04-03"]'));
+      ok('개막일 고치기 → 그 줄 안에서 개막일 고르기가 열림', P.inline === 'opening' && !P.calEdit && S.cal.pickOpen && !!q('[data-act="cal-open"][data-date="2027-04-03"]'));
       click('[data-act="cal-open"][data-date="2027-04-03"]'); flush();
       click('[data-act="pf-cal-done"]'); flush();
       ok('개막일 4/3 → 검토 줄·경기일·1차 편성 끝·직접 고침', st().settings.seasonStart === '2027-04-03' && st().settings.initialEnd === '2027-09-12' && S.gameDaysCheck().ok && ev('OPENING').date === '2027-04-03' && /직접 고침/.test(q('.pf-rv[data-k="opening"]').innerText));

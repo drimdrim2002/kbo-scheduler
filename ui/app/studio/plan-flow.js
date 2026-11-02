@@ -2,7 +2,7 @@
  * 편성 스튜디오 — 계획 흐름 (시안 ui-archive/plan-flow-concepts, 사용자 확정 2026-10-31)
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
- *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
+ *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
  *   2 운영 방침: 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) + 목표마다 허용 수준(가장 많은·적은 구단 격차) → settings.objective로 서버에 보낸다. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 이름 붙여 버전 저장. 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
@@ -19,7 +19,7 @@
   const { Score, Dates, CalendarGen } = KBO;
   const app = () => S.app;
   const G = S.g1;
-  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, customOrder: false, view25: 'compare', name: '' };
+  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, inline: null, calLive: false, customOrder: false, view25: 'compare', name: '' };
   const YEAR_NEW = 2027, YEAR_VIEW = 2025;
   const isRunning = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
   const num = (v, d) => Number(v).toLocaleString('ko-KR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
@@ -392,7 +392,7 @@
     return '<div class="pf-page">' +
       '<div class="pf-hero"><div class="big">−' + pct('total') + '<small>%</small></div><div><h2>' + (allBetter ? '평가 기준 4개 모두 KBO보다 나음' : 'KBO 실제와 비교') + '</h2><p>같은 2025 조건에서 비교 · 전체 이동 거리 ' + goalShow(kbo, 'total') + 'km → ' + goalShow(ours, 'total') + 'km · 구단 간 이동 거리 차이 ' + goalShow(kbo, 'distance') + 'km → ' + goalShow(ours, 'distance') + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="pf-tag got">저장된 결과 · ' + esc(ours.savedAt) + ' 실행</span></div></div>' +
       '<div class="pf-tiles">' + ids.map(card).join('') + '</div>' +
-      '<div class="pf-cols" style="grid-template-columns:1.2fr 1fr">' +
+      '<div class="pf-cols pf-fill" style="grid-template-columns:1.2fr 1fr">' +
       '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 수준</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
       '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 이 엔진</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈(점)</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
       names.map((t) => { const a = kbo.teams[t], b = ours.teams[t]; return '<tr><td><b>' + esc(t) + '</b></td><td>' + a.moves + ' → <b>' + b.moves + '</b></td><td>' + a.hol + ' → <b>' + b.hol + '</b></td><td>' + a.wk + ' → ' + b.wk + '</td><td>' + a.away + ' → ' + b.away + '</td></tr>'; }).join('') +
@@ -424,6 +424,14 @@
     }[key]();
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
+  // 2단계 줄의 「수정」은 화면을 옮기지 않고 그 줄 안에 입력칸을 펼친다(season-calendar.js S.seasonInlineEditor)
+  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', rules: 'rules' };
+  const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + (k === 'rules' ? S.homeTotalsEditor() : S.seasonInlineEditor(INLINE[k])) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
+  /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
+  const seasonCal = () => {
+    const btn = '<button class="btn sm pf-cal-btn' + (P.calLive ? ' primary' : '') + '" data-act="pf-cal-live">' + icon(P.calLive ? 'check' : 'edit') + (P.calLive ? '고치기 끝' : '달력 고치기') + '</button>';
+    return P.calLive ? S.seasonStripLive(btn) : S.seasonStripView(false, btn);
+  };
   function rv(r0, cur) {
     const note = r0.key ? editedNote(r0.key) : null;
     const r = note ? Object.assign({}, r0, { tag: 'mine', why: note }) : r0;
@@ -433,27 +441,30 @@
     const acts = r.key
       ? (ok ? '<span class="pf-tag ok">✓ 수락</span><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>' : '<button class="btn sm pf-okb" data-act="pf-ok" data-k="' + r.key + '">✓ 수락</button><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>')
       : '<button class="btn sm" data-act="pf-cal"' + to + '>' + (r.editText || '수정') + '</button>';
-    return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
-      (r.why || r.more ? '<div class="why">' + esc(r.why || '') + (r.more || '') + '</div>' : '') + (r.warn || '') + '</div><div class="acts">' + acts + '</div></div>';
+    return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + (inlineEd(r) ? ' open' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
+      (r.why || r.more ? '<div class="why">' + esc(r.why || '') + (r.more || '') + '</div>' : '') + (r.warn || '') + '</div><div class="acts">' + acts + '</div>' + inlineEd(r) + '</div>';
   }
   const firstOpen = (n) => (KEYS[n] || []).find((k) => !review()[k]);
   function renderSeasonReview() {
     const st = app().state, s = st.settings, gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), cur = firstOpen(2);
     const star = (s.blackouts || []).find((b) => /올스타/.test(b.label || ''));
     const four = st.calendar.find((c) => c.consecutive === 4);
+    const ht = s.homeTotals, more = (act) => ' <button class="pf-link" data-act="' + act + '">자세히 ›</button>';
     const rows = [
       { t: '쉬는 요일', to: 'rest', tag: 'got', v: esc(s.restWeekdays.map((w) => '일월화수목금토'[w] + '요일').join('·') || '없음') },
       { key: 'opening', t: '개막일', tag: 'est', v: fmt.date(s.seasonStart) + ' · 개막 2연전', ...BASIS.opening },
       { key: 'allStar', t: '올스타 휴식기·후반기 첫 4연전', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', v2: '후반기 첫 4연전 ' + (four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음'), ...BASIS.allStar },
-      { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd }
-    ];
+      { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd },
+      // 홈 경기 수: 날짜에 붙는 값이 아니라 시즌 전체의 편성 조건이라 2단계에 둔다(수정은 4 확인의 시리즈 규칙)
+      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
+    ].filter(Boolean);
     const sum = (KEYS[2].filter((k) => review()[k]).length);
-    return '<div class="pf-page"><div class="pf-cols" style="grid-template-columns:minmax(0,1fr) 340px">' +
-      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums">' +
+    return '<div class="pf-page">' +
+      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
+      '<div class="pf-sec pf-fill"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums row line">' +
       '<div class="pf-num"><div class="k">경기일</div><div class="v">' + gd.have + '<small> / ' + gd.need + '일</small></div></div><div class="pf-num"><div class="k">연전 묶음</div><div class="v">' + st.calendar.length + '<small>개</small></div><div class="s">3연전 ' + (h[3] || 0) + ' · 2연전 ' + (h[2] || 0) + ' · 4연전 ' + (h[4] || 0) + '</div></div>' +
-      '<div class="pf-num" style="grid-column:1/3"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' +
-      '</div></div></div>';
+      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' + seasonCal() +
+      '</div></div>';
   }
   function renderHomeReview() {
     const st = app().state, s = st.settings, cur = firstOpen(3);
@@ -461,7 +472,6 @@
     const hol = s.holidays.filter((h) => h.date >= s.seasonStart && h.date <= s.initialEnd);
     const hol2 = s.holidays.filter((h) => h.date > s.initialEnd && h.date <= (s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31'));
     const holLine = (a) => a.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · ');
-    const ht = s.homeTotals;
     const stad = new Map(st.teams.map((t) => [t.name, t.stadium]));
     // 홈 구단마다 카드 하나. 상대를 정하지 않은 구단은 엔진이 상대를 정한다
     const homeCards = (e) => {
@@ -475,18 +485,18 @@
       { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart), v2: homeCards(op), more: more('pf-basis'), ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05'), v2: homeCards(ch), ...BASIS.childrenHome, more: more('pf-basis-children') },
       { t: '공휴일·가중치', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: (s.seasonStart.startsWith('2027') ? '정부 공휴일 달력 기준입니다(8/16 광복절 대체공휴일은 뺐습니다). ' : '정부 공휴일 달력 그대로입니다. ') + '휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
-      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page">' +
-      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' + '</div>';
+      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
+      '<div class="pf-sec pf-fill"><h3>시즌 달력</h3><p class="pf-d">공휴일과 홈 구장을 지정한 날이 시즌 어디쯤인지 봅니다.</p>' + S.seasonStripView(true) + '</div></div>';
   }
   const origStep1 = S.guideUI.renderStep1;
   S.guideUI.renderStep1 = function (R) {
     if (G.mode === 'all') return null;
     if (G.mode === 'year' || G.mode === 'resume') return renderStart();
     if ((G.fs === 2 || G.fs === 3) && !P.calEdit) return S.flowWrap(G.fs === 2 ? renderSeasonReview() : renderHomeReview(), 'pf-rvw');
-    if (G.fs === 4) return S.flowWrap(S.renderCheck().replace(/다음: [①-④]? ?검토·실행/g, '다음: 운영 방침·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
+    if (G.fs === 4) return S.flowWrap(S.renderCheck({ grid: true, noNext: true, below: '<div class="ck-cal"><h3>시즌 달력</h3><p class="pf-d">2·3단계에서 정한 날이 시즌 어디쯤인지 봅니다. 고치려면 위 줄의 「고치기」를 누릅니다.</p>' + S.seasonStripView(true) + '</div>' }).replace(/다음: [①-④]? ?검토·실행/g, '다음: 운영 방침·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
     if (G.fs === 1 && inPlan()) {
       const SH = KBO.Preset2027.SHARED_STADIUM;
       const changed = app().state.teams.some((t) => t.stadium === SH.name);
@@ -651,7 +661,7 @@
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
     return '<div class="pf-page">' + explainLink() + '<div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
-      tiles(data, ob) + '<div class="pf-cols" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 수준 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
+      tiles(data, ob) + '<div class="pf-cols pf-fill" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 수준 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
       '<div class="pf-sec"><h3>반드시 지킴</h3><p class="pf-d">지금 결과 기준</p>' + rulesList(ex) + '</div></div></div>';
   }
   const origStep2 = S.steps[2].render;
@@ -703,7 +713,7 @@
       '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => { const a = vals(data, k); return '<td><b>' + num(Math.max(...a) - Math.min(...a), d) + '</b></td>'; }).join('') + '</tr></tfoot></table>' +
       '<div class="pf-leg"><span><i style="background:rgba(232,140,40,.8)"></i>평균보다 많음</span><span><i style="background:rgba(31,95,214,.5)"></i>평균보다 적음</span></div>' +
       '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙이 있습니다') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
-    return '<div class="pf-dash">' + panel(ob.order[0], 0, body(ob.order[0])) + panel(ob.order[1], 1, body(ob.order[1])) +
+    return '<div class="pf-dash pf-fill">' + panel(ob.order[0], 0, body(ob.order[0])) + panel(ob.order[1], 1, body(ob.order[1])) +
       '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">색 = 리그 평균과 차이</p>' + heatT + '</div>' + panel(ob.order[2], 2, body(ob.order[2])) + panel(ob.order[3], 3, body(ob.order[3])) + '</div>';
   }
   /** 지금 연결이 아니라 그 결과를 낸 엔진으로 본다(서버에서 낸 버전을 서버 없이 불러와도 시험 엔진 결과가 아니다). 기록이 없는 옛 결과는 지금 연결로 */
@@ -802,7 +812,7 @@
         return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
           '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => shortName(id) + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
           '<div class="acts">' + (isFinal ? '<button class="btn sm" data-act="pf-final-off">확정 취소</button>' : y === YEAR_NEW && canFinal(v) ? '<button class="btn sm primary" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '') + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>')) + '</div></div>'; };
-      const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
+      const list = '<div class="pf-sec pf-vers"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
         '<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button><span class="xs muted">저장한 버전은 이 브라우저에 있습니다(나중에 온라인으로 옮김).</span></div></div>';
       const [a, b] = P.cmp.map((id) => all.find((v) => v.id === id));
       if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
@@ -819,7 +829,7 @@
       const tab = P.cmpTab, tg = GOALS[tab];
       const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
       const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
-      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols" style="grid-template-columns:400px minmax(0,1fr)">' + list +
+      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols pf-fill" style="grid-template-columns:400px minmax(0,1fr)">' + list +
         '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>평가 기준마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>평가 기준</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
         ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '격차 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
@@ -875,6 +885,10 @@
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
     return null;
   };
+  // 창이 노트북(1440×790)보다 크면 본문을 통째로 키운다(최대 1.25배, 높이 830마다 1배). 노트북 배치가 그대로 커져 줄 사이가 벌어지는 대신 글자·막대가 커진다
+  const fitZoom = () => document.documentElement.style.setProperty('--pf-zoom', Math.max(1, Math.min(1.25, window.innerWidth / 1440, window.innerHeight / 830)).toFixed(3));
+  fitZoom();
+  window.addEventListener('resize', fitZoom);
   /** body에 표시 클래스(2025 보기 전용이면 단계 띠·상태를 숨김) */
   P.beforeRender = function () {
     document.body.classList.add('pf');
@@ -949,6 +963,7 @@
     'pf-ok': (el) => confirmKey(el.dataset.k),
     'pf-cal': (el) => {
       const to = el.dataset.to, st = app().state, C = S.cal;
+      if (INLINE[to] && G.fs === 2) { P.inline = P.inline === to ? null : to; if (to !== 'rules') { C.edit = { initialEnd: 'initialEnd', allStar: 'allstar', rest: 'rest' }[to] || null; C.pickOpen = to === 'opening'; } S.render(); return; } // 2단계: 줄 안에서 펼치기(다시 누르면 접기)
       if (to === 'rules') { S.flowUI.edit = 'rules'; go1(4); return; } // 시리즈 규칙은 4 확인에서 고친다
       const ev = (t) => (st.events || []).find((e) => e.type === t);
       C.edit = { initialEnd: 'initialEnd', allStar: 'allstar', rest: 'rest' }[to] || null;
@@ -958,7 +973,10 @@
       P.calEdit = true;
       S.render();
     },
-    'pf-cal-done': () => { P.calEdit = false; S.render(); },
+    'pf-cal-done': () => { P.calEdit = false; P.inline = null; S.cal.edit = null; S.cal.pickOpen = false; S.render(); },
+    'pf-cal-live': () => { P.calLive = !P.calLive; if (!P.calLive) S.cal.slotAt = null; S.render(); },
+    // 3단계 아래 달력에서 날을 누르면 그 날을 고른 수정 화면으로
+    'pf-cal-day': (el) => { S.cal.day = +el.dataset.d; S.cal.edit = null; S.cal.pickOpen = false; P.calEdit = true; S.render(); },
     'pf-basis': () => S.go({ modal: 'pfBasis' }),
     'pf-basis-children': () => S.go({ modal: 'pfBasisChildren' }),
     'pf-basis-homes': () => S.go({ modal: 'pfBasisHomes' }),

@@ -10,8 +10,25 @@ body.pf .cal-grid { grid-template-rows: none !important; grid-auto-rows: minmax(
 body.pf .eng:not(.run):not(.pause) { display: none; } /* 실행 중이 아닐 때 「자동 편성 대기」를 띄우지 않는다 */
 body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], body.pf-home .tb-year { display: none; }
 .pf-ro-tag { font-size: 11.5px; font-weight: 700; color: #FFE7A3; border: 1px solid #FFE7A3; border-radius: 10px; padding: 1px 9px; }
-.pf-page { flex: 1; min-height: 0; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--bg); }
+.pf-page { flex: 1; min-height: 0; overflow: auto; padding: clamp(10px, 1.6vh, 20px) 18px; display: flex; flex-direction: column; gap: clamp(8px, 1.3vh, 16px); background: var(--bg); }
 .pf-page > * { flex: none; }
+/* 큰 창에서 본문을 통째로 키운다(--pf-zoom은 plan-flow.js가 창 크기로 정한다) */
+.pf-page, .pf-start, body.pf .ck-wrap { zoom: var(--pf-zoom, 1); }
+.pf-page.pf-spread { zoom: 1; } /* 운영 방침은 큰 창 높이 채움을 따로 맞춰 두어(claude/operator-policy) 키우지 않는다 */
+/* 창 높이 채우기: 큰 칸(.pf-fill)이 남는 높이를 받고, 안의 막대·표·줄이 그 높이를 나눠 가진다.
+   간격은 창 높이(vh)에 따라 줄고 늘어 낮은 창에서는 스크롤 없이 들어가게 한다. 내용보다 작아지지는 않는다(그때는 스크롤) */
+.pf-page > .pf-fill { flex: 1 0 auto; }
+.pf-fill.pf-cols { align-items: stretch; }
+.pf-fill.pf-sec, .pf-fill > .pf-sec, .pf-fill > div > .pf-sec { display: flex; flex-direction: column; }
+.pf-fill > div > .pf-sec:last-child { flex: 1 0 auto; }
+.pf-fill .pf-sec > .pf-tb, .pf-fill .pf-sec > table, .pf-fill .pf-sec > .pf-rules { flex: 1 0 auto; }
+.pf-fill .pf-tb > .pf-rw, .pf-fill .pf-rules > .pf-rl { flex: 1 0 auto; }
+.pf-fill .pf-rw { line-height: 1.25; }
+.pf-fill .pf-sec > .pf-big3 { flex: 1 0 auto; justify-content: center; gap: clamp(8px, 2vh, 22px); }
+.pf-fill .pf-rv { flex: 1 0 auto; }
+.pf-fill > .pf-vers { contain: size; overflow: auto; }
+/* 결과 없음 같은 안내 하나뿐인 화면: 안내 칸이 창을 채우고 글은 가운데 */
+.pf-page > .pf-sec:only-child:not(.pf-fill) { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 /* 실행 중 화면 오른쪽 위 「운영 방침 설명하기」 */
 .pf-toprow { display: flex; justify-content: flex-end; margin: -4px 0 -6px; }
 .pf-toprow .pf-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; }
@@ -35,10 +52,10 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .xh-t td b { color: var(--navy); }
 .pf-grow { flex: 1 0 auto; }
 .pf-cols { display: grid; gap: 12px; align-items: start; }
-.pf-sec { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.pf-sec { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: clamp(10px, 1.5vh, 18px) 16px; min-width: 0; }
 .pf-sec > h3 { margin: 0; font-size: 15px; color: var(--navy); display: flex; align-items: center; gap: 8px; }
 .pf-sec > h3 .r { margin-left: auto; font-weight: 400; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
-.pf-d { margin: 2px 0 10px; color: var(--text-2); font-size: 12.5px; }
+.pf-d { margin: 2px 0 clamp(6px, 1vh, 12px); color: var(--text-2); font-size: 12.5px; }
 .pf-tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid; vertical-align: 1px; white-space: nowrap; }
 .pf-tag.est { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
 .pf-tag.got { color: var(--text-2); border-color: var(--line-2); background: var(--surface-2); }
@@ -52,24 +69,27 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-link { background: none; border: 0; padding: 0; color: var(--blue); cursor: pointer; font: inherit; }
 
 /* 처음 화면 */
-.pf-start { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: 16px; overflow: auto; }
-.pf-start h1 { margin: 0; font-size: 26px; color: var(--navy); letter-spacing: -.5px; }
+.pf-start { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: clamp(14px, 2.4vh, 28px); overflow: auto; }
+/* 처음 화면은 가운데에 두되, 창이 높으면 카드가 아래까지 차고(680px까지) 줄 간격·글자가 함께 커진다 */
+.pf-choices { flex: 1 0 auto; max-height: 680px; }
+.pf-ch ul { flex: 1 0 auto; } .pf-ch li { flex: 1 0 auto; max-height: 64px; } /* 줄이 다 커지면 남는 높이는 목록 밑으로, 아래 안내는 카드 밑에 붙는다 */
+.pf-start h1 { margin: 0; font-size: clamp(24px, 3vh, 32px); color: var(--navy); letter-spacing: -.5px; }
 .pf-choices { display: grid; grid-template-columns: repeat(2, 540px); gap: 18px; align-items: stretch; }
-.pf-ch { background: #fff; border: 1px solid var(--line-2); border-radius: 12px; padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 24px rgba(10,30,60,.06); }
+.pf-ch { background: #fff; border: 1px solid var(--line-2); border-radius: 12px; padding: clamp(18px, 2.8vh, 30px) 24px clamp(16px, 2.6vh, 28px); display: flex; flex-direction: column; gap: clamp(10px, calc(10px + (100vh - 790px) * .022), 18px); box-shadow: 0 8px 24px rgba(10,30,60,.06); }
 .pf-ch h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; }
 .pf-ch .what { font-size: 14px; color: var(--text-2); margin: -6px 0 0; }
-.pf-yr { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.pf-yr { display: flex; align-items: center; gap: 16px; padding: clamp(12px, calc(14px + (100vh - 790px) * .056), 40px) 0; border-top: 1px solid var(--line); }
 .pf-yr .y { font-size: 28px; font-weight: 800; color: var(--navy); letter-spacing: -1px; line-height: 1; flex: none; }
 .pf-yr .what { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--text-3); }
 .pf-yr .what b { color: var(--navy); font-size: 14px; } .pf-yr .what b.good { color: var(--ok); }
 .pf-yr .acts { flex: none; display: flex; flex-direction: column; gap: 6px; } .pf-yr .acts .btn { height: 40px; font-size: 14px; justify-content: center; }
-.pf-ch ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.pf-ch li { display: flex; gap: 8px; font-size: 13px; padding: 7px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); align-items: center; }
+.pf-ch ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: clamp(6px, calc(6px + (100vh - 790px) * .017), 12px); }
+.pf-ch li { display: flex; gap: 8px; font-size: clamp(13px, 1.45vh, 15px); padding: clamp(7px, calc(7px + (100vh - 790px) * .034), 18px) 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); align-items: center; }
 .pf-ch li b { color: var(--navy); min-width: 134px; flex: none; }
 
 /* 값 검토 줄 */
-.pf-rv { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; }
-.pf-rv + .pf-rv { margin-top: 8px; }
+.pf-rv { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: clamp(6px, 1vh, 12px) 12px; background: #fff; }
+.pf-rv + .pf-rv { margin-top: clamp(5px, .8vh, 10px); }
 .pf-rv b.t { font-size: 14px; color: var(--navy); }
 .pf-rv .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
 .pf-rv .v2 { font-size: 12px; color: var(--text-2); margin-top: 1px; }
@@ -80,6 +100,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-chip { display: inline-block; background: var(--navy); color: #fff; border-radius: 12px; padding: 1px 9px; font-size: 12.5px; font-weight: 700; margin-right: 3px; }
 .btn.pf-okb { color: var(--ok); border-color: var(--ok-line); background: var(--ok-bg); font-weight: 700; }
 .pf-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pf-nums.row { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* 시즌 기간 검토 아래에 가로 한 줄 */
 .pf-num { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .pf-num .k { font-size: 12px; color: var(--text-2); font-weight: 600; }
 .pf-num .v { font-size: 20px; font-weight: 800; color: var(--navy); } .pf-num .v small { font-size: 12px; font-weight: 600; }
@@ -134,7 +155,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-mv { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: 1px; }
 .pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
 .pf-mv button:disabled { opacity: .3; cursor: default; }
-.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: clamp(5px, .8vh, 12px) 0; border-top: 1px solid var(--line); }
 .pf-sl:first-of-type { border-top: 0; }
 .pf-sl .k b { display: block; color: var(--navy); font-size: 14px; } .pf-sl .k small { color: var(--text-2); font-size: 11.5px; }
 /* 허용 수준: 문장 한 줄 안의 숫자 칸과 −·+ 단추. 그림·축·눈금·구단 점은 없다 */
@@ -177,7 +198,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-rl i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
 .pf-rl.bad i { background: var(--bad); }
 table.pf-t { width: 100%; border-collapse: collapse; font-size: 13px; }
-table.pf-t th, table.pf-t td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.pf-t th, table.pf-t td { padding: clamp(3px, .55vh, 9px) 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 table.pf-t th:first-child, table.pf-t td:first-child { text-align: left; }
 table.pf-t thead th { font-size: 12px; color: var(--text-3); font-weight: 600; background: var(--surface-2); }
 table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { color: var(--warn); font-weight: 700; }
@@ -186,7 +207,7 @@ table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { c
 .pf-save { display: flex; gap: 8px; align-items: center; }
 .pf-save input { flex: 1; border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
 .pf-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; gap: 10px; align-items: stretch; }
-.pf-dash .pf-sec { padding: 12px 14px; }
+.pf-dash .pf-sec { padding: clamp(8px, 1.3vh, 16px) 14px; }
 .pf-dash .pf-heat { grid-row: 1 / 3; grid-column: 3; }
 .pf-dash .pf-rw { font-size: 11px; } .pf-dash .pf-rw .tr { height: 12px; } .pf-dash .pf-rw .bar { top: 3px; height: 6px; }
 table.pf-h { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
@@ -211,10 +232,94 @@ table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff;
 
 /* 개막 2연전 대진 */
 .pf-open { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 6px 0 4px; }
-.pf-open .g { border: 1px solid var(--line, #dfe3e8); border-radius: 8px; padding: 8px 8px 7px; text-align: center; color: var(--text, inherit); }
+.pf-open .g { border: 1px solid var(--line, #dfe3e8); border-radius: 8px; padding: clamp(4px, .8vh, 10px) 8px; text-align: center; color: var(--text, inherit); }
 .pf-open .a { font-size: 13px; font-weight: 600; margin-top: 4px; }
 .pf-open .a.auto { font-weight: 400; opacity: .65; }
 .pf-open-none { font-size: 13px; opacity: .65; margin: 4px 0; }
 .pf-open .s { font-size: 11.5px; opacity: .65; margin-top: 2px; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
 .pf-years .pf-t th, .pf-years .pf-t td { text-align: left; }
 .pf-years .pf-t th:first-child, .pf-years .pf-t td:first-child { width: 96px; }
+
+/* 4 확인: 줄은 글 높이만큼 두 칸씩, 남는 높이는 아래 시즌 달력이 받는다 */
+body.pf .ck-wrap { flex-direction: column; align-items: center; justify-content: flex-start; padding: clamp(12px, 2.4vh, 28px) 20px; }
+body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; max-width: 1400px; padding-top: clamp(14px, 2vh, 24px); }
+.ck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.ck-grid > .ck-row { margin-top: 0; }
+.ck-cal { flex: 1 0 auto; display: flex; flex-direction: column; margin-top: clamp(10px, 1.6vh, 18px); }
+.ck-cal > h3 { margin: 0; font-size: 15px; color: var(--navy); }
+.ck-cal > .pf-d { margin: 2px 0 0; }
+
+/* 검토 화면 아래 보기 전용 시즌 달력(season-calendar.js S.seasonStripView): 달마다 한 줄, 남는 높이만큼 줄이 커진다 */
+.pf-cal { flex: 1 0 auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.pf-cal-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--text-2); }
+.pf-cal-leg span { display: inline-flex; align-items: center; gap: 5px; }
+.pf-cal-leg i.sd { display: inline-block; width: 16px; height: 13px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.pf-strip { flex: 1 0 auto; grid-auto-rows: minmax(20px, 1fr); gap: 3px; }
+.pf-strip .strip-row { grid-template-columns: 30px minmax(0, 1fr); align-items: stretch; }
+.pf-strip .strip-row .m { align-self: center; font-size: 12px; color: var(--text-2); }
+.pf-strip .sd { height: auto; min-height: 20px; font-size: 11px; place-items: center; background: #fff; color: var(--text-2); border-radius: 3px; }
+.pf-strip .sd.off { background: transparent; color: #C3C8D1; }
+.pf-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
+.pf-strip .sd.rest, .pf-cal-leg .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
+.pf-strip .sd.game, .pf-cal-leg .sd.game { background: #D3DFF5; box-shadow: none; color: var(--text); }
+.pf-strip .sd.game.we, .pf-cal-leg .sd.game.we { background: #A9C1EC; }
+.pf-strip .sd.sat { color: var(--blue); font-weight: 600; }
+.pf-strip .sd.sun, .pf-strip .sd.hol { color: var(--bad); font-weight: 600; }
+.pf-strip .sd.hol::after, .pf-cal-leg .sd.hol::after { top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }
+.pf-strip .sd.ss, .pf-cal-leg .sd.ss { box-shadow: inset 3px 0 0 var(--navy); }
+.pf-strip .sd .sl { position: absolute; left: 4px; bottom: 2px; font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--navy); white-space: nowrap; pointer-events: none; }
+.pf-strip .sd.as, .pf-cal-leg .sd.as { background: repeating-linear-gradient(135deg, #F3D9B5 0 3px, #FBEEDB 3px 6px); box-shadow: none; color: #6F4100; }
+.pf-strip .sd.op, .pf-cal-leg .sd.op { outline: 2px solid var(--ok); outline-offset: -2px; }
+.pf-strip .sd.end, .pf-cal-leg .sd.end { outline: 2px solid var(--warn); outline-offset: -2px; }
+.pf-strip .sd.ev, .pf-cal-leg .sd.ev { outline: 2px solid var(--navy); outline-offset: -2px; }
+/* 검토 줄을 두 줄씩 나란히 두어 아래 달력 자리를 만든다 */
+.pf-rv2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.pf-rv2 .pf-rv + .pf-rv { margin-top: 0; }
+/* 반영 결과 숫자를 한 줄로: 이름과 값을 나란히 */
+.pf-nums.line .pf-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 6px 12px; }
+.pf-nums.line .pf-num .v { font-size: 17px; }
+
+/* 줄 안에서 펼친 입력칸(2단계 「수정」) */
+.pf-rv-ed { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; margin-top: 4px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); }
+.pf-rv-ed .fl-ask { flex: 1 1 auto; margin: 0; border: 0; padding: 0; background: none; }
+.pf-rv-ed > .btn { margin-left: auto; }
+/* 아래 달력 고치기 */
+.pf-cal-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pf-cal-tip { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); }
+.pf-cal-tip b { color: var(--text); }
+.pf-cal.live { margin-top: 6px; }
+.pf-cal.live .sc-calbody { flex: 1 0 auto; display: flex; flex-direction: column; overflow: visible; padding: 0; }
+.pf-cal .sc-strip { flex: 1 0 auto; grid-auto-rows: minmax(20px, 1fr); }
+.pf-cal .sc-strip .sd { height: auto; min-height: 20px; padding-top: 0; place-items: center; font-size: 11px; }
+.pf-cal .sc-strip .sd .sl { display: none; } /* 칸이 작아 묶음 시작은 왼쪽 굵은 선으로만 */
+/* 3단계 아래 달력: 날을 누르면 그 날 수정 */
+.pf-strip .sd[data-act] { cursor: pointer; }
+.pf-strip .sd[data-act]:hover { box-shadow: 0 0 0 2px var(--blue); z-index: 1; }
+.pf-rv2 .pf-rv.open { grid-column: 1 / -1; } /* 펼친 줄은 가로 한 줄을 다 쓴다 */
+.pf-rv2 > .pf-rv:last-child:nth-child(odd) { grid-column: 1 / -1; } /* 줄 수가 홀수면 마지막 줄은 가로 한 줄 */
+/* 달력 높이를 남는 자리에 맞춘다: 칸은 14~28px, 넘치는 높이는 쓰지 않는다. 「달력 고치기」는 범례 줄 끝에 */
+.pf-page > .pf-fill:has(.pf-cal) { flex: 1 1 0; }
+.pf-cal { flex: 1 1 0; }
+/* 칸 높이는 창 높이에 비례(--cal-row: 노트북 20px · 큰 모니터 약 25px · 최대 30px). 남는 자리가 있으면 1.3배까지 커진다.
+   contain: size — 달력 자체 높이로 칸을 키우지 않고 남은 자리를 기준으로 정한다 */
+.pf-cal { --cal-row: clamp(20px, 2.2vh, 30px); }
+.pf-strip, .pf-cal .sc-strip { flex: 1 1 0; contain: size; min-height: calc(var(--m, 7) * (var(--cal-row) + 3px)); grid-auto-rows: minmax(var(--cal-row), calc(var(--cal-row) * 1.3)); align-content: start; }
+.pf-strip .sd, .pf-cal .sc-strip .sd { min-height: var(--cal-row); font-size: 11px; }
+.pf-cal-leg .pf-cal-btn { margin-left: auto; }
+.pf-cal.live .pf-cal-tip { margin-left: 12px; }
+
+/* 3단계(주요 이벤트 일정) 달력: 이벤트 날은 칸 안에 글자 · 공휴일은 빨간 테두리와 이름 · 토(파랑)·일(빨강)은 칸 아래 띠 */
+.pf-strip.f3 { --cal-row: clamp(34px, 3.4vh, 42px); } /* 숫자 + 두 줄 글자 */
+.pf-strip.f3 .sd.ss { box-shadow: none; }
+.pf-strip.f3 .sd.sat, .pf-cal-leg .sd.sat { box-shadow: inset 0 -3px 0 var(--blue); }
+.pf-strip.f3 .sd.sun, .pf-cal-leg .sd.sun { box-shadow: inset 0 -3px 0 var(--bad); }
+.pf-strip.f3 .sd.hol::after { display: none; }
+.pf-strip.f3 .sd.lab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.05; padding: 0 1px; overflow: hidden; }
+.pf-strip.f3 .sd.lab b { font-size: 10.5px; }
+.pf-strip.f3 .sd .lb { font-style: normal; font-size: 9px; font-weight: 700; line-height: 1.1; text-align: center; white-space: nowrap; max-width: 100%; overflow: hidden; border-radius: 3px; padding: 0 2px; color: #fff; background: var(--ev); }
+.pf-strip.f3 .sd.lab { outline: 2px solid var(--ev); outline-offset: -2px; }
+.pf-strip.f3 .sd.e-hol { --ev: var(--bad); background: #FDECEC; }
+.pf-strip.f3 .sd.e-hol .lb { color: var(--bad); background: none; padding: 0; }
+.e-op { --ev: #13703F; } .e-ch { --ev: #D9480F; } .e-as { --ev: #7048E8; } .e-4 { --ev: #1F5FD6; } .e-end { --ev: #8D5A00; } .e-hol { --ev: var(--bad); }
+.pf-cal-leg i.sd.lab { background: var(--ev); box-shadow: none; }
+.pf-cal-leg i.sd.e-hol { background: #FDECEC; box-shadow: inset 0 0 0 2px var(--bad); }
