@@ -372,7 +372,8 @@
     const a = s.seasonStart ? dn(s.seasonStart) : null, e1 = s.initialEnd ? dn(s.initialEnd) : null, e2 = s.seasonEnd ? dn(s.seasonEnd) : null;
     const selSlot = !view && fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
     const star = view ? (s.blackouts || []).find((b) => /올스타/.test(b.label || '')) : null, sa = star ? dn(star.start) : null, sb = star ? dn(star.end) : null;
-    let h = view ? '<div class="strip pf-strip" role="img" aria-label="' + y + ' 시즌 달력">' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력">';
+    const mo = ' style="--m:' + (m1 - m0 + 1) + '"'; // 달 수(검토 화면 달력의 최소 높이)
+    let h = view ? '<div class="strip pf-strip" role="img" aria-label="' + y + ' 시즌 달력"' + mo + '>' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력"' + mo + '>';
     for (let mo = m0; mo <= m1; mo++) {
       h += '<div class="strip-row" role="row"><span class="m">' + mo + '월</span><div class="strip-days">';
       for (let d = 1; d <= 31; d++) {
@@ -444,9 +445,9 @@
       S.calHomeBox(d, b));
   }
   /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 공휴일·홈 구장 단계(홈 구장 지정일 표시) */
-  S.seasonStripView = function (f3) {
+  S.seasonStripView = function (f3, tail) {
     const legend = [['game', '경기일'], ['game we', '주말 경기'], ['game ss', '연전 묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일']].concat(f3 ? [['ev', '홈 구장 지정']] : [['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']]);
-    return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + '</div>' + calendarStrip(true) + '</div>';
+    return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + (tail || '') + '</div>' + calendarStrip(true) + '</div>';
   };
   /** 검토 화면(plan-flow.js) 줄 안에서 펼치는 입력칸. key: opening · rest · allstar · initialEnd */
   S.seasonInlineEditor = function (key) {
@@ -454,11 +455,11 @@
     return autoRows(key);
   };
   /** 검토 화면 아래 달력에서 바로 고칠 때: 수정 화면과 같은 달력(끌면 묶음, 묶음을 누르면 바꾸기·나누기·지우기) */
-  S.seasonStripLive = function () {
+  S.seasonStripLive = function (tail) {
     const legend = [['game', '경기일'], ['game we', '주말 경기'], ['game ss', '연전 묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일']];
     S.afterRender(placePopover);
     return '<div class="pf-cal live"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') +
-      '<span class="pf-cal-tip">' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음 · 묶음을 <b>누르면</b> 바꾸기·나누기·지우기<span id="scDragHint" class="sc-drag-hint"></span></span></div>' +
+      '<span class="pf-cal-tip">' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음 · 묶음을 <b>누르면</b> 바꾸기·나누기·지우기<span id="scDragHint" class="sc-drag-hint"></span></span>' + (tail || '') + '</div>' +
       '<div class="sc-calbody" id="scCal">' + calendarStrip() + popover() + '</div></div>';
   };
   /** step-data.js의 R.calendar — ① 2·3단계(같은 달력) */

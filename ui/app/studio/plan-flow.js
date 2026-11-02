@@ -425,8 +425,10 @@
   const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd' };
   const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + S.seasonInlineEditor(INLINE[k]) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
   /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
-  const seasonCal = () => '<div class="pf-cal-bar"><button class="btn sm' + (P.calLive ? ' primary' : '') + '" data-act="pf-cal-live">' + icon(P.calLive ? 'check' : 'edit') + (P.calLive ? '고치기 끝' : '달력 고치기') + '</button>' +
-    (P.calLive ? '<span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' : '<span class="muted small">연전 묶음을 달력에서 바로 고칩니다</span>') + '</div>' + (P.calLive ? S.seasonStripLive() : S.seasonStripView());
+  const seasonCal = () => {
+    const btn = '<button class="btn sm pf-cal-btn' + (P.calLive ? ' primary' : '') + '" data-act="pf-cal-live">' + icon(P.calLive ? 'check' : 'edit') + (P.calLive ? '고치기 끝' : '달력 고치기') + '</button>';
+    return P.calLive ? S.seasonStripLive(btn) : S.seasonStripView(false, btn);
+  };
   function rv(r0, cur) {
     const note = r0.key ? editedNote(r0.key) : null;
     const r = note ? Object.assign({}, r0, { tag: 'mine', why: note }) : r0;

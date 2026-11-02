@@ -259,3 +259,12 @@ body.pf .ck-card > .ck-row { flex: 1 0 auto; }
 .pf-strip .sd[data-act]:hover { box-shadow: 0 0 0 2px var(--blue); z-index: 1; }
 .pf-rv2 .pf-rv.open { grid-column: 1 / -1; } /* 펼친 줄은 가로 한 줄을 다 쓴다 */
 .pf-rv2 > .pf-rv:last-child:nth-child(odd) { grid-column: 1 / -1; } /* 줄 수가 홀수면 마지막 줄은 가로 한 줄 */
+/* 달력 높이를 남는 자리에 맞춘다: 칸은 14~28px, 넘치는 높이는 쓰지 않는다. 「달력 고치기」는 범례 줄 끝에 */
+.pf-page > .pf-fill:has(.pf-cal) { flex: 1 1 0; }
+.pf-cal { flex: 1 1 0; }
+/* contain: size — 달력 자체 높이로 칸을 키우지 않고, 남은 자리(최소 달마다 17px)에 맞춰 칸 높이를 정한다 */
+.pf-strip, .pf-cal .sc-strip { flex: 1 1 0; contain: size; min-height: calc(var(--m, 7) * 17px); grid-auto-rows: minmax(14px, 28px); align-content: start; }
+.pf-strip .sd, .pf-cal .sc-strip .sd { min-height: 14px; font-size: 10.5px; }
+.pf-cal-leg .pf-cal-btn { margin-left: auto; }
+.pf-cal.live .pf-cal-tip { margin-left: 12px; }
+
