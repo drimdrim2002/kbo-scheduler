@@ -19,7 +19,7 @@
   const { Score, Dates, CalendarGen } = KBO;
   const app = () => S.app;
   const G = S.g1;
-  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, customOrder: false, view25: 'compare', name: '' };
+  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, inline: null, calLive: false, customOrder: false, view25: 'compare', name: '' };
   const YEAR_NEW = 2027, YEAR_VIEW = 2025;
   const isRunning = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
   const num = (v, d) => Number(v).toLocaleString('ko-KR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
@@ -421,6 +421,12 @@
     }[key]();
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
+  // 2단계 줄의 「수정」은 화면을 옮기지 않고 그 줄 안에 입력칸을 펼친다(season-calendar.js S.seasonInlineEditor)
+  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd' };
+  const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + S.seasonInlineEditor(INLINE[k]) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
+  /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
+  const seasonCal = () => '<div class="pf-cal-bar"><button class="btn sm' + (P.calLive ? ' primary' : '') + '" data-act="pf-cal-live">' + icon(P.calLive ? 'check' : 'edit') + (P.calLive ? '고치기 끝' : '달력 고치기') + '</button>' +
+    (P.calLive ? '<span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' : '<span class="muted small">연전 묶음을 달력에서 바로 고칩니다</span>') + '</div>' + (P.calLive ? S.seasonStripLive() : S.seasonStripView());
   function rv(r0, cur) {
     const note = r0.key ? editedNote(r0.key) : null;
     const r = note ? Object.assign({}, r0, { tag: 'mine', why: note }) : r0;
@@ -430,8 +436,8 @@
     const acts = r.key
       ? (ok ? '<span class="pf-tag ok">✓ 수락</span><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>' : '<button class="btn sm pf-okb" data-act="pf-ok" data-k="' + r.key + '">✓ 수락</button><button class="btn sm" data-act="pf-cal"' + to + '>수정</button>')
       : '<button class="btn sm" data-act="pf-cal"' + to + '>' + (r.editText || '수정') + '</button>';
-    return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
-      (r.why || r.more ? '<div class="why">' + esc(r.why || '') + (r.more || '') + '</div>' : '') + (r.warn || '') + '</div><div class="acts">' + acts + '</div></div>';
+    return '<div class="pf-rv' + (ok ? ' ok' : cur ? ' cur' : '') + (inlineEd(r) ? ' open' : '') + '"' + (r.key ? ' data-k="' + r.key + '"' : '') + '><div><b class="t">' + esc(r.t) + '</b> ' + tag + '<div class="v">' + r.v + '</div>' + (r.v2 ? '<div class="v2">' + r.v2 + '</div>' : '') +
+      (r.why || r.more ? '<div class="why">' + esc(r.why || '') + (r.more || '') + '</div>' : '') + (r.warn || '') + '</div><div class="acts">' + acts + '</div>' + inlineEd(r) + '</div>';
   }
   const firstOpen = (n) => (KEYS[n] || []).find((k) => !review()[k]);
   function renderSeasonReview() {
@@ -449,7 +455,7 @@
       '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
       '<div class="pf-sec pf-fill"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums row line">' +
       '<div class="pf-num"><div class="k">경기일</div><div class="v">' + gd.have + '<small> / ' + gd.need + '일</small></div></div><div class="pf-num"><div class="k">연전 묶음</div><div class="v">' + st.calendar.length + '<small>개</small></div><div class="s">3연전 ' + (h[3] || 0) + ' · 2연전 ' + (h[2] || 0) + ' · 4연전 ' + (h[4] || 0) + '</div></div>' +
-      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' + S.seasonStripView() +
+      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' + seasonCal() +
       '</div></div>';
   }
   function renderHomeReview() {
@@ -885,12 +891,16 @@
       const ev = (t) => (st.events || []).find((e) => e.type === t);
       C.edit = { initialEnd: 'initialEnd', allStar: 'allstar', rest: 'rest' }[to] || null;
       C.pickOpen = to === 'opening';
+      if (INLINE[to] && G.fs === 2) { P.inline = P.inline === to ? null : to; S.render(); return; } // 줄 안에서 펼치기(다시 누르면 접기)
       const e = to === 'openingHome' ? ev('OPENING') : to === 'childrenHome' ? ev('CHILDREN') : null;
       if (e) C.day = Dates.dayNum(e.date);
       P.calEdit = true;
       S.render();
     },
-    'pf-cal-done': () => { P.calEdit = false; S.render(); },
+    'pf-cal-done': () => { P.calEdit = false; P.inline = null; S.cal.edit = null; S.cal.pickOpen = false; S.render(); },
+    'pf-cal-live': () => { P.calLive = !P.calLive; if (!P.calLive) S.cal.slotAt = null; S.render(); },
+    // 3단계 아래 달력에서 날을 누르면 그 날을 고른 수정 화면으로
+    'pf-cal-day': (el) => { S.cal.day = +el.dataset.d; S.cal.edit = null; S.cal.pickOpen = false; P.calEdit = true; S.render(); },
     'pf-basis': () => S.go({ modal: 'pfBasis' }),
     'pf-basis-children': () => S.go({ modal: 'pfBasisChildren' }),
     'pf-basis-homes': () => S.go({ modal: 'pfBasisHomes' }),
