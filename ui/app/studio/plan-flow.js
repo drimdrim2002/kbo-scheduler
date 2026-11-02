@@ -1,9 +1,9 @@
 /*
  * 편성 스튜디오 — 계획 흐름 (시안 ui-archive/plan-flow-concepts, 사용자 확정 2026-10-31)
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
- *  단계 띠 4칸: 값 입력·검증 → 엔진 옵션·실행 → 현재 결과 분석 → 실행 결과 비교.
+ *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 공휴일·홈 구장 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
- *   2 엔진 옵션: 추천 순서 카드 + 허용 차이(가장 많은·적은 구단 차이) → settings.objective로 서버에 보낸다.
+ *   2 운영 방침: 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) + 목표마다 허용 수준(가장 많은·적은 구단 격차) → settings.objective로 서버에 보낸다. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 이름 붙여 버전 저장. 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
@@ -26,17 +26,20 @@
 
   // ───────── 평가 기준 ─────────
   const GOALS = {
-    moves: { name: '이동 횟수 균형', desc: '구단마다 다른 도시로 옮겨 가는 횟수를 비슷하게', unit: '회', metric: 'moves', gap: 'moves', tol: 'moveGap', d: 0 },
-    distance: { name: '이동 거리 균형', desc: '구단마다 시즌 동안 이동하는 거리를 비슷하게', unit: 'km', metric: 'km', gap: 'distanceKm', tol: 'distanceGapKm', d: 1 },
-    holiday: { name: '주말·공휴일 홈 균형', desc: '주말 하루 1점 · 공휴일 2점 · 어린이날 3점', unit: '점', metric: 'hol', gap: 'holiday', tol: 'holidayGap', d: 0 },
-    total: { name: '전체 이동 거리', desc: '10구단 이동 거리를 모두 더한 값', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
+    moves: { name: '이동 횟수 격차 최소화', desc: '구단마다 다른 도시로 옮겨 가는 횟수를 비슷하게', unit: '회', metric: 'moves', gap: 'moves', tol: 'moveGap', d: 0 },
+    distance: { name: '이동 거리 격차 최소화', desc: '구단마다 시즌 동안 이동하는 거리를 비슷하게', unit: 'km', metric: 'km', gap: 'distanceKm', tol: 'distanceGapKm', d: 1 },
+    holiday: { name: '주말·공휴일 홈 격차 최소화', desc: '주말 하루 1점 · 공휴일 2점 · 어린이날 3점', unit: '점', metric: 'hol', gap: 'holiday', tol: 'holidayGap', d: 0 },
+    total: { name: '전체 이동 거리 최소화', desc: '10구단 이동 거리를 모두 더한 값', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
   };
   const DEFAULT_OBJECTIVE = { order: ['moves', 'distance', 'holiday', 'total'], moveGap: 4, distanceGapKm: 600, holidayGap: 3 };
+  // 격차는 두 가지다: 이동 횟수·거리의 격차와 주말·공휴일 홈의 격차. 방침은 이 둘 사이의 균형이고, 전체 이동 거리는 언제나 마지막 순위다(사용자 결정 2026-11-02).
+  // 카드 이름은 어느 격차를 먼저 줄이는지로 읽힌다. 이름의 「균형·균등·공평」은 쓰지 않는다(사용자 결정 2026-11-02: 수치의 격차다). 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
   const ORDERS = [
-    { id: 'balance', name: '균형 먼저 (기본)', desc: '구단 사이 공평함을 가장 먼저', order: ['moves', 'distance', 'holiday', 'total'] },
-    { id: 'distance', name: '거리 먼저', desc: '리그 전체 이동을 가장 줄이고, 균형은 그다음', order: ['total', 'distance', 'moves', 'holiday'] },
-    { id: 'holiday', name: '주말·공휴일 먼저', desc: '흥행 날짜의 홈 경기를 고르게 나누는 것이 먼저', order: ['holiday', 'moves', 'distance', 'total'] }
+    { id: 'balance', name: '이동 격차 우선 (기본)', desc: '이동 횟수·거리의 격차를 먼저 줄임', keep: '구단 사이 이동 횟수·거리 격차를 좁힘', give: '주말·공휴일 홈 격차가 벌어질 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
+    { id: 'holiday', name: '주말·공휴일 격차 우선', desc: '주말·공휴일 홈의 격차를 먼저 줄임', keep: '주말·공휴일 홈 경기를 구단마다 고르게', give: '구단 사이 이동 횟수·거리 격차가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
   ];
+  const LAST = 'total'; // 직접 정하기에서도 늘 마지막
+  const shortName = (id) => GOALS[id].name.replace(/ 홈 격차 최소화$| 격차 최소화$| 최소화$/, ''); // 「이동 횟수」 「주말·공휴일」 「전체 이동 거리」
   const objective = () => app().state.settings.objective || DEFAULT_OBJECTIVE;
   const goalValue = (data, id) => data.gaps[GOALS[id].gap];
   const goalShow = (data, id) => num(goalValue(data, id), GOALS[id].d);
@@ -379,7 +382,7 @@
     const kbo = kboData(), ob = ours.objective, ids = ob.order;
     const pct = (id) => Math.round((1 - goalValue(ours, id) / goalValue(kbo, id)) * 100);
     const card = (id, k) => { const g = GOALS[id];
-      return '<div class="pf-tile win"><span class="pf-rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '<small>' + (g.tol ? '가장 많은·적은 구단 차이' : '10구단 합') + '</small></div>' +
+      return '<div class="pf-tile win"><span class="pf-rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '<small>' + (g.tol ? '가장 많은·적은 구단 격차' : '10구단 합') + '</small></div>' +
         '<div class="v"><span class="old">KBO ' + goalShow(kbo, id) + g.unit + ' →</span>' + goalShow(ours, id) + '<small>' + g.unit + '</small></div><div class="d">▼ ' + pct(id) + '% ' + (g.tol ? '줄임' : '짧음 (' + num(goalValue(kbo, id) - goalValue(ours, id)) + 'km)') + '</div>' +
         '<div class="s">' + (g.tol ? '허용 ' + num(ob[g.tol]) + g.unit + ' — KBO ' + (within(kbo, id, ob) ? '안' : '<b style="color:var(--bad)">넘음</b>') + ' · 이 엔진 ' + (within(ours, id, ob) ? '<b style="color:var(--ok)">안</b>' : '넘음') : '짧을수록 좋음') + '</div></div>'; };
     const allBetter = ids.every((id) => goalValue(ours, id) <= goalValue(kbo, id));
@@ -390,7 +393,7 @@
       '<div class="pf-hero"><div class="big">−' + pct('total') + '<small>%</small></div><div><h2>' + (allBetter ? '평가 기준 4개 모두 KBO보다 나음' : 'KBO 실제와 비교') + '</h2><p>같은 2025 조건에서 비교 · 전체 이동 거리 ' + goalShow(kbo, 'total') + 'km → ' + goalShow(ours, 'total') + 'km · 구단 간 이동 거리 차이 ' + goalShow(kbo, 'distance') + 'km → ' + goalShow(ours, 'distance') + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="pf-tag got">저장된 결과 · ' + esc(ours.savedAt) + ' 실행</span></div></div>' +
       '<div class="pf-tiles">' + ids.map(card).join('') + '</div>' +
       '<div class="pf-cols" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 차이</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
+      '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 수준</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
       '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 이 엔진</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈(점)</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
       names.map((t) => { const a = kbo.teams[t], b = ours.teams[t]; return '<tr><td><b>' + esc(t) + '</b></td><td>' + a.moves + ' → <b>' + b.moves + '</b></td><td>' + a.hol + ' → <b>' + b.hol + '</b></td><td>' + a.wk + ' → ' + b.wk + '</td><td>' + a.away + ' → ' + b.away + '</td></tr>'; }).join('') +
       '</tbody></table>' + (worse.length ? '<div class="pf-note warn"><b>KBO가 나은 점</b> — ' + esc(worse.join(' · ')) + '</div>' : '') + '</div></div></div>';
@@ -483,7 +486,7 @@
     if (G.mode === 'all') return null;
     if (G.mode === 'year' || G.mode === 'resume') return renderStart();
     if ((G.fs === 2 || G.fs === 3) && !P.calEdit) return S.flowWrap(G.fs === 2 ? renderSeasonReview() : renderHomeReview(), 'pf-rvw');
-    if (G.fs === 4) return S.flowWrap(S.renderCheck().replace(/다음: [①-④]? ?검토·실행/g, '다음: 엔진 옵션·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
+    if (G.fs === 4) return S.flowWrap(S.renderCheck().replace(/다음: [①-④]? ?검토·실행/g, '다음: 운영 방침·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
     if (G.fs === 1 && inPlan()) {
       const SH = KBO.Preset2027.SHARED_STADIUM;
       const changed = app().state.teams.some((t) => t.stadium === SH.name);
@@ -502,7 +505,7 @@
     1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '편성 조건은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 설명을 읽고, 맞으면 「수락」, 다르면 「수정」을 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
     2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '「추정」 표시는 확정 전 값입니다. 맞으면 「수락」, KBO 계획과 다르면 「수정」으로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
     3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「수정」을 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
-    4: { a: '.footer .btn.primary', title: '다음은 엔진 옵션', text: () => '무엇을 먼저 맞출지와 구단 사이 차이를 얼마까지 허용할지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
+    4: { a: '.footer .btn.primary', title: '다음은 운영 방침', text: () => '네 목표를 모두 최고로 만들 수는 없습니다. 무엇을 먼저 지키고 목표마다 어디까지 봐줄지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
   };
   const tourKey = (n) => S.KEY + 'tour:plan' + n;
   const origAfter = S.guideUI.after;
@@ -526,43 +529,115 @@
     c.style.left = left + 'px'; c.style.top = top + 'px';
   };
 
-  // ───────── 2 엔진 옵션·실행 ─────────
+  // ───────── 2 운영 방침·실행 ─────────
+  // 화면의 글은 사용자와 합의한 설계(2026-11-02)다. 「충돌」보다 「균형」: 엔진은 한 목표를 더 좋게 하려면 다른 목표를 내줘야 하는 지점을 찾고,
+  // 그 가운데 어디에 설지는 운영자가 고른다. 「파레토」 같은 말은 화면에 쓰지 않는다. 2025 숫자(이 엔진·KBO 실제)도 쓰지 않는다.
+  P.policyCopy = {
+    title: '운영 방침 정하기',
+    lead: '이동의 격차와 주말·공휴일 홈의 격차를 둘 다 최소로 만들 수는 없습니다. 둘 사이 어디에 무게를 둘지 정하는 것이 운영자의 일이고, 여기가 운영의 묘가 드러나는 자리입니다.',
+    left: '이동 횟수·거리의 격차', right: '주말·공휴일 홈의 격차',
+    caption: '받침점을 어디에 둘지는 운영자가 정합니다',
+    bridge: '1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다.',
+    levelsTitle: '목표마다 허용 수준',
+    levelsLead: '가장 많은 구단과 가장 적은 구단의 격차를 어디까지 봐줄지 목표마다 정합니다. 좁힐수록 그 격차는 줄고 다른 쪽 격차를 내주게 됩니다.'
+  };
+  /** 머리글 그림: 수평을 잡은 저울. 왼쪽 접시 「이동 횟수·거리의 격차」, 오른쪽 접시 「주말·공휴일 홈의 격차」, 받침점에 작은 손잡이(기울어진 저울이 아니다) */
+  function scaleFigure() {
+    const C = P.policyCopy;
+    const pan = (cx) => '<line x1="' + cx + '" y1="30" x2="' + cx + '" y2="56" stroke="#0A1E3C" stroke-width="1.5"/>' +
+      '<path d="M' + (cx - 34) + ' 56 Q' + cx + ' 78 ' + (cx + 34) + ' 56 Z" fill="#F8F9FB" stroke="#0A1E3C" stroke-width="1.5"/>';
+    return '<figure class="pf-scale"><svg viewBox="0 0 440 96" height="90" aria-label="수평을 잡은 저울: 왼쪽 접시 ' + esc(C.left) + ', 오른쪽 접시 ' + esc(C.right) + '">' +
+      '<line x1="168" y1="88" x2="272" y2="88" stroke="#B4BBC7" stroke-width="3" stroke-linecap="round"/>' +
+      '<polygon points="220,32 198,88 242,88" fill="#E2E5EA" stroke="#B4BBC7" stroke-width="1.5"/>' +
+      '<line x1="60" y1="30" x2="380" y2="30" stroke="#0A1E3C" stroke-width="3" stroke-linecap="round"/>' +
+      pan(60) + pan(380) +
+      '<circle cx="220" cy="30" r="7" fill="#1F5FD6" stroke="#fff" stroke-width="2"/><rect x="216" y="10" width="8" height="12" rx="3" fill="#1F5FD6"/>' +
+      '<text x="60" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#0A1E3C">' + esc(C.left) + '</text>' +
+      '<text x="380" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#0A1E3C">' + esc(C.right) + '</text>' +
+      '</svg><figcaption>' + esc(C.caption) + '</figcaption></figure>';
+  }
+  P.orderPeek = {}; // 추천 카드의 순서 목록은 접어 두고 「순서 보기」로 펼친다
   function orderCards(ob) {
     const key = ob.order.join();
     const hit = ORDERS.find((o) => o.order.join() === key);
     const custom = P.customOrder || !hit;
-    const card = (o) => '<button class="pf-oc' + (!custom && hit && hit.id === o.id ? ' on' : '') + '" data-act="pf-order" data-id="' + o.id + '"><h4>' + (!custom && hit && hit.id === o.id ? '<span class="pf-tag blue">고름</span>' : '') + esc(o.name) + '</h4><p>' + esc(o.desc) + '</p><ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol></button>';
-    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" data-act="pf-order-custom"><h4>' + (custom ? '<span class="pf-tag blue">고름</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다</p><ol>' +
-      ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k === 3 ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : '') + '</li>').join('') + '</ol></div>';
+    const kg = (o) => '<dl class="pf-kg"><div><dt>지키는 것</dt><dd>' + esc(o.keep) + '</dd></div><div><dt>내주는 것</dt><dd>' + esc(o.give) + '</dd></div></dl>';
+    const card = (o) => { const on = !custom && hit && hit.id === o.id, open = !!P.orderPeek[o.id];
+      return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + (on ? '<span class="pf-tag blue">선택</span>' : '') + esc(o.name) + '</h4>' + kg(o) +
+        '<button class="pf-link xs" data-act="pf-order-peek" data-id="' + o.id + '" aria-expanded="' + open + '">' + (open ? '순서 접기 ▴' : '순서 보기 ▾') + '</button>' +
+        (open ? '<ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol>' : '') + '</div>'; };
+    const lastFixed = ob.order[3] === LAST, top = lastFixed ? 2 : 3; // 전체 이동 거리가 마지막이면 그 줄은 움직이지 않는다(옛 버전으로 순서가 다르면 모두 움직일 수 있게)
+    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + (custom ? '<span class="pf-tag blue">선택</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다. 전체 이동 거리는 늘 마지막</p><ol>' +
+      ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : lastFixed && i === LAST ? '<span class="pf-last">늘 마지막</span>' : '') + '</li>').join('') + '</ol></div>';
     return ORDERS.map(card).join('') + diy;
   }
-  // 허용 차이는 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
-  // 그림 없이 문장 하나와 숫자로만 받는다. −·+ 한 번의 폭은 지난 결과가 아니라 여기 고정값이다.
+  // 허용 수준은 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
+  // 그림 없이 문장 하나와 숫자로만 받는다. −·+ 한 번의 폭은 지난 결과가 아니라 여기 고정값이다. 값 키·서버로 가는 형식은 그대로다.
   const GAP_STEP = { moveGap: 1, distanceGapKm: 50, holidayGap: 1 };
   const TIME_MIN = 1, TIME_MAX = 5; // 실행 시간(분)
-  function slider(id, ob) {
-    const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol];
-    return '<div class="pf-sl"><div class="k"><b>' + g.name + '</b></div>' +
-      '<div class="pf-st">가장 많은 구단이 가장 적은 구단보다 <span class="n"><button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="-' + st + '" aria-label="' + esc(g.name) + ' 허용 차이 줄이기">−</button>' + '<input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 차이 숫자">' + '<button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="' + st + '" aria-label="' + esc(g.name) + ' 허용 차이 늘리기">+</button></span>' + g.unit + ' 넘게 많지 않으면 만족</div></div>';
+  /** 지금 입력에서 세는 근거(실행 결과가 아니다): 주말·공휴일 점수 합(구단 수로 나누어떨어지는가)과 다른 구장까지의 평균 거리 */
+  function tolFacts() {
+    const inp = Score.buildInput(app().state), n = inp.teams.length;
+    const holTotal = inp.slots.reduce((a, sl) => a + (sl.holiday | 0), 0) * Math.floor(n / 2); // 연전 기간마다 홈 연전이 구단 수의 절반
+    const avg = inp.teams.map((t, i) => ({ name: t.name, km: inp.dist[i].reduce((a, b) => a + b, 0) / Math.max(1, n - 1) / 10 })).sort((x, y) => x.km - y.km);
+    return { n, holTotal, holEach: holTotal / n, even: n > 0 && holTotal % n === 0, near: avg[0], far: avg[n - 1] };
   }
-  /** 오른쪽 위 「목적식 설명하기」(글자는 사용자가 정함) → 설명 창(objective-help.js). 엔진 옵션 화면과 실행 중 화면에만 둔다 */
-  const explainLink = () => '<div class="pf-toprow"><button class="pf-link' + (S.ui.drawer === 'explain' ? ' on' : '') + '" data-act="pf-explain">' + icon('info') + '목적식 설명하기</button></div>';
+  P.tolFacts = tolFacts;
+  P.DEFAULT_OBJECTIVE = DEFAULT_OBJECTIVE;
+  // 줄마다: 좁히면 / 넓히면 두 토막. 내주는 쪽은 단정하지 않는다
+  const TOL_MOVE = {
+    moves: { narrow: '구단 사이 이동 횟수 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 횟수 격차가 커질 수 있음' },
+    distance: { narrow: '구단 사이 이동 거리 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 거리 격차가 커질 수 있음' },
+    holiday: { narrow: '주말·공휴일 홈 격차가 더 줄어듦 · 이동 횟수·거리 격차가 벌어질 수 있음', wide: '이동 횟수·거리를 맞출 여지 · 주말·공휴일 홈 격차가 커질 수 있음' }
+  };
+  /** 값에 따라 바뀌는 안내는 두 끝에서만: 0이면 반드시 맞추려는 것, 기본값의 3배 이상이면 사실상 보지 않는 것. 그 사이에는 없다 */
+  function tolHint(id, ob, f) {
+    const g = GOALS[id], v = ob[g.tol], def = DEFAULT_OBJECTIVE[g.tol];
+    if (v === 0) return '<div class="pf-th" data-tolstate="zero">' + (id === 'holiday' && !f.even ? '이 목표를 될 수 있는 한 맞추고 다른 목표를 내줍니다(0은 될 수 없어 1점까지)' : '이 목표를 반드시 맞추려 하고 다른 목표를 내줍니다') + '</div>';
+    if (v >= def * 3) return '<div class="pf-th" data-tolstate="wide">이 목표는 사실상 보지 않습니다</div>';
+    return '';
+  }
+  function slider(id, ob, f) {
+    const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol], m = TOL_MOVE[id];
+    return '<div class="pf-sl" data-goal="' + id + '"><div class="k"><b>' + g.name + '</b></div>' +
+      '<div class="pf-st">가장 많은 구단이 가장 적은 구단보다 <span class="n"><button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="-' + st + '" aria-label="' + esc(g.name) + ' 허용 수준 줄이기">−</button>' + '<input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 수준 숫자">' + '<button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="' + st + '" aria-label="' + esc(g.name) + ' 허용 수준 늘리기">+</button></span>' + g.unit + ' 넘게 많지 않으면 만족</div>' +
+      '<div class="pf-tw"><span><b>좁히면</b> ' + m.narrow + '</span><span><b>넓히면</b> ' + m.wide + '</span></div>' +
+      (id === 'holiday' && !f.even ? '<div class="pf-tn">점수 합이 나누어떨어지지 않아 0은 될 수 없습니다(최소 1점) — 이 달력은 모두 ' + num(f.holTotal) + '점, ' + f.n + '구단이면 ' + num(f.holEach, 1) + '점씩</div>' : '') +
+      tolHint(id, ob, f) + '</div>';
+  }
+  /** 「운영 방침 설명하기」 → 설명 창(objective-help.js). 운영 방침 화면(머리글 오른쪽)과 실행 중 화면(오른쪽 위)에만 둔다 */
+  const explainBtn = () => '<button class="pf-link' + (S.ui.drawer === 'explain' ? ' on' : '') + '" data-act="pf-explain">' + icon('info') + '운영 방침 설명하기</button>';
+  const explainLink = () => '<div class="pf-toprow">' + explainBtn() + '</div>';
+  /** 방침 이름: 추천 카드 이름(「(기본)」 뺌) 또는 「직접 정한 순서」 */
+  function policyName(ob) {
+    const hit = ORDERS.find((o) => o.order.join() === ob.order.join());
+    return !P.customOrder && hit ? hit.name.replace(/ \(기본\)$/, '') : '직접 정한 순서';
+  }
+  P.policyName = policyName;
+  const policyLine = (ob) => '<div class="pf-policy">지금 방침: <b>' + esc(policyName(ob)) + '</b> · 이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점</div>';
   function renderOptions() {
-    const ob = objective(), pf = app().preflight();
+    const ob = objective(), pf = app().preflight(), f = tolFacts(), C = P.policyCopy;
     const rest = app().engineConfig.kind === 'REST', info = (app().engineConfig && app().engineConfig.info) || {};
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
     const min = P.timeSec / 60;
-    return '<div class="pf-page">' + explainLink() +
-      '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
-      '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">가장 많은 구단과 가장 적은 구단의 차이를 얼마까지 봐줄지 정합니다. 차이가 이 안이면 만족으로 보고 다음 순위로 넘어가고, 넘으면 넘은 만큼 줄이려 노력합니다(반드시 지키는 것은 아님). 실제 차이는 실행해 봐야 압니다.</p>' +
-      ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
+    return '<div class="pf-page">' +
+      '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p></div>' + scaleFigure() + '</div>' +
+      '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
+      '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
+      ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
+      '<div class="pf-sec"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
       '<div class="pf-sl"><div class="k"><b>실행 시간</b></div><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div>' +
-      '<div class="pf-runbar"><span class="grow"></span>' +
+      policyLine(ob) + '<div class="pf-runbar"><span class="grow"></span>' +
       (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
-      '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
+      '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '이 방침으로 최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div>';
+  }
+  /** 결과 화면 맨 위 한 줄: 결과의 실제 격차를 방침의 허용 수준과 목표마다 견준다. 옆에 「수준 다시 정하기」 */
+  function policyCheck(data, ob) {
+    const items = ob.order.filter((id) => GOALS[id].tol).map((id) => { const g = GOALS[id], v = goalValue(data, id), tol = ob[g.tol], ok = v <= tol;
+      return '<span class="it ' + (ok ? 'ok' : 'over') + '">' + esc(shortName(id)) + ' <i>' + (ok ? '✓' : '✗') + '</i> ' + (ok ? '허용 안' : num(v - tol, g.d) + g.unit + ' 넘음') + '</span>'; });
+    return '<div class="pf-sec pf-vs"><span class="l"><b>방침과 견주기</b> — ' + items.join(' · ') + '</span><button class="btn sm" data-act="pf-relevel">수준 다시 정하기</button></div>';
   }
   function tiles(data, ob) {
     return '<div class="pf-tiles">' + ob.order.map((id, k) => { const g = GOALS[id], v = goalValue(data, id), ok = within(data, id, ob);
@@ -578,7 +653,7 @@
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
     return '<div class="pf-page">' + explainLink() + '<div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
-      tiles(data, ob) + '<div class="pf-cols" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 차이 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
+      tiles(data, ob) + '<div class="pf-cols" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 수준 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
       '<div class="pf-sec"><h3>반드시 지킴</h3><p class="pf-d">지금 결과 기준</p>' + rulesList(ex) + '</div></div></div>';
   }
   const origStep2 = S.steps[2].render;
@@ -616,7 +691,7 @@
   function dashboard(data, ob, o) {
     const opt = o || {};
     const panel = (id, k, body) => { const g = GOALS[id], ok = within(data, id, ob);
-      return '<div class="pf-sec"><h3><span class="pf-rk">' + (k + 1) + '순위</span>' + g.name + '<span class="r">' + (g.tol ? '차이 <b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> / 허용 ' + num(ob[g.tol]) + g.unit + ' <span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>' : '<b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> 10구단 합') + '</span></h3>' + body + '</div>'; };
+      return '<div class="pf-sec"><h3><span class="pf-rk">' + (k + 1) + '순위</span>' + g.name + '<span class="r">' + (g.tol ? '격차 <b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> / 허용 ' + num(ob[g.tol]) + g.unit + ' <span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>' : '<b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> 10구단 합') + '</span></h3>' + body + '</div>'; };
     const kbo = kboData(), ours = P.builtin['2025-best'];
     const refs = [['2025 KBO 실제', kbo.gaps.totalKm, 'g']].concat(ours ? [['2025 이 엔진', ours.gaps.totalKm, '']] : []).concat(opt.noSave ? [] : [[opt.title || '이 결과', data.gaps.totalKm, '']]);
     const totalBody = '<div class="pf-big3">' + refs.map(([l, v, c]) => '<div class="pf-b ' + c + '"><span>' + esc(l) + '</span><span class="tr"><i style="width:' + (v / 80000 * 100).toFixed(1) + '%"></i></span><span class="n">' + num(v) + 'km</span></div>').join('') + '</div><div class="xs muted" style="margin-top:6px">참고로 2025 숫자를 함께 둡니다(해가 다르면 일정이 다릅니다).</div>';
@@ -627,9 +702,9 @@
     const allIn = ob.order.every((id) => within(data, id, ob));
     const heatT = '<table class="pf-h"><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
       names.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => '<td style="background:' + heat(k, data.teams[t][k]) + '">' + num(data.teams[t][k], d) + '</td>').join('') + '</tr>').join('') +
-      '</tbody><tfoot><tr><td>차이</td>' + cols.map(([, k, d]) => { const a = vals(data, k); return '<td><b>' + num(Math.max(...a) - Math.min(...a), d) + '</b></td>'; }).join('') + '</tr></tfoot></table>' +
+      '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => { const a = vals(data, k); return '<td><b>' + num(Math.max(...a) - Math.min(...a), d) + '</b></td>'; }).join('') + '</tr></tfoot></table>' +
       '<div class="pf-leg"><span><i style="background:rgba(232,140,40,.8)"></i>평균보다 많음</span><span><i style="background:rgba(31,95,214,.5)"></i>평균보다 적음</span></div>' +
-      '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙이 있습니다') + ' · ' + (allIn ? '균형 3가지 모두 허용 차이 안' : '허용 차이를 넘은 균형이 있습니다') + '</div>';
+      '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙이 있습니다') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
     return '<div class="pf-dash">' + panel(ob.order[0], 0, body(ob.order[0])) + panel(ob.order[1], 1, body(ob.order[1])) +
       '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">색 = 리그 평균과 차이</p>' + heatT + '</div>' + panel(ob.order[2], 2, body(ob.order[2])) + panel(ob.order[3], 3, body(ob.order[3])) + '</div>';
   }
@@ -640,12 +715,12 @@
       if (S.seasonYear() === YEAR_VIEW) return '<div class="stepview no-band">' + render2025() + '</div>';
       const st = app().state, res = st.meta.result;
       if (isRunning()) return '<div class="stepview no-band"><div class="pf-page">' + runningNote() + '</div></div>';
-      if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>연전이 바뀌었습니다</h3><p class="pf-d">전에 낸 결과는 이 달력에서 쓸 수 없습니다. 처음부터 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
-      if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">엔진 옵션을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로' + icon('right') + '</button></div></div></div>';
+      if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>연전이 바뀌었습니다</h3><p class="pf-d">전에 낸 결과는 이 달력에서 쓸 수 없습니다. 처음부터 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
+      if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">운영 방침을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
       const ex = app().derived().ex, data = dataOf(ex), ob = res.objective || objective();
       const name = P.name || suggestName();
-      const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">엔진 옵션·실행으로 ›</button></div>' : '';
-      return '<div class="stepview no-band"><div class="pf-page">' +
+      const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">운영 방침·실행으로 ›</button></div>' : '';
+      return '<div class="stepview no-band"><div class="pf-page">' + policyCheck(data, ob) +
         '<div class="pf-sec" style="padding:8px 14px"><div class="pf-save">' + (byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '') + '<span class="small muted">이 결과에 이름을 붙여 저장:</span><input value="' + esc(name) + '" data-in="pf-name" aria-label="버전 이름"><button class="btn primary" data-act="pf-save">버전으로 저장</button><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 공정성</button></div></div>' +
         editedNote2 + dashboard(data, ob) + '</div></div>';
     }
@@ -656,7 +731,7 @@
     const st = app().state, ex = app().derived().ex, data = dataOf(ex), res = st.meta.result || {};
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {};
     const name = (P.name || suggestName()).trim();
-    const rec = Object.assign({ id: 'v' + Date.now(), name, year: YEAR_NEW, savedAt: new Date().toISOString().slice(0, 10), elapsedMs: res.elapsedMs || 0, objective: res.objective || objective(), note: (res.objective || objective()).order.map((i) => GOALS[i].name.replace(' 균형', '')).join(' → '), engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st) }, data, {
+    const rec = Object.assign({ id: 'v' + Date.now(), name, year: YEAR_NEW, savedAt: new Date().toISOString().slice(0, 10), elapsedMs: res.elapsedMs || 0, objective: res.objective || objective(), note: (res.objective || objective()).order.map((i) => shortName(i)).join(' → '), engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st) }, data, {
       matches: st.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive })), plan: st.plan.map((x) => ({ match: x.match, calendar: x.calendar }))
     });
     const list = P.versions.list(YEAR_NEW); list.push(rec);
@@ -705,7 +780,7 @@
   S.steps[4].render = function () {
     if (S.ui.qv === 'export') S.ui.qv = 'metrics'; // 내보내기 화면은 대부분 시안이라 뺀다. 일정표 CSV는 데이터 메뉴에 있다
     const html = origStep4().replace(/③ 달력에서/g, '달력에서').replace(/허용 범위/g, '참고 범위').replace(/<button class="li[^"]*" data-act="q-view" data-qv="export"[\s\S]*?<\/button>/, '');
-    return '<div class="pf-note" style="margin:8px 12px 0">이 화면의 범위는 리그 평균을 기준으로 한 참고값입니다. 엔진이 맞추는 기준은 「현재 결과 분석」의 허용 차이입니다.</div>' + html;
+    return '<div class="pf-note" style="margin:8px 12px 0">이 화면의 범위는 리그 평균을 기준으로 한 참고값입니다. 엔진이 맞추는 기준은 「현재 결과 분석」의 허용 수준입니다.</div>' + html;
   };
 
   // ───────── 4 실행 결과 비교 ─────────
@@ -727,9 +802,9 @@
       if (!P.cmpPicked) for (const v of all) if (P.cmp.length < 2 && !P.cmp.includes(v.id)) P.cmp.push(v.id);
       const ver = (v) => { const on = P.cmp.includes(v.id), isFinal = y === YEAR_NEW && P.final.id(y) === v.id;
         return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
-          '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => GOALS[id].name.replace(' 균형', '') + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
+          '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => shortName(id) + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
           '<div class="acts">' + (isFinal ? '<button class="btn sm" data-act="pf-final-off">확정 취소</button>' : y === YEAR_NEW && canFinal(v) ? '<button class="btn sm primary" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '') + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>')) + '</div></div>'; };
-      const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 고름</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
+      const list = '<div class="pf-sec"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
         '<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button><span class="xs muted">저장한 버전은 이 브라우저에 있습니다(나중에 온라인으로 옮김).</span></div></div>';
       const [a, b] = P.cmp.map((id) => all.find((v) => v.id === id));
       if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
@@ -742,15 +817,15 @@
       const d = decide(a, b, ob);
       const aBad = a.feasible === false, bBad = b.feasible === false;
       // 반드시 지킬 규칙을 어긴 일정은 숫자가 좋아도 쓸 수 없으므로 순위로 따지지 않는다
-      const verdict = aBad && bBad ? '두 버전 모두 반드시 지킬 규칙을 지키지 못해 순위대로 따지지 않고 숫자만 나란히 둡니다.' : aBad || bBad ? '<b>「' + esc((aBad ? a : b).name) + '」은 반드시 지킬 규칙을 지키지 못해 쓸 수 없습니다.</b> 순위대로 따지지 않고 숫자만 나란히 둡니다.' : !sameOb ? '두 버전의 순서·허용 차이가 달라 순위대로 따지지 않고 숫자만 나란히 둡니다.' : d ? '<b>순위대로 따지면</b> — ' + (ob.order.indexOf(d.id) ? '앞 순위는 두 버전 모두 허용 차이 안이라 같다고 봅니다. ' : '') + esc(GOALS[d.id].name) + '에서 <b>이번 실행에서는 「' + esc(d.winner.name) + '」이 ' + num(d.diff, GOALS[d.id].d) + GOALS[d.id].unit + ' ' + (GOALS[d.id].tol ? '작았습니다' : '짧았습니다') + '</b>.' : '<b>순위대로 따지면</b> — 모든 평가 기준이 같습니다.';
+      const verdict = aBad && bBad ? '두 버전 모두 반드시 지킬 규칙을 지키지 못해 순위대로 따지지 않고 숫자만 나란히 둡니다.' : aBad || bBad ? '<b>「' + esc((aBad ? a : b).name) + '」은 반드시 지킬 규칙을 지키지 못해 쓸 수 없습니다.</b> 순위대로 따지지 않고 숫자만 나란히 둡니다.' : !sameOb ? '두 버전의 순서·허용 수준이 달라 순위대로 따지지 않고 숫자만 나란히 둡니다.' : d ? '<b>순위대로 따지면</b> — ' + (ob.order.indexOf(d.id) ? '앞 순위는 두 버전 모두 허용 수준 안이라 같다고 봅니다. ' : '') + esc(GOALS[d.id].name) + '에서 <b>이번 실행에서는 「' + esc(d.winner.name) + '」이 ' + num(d.diff, GOALS[d.id].d) + GOALS[d.id].unit + ' ' + (GOALS[d.id].tol ? '작았습니다' : '짧았습니다') + '</b>.' : '<b>순위대로 따지면</b> — 모든 평가 기준이 같습니다.';
       const tab = P.cmpTab, tg = GOALS[tab];
       const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
       const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
       return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols" style="grid-template-columns:400px minmax(0,1fr)">' + list +
         '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>평가 기준마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>평가 기준</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
-        ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '차이 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
+        ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '격차 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
-        '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + GOALS[id].name.replace(' 균형', '') + '</button>').join('') + '</div><h3>구단별 ' + tg.name.replace(' 균형', '') + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 차이</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
+        '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + shortName(id) + '</button>').join('') + '</div><h3>구단별 ' + shortName(tab) + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 수준</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
     }
   };
 
@@ -764,7 +839,7 @@
   };
 
   // ───────── 단계 띠 · 하단 ─────────
-  const STAGES = ['편성 조건 입력·검증', '엔진 옵션·실행', '현재 결과 분석', '실행 결과 비교'];
+  const STAGES = ['편성 조건 입력·검증', '운영 방침·실행', '현재 결과 분석', '실행 결과 비교'];
   const stageOf = (step) => ({ 1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4 })[step] || 1;
   P.stepper = function () {
     const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), edited = inputsEdited(st), n = P.versions.all(S.seasonYear()).length;
@@ -772,7 +847,7 @@
     const start = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
     const sub = {
       1: fs.allDone ? '4단계 검토함' : start ? '' : (G.mode === 'flow' ? G.fs + ' / 4 ' + fs.steps[G.fs - 1].name + ' · 검토 중' : fs.stop + ' / 4에서 멈춤'),
-      2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '편성 조건이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '엔진 옵션 정하기' : '편성 조건 검토를 마치면',
+      2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '편성 조건이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '운영 방침 정하기' : '편성 조건 검토를 마치면',
       3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 공정성' : '한 장으로 보기') : '실행 뒤',
       4: n ? '저장한 버전 ' + n + '개' : '저장한 버전 없음'
     };
@@ -791,12 +866,12 @@
       const prev = n > 1 ? '<button class="btn" data-act="pf-go" data-fs="' + (n - 1) + '">' + icon('left') + '이전: ' + (n - 1) + ' ' + esc(steps[n - 2].name) + '</button>' : '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>';
       const canNext = n === 4 ? reviewDone() : S.flowStatus().done[n - 1];
       const next = n < 4 ? '<button class="btn primary" data-act="pf-go" data-fs="' + (n + 1) + '"' + (canNext ? '' : ' disabled title="이 단계의 편성 조건을 모두 확인해 주세요"') + '>다음: ' + (n + 1) + ' ' + esc(steps[n].name) + icon('right') + '</button>'
-        : '<button class="btn primary" data-act="cal-next"' + (canNext ? '' : ' disabled title="앞 단계를 모두 확인해 주세요"') + '>다음: 엔진 옵션·실행' + icon('right') + '</button>';
-      const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 엔진 옵션입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
+        : '<button class="btn primary" data-act="cal-next"' + (canNext ? '' : ' disabled title="앞 단계를 모두 확인해 주세요"') + '>다음: 운영 방침·실행' + icon('right') + '</button>';
+      const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 운영 방침입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint"><b>엔진 옵션</b> — 추천 순서를 고르고, 허용 차이를 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">최대 ' + P.timeSec / 60 + '분 실행' + icon('right') + '</button>'); }
-    if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '엔진 옵션 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
+    if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint"><b>운영 방침</b> — 무엇을 먼저 지킬지 고르고, 목표마다 허용 수준을 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">이 방침으로 최대 ' + P.timeSec / 60 + '분 실행' + icon('right') + '</button>'); }
+    if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
@@ -909,11 +984,14 @@
     'pf-explain': () => { S.go({ drawer: S.ui.drawer === 'explain' ? null : 'explain' }); },
     'pf-tour-ok': () => { S.ls.set(tourKey(G.fs), '1'); S.render(); },
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
-    'pf-order': (el) => { P.customOrder = false; const o = ORDERS.find((x) => x.id === el.dataset.id); app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
+    'pf-order': (el, e) => { if (e && e.target.closest('[data-act="pf-order-peek"]')) return; const o = ORDERS.find((x) => x.id === el.dataset.id); if (!o) return; P.customOrder = false; app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
     'pf-order-custom': (el, e) => { if (e && e.target.closest('[data-act="pf-move"]')) return; P.customOrder = true; S.render(); },
+    'pf-order-peek': (el, e) => { if (e) e.stopPropagation(); P.orderPeek[el.dataset.id] = !P.orderPeek[el.dataset.id]; S.render(); },
+    'pf-relevel': () => { const jump = () => { const el = document.getElementById('pf-levels'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }; S.afterRender(jump); S.actions['pf-stage']({ dataset: { stage: '2' } }); setTimeout(jump, 50); }, // 그리고 난 뒤 허용 수준 구역으로(뒤따르는 다시 그리기가 있어도 한 번 더)
     'pf-move': (el, e) => {
       if (e) e.stopPropagation();
       const k = +el.dataset.k, d = +el.dataset.d, order = objective().order.slice(), t = order[k];
+      if (k + d < 0 || k + d > 3 || order[k] === LAST || (order[3] === LAST && order[k + d] === LAST)) return; // 전체 이동 거리는 늘 마지막
       order[k] = order[k + d]; order[k + d] = t;
       P.customOrder = true;
       app().updateSettings({ objective: Object.assign({}, objective(), { order }) }, '평가 기준 순서 바꾸기');
@@ -922,9 +1000,9 @@
     'pf-run': () => {
       const fs = S.flowStatus();
       if (!fs.allDone) { S.toast('편성 조건 입력·검증을 먼저 마쳐 주세요.', 'warn'); go1(fs.stop); return; }
-      if (!app().state.settings.objective) app().updateSettings({ objective: Object.assign({}, DEFAULT_OBJECTIVE) }, '엔진 옵션 기본값');
+      if (!app().state.settings.objective) app().updateSettings({ objective: Object.assign({}, DEFAULT_OBJECTIVE) }, '운영 방침 기본값');
       if (!S.seriesOkOf(app().state)) { S.calNext(); if (!S.seriesOkOf(app().state)) return; }
-      const keep = inputsEdited(app().state); // 값을 고쳤으면 전 결과에서 이어서, 엔진 옵션만 바꿨거나 결과가 없으면 처음부터 — 사용자 결정 2026-11-01
+      const keep = inputsEdited(app().state); // 값을 고쳤으면 전 결과에서 이어서, 운영 방침만 바꿨거나 결과가 없으면 처음부터 — 사용자 결정 2026-11-01
       app().updateSolverSettings({ timeLimitSec: P.timeSec, unimprovedSec: Math.round(P.timeSec / 2), init: keep ? 'KEEP' : 'SCRATCH' });
       S.startRun();
       // 첫 결과가 오면 전 결과 표시를 지운다(도중에 새로고침해도 섞인 일정을 전 결과로 보이지 않게)
@@ -991,12 +1069,12 @@
     const k = el.dataset.k, t = String(el.value).replace(/,/g, '').trim(), v = Math.round(Number(t)); // 화면이 정수로 보이므로 정수로 저장
     if (!t || !Number.isFinite(v) || v < 0) { el.classList.add('err'); S.toast('0 이상인 숫자를 적어 주세요.', 'bad'); return; }
     if (objective()[k] === v) return;
-    app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 차이 바꾸기');
+    app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 수준 바꾸기');
   };
   S.actions['pf-gap-step'] = (el) => {
     const k = el.dataset.k, v = Math.max(0, objective()[k] + +el.dataset.d);
     if (v === objective()[k]) return;
-    app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 차이 바꾸기');
+    app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 수준 바꾸기');
   };
   S.inputs['pf-time'] = (el) => {
     const v = Number(String(el.value).trim());
