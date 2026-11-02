@@ -556,8 +556,9 @@
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">추천 순서 하나를 고르거나 직접 정합니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div></div>' +
       '<div class="pf-sec"><h3>허용 차이</h3><p class="pf-d">가장 많은 구단과 가장 적은 구단의 차이를 얼마까지 봐줄지 정합니다. 차이가 이 안이면 만족으로 보고 다음 순위로 넘어가고, 넘으면 넘은 만큼 줄이려 노력합니다(반드시 지키는 것은 아님). 실제 차이는 실행해 봐야 압니다.</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob)).join('') + '</div>' +
-      '<div class="pf-sec"><div class="pf-runbar"><div class="grow"><b style="color:var(--navy);font-size:15px">실행</b><div class="small muted">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</div></div>' +
-      '<div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div>' +
+      '<div class="pf-sec"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그 절반 동안 더 나아지지 않으면 먼저 끝납니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
+      '<div class="pf-sl"><div class="k"><b>실행 시간</b></div><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div>' +
+      '<div class="pf-runbar"><span class="grow"></span>' +
       (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
       '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
