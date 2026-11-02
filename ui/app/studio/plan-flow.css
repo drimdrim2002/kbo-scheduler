@@ -258,3 +258,4 @@ body.pf .ck-card > .ck-row { flex: 1 0 auto; }
 .pf-strip .sd[data-act] { cursor: pointer; }
 .pf-strip .sd[data-act]:hover { box-shadow: 0 0 0 2px var(--blue); z-index: 1; }
 .pf-rv2 .pf-rv.open { grid-column: 1 / -1; } /* 펼친 줄은 가로 한 줄을 다 쓴다 */
+.pf-rv2 > .pf-rv:last-child:nth-child(odd) { grid-column: 1 / -1; } /* 줄 수가 홀수면 마지막 줄은 가로 한 줄 */

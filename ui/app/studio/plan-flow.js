@@ -444,12 +444,15 @@
     const st = app().state, s = st.settings, gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), cur = firstOpen(2);
     const star = (s.blackouts || []).find((b) => /올스타/.test(b.label || ''));
     const four = st.calendar.find((c) => c.consecutive === 4);
+    const ht = s.homeTotals, more = (act) => ' <button class="pf-link" data-act="' + act + '">자세히 ›</button>';
     const rows = [
       { t: '쉬는 요일', to: 'rest', tag: 'got', v: esc(s.restWeekdays.map((w) => '일월화수목금토'[w] + '요일').join('·') || '없음') },
       { key: 'opening', t: '개막일', tag: 'est', v: fmt.date(s.seasonStart) + ' · 개막 2연전', ...BASIS.opening },
       { key: 'allStar', t: '올스타 휴식기·후반기 첫 4연전', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', v2: '후반기 첫 4연전 ' + (four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음'), ...BASIS.allStar },
-      { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd }
-    ];
+      { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd },
+      // 홈 경기 수: 날짜에 붙는 값이 아니라 시즌 전체의 편성 조건이라 2단계에 둔다(수정은 4 확인의 시리즈 규칙)
+      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
+    ].filter(Boolean);
     const sum = (KEYS[2].filter((k) => review()[k]).length);
     return '<div class="pf-page">' +
       '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
@@ -464,7 +467,6 @@
     const hol = s.holidays.filter((h) => h.date >= s.seasonStart && h.date <= s.initialEnd);
     const hol2 = s.holidays.filter((h) => h.date > s.initialEnd && h.date <= (s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31'));
     const holLine = (a) => a.map((h) => fmt.short(h.date) + ' ' + esc(h.name)).join(' · ');
-    const ht = s.homeTotals;
     const stad = new Map(st.teams.map((t) => [t.name, t.stadium]));
     // 홈 구단마다 카드 하나. 상대를 정하지 않은 구단은 엔진이 상대를 정한다
     const homeCards = (e) => {
@@ -478,7 +480,6 @@
       { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', v: fmt.short(op.date || s.seasonStart), v2: homeCards(op), more: more('pf-basis'), ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', v: fmt.short(ch.date || '2027-05-05'), v2: homeCards(ch), ...BASIS.childrenHome, more: more('pf-basis-children') },
       { t: '공휴일·가중치', tag: 'got', tagText: '공휴일 달력', v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: (s.seasonStart.startsWith('2027') ? '정부 공휴일 달력 기준입니다(8/16 광복절 대체공휴일은 뺐습니다). ' : '정부 공휴일 달력 그대로입니다. ') + '휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
-      ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page">' +
