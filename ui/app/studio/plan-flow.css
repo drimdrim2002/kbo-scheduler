@@ -241,3 +241,20 @@ body.pf .ck-card > .ck-row { flex: 1 0 auto; }
 .pf-nums.line .pf-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 6px 12px; }
 .pf-nums.line .pf-num .v { font-size: 17px; }
 
+/* 줄 안에서 펼친 입력칸(2단계 「수정」) */
+.pf-rv-ed { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; margin-top: 4px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); }
+.pf-rv-ed .fl-ask { flex: 1 1 auto; margin: 0; border: 0; padding: 0; background: none; }
+.pf-rv-ed > .btn { margin-left: auto; }
+/* 아래 달력 고치기 */
+.pf-cal-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pf-cal-tip { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); }
+.pf-cal-tip b { color: var(--text); }
+.pf-cal.live { margin-top: 6px; }
+.pf-cal.live .sc-calbody { flex: 1 0 auto; display: flex; flex-direction: column; overflow: visible; padding: 0; }
+.pf-cal .sc-strip { flex: 1 0 auto; grid-auto-rows: minmax(20px, 1fr); }
+.pf-cal .sc-strip .sd { height: auto; min-height: 20px; padding-top: 0; place-items: center; font-size: 11px; }
+.pf-cal .sc-strip .sd .sl { display: none; } /* 칸이 작아 묶음 시작은 왼쪽 굵은 선으로만 */
+/* 3단계 아래 달력: 날을 누르면 그 날 수정 */
+.pf-strip .sd[data-act] { cursor: pointer; }
+.pf-strip .sd[data-act]:hover { box-shadow: 0 0 0 2px var(--blue); z-index: 1; }
+.pf-rv2 .pf-rv.open { grid-column: 1 / -1; } /* 펼친 줄은 가로 한 줄을 다 쓴다 */
