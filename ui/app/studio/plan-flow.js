@@ -446,10 +446,10 @@
     ];
     const sum = (KEYS[2].filter((k) => review()[k]).length);
     return '<div class="pf-page">' +
-      '<div class="pf-sec pf-fill"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums row">' +
+      '<div class="pf-sec"><h3>시즌 기간·연전 묶음<span class="r"><b>' + sum + ' / ' + KEYS[2].length + '</b> 수락</span></h3><p class="pf-d">줄마다 「수락」 또는 「수정」. 개막일과 1차 편성 기간이 정해지면 경기일과 연전 묶음은 규칙대로 자동으로 만들어집니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
+      '<div class="pf-sec pf-fill"><h3>반영 결과</h3><p class="pf-d">편성 조건을 수정하면 바로 다시 셉니다.</p><div class="pf-nums row line">' +
       '<div class="pf-num"><div class="k">경기일</div><div class="v">' + gd.have + '<small> / ' + gd.need + '일</small></div></div><div class="pf-num"><div class="k">연전 묶음</div><div class="v">' + st.calendar.length + '<small>개</small></div><div class="s">3연전 ' + (h[3] || 0) + ' · 2연전 ' + (h[2] || 0) + ' · 4연전 ' + (h[4] || 0) + '</div></div>' +
-      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' +
+      '<div class="pf-num"><div class="k">기간</div><div class="v" style="font-size:16px">' + fmt.short(s.seasonStart) + ' ~ ' + fmt.short(s.initialEnd) + '</div></div></div>' + S.seasonStripView() +
       '</div></div>';
   }
   function renderHomeReview() {
@@ -476,7 +476,8 @@
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page">' +
-      '<div class="pf-sec pf-fill"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p>' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div>' + '</div>';
+      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
+      '<div class="pf-sec pf-fill"><h3>시즌 달력</h3><p class="pf-d">공휴일과 홈 구장을 지정한 날이 시즌 어디쯤인지 봅니다.</p>' + S.seasonStripView(true) + '</div></div>';
   }
   const origStep1 = S.guideUI.renderStep1;
   S.guideUI.renderStep1 = function (R) {

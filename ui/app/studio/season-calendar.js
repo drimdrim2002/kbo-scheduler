@@ -360,15 +360,17 @@
   }
 
   // ───────── 가운데 달력 ─────────
-  function calendarStrip() {
+  /** view = 보기 전용(검토 화면 아래 달력): 누르고 끄는 칸이 아니고, 개막일·올스타 휴식기·1차 편성 종료일을 표시한다 */
+  function calendarStrip(view) {
     const st = app().state, s = st.settings, y = S.seasonYear(), [m0, m1] = months();
     const hol = new Map(s.holidays.map((h) => [dn(h.date), h]));
     const bs = bundles(), byDay = new Map();
     bs.forEach((b) => { for (let k = 0; k < b.len; k++) byDay.set(b.d + k, { b, k }); });
     const evDays = new Map(st.events.map((e) => [dn(e.date), e]));
     const a = s.seasonStart ? dn(s.seasonStart) : null, e1 = s.initialEnd ? dn(s.initialEnd) : null, e2 = s.seasonEnd ? dn(s.seasonEnd) : null;
-    const selSlot = fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
-    let h = '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력">';
+    const selSlot = !view && fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
+    const star = view ? (s.blackouts || []).find((b) => /올스타/.test(b.label || '')) : null, sa = star ? dn(star.start) : null, sb = star ? dn(star.end) : null;
+    let h = view ? '<div class="strip pf-strip" role="img" aria-label="' + y + ' 시즌 달력">' : '<div class="strip big sc-strip" role="grid" aria-label="' + y + ' 시즌 달력">';
     for (let mo = m0; mo <= m1; mo++) {
       h += '<div class="strip-row" role="row"><span class="m">' + mo + '월</span><div class="strip-days">';
       for (let d = 1; d <= 31; d++) {
@@ -387,8 +389,12 @@
         else if (a != null && e2 != null && n > e1 && n <= e2) { cls.push('re'); tt.push('재편성 기간'); }
         else cls.push(a == null ? 'pre' : 'off');
         if (ev && ev.mode === 'STADIUM') { cls.push('ev'); tt.push(ev.name + ' 홈 구장 지정'); }
-        if (C.day === n) cls.push('pick');
-        const lab = x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : '';
+        if (!view && C.day === n) cls.push('pick');
+        if (view && n === a) { cls.push('op'); tt.push('개막일'); }
+        if (view && n === e1) { cls.push('end'); tt.push('1차 편성 종료일'); }
+        if (view && sa != null && n >= sa && n <= sb) { cls.push('as'); tt.push('올스타 휴식기'); }
+        const lab = !view && x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : ''; // 보기 전용은 칸이 작아 왼쪽 굵은 선으로만 묶음 시작을 보인다
+        if (view) { h += '<span class="' + cls.join(' ') + '" title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>'; continue; }
         h += '<span class="' + cls.join(' ') + '" role="gridcell" data-d="' + n + '"' + (x ? ' data-slot="' + x.b.i + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>';
       }
       h += '</div></div>';
@@ -435,6 +441,11 @@
       line('연전', b ? esc(bundleText(b.d, b.len)) : '<span class="muted">' + (inRange(d) ? '경기 없는 날(묶음 없음)' : '1차 편성 기간 밖') + '</span>') +
       S.calHomeBox(d, b));
   }
+  /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 공휴일·홈 구장 단계(홈 구장 지정일 표시) */
+  S.seasonStripView = function (f3) {
+    const legend = [['game', '경기일'], ['game we', '주말 경기'], ['game ss', '연전 묶음 시작'], ['rest', '경기 없음'], ['hol', '공휴일']].concat(f3 ? [['ev', '홈 구장 지정']] : [['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']]);
+    return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + '</div>' + calendarStrip(true) + '</div>';
+  };
   /** step-data.js의 R.calendar — ① 2·3단계(같은 달력) */
   S.renderSeasonCalendar = function () {
     S.ui.tab = 'season';
