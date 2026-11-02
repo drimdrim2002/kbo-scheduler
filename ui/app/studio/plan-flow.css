@@ -210,3 +210,34 @@ table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff;
 body.pf .ck-wrap { align-items: stretch; padding: clamp(12px, 2.4vh, 28px) 20px; }
 body.pf .ck-card { margin: 0; display: flex; flex-direction: column; }
 body.pf .ck-card > .ck-row { flex: 1 0 auto; }
+
+/* 검토 화면 아래 보기 전용 시즌 달력(season-calendar.js S.seasonStripView): 달마다 한 줄, 남는 높이만큼 줄이 커진다 */
+.pf-cal { flex: 1 0 auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.pf-cal-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--text-2); }
+.pf-cal-leg span { display: inline-flex; align-items: center; gap: 5px; }
+.pf-cal-leg i.sd { display: inline-block; width: 16px; height: 13px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.pf-strip { flex: 1 0 auto; grid-auto-rows: minmax(20px, 1fr); gap: 3px; }
+.pf-strip .strip-row { grid-template-columns: 30px minmax(0, 1fr); align-items: stretch; }
+.pf-strip .strip-row .m { align-self: center; font-size: 12px; color: var(--text-2); }
+.pf-strip .sd { height: auto; min-height: 20px; font-size: 11px; place-items: center; background: #fff; color: var(--text-2); border-radius: 3px; }
+.pf-strip .sd.off { background: transparent; color: #C3C8D1; }
+.pf-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
+.pf-strip .sd.rest, .pf-cal-leg .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
+.pf-strip .sd.game, .pf-cal-leg .sd.game { background: #D3DFF5; box-shadow: none; color: var(--text); }
+.pf-strip .sd.game.we, .pf-cal-leg .sd.game.we { background: #A9C1EC; }
+.pf-strip .sd.sat { color: var(--blue); font-weight: 600; }
+.pf-strip .sd.sun, .pf-strip .sd.hol { color: var(--bad); font-weight: 600; }
+.pf-strip .sd.hol::after, .pf-cal-leg .sd.hol::after { top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }
+.pf-strip .sd.ss, .pf-cal-leg .sd.ss { box-shadow: inset 3px 0 0 var(--navy); }
+.pf-strip .sd .sl { position: absolute; left: 4px; bottom: 2px; font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--navy); white-space: nowrap; pointer-events: none; }
+.pf-strip .sd.as, .pf-cal-leg .sd.as { background: repeating-linear-gradient(135deg, #F3D9B5 0 3px, #FBEEDB 3px 6px); box-shadow: none; color: #6F4100; }
+.pf-strip .sd.op, .pf-cal-leg .sd.op { outline: 2px solid var(--ok); outline-offset: -2px; }
+.pf-strip .sd.end, .pf-cal-leg .sd.end { outline: 2px solid var(--warn); outline-offset: -2px; }
+.pf-strip .sd.ev, .pf-cal-leg .sd.ev { outline: 2px solid var(--navy); outline-offset: -2px; }
+/* 검토 줄을 두 줄씩 나란히 두어 아래 달력 자리를 만든다 */
+.pf-rv2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.pf-rv2 .pf-rv + .pf-rv { margin-top: 0; }
+/* 반영 결과 숫자를 한 줄로: 이름과 값을 나란히 */
+.pf-nums.line .pf-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 6px 12px; }
+.pf-nums.line .pf-num .v { font-size: 17px; }
+
