@@ -17,7 +17,7 @@
   const setBox = (i, v) => { const el = qa('input[data-in="pf-gap"]:not([type=range])')[i]; el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
   const ob = () => st().settings.objective;
   const slotMatches = (c) => st().plan.filter((x) => x.calendar === c).map((x) => st().matches[x.match]);
-  const WRONG = /노란|값 입력|값을 검토|목적식|엔진 옵션|파레토|시안 예시|대기|슬롯|인스펙터|스냅샷|프리셋|목업|구단쌍|미배정|위저드|JSON|[①②③④]|검토·실행|결과·수정|공정성·배포/;
+  const WRONG = /노란|값 입력|값을 검토|목적식|엔진 옵션|파레토|균등|공평|균등|공평|시안 예시|대기|슬롯|인스펙터|스냅샷|프리셋|목업|구단쌍|미배정|위저드|JSON|[①②③④]|검토·실행|결과·수정|공정성·배포/;
 
   async function run() {
     try {
@@ -86,21 +86,21 @@
       ok('다음 → 시리즈를 다시 만들어 개막전·후반기 첫 4연전이 새 대진을 따름', S.ui.step === 2 && S.seriesOkOf(st()) && hasKT(slotMatches(0)) && hasKT(slotMatches(four)));
 
       // ── 운영 방침 → settings.objective
-      const cardNames = () => qa('.pf-oc h4').map((h) => h.innerText.replace('고름', '').trim()).join();
-      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울(이동 횟수·거리의 공평 ↔ 주말·공휴일 홈의 공평) · 설명 링크', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /이동 횟수·거리의 공평/.test(q('.pf-head').innerText) && /주말·공휴일 홈의 공평/.test(q('.pf-head').innerText) && !/리그 전체 효율/.test(page()) && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
+      const cardNames = () => qa('.pf-oc h4').map((h) => h.innerText.replace('선택', '').trim()).join();
+      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울(이동 횟수·거리의 격차 ↔ 주말·공휴일 홈의 격차) · 설명 링크(제목 바로 오른쪽)', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /이동 횟수·거리의 격차/.test(q('.pf-head').innerText) && /주말·공휴일 홈의 격차/.test(q('.pf-head').innerText) && /최소로 만들 수는 없습니다/.test(q('.pf-head').innerText) && q('.pf-head h2 [data-act="pf-explain"]').getBoundingClientRect().left - q('.pf-head h2').getBoundingClientRect().left < 320 && !/리그 전체 효율/.test(page()) && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
       ok('단계 띠·아래 줄: 「운영 방침·실행」', /운영 방침·실행/.test(q('#stepper').innerText) && /운영 방침/.test(q('.footer').innerText));
-      ok('카드 이름: 이동 공평 우선·흥행 공평 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음)', cardNames() === '이동 공평 우선 (기본),흥행 공평 우선,직접 정하기', cardNames());
+      ok('카드 이름: 이동 격차 우선·주말·공휴일 격차 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음) · 고른 카드는 「선택」', cardNames() === '이동 격차 우선 (기본),주말·공휴일 격차 우선,직접 정하기' && /선택/.test(q('.pf-oc.on h4').innerText), cardNames());
       ok('우선순위 설명: 전체 이동 거리는 늘 마지막', /전체 이동 거리는 늘 마지막/.test(page()));
       ok('카드마다 지키는 것·내주는 것, 내주는 것은 단정하지 않음', qa('.pf-oc[data-id] .pf-kg').length === 2 && qa('.pf-oc[data-id] .pf-kg div:nth-child(2) dd').every((d) => /수 있음$/.test(d.innerText)));
       ok('추천 카드의 순서 목록은 접혀 있고 직접 정하기는 바로 보임', !qa('.pf-oc[data-id] ol').length && qa('[data-act="pf-order-custom"] ol li').length === 4);
       const before = P.objective().order.join(); // 카드를 누르기 전에는 저장된 값이 없고 기본값이다
       click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
-      ok('「순서 보기」 → 그 카드의 순서 4줄이 펼쳐지고(전체 이동 거리가 맨 끝) 고른 카드는 바뀌지 않음', qa('.pf-oc[data-id="holiday"] ol li').length === 4 && /전체 이동 거리$/.test(qa('.pf-oc[data-id="holiday"] ol li')[3].innerText) && !qa('.pf-oc[data-id="balance"] ol').length && P.objective().order.join() === before && !st().settings.objective && /순서 접기/.test(q('[data-act="pf-order-peek"][data-id="holiday"]').innerText));
+      ok('「순서 보기」 → 그 카드의 순서 4줄이 펼쳐지고(전체 이동 거리가 맨 끝) 고른 카드는 바뀌지 않음', qa('.pf-oc[data-id="holiday"] ol li').length === 4 && /전체 이동 거리 최소화$/.test(qa('.pf-oc[data-id="holiday"] ol li')[3].innerText) && !qa('.pf-oc[data-id="balance"] ol').length && P.objective().order.join() === before && !st().settings.objective && /순서 접기/.test(q('[data-act="pf-order-peek"][data-id="holiday"]').innerText));
       click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
       ok('「순서 접기」 → 다시 접힘', !qa('.pf-oc[data-id="holiday"] ol').length);
       ok('카드 아래 다리 한 줄', /1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다/.test(page()));
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
-      ok('「흥행 공평 우선」 → 순서(전체 이동 거리는 마지막)', ob().order.join() === 'holiday,moves,distance,total');
+      ok('「주말·공휴일 격차 우선」 → 순서(전체 이동 거리는 마지막)', ob().order.join() === 'holiday,moves,distance,total');
       click('[data-act="pf-order-custom"]'); flush();
       click('[data-act="pf-move"][data-k="0"][data-d="1"]'); flush();
       ok('직접 정하기 ▼ → 순서가 바뀌고 직접 정하기로 남음', ob().order.join() === 'moves,holiday,distance,total' && /직접 정하기/.test(q('.pf-oc.on').innerText));
@@ -140,7 +140,7 @@
       setBox(1, '600'); setBox(0, '4');
       ok('방침 요약: 직접 정한 순서', /지금 방침: 직접 정한 순서 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText), q('.pf-policy').innerText);
       click('[data-act="pf-order"][data-id="balance"]'); flush();
-      ok('방침 요약: 이동 공평 우선 · 허용 수준 셋', /지금 방침: 이동 공평 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
+      ok('방침 요약: 이동 격차 우선 · 허용 수준 셋', /지금 방침: 이동 격차 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
       ok('실행 단추: 「이 방침으로 최대 N분 실행」', /^이 방침으로 최대 \d분 실행$/.test(q('[data-act="pf-run"]').innerText.trim()));
       // ── 운영 방침 설명하기 → 오른쪽 설명 창(뒤 화면은 가리지 않음)
       click('[data-act="pf-explain"]'); flush();
@@ -166,7 +166,7 @@
       ok('실행 시간 5분이면 + 잠김', q('[data-act="pf-time-step"][data-d="1"]').disabled);
       setTime('1');
       ok('실행 시간 1분이면 − 잠김', q('[data-act="pf-time-step"][data-d="-1"]').disabled);
-      ok('결과가 없으면 처음부터 푼다는 안내', /처음부터 풉니다/.test(page()));
+      ok('결과가 없으면 처음부터 푼다는 안내 · 「절반」 문장은 없음', /처음부터 풉니다/.test(page()) && !/절반/.test(page()));
       click('[data-act="pf-run"]');
       ok('실행: 순서·허용 차이가 엔진으로 간다', sent && sent.objective.order.join() === ob().order.join() && sent.objective.distanceGapKm === 600 && sent.opts.timeLimitSec === 60 && sent.opts.init === 'SCRATCH');
       ok('실행 중: 화면이 진행 표시로', /찾는 중/.test(page()));
@@ -183,7 +183,7 @@
       flush();
       ok('실행이 끝나면 현재 결과 분석으로 · 결과 기록', !S.run && S.ui.step === 5 && !!st().meta.result && !!st().meta.result.sig, st().meta.result && st().meta.result.why);
       const vsText = () => (q('.pf-vs') || {}).innerText || '';
-      ok('결과 맨 위: 「방침과 견주기」 목표 셋 · 안/넘음 · 「수준 다시 정하기」', /^방침과 견주기 — /.test(vsText()) && qa('.pf-vs .it').length === 3 && qa('.pf-vs .it').every((e) => /(허용 안|넘음)$/.test(e.innerText)) && !!q('.pf-vs [data-act="pf-relevel"]'));
+      ok('결과 맨 위: 「방침과 견주기」 목표 셋 · 안/넘음 · 「수준 다시 정하기」 · 결과 화면은 「격차」로', /^방침과 견주기 — 이동 횟수 /.test(vsText()) && /격차 셋 모두 허용 안|허용을 넘은 격차/.test(page()) && !/차이 \d|균형 3가지/.test(page()) && qa('.pf-vs .it').length === 3 && qa('.pf-vs .it').every((e) => /(허용 안|넘음)$/.test(e.innerText)) && !!q('.pf-vs [data-act="pf-relevel"]'));
       ok('방침과 견주기: 결과의 실제 차이와 허용 수준을 견줌(1순위부터)', (() => { const gaps = app().derived().ex.objectiveGaps, o = ob(), key = { moves: ['moves', 'moveGap'], distance: ['distanceKm', 'distanceGapKm'], holiday: ['holiday', 'holidayGap'] };
         return o.order.filter((id) => key[id]).every((id, i) => { const it = qa('.pf-vs .it')[i], inside = gaps[key[id][0]] <= o[key[id][1]]; return it.classList.contains(inside ? 'ok' : 'over') && (inside ? /허용 안$/ : /넘음$/).test(it.innerText); }); })());
       click('[data-act="pf-relevel"]'); flush();
@@ -326,12 +326,12 @@
       P.cmpPicked = true; P.cmp = ['t-good', 't-bad']; S.go({ step: 6 }); flush();
       ok('비교: 규칙을 어긴 버전은 숫자가 좋아도 이기지 않음', /규칙 어김/.test(page()) && /시험 어김」은 반드시 지킬 규칙/.test(page()) && !/이번 실행에서는/.test(page()));
       P.cmp = ['t-good', 't-tol']; S.render(); flush();
-      ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 차이가 달라/.test(page()));
+      ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 수준이 달라/.test(page()));
       ok('비교: 순위가 같으면 줄마다 순위 하나', qa('.pf-t tbody tr .pf-rk').length === 4);
       const vOrd = cv('t-ord', '시험 순서', { objective: Object.assign({}, v1.objective, { order: ['total', 'distance', 'moves', 'holiday'] }) });
       P.versions.put(2027, keepList.concat([vGood, vOrd]));
       P.cmp = ['t-good', 't-ord']; S.render(); flush();
-      ok('비교: 순서가 다르면 그렇다고 말하고 숫자만', /순서·허용 차이가 달라/.test(page()) && !/이번 실행에서는/.test(page()));
+      ok('비교: 순서가 다르면 그렇다고 말하고 숫자만', /순서·허용 수준이 달라/.test(page()) && !/이번 실행에서는/.test(page()));
       ok('비교: 순위가 다르면 버전마다 순위', qa('.pf-t tbody tr .pf-rk').length === 8 && /두 버전의 순위가 다릅니다/.test(page()));
       P.versions.put(2027, keepList); P.cmp = []; P.cmpPicked = false;
       // 표·엑셀로 홈 구단이 달라진 경우

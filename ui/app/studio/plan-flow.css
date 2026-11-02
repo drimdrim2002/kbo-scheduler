@@ -88,7 +88,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 /* 운영 방침 — 머리글(제목·한 줄·수평 저울) */
 .pf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
 .pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
-.pf-head h2 .r { margin-left: auto; font-weight: 400; font-size: 12.5px; }
+.pf-head h2 .r { margin-left: 4px; font-weight: 400; font-size: 12.5px; } /* 제목 바로 오른쪽(사용자 결정 2026-11-02) */
 .pf-head .pf-d { margin: 4px 0 0; font-size: 13.5px; }
 .pf-scale { margin: 0; text-align: center; }
 .pf-scale svg { display: block; width: 440px; height: 90px; }
