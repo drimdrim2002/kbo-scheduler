@@ -90,7 +90,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-spread > .pf-sec:not(.pf-head):not(.pf-run) { flex: 1 0 auto; display: flex; flex-direction: column; } /* 실행 구역은 줄 하나라 늘리지 않는다(늘리면 위아래가 빈다) */
 .pf-spread .pf-orders { flex: 1 0 auto; }
 .pf-spread .pf-oc { display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(8px, 1.3vh, 16px) 14px; }
-.pf-spread .pf-sec > .pf-sl { flex: 1 0 auto; }
+.pf-spread .pf-sec > .pf-sl { flex: 1 0 auto; align-content: center; } /* 줄이 늘어나도 안의 문장·좁히면/넓히면은 붙어서 가운데에 */
 /* 운영 방침 — 머리글(제목·한 줄·수평 저울) */
 .pf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
 .pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
