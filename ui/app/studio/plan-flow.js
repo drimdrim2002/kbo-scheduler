@@ -422,8 +422,8 @@
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
   // 2단계 줄의 「수정」은 화면을 옮기지 않고 그 줄 안에 입력칸을 펼친다(season-calendar.js S.seasonInlineEditor)
-  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd' };
-  const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + S.seasonInlineEditor(INLINE[k]) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
+  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', rules: 'rules' };
+  const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + (k === 'rules' ? S.homeTotalsEditor() : S.seasonInlineEditor(INLINE[k])) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
   /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
   const seasonCal = () => {
     const btn = '<button class="btn sm pf-cal-btn' + (P.calLive ? ' primary' : '') + '" data-act="pf-cal-live">' + icon(P.calLive ? 'check' : 'edit') + (P.calLive ? '고치기 끝' : '달력 고치기') + '</button>';
@@ -890,11 +890,11 @@
     'pf-ok': (el) => confirmKey(el.dataset.k),
     'pf-cal': (el) => {
       const to = el.dataset.to, st = app().state, C = S.cal;
+      if (INLINE[to] && G.fs === 2) { P.inline = P.inline === to ? null : to; if (to !== 'rules') { C.edit = { initialEnd: 'initialEnd', allStar: 'allstar', rest: 'rest' }[to] || null; C.pickOpen = to === 'opening'; } S.render(); return; } // 2단계: 줄 안에서 펼치기(다시 누르면 접기)
       if (to === 'rules') { S.flowUI.edit = 'rules'; go1(4); return; } // 시리즈 규칙은 4 확인에서 고친다
       const ev = (t) => (st.events || []).find((e) => e.type === t);
       C.edit = { initialEnd: 'initialEnd', allStar: 'allstar', rest: 'rest' }[to] || null;
       C.pickOpen = to === 'opening';
-      if (INLINE[to] && G.fs === 2) { P.inline = P.inline === to ? null : to; S.render(); return; } // 줄 안에서 펼치기(다시 누르면 접기)
       const e = to === 'openingHome' ? ev('OPENING') : to === 'childrenHome' ? ev('CHILDREN') : null;
       if (e) C.day = Dates.dayNum(e.date);
       P.calEdit = true;

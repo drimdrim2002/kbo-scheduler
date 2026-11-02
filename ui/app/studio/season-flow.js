@@ -82,6 +82,13 @@
         [['same', '개막전 홈 구단 그대로'], ['swap', '홈 바꿈']].map(([v, t]) => '<button class="' + ((s.fourGameHome || 'same') === v ? 'on' : '') + '" data-act="fl-4g" data-v="' + v + '" role="radio" aria-checked="' + ((s.fourGameHome || 'same') === v) + '">' + t + (v === 'same' ? ' <small>(기본)</small>' : '') + '</button>').join('') + '</div>' +
       '<div class="sc-note">개막 대진의 두 구단이 후반기 첫 4연전에서 다시 만납니다. 「그대로」면 개막전 홈 구단의 구장에서(1차 편성 홈 기본 69 / 66), 「홈 바꿈」이면 상대 구장에서 합니다(68 / 67 — 이때 홈 68 구단은 개막전 홈 구단).</div>' +
       '<div class="sc-note">맞대결 ' + s.gamesPerPair + '경기 = 1차 편성 ' + s.initialGamesPerPair + ' + 미편성 ' + (s.gamesPerPair - s.initialGamesPerPair) + '(재편성에서). 1차 편성 경기 수를 바꾸면 필요한 경기일(' + s.initialGamesPerPair + ' × ' + (names.length - 1) + ')도 바뀝니다.</div>';
+    return h + homeTotalsEd() + '</div>';
+  }
+  /** 격년 홈 73 / 71: 4 확인의 시리즈 규칙과 2단계 「홈 경기 수」 줄 안(plan-flow.js)에서 같이 쓴다 */
+  function homeTotalsEd() {
+    const s = app().state.settings, ht = s.homeTotals, names = app().state.teams.map((t) => t.name), half = names.length >> 1;
+    const total = (s.gamesPerPair || 16) * (names.length - 1);
+    let h = '';
     if (ht && Array.isArray(ht.moreTeams)) {
       const more = (ht.more && ht.more.total) || Math.ceil(total / 2) + 1, less = (ht.less && ht.less.total) || total - more;
       const auto = !(ht.more && ht.more.initial != null) && !(ht.less && ht.less.initial != null), d = S.htInitDefault();
@@ -91,8 +98,9 @@
           : '홈 ' + more + ' 구단: 1차 편성 홈 ' + ht.more.initial + ' · 미편성 홈 ' + (more - ht.more.initial) + ' / 홈 ' + less + ' 구단: 1차 편성 홈 ' + ht.less.initial + ' · 미편성 홈 ' + (less - ht.less.initial) + '. <button class="lnk" data-act="fl-ht-init" data-v="auto">1차 편성 홈은 자동으로</button>') +
         ' · 해마다 바뀝니다(다음 해는 반대로). 홈 ' + more + ' 구단은 개막전 홈 구단(3 홈 구장)과 따로 고릅니다. <button class="lnk" data-act="fl-ht-off">쓰지 않기</button></div>';
     } else h += '<div class="sc-note">격년 홈 73 / 71경기(구단마다 홈 경기 수가 해마다 번갈아 다름)를 쓰지 않습니다. <button class="lnk" data-act="fl-ht-on">격년 홈 73 / 71 쓰기</button></div>';
-    return h + '</div>';
+    return h;
   }
+  S.homeTotalsEditor = () => '<div class="pf-ht-ed">' + homeTotalsEd() + '</div>';
   S.renderCheck = function () {
     const st = app().state, s = st.settings, fs = S.flowStatus(), gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), sr = S.calSeriesState(), y = S.seasonYear();
     const icn = (done) => '<i class="ck-i ' + (done ? 'done' : 'cur') + '">' + (done ? icon('check') : '!') + '</i>';
