@@ -375,8 +375,8 @@
     const selSlot = !view && fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
     const star = view ? (s.blackouts || []).find((b) => /올스타/.test(b.label || '')) : null, sa = star ? dn(star.start) : null, sb = star ? dn(star.end) : null;
     const mo = ' style="--m:' + (m1 - m0 + 1) + '"'; // 달 수(검토 화면 달력의 최소 높이)
-    // 3단계(주요 이벤트 일정) 보기 전용: 이벤트 날은 칸 안에 글자로. 공휴일은 이름(줄인 것)으로
-    const f3 = view && fs() === 3, mark = new Map();
+    // 3단계(주요 이벤트 일정)·4 확인 보기 전용: 이벤트 날은 칸 안에 글자로. 공휴일은 이름(줄인 것)으로
+    const f3 = view && fs() >= 3, mark = new Map();
     if (f3) {
       const evDate = (t) => { const e = st.events.find((x) => x.type === t); return e ? dn(e.date) : null; };
       const four = st.calendar.find((c) => c.consecutive === 4);
@@ -411,7 +411,7 @@
         const lab = !view && x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : ''; // 보기 전용은 칸이 작아 왼쪽 굵은 선으로만 묶음 시작을 보인다
         const mk = f3 ? mark.get(n) : null;
         if (mk) { cls.push('lab', mk.c); tt.push(mk.t); }
-        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + twoLines(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
+        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 && fs() === 3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + twoLines(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
         h += '<span class="' + cls.join(' ') + '" role="gridcell" data-d="' + n + '"' + (x ? ' data-slot="' + x.b.i + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>';
       }
       h += '</div></div>';
@@ -458,7 +458,7 @@
       line('연전', b ? esc(bundleText(b.d, b.len)) : '<span class="muted">' + (inRange(d) ? '경기 없는 날(묶음 없음)' : '1차 편성 기간 밖') + '</span>') +
       S.calHomeBox(d, b));
   }
-  /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 주요 이벤트 일정 단계(홈 구장 지정일 표시) */
+  /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 주요 이벤트 일정 단계·4 확인(이벤트·공휴일 이름 표시. 날을 눌러 고치는 것은 3단계만) */
   S.seasonStripView = function (f3, tail) {
     const legend = f3
       ? [['game', '경기일'], ['game we sat', '토요일'], ['game we sun', '일요일'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기'], ['lab e-op', '개막전'], ['lab e-ch', '어린이날'], ['lab e-as', '올스타전'], ['lab e-4', '후반기 첫 4연전'], ['lab e-end', '1차 편성 종료']]

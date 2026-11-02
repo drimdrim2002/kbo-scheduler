@@ -493,7 +493,7 @@
     if (G.mode === 'all') return null;
     if (G.mode === 'year' || G.mode === 'resume') return renderStart();
     if ((G.fs === 2 || G.fs === 3) && !P.calEdit) return S.flowWrap(G.fs === 2 ? renderSeasonReview() : renderHomeReview(), 'pf-rvw');
-    if (G.fs === 4) return S.flowWrap(S.renderCheck().replace(/다음: [①-④]? ?검토·실행/g, '다음: 엔진 옵션·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
+    if (G.fs === 4) return S.flowWrap(S.renderCheck({ grid: true, noNext: true, below: '<div class="ck-cal"><h3>시즌 달력</h3><p class="pf-d">2·3단계에서 정한 날이 시즌 어디쯤인지 봅니다. 고치려면 위 줄의 「고치기」를 누릅니다.</p>' + S.seasonStripView(true) + '</div>' }).replace(/다음: [①-④]? ?검토·실행/g, '다음: 엔진 옵션·실행').replace(/<h2>\d{4} 시즌 데이터가 모두 준비됐습니다<\/h2>/, S.flowStatus().allDone ? '<h2>검토 완료</h2>' : '<h2>아직 검토할 편성 조건이 남았습니다</h2>'), 'ck');
     if (G.fs === 1 && inPlan()) {
       const SH = KBO.Preset2027.SHARED_STADIUM;
       const changed = app().state.teams.some((t) => t.stadium === SH.name);
