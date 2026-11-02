@@ -556,16 +556,15 @@
       '<text x="380" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#0A1E3C">' + esc(C.right) + '</text>' +
       '</svg><figcaption>' + esc(C.caption) + '</figcaption></figure>';
   }
-  P.orderPeek = {}; // 추천 카드의 순서 목록은 접어 두고 「순서 보기」로 펼친다
   function orderCards(ob) {
     const key = ob.order.join();
     const hit = ORDERS.find((o) => o.order.join() === key);
     const custom = P.customOrder || !hit;
     const kg = (o) => '<dl class="pf-kg"><div><dt>지키는 것</dt><dd>' + esc(o.keep) + '</dd></div><div><dt>내주는 것</dt><dd>' + esc(o.give) + '</dd></div></dl>';
-    const card = (o) => { const on = !custom && hit && hit.id === o.id, open = !!P.orderPeek[o.id];
+    // 순서 목록은 늘 보인다(접지 않음 — 사용자 결정 2026-11-03)
+    const card = (o) => { const on = !custom && hit && hit.id === o.id;
       return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + (on ? '<span class="pf-tag blue">선택</span>' : '') + esc(o.name) + '</h4>' + kg(o) +
-        '<button class="pf-link xs" data-act="pf-order-peek" data-id="' + o.id + '" aria-expanded="' + open + '">' + (open ? '순서 접기 ▴' : '순서 보기 ▾') + '</button>' +
-        (open ? '<ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol>' : '') + '</div>'; };
+        '<ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol></div>'; };
     const lastFixed = ob.order[3] === LAST, top = lastFixed ? 2 : 3; // 전체 이동 거리가 마지막이면 그 줄은 움직이지 않는다(옛 버전으로 순서가 다르면 모두 움직일 수 있게)
     const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + (custom ? '<span class="pf-tag blue">선택</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다. 전체 이동 거리는 늘 마지막</p><ol>' +
       ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : lastFixed && i === LAST ? '<span class="pf-last">늘 마지막</span>' : '') + '</li>').join('') + '</ol></div>';
@@ -614,22 +613,21 @@
     return !P.customOrder && hit ? hit.name.replace(/ \(기본\)$/, '') : '직접 정한 순서';
   }
   P.policyName = policyName;
-  const policyLine = (ob) => '<div class="pf-policy">지금 방침: <b>' + esc(policyName(ob)) + '</b> · 이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점</div>';
+  // 방침 요약은 아래 줄(실행 단추 옆)에만 둔다. 실행 단추도 아래 줄 하나뿐이다(화면 안에 하나 더 두면 파란 단추가 둘이라 — 사용자 결정 2026-11-03)
+  const policyText = (ob) => '지금 방침: <b>' + esc(policyName(ob)) + '</b> · 이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점';
   function renderOptions() {
     const ob = objective(), pf = app().preflight(), f = tolFacts(), C = P.policyCopy;
     const rest = app().engineConfig.kind === 'REST', info = (app().engineConfig && app().engineConfig.info) || {};
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
     const min = P.timeSec / 60;
-    return '<div class="pf-page">' +
+    return '<div class="pf-page pf-spread">' +
       '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p></div>' + scaleFigure() + '</div>' +
       '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
       '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
-      '<div class="pf-sec"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
+      '<div class="pf-sec pf-run"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
       '<div class="pf-sl"><div class="k"><b>실행 시간</b></div><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div>' +
-      policyLine(ob) + '<div class="pf-runbar"><span class="grow"></span>' +
-      (rest ? '' : '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span>') +
-      '<button class="btn primary lg" data-act="pf-run"' + (pf.ok ? '' : ' disabled') + '>' + icon('play') + '이 방침으로 최대 ' + P.timeSec / 60 + '분 실행</button></div>' +
+      (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div>';
   }
@@ -870,7 +868,7 @@
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 운영 방침입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(); return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint"><b>운영 방침</b> — 무엇을 먼저 지킬지 고르고, 목표마다 허용 수준을 정해 실행합니다</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run">이 방침으로 최대 ' + P.timeSec / 60 + '분 실행' + icon('right') + '</button>'); }
+    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 최대 ' + P.timeSec / 60 + '분 실행</button>'); }
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
@@ -984,9 +982,8 @@
     'pf-explain': () => { S.go({ drawer: S.ui.drawer === 'explain' ? null : 'explain' }); },
     'pf-tour-ok': () => { S.ls.set(tourKey(G.fs), '1'); S.render(); },
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
-    'pf-order': (el, e) => { if (e && e.target.closest('[data-act="pf-order-peek"]')) return; const o = ORDERS.find((x) => x.id === el.dataset.id); if (!o) return; P.customOrder = false; app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
+    'pf-order': (el) => { const o = ORDERS.find((x) => x.id === el.dataset.id); if (!o) return; P.customOrder = false; app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '평가 기준 순서: ' + o.name); },
     'pf-order-custom': (el, e) => { if (e && e.target.closest('[data-act="pf-move"]')) return; P.customOrder = true; S.render(); },
-    'pf-order-peek': (el, e) => { if (e) e.stopPropagation(); P.orderPeek[el.dataset.id] = !P.orderPeek[el.dataset.id]; S.render(); },
     'pf-relevel': () => { const jump = () => { const el = document.getElementById('pf-levels'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }; S.afterRender(jump); S.actions['pf-stage']({ dataset: { stage: '2' } }); setTimeout(jump, 50); }, // 그리고 난 뒤 허용 수준 구역으로(뒤따르는 다시 그리기가 있어도 한 번 더)
     'pf-move': (el, e) => {
       if (e) e.stopPropagation();
