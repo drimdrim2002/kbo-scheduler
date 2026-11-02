@@ -88,16 +88,11 @@
       // ── 운영 방침 → settings.objective
       const cardNames = () => qa('.pf-oc h4').map((h) => h.innerText.replace('선택', '').trim()).join();
       ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울(이동 횟수·거리의 격차 ↔ 주말·공휴일 홈의 격차) · 설명 링크(제목 바로 오른쪽)', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /이동 횟수·거리의 격차/.test(q('.pf-head').innerText) && /주말·공휴일 홈의 격차/.test(q('.pf-head').innerText) && /최소로 만들 수는 없습니다/.test(q('.pf-head').innerText) && q('.pf-head h2 [data-act="pf-explain"]').getBoundingClientRect().left - q('.pf-head h2').getBoundingClientRect().left < 320 && !/리그 전체 효율/.test(page()) && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
-      ok('단계 띠·아래 줄: 「운영 방침·실행」', /운영 방침·실행/.test(q('#stepper').innerText) && /운영 방침/.test(q('.footer').innerText));
+      ok('단계 띠: 「운영 방침·실행」 · 아래 줄: 방침 요약 + 실행 단추 하나(화면 안에는 없음)', /운영 방침·실행/.test(q('#stepper').innerText) && /지금 방침/.test(q('.footer .pf-policy').innerText) && qa('[data-act="pf-run"]').length === 1 && !!q('.footer [data-act="pf-run"]') && !q('.pf-page [data-act="pf-run"]'));
       ok('카드 이름: 이동 격차 우선·주말·공휴일 격차 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음) · 고른 카드는 「선택」', cardNames() === '이동 격차 우선 (기본),주말·공휴일 격차 우선,직접 정하기' && /선택/.test(q('.pf-oc.on h4').innerText), cardNames());
       ok('우선순위 설명: 전체 이동 거리는 늘 마지막', /전체 이동 거리는 늘 마지막/.test(page()));
       ok('카드마다 지키는 것·내주는 것, 내주는 것은 단정하지 않음', qa('.pf-oc[data-id] .pf-kg').length === 2 && qa('.pf-oc[data-id] .pf-kg div:nth-child(2) dd').every((d) => /수 있음$/.test(d.innerText)));
-      ok('추천 카드의 순서 목록은 접혀 있고 직접 정하기는 바로 보임', !qa('.pf-oc[data-id] ol').length && qa('[data-act="pf-order-custom"] ol li').length === 4);
-      const before = P.objective().order.join(); // 카드를 누르기 전에는 저장된 값이 없고 기본값이다
-      click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
-      ok('「순서 보기」 → 그 카드의 순서 4줄이 펼쳐지고(전체 이동 거리가 맨 끝) 고른 카드는 바뀌지 않음', qa('.pf-oc[data-id="holiday"] ol li').length === 4 && /전체 이동 거리 최소화$/.test(qa('.pf-oc[data-id="holiday"] ol li')[3].innerText) && !qa('.pf-oc[data-id="balance"] ol').length && P.objective().order.join() === before && !st().settings.objective && /순서 접기/.test(q('[data-act="pf-order-peek"][data-id="holiday"]').innerText));
-      click('[data-act="pf-order-peek"][data-id="holiday"]'); flush();
-      ok('「순서 접기」 → 다시 접힘', !qa('.pf-oc[data-id="holiday"] ol').length);
+      ok('카드마다 순서 4줄이 늘 보이고(접지 않음) 전체 이동 거리가 맨 끝', qa('.pf-oc[data-id] ol').length === 2 && qa('.pf-oc[data-id] ol').every((ol) => ol.querySelectorAll('li').length === 4 && /전체 이동 거리 최소화$/.test(ol.lastElementChild.innerText)) && !q('[data-act="pf-order-peek"]') && qa('[data-act="pf-order-custom"] ol li').length === 4);
       ok('카드 아래 다리 한 줄', /1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다/.test(page()));
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
       ok('「주말·공휴일 격차 우선」 → 순서(전체 이동 거리는 마지막)', ob().order.join() === 'holiday,moves,distance,total');

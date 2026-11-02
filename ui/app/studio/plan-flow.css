@@ -85,6 +85,12 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-num .v { font-size: 20px; font-weight: 800; color: var(--navy); } .pf-num .v small { font-size: 12px; font-weight: 600; }
 .pf-num .s { font-size: 11.5px; color: var(--text-3); }
 
+/* 운영 방침: 창이 내용보다 높으면 우선순위·허용 수준 두 구역이 남는 높이를 나눠 갖고, 안의 카드·줄이 그 높이를 나눈다.
+   내용이 더 높으면 그대로 스크롤(사용자 요청 2026-11-03: 아래 빈칸을 창 높이에 맞춤). claude/fill-height의 .pf-spread와 같은 이름·방식 */
+.pf-spread > .pf-sec:not(.pf-head):not(.pf-run) { flex: 1 0 auto; display: flex; flex-direction: column; } /* 실행 구역은 줄 하나라 늘리지 않는다(늘리면 위아래가 빈다) */
+.pf-spread .pf-orders { flex: 1 0 auto; }
+.pf-spread .pf-oc { display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(8px, 1.3vh, 16px) 14px; }
+.pf-spread .pf-sec > .pf-sl { flex: 1 0 auto; }
 /* 운영 방침 — 머리글(제목·한 줄·수평 저울) */
 .pf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
 .pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
@@ -93,7 +99,7 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-scale { margin: 0; text-align: center; }
 .pf-scale svg { display: block; width: 440px; height: 90px; }
 .pf-scale figcaption { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
-/* 우선순위 카드: 지키는 것 / 내주는 것, 순서 목록은 「순서 보기」로 펼침 */
+/* 우선순위 카드: 지키는 것 / 내주는 것 + 순서 목록(늘 보임) */
 .pf-kg { margin: 0 0 8px; display: grid; gap: 4px; font-size: 12px; line-height: 1.45; }
 .pf-kg div { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px; }
 .pf-kg dt { font-weight: 700; color: var(--ok); white-space: nowrap; }
@@ -110,9 +116,8 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-th { grid-column: 2; justify-self: start; font-size: 12px; font-weight: 700; margin-top: -2px; padding: 3px 9px; border-radius: 6px; border: 1px solid; }
 .pf-th[data-tolstate="zero"] { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
 .pf-th[data-tolstate="wide"] { color: var(--text-2); border-color: var(--line-2); background: var(--surface-2); }
-/* 실행: 단추 위 방침 요약 */
-.pf-policy { font-size: 13px; color: var(--text-2); text-align: right; margin: 10px 0 6px; }
-.pf-policy b { color: var(--navy); }
+/* 아래 줄의 방침 요약(실행 단추 옆) */
+.footer .pf-policy b { color: var(--navy); }
 /* 결과 화면 맨 위: 방침과 견주기 */
 .pf-vs { display: flex; align-items: center; gap: 12px; padding: 8px 14px; font-size: 13px; }
 .pf-vs .l { flex: 1; }
