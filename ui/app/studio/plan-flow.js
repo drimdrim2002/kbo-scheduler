@@ -802,6 +802,10 @@
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
     return null;
   };
+  // 창이 노트북(1440×790)보다 크면 본문을 통째로 키운다(최대 1.25배, 높이 830마다 1배). 노트북 배치가 그대로 커져 줄 사이가 벌어지는 대신 글자·막대가 커진다
+  const fitZoom = () => document.documentElement.style.setProperty('--pf-zoom', Math.max(1, Math.min(1.25, window.innerWidth / 1440, window.innerHeight / 830)).toFixed(3));
+  fitZoom();
+  window.addEventListener('resize', fitZoom);
   /** body에 표시 클래스(2025 보기 전용이면 단계 띠·상태를 숨김) */
   P.beforeRender = function () {
     document.body.classList.add('pf');
