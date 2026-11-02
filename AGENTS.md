@@ -46,7 +46,7 @@ All UI checks use headless Chrome on macOS (`/Applications/Google Chrome.app`). 
 | UI core unit tests | `node ui/core/test/run-tests.js` | all pass (the JS scorer is compared against golden files pre-scored by Java `ScoreFormulas`) |
 | Showcase, 3 pages × 375/768/1440 | `bash ui/tools/show/check.sh [index compare r]` | every line `PASS` |
 | Studio self-test | `bash ui/tools/studio/selftest.sh 1440 877` | `ALL PASS` |
-| Studio, every route | `bash ui/tools/studio/checkall.sh` | every line `data-errors="0"` |
+| Studio, every route | `bash ui/tools/studio/checkall.sh` (4 Chrome at once; `ONLY=pf-` = current flow only, ~15 s — use that while iterating, the full run before a merge) | every line `data-errors="0"` |
 | Replay player alone | `bash ui/tools/replay/check.sh` | `data-errors="0"` |
 
 The check scripts read attributes the page writes on `<html>` (`data-errors`, `data-scroll`, `data-selftest`, …) via `--dump-dom`. A new screen should collect console errors the same way (see the head of `ui/index.html`). Screenshots are taken with `shot.sh` into `ui/shots/`.
