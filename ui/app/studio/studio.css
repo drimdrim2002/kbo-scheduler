@@ -1494,7 +1494,7 @@ svg.mc text { font-family: var(--font); }
 .stepview.fl .gs-edit .gs-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; overflow: visible; }
 .gs-edit-l, .gs-edit-r { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .gs-edit .gs-edit-r .gs-sub-row { padding-right: 30px; }
-.tm-two .tm-table tbody td, .tm-two .tm-table tbody th { height: 34px; }
+.tm-two .tm-table tbody td, .tm-two .tm-table tbody th { height: var(--tm-r, 34px); }
 .tm-mapbar { width: 100%; appearance: none; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 3px 12px; border: 0; background: var(--surface-2); color: var(--navy); font: inherit; font-weight: 700; }
 .tm-mapbar .muted { margin-left: auto; font-weight: 400; }
 .gs-pop-x { position: absolute; top: 6px; right: 6px; z-index: 1; }
