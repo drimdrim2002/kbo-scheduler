@@ -122,8 +122,8 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-pair > .pf-sec, .pf-side > .pf-sec { display: flex; flex-direction: column; }
 .pf-side { display: flex; flex-direction: column; gap: clamp(8px, 1vh, 16px); min-width: 0; }
 .pf-side > #pf-levels { flex: 1 0 auto; }
-.pf-pair .pf-orders { flex: 1 0 auto; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 8px; margin-top: 4px; }
-.pf-pair .pf-oc { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 18px; align-content: center; padding: clamp(6px, 1vh, 14px) 14px; }
+.pf-pair .pf-orders { flex: 1 0 auto; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(min-content, min(140px, 12vh)); align-content: space-evenly; gap: 8px; margin-top: 4px; } /* 큰 창에서 카드는 창 높이의 12%(최대 140px)까지만 늘고 남는 높이는 카드 사이로(사용자 요청 2026-11-03) */
+.pf-pair .pf-oc { display: grid; grid-template-columns: minmax(0, 380px) auto; grid-template-rows: auto auto; column-gap: 24px; align-content: center; padding: clamp(6px, 1vh, 14px) 14px; }
 .pf-pair .pf-oc > * { align-self: start; }
 .pf-pair .pf-oc h4 { grid-column: 1; margin-bottom: 4px; }
 .pf-pair .pf-oc .pf-kg, .pf-pair .pf-oc p { grid-column: 1; margin: 0; line-height: 1.35; }
