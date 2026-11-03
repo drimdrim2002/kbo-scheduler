@@ -206,6 +206,11 @@ table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { c
 /* 한 장 대시보드 */
 .pf-save { display: flex; gap: 8px; align-items: center; }
 .pf-save input { flex: 1; border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
+/* 자동 저장한 이름 줄(3 현재 결과 분석): 이름 칸은 이름 길이만큼, 옆에 작은 글 두 줄(줄 높이는 단추와 같게) */
+.pf-savesec { padding: 8px 14px; }
+.pf-savesec .pf-save input { flex: 0 1 300px; min-width: 0; }
+.pf-save .grow { flex: 1; } .pf-save .pf-nm { color: var(--navy); font-size: 14px; }
+.pf-meta { font-size: 11px; line-height: 15px; color: var(--text-3); min-width: 0; }
 .pf-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; gap: 10px; align-items: stretch; }
 .pf-dash .pf-sec { padding: clamp(8px, 1.3vh, 16px) 14px; }
 .pf-dash .pf-heat { grid-row: 1 / 3; grid-column: 3; }

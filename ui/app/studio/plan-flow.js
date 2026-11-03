@@ -4,11 +4,12 @@
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
  *   2 운영 방침: 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) + 목표마다 허용 수준(가장 많은·적은 구단 격차) → settings.objective로 서버에 보낸다. 값 형식은 그대로.
- *   3 현재 결과 분석: 한 장 대시보드 + 이름 붙여 버전 저장. 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
+ *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
  *  ?classic=1(또는 자가 점검)이면 읽지 않아 예전 화면 그대로다.
  *  버전 저장: 기본 제공 ui/data/plans/*.json + 사용자가 저장한 것은 이 브라우저(P.versions). 온라인 저장소로 옮길 때 P.versions만 바꾼다.
+ *   실행이 끝나면 「#0001_이동격차_4회_600km_3점」 이름으로 바로 저장한다. 이름을 바꾼 결과는 남기고, 나머지는 최근 몇 개만 둔다(사용자 결정 2026-11-03).
  */
 (function () {
   'use strict';
@@ -19,7 +20,7 @@
   const { Score, Dates, CalendarGen } = KBO;
   const app = () => S.app;
   const G = S.g1;
-  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, inline: null, calLive: false, customOrder: false, view25: 'compare', name: '' };
+  const P = S.planFlow = { builtin: {}, cmp: [], cmpTab: 'distance', timeSec: 120, calEdit: false, inline: null, calLive: false, customOrder: false, view25: 'compare', runOption: null };
   const YEAR_NEW = 2027, YEAR_VIEW = 2025;
   const isRunning = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
   const num = (v, d) => Number(v).toLocaleString('ko-KR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
@@ -298,7 +299,7 @@
   };
   S.modals.pfCalChange = function () {
     return '<div class="modal" role="dialog" aria-label="연전이 바뀜" style="width:480px;max-width:94vw"><div class="modal-head"><h3>연전이 바뀌었습니다</h3></div><div class="modal-body" style="padding:14px">' +
-      '<p class="pf-d" style="margin:0 0 12px">날짜나 연전 수가 바뀌면 지금 결과에서 이어서 풀 수 없습니다. 지금 결과를 지우고 처음부터 다시 풉니다. 이름 붙여 저장한 버전은 그대로 남습니다.</p>' +
+      '<p class="pf-d" style="margin:0 0 12px">날짜나 연전 수가 바뀌면 지금 결과에서 이어서 풀 수 없습니다. 지금 결과를 지우고 처음부터 다시 풉니다. 저장한 결과는 그대로 남습니다.</p>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="pf-cal-undo">바꾸지 않기</button><button class="btn primary" data-act="pf-cal-clear">결과 지우고 계속</button></div></div></div>';
   };
   S.modals.pfBasis = function () {
@@ -672,10 +673,18 @@
   /** 실행이 끝나면(step-review.js finish): 결과를 기록하고 현재 결과 분석으로 */
   S.afterRun = function (ex, run, why) {
     if (S.seasonYear() !== YEAR_NEW) return false;
-    app().store.commit('실행 결과 기록', (s) => { s.meta.result = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: s.settings.objective || DEFAULT_OBJECTIVE, sig: inputSig(s), calSig: calSig(s), engine: app().engineConfig.kind }; }, { tags: ['meta'], undo: false });
-    P.name = '';
+    // 실행마다 번호를 붙여 바로 저장한다. 방침은 실행을 누른 때의 것(P.runOption), 없으면 지금 순서로 본다
+    const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = P.runOption || optionOf(ob), no = nextNo(YEAR_NEW);
+    P.runOption = null;
+    S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
+    const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) };
+    const v = storeRun(res, ex);
+    res.vid = v ? v.id : null;
+    app().store.commit('실행 결과 기록', (s) => { s.meta.result = Object.assign({}, res); }, { tags: ['meta'], undo: false });
+    if (v) pickNew(v);
     const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
-    S.toast(instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 4000);
+    if (!v) noRoom();
+    else S.toast((instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').') + ' 「' + v.name + '」(으)로 저장했습니다.', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 5000);
     S.go({ step: 5, sel: null });
     return true;
   };
@@ -726,28 +735,75 @@
       if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>연전이 바뀌었습니다</h3><p class="pf-d">전에 낸 결과는 이 달력에서 쓸 수 없습니다. 처음부터 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
       if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">운영 방침을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
       const ex = app().derived().ex, data = dataOf(ex), ob = res.objective || objective();
-      const name = P.name || suggestName();
       const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">운영 방침·실행으로 ›</button></div>' : '';
       return '<div class="stepview no-band"><div class="pf-page">' + policyCheck(data, ob) +
-        '<div class="pf-sec" style="padding:8px 14px"><div class="pf-save">' + (byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '') + '<span class="small muted">이 결과에 이름을 붙여 저장:</span><input value="' + esc(name) + '" data-in="pf-name" aria-label="버전 이름"><button class="btn primary" data-act="pf-save">버전으로 저장</button><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 공정성</button></div></div>' +
+        saveRow(res) +
         editedNote2 + dashboard(data, ob) + '</div></div>';
     }
   };
-  const noRoom = () => S.toast('저장 공간이 모자라 저장하지 못했습니다. 안 쓰는 버전을 지우세요.', 'bad', 6000);
-  function suggestName() { const n = P.versions.list(YEAR_NEW).length; return n ? '2027 계획 ' + (n + 1) : '2027 내 계획'; }
-  function saveVersion() {
-    const st = app().state, ex = app().derived().ex, data = dataOf(ex), res = st.meta.result || {};
+  /** 3 현재 결과 분석 맨 위 줄: 실행이 끝날 때 저장한 이름(바꿀 수 있음)과 옆에 작은 글 두 줄(실행 시각·걸린 시간·직접 정한 순서 / 남기는지). 줄 높이는 예전 저장 줄과 같다 */
+  function saveRow(res) {
+    const vid = res.vid || res.from, v = vid ? P.versions.get(YEAR_NEW, vid) : null;
+    const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '';
+    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 공정성</button>';
+    let head, meta, keep = '';
+    if (v && !v.builtin) {
+      head = '<span class="small muted">저장한 이름</span><input value="' + esc(v.name) + '" data-in="pf-name" data-id="' + esc(v.id) + '" aria-label="결과 이름">' + (v.kept ? '<span class="pf-tag blue">남김</span>' : '');
+      meta = [whenText(v), v.elapsedMs ? '실행 ' + fmt.time(v.elapsedMs) : '', v.note];
+      keep = v.kept ? '이름을 바꾼 결과라 지우지 않습니다' : '이름을 바꾸면 지우지 않고 남깁니다(그 밖은 최근 ' + AUTO_KEEP + '개만)';
+    } else if (v) {
+      head = '<b class="pf-nm">' + esc(v.name) + '</b><span class="small muted">기본 제공</span>';
+      meta = [v.note];
+    } else if (vid) {
+      head = '<b class="pf-nm">' + esc(res.name || '') + '</b><span class="small muted">지운 결과</span>';
+      meta = [whenText({ ranAt: res.at })];
+    } else {
+      head = (res.name ? '<b class="pf-nm">' + esc(res.name) + '</b>' : '') + '<span class="pf-tag over">저장하지 못함</span><button class="btn primary" data-act="pf-save">다시 저장</button>';
+      meta = [whenText({ ranAt: res.at }), res.elapsedMs ? '실행 ' + fmt.time(res.elapsedMs) : ''];
+      keep = '저장 공간이 모자랐습니다. 실행 결과 비교에서 안 쓰는 결과를 지우세요';
+    }
+    return '<div class="pf-sec pf-savesec"><div class="pf-save">' + test + head + '<span class="pf-meta">' + meta.filter(Boolean).map(esc).join(' · ') + (keep ? '<br>' + esc(keep) : '') + '</span><span class="grow"></span>' + go + '</div></div>';
+  }
+  const noRoom = () => S.toast('저장 공간이 모자라 저장하지 못했습니다. 안 쓰는 결과를 지우세요.', 'bad', 6000);
+  // ───────── 실행마다 자동 저장 ─────────
+  // 이름 「#번호_방침_횟수_거리_점수」: 번호는 네 자리, 2027 실행마다 1씩. 지운 뒤에도 다시 쓰지 않도록 목록과 따로 센다.
+  // 허용 수준은 바꾼 것만이 아니라 늘 셋 다 적는다. 이름을 바꾸면(kept) 남길 결과로 보고 지우지 않는다. 나머지는 최근 AUTO_KEEP개만 둔다.
+  const AUTO_KEEP = 8;
+  const OPTION_LABEL = { balance: '이동격차', holiday: '주말공휴일' }; // 카드 이름이 바뀌어도 이름 규칙은 그대로. 그 밖은 직접정하기
+  const noKey = (y) => S.KEY + 'runNo:' + y;
+  /** 방침: 추천 카드 id 또는 'custom'(직접 정하기를 눌렀거나 추천 순서와 다르면) */
+  function optionOf(ob) { const hit = ORDERS.find((o) => o.order.join() === ob.order.join()); return !P.customOrder && hit ? hit.id : 'custom'; }
+  const runName = (no, option, ob) => '#' + String(no).padStart(4, '0') + '_' + (OPTION_LABEL[option] || '직접정하기') + '_' + Math.round(ob.moveGap) + '회_' + Math.round(ob.distanceGapKm) + 'km_' + Math.round(ob.holidayGap) + '점';
+  function nextNo(y) { const used = P.versions.list(y).reduce((m, v) => Math.max(m, v.no | 0), 0); return Math.max(Number(S.ls.get(noKey(y))) || 0, used) + 1; }
+  /** 이름을 바꾸지 않은 자동 저장 결과는 최근 AUTO_KEEP개만. 확정한 버전·이름을 바꾼 것·예전에 손으로 저장한 것은 그대로 */
+  function pruneRuns(list, y) {
+    const fin = P.final.id(y), auto = list.filter((v) => v.auto && !v.kept && v.id !== fin);
+    const drop = new Set(auto.slice(0, Math.max(0, auto.length - AUTO_KEEP)));
+    return list.filter((v) => !drop.has(v));
+  }
+  const orderText = (ob) => ob.order.map((i) => shortName(i)).join(' → ');
+  /** 결과 기록(res) → 버전으로 저장. 못 쓰면 null */
+  function storeRun(res, ex) {
+    const st = app().state, data = dataOf(ex || app().derived().ex), ob = res.objective;
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {};
-    const name = (P.name || suggestName()).trim();
-    const rec = Object.assign({ id: 'v' + Date.now(), name, year: YEAR_NEW, savedAt: new Date().toISOString().slice(0, 10), elapsedMs: res.elapsedMs || 0, objective: res.objective || objective(), note: (res.objective || objective()).order.map((i) => shortName(i)).join(' → '), engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st) }, data, {
+    const rec = Object.assign({ id: 'v' + Date.now(), no: res.no, auto: true, option: res.option, name: res.name, year: YEAR_NEW, savedAt: res.at.slice(0, 10), ranAt: res.at, elapsedMs: res.elapsedMs || 0, objective: ob, note: res.option === 'custom' ? '순서: ' + orderText(ob) : '', engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st) }, data, {
       matches: st.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive })), plan: st.plan.map((x) => ({ match: x.match, calendar: x.calendar }))
     });
-    const list = P.versions.list(YEAR_NEW); list.push(rec);
-    if (!P.versions.put(YEAR_NEW, list)) { noRoom(); return null; }
-    S.toast('「' + name + '」을(를) 저장했습니다.', 'ok');
-    P.name = '';
-    return rec;
+    return P.versions.put(YEAR_NEW, pruneRuns(P.versions.list(YEAR_NEW).concat([rec]), YEAR_NEW)) ? rec : null;
   }
+  /** 방금 저장한 결과를 비교에 넣는다(예전 「버전으로 저장」과 같이) */
+  function pickNew(v) { const base = P.versions.all(YEAR_NEW).find((x) => x.id !== v.id); P.cmp = base ? [base.id, v.id] : [v.id]; P.cmpPicked = false; }
+  /** 이름 바꾸기: 바뀌었을 때만 남길 결과로. 빈 이름이면 그대로 */
+  function renameVersion(y, id, name) {
+    const list = P.versions.list(y), v = list.find((x) => x.id === id), n = String(name || '').trim();
+    if (!v || !n || n === v.name) return false;
+    v.name = n; v.kept = true;
+    if (!P.versions.put(y, list)) { noRoom(); return false; }
+    return true;
+  }
+  /** 「11월 3일 14:05」. 시각이 없는 예전 버전은 저장한 날만 */
+  const whenText = (v) => { if (!v.ranAt) return v.savedAt || ''; const d = new Date(v.ranAt), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+  Object.assign(P, { pruneRuns, nextRunNo: nextNo, runName, AUTO_KEEP });
   /** 버전의 값과 일정을 프로젝트에 넣는다. 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로 */
   function applyVersion(s, v) {
     const b = JSON.parse(JSON.stringify(v.inputs || preset27())), solver = s.settings.solver;
@@ -805,14 +861,14 @@
   S.steps[6] = {
     render() {
       const y = S.seasonYear(), all = P.versions.all(y);
-      if (all.length < 1) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전이 없습니다</h3><p class="pf-d">현재 결과 분석에서 「버전으로 저장」을 누르면 여기에 쌓입니다.</p></div></div></div>';
+      if (all.length < 1) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전이 없습니다</h3><p class="pf-d">실행할 때마다 결과가 여기에 저절로 쌓입니다.</p></div></div></div>';
       P.cmp = P.cmp.filter((id) => all.some((v) => v.id === id));
       if (!P.cmpPicked) for (const v of all) if (P.cmp.length < 2 && !P.cmp.includes(v.id)) P.cmp.push(v.id);
       const ver = (v) => { const on = P.cmp.includes(v.id), isFinal = y === YEAR_NEW && P.final.id(y) === v.id;
-        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + '<small>' + esc(v.note || '') + '</small><div class="w">' + esc(v.savedAt) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
+        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name) + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + (v.kept ? ' <span class="pf-tag blue">남김</span>' : '') + (v.note ? '<small>' + esc(v.note) + '</small>' : '') + '<div class="w">' + esc(whenText(v)) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
           '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => shortName(id) + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
           '<div class="acts">' + (isFinal ? '<button class="btn sm" data-act="pf-final-off">확정 취소</button>' : y === YEAR_NEW && canFinal(v) ? '<button class="btn sm primary" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '') + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>')) + '</div></div>'; };
-      const list = '<div class="pf-sec pf-vers"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다.</p>' + all.map(ver).join('') +
+      const list = '<div class="pf-sec pf-vers"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다. 이름을 바꾸지 않은 결과는 최근 ' + AUTO_KEEP + '개만 남습니다.</p>' + all.map(ver).join('') +
         '<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button><span class="xs muted">저장한 버전은 이 브라우저에 있습니다(나중에 온라인으로 옮김).</span></div></div>';
       const [a, b] = P.cmp.map((id) => all.find((v) => v.id === id));
       if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
@@ -1019,25 +1075,31 @@
       if (!S.seriesOkOf(app().state)) { S.calNext(); if (!S.seriesOkOf(app().state)) return; }
       const keep = inputsEdited(app().state); // 값을 고쳤으면 전 결과에서 이어서, 운영 방침만 바꿨거나 결과가 없으면 처음부터 — 사용자 결정 2026-11-01
       app().updateSolverSettings({ timeLimitSec: P.timeSec, unimprovedSec: Math.round(P.timeSec / 2), init: keep ? 'KEEP' : 'SCRATCH' });
+      P.runOption = optionOf(objective()); // 이름에 쓸 방침은 실행을 누른 때의 것
       S.startRun();
       // 첫 결과가 오면 전 결과 표시를 지운다(도중에 새로고침해도 섞인 일정을 전 결과로 보이지 않게)
       if (S.run && app().run) { let once = false; app().run.handle.on('best', () => { if (once) return; once = true; if (app().state.meta.result) app().store.commit('전 결과 표시 지우기', (st) => { delete st.meta.result; }, { tags: ['meta'], undo: false }); }); }
     },
-    'pf-save': () => {
-      const v = saveVersion();
-      if (!v) return;
-      const base = P.versions.all(YEAR_NEW).find((x) => x.id !== v.id);
-      P.cmp = base ? [base.id, v.id] : [v.id]; // 방금 저장한 버전을 바로 비교에 넣는다
-      S.go({ step: 6 });
+    'pf-save': () => { // 자동 저장이 저장 공간 때문에 실패했을 때 같은 번호로 다시
+      const r0 = app().state.meta.result;
+      if (!r0 || r0.vid || r0.from) return;
+      const res = Object.assign({}, r0);
+      if (!res.no) { const ob = res.objective || objective(); res.objective = ob; res.no = nextNo(YEAR_NEW); res.option = optionOf(ob); res.name = runName(res.no, res.option, ob); S.ls.set(noKey(YEAR_NEW), String(res.no)); } // 번호가 없는 예전 결과
+      const v = storeRun(res);
+      if (!v) { noRoom(); return; }
+      app().store.commit('실행 결과 저장', (s) => { s.meta.result = Object.assign(res, { vid: v.id }); }, { tags: ['meta'], undo: false });
+      pickNew(v);
+      S.toast('「' + v.name + '」(으)로 저장했습니다.', 'ok');
+      S.render();
     },
     'pf-25': (el) => { P.view25 = el.dataset.v; S.render(); },
     'pf-cmp-tab': (el) => { P.cmpTab = el.dataset.v; S.render(); },
     'pf-load': (el) => { const v = P.versions.get(S.seasonYear(), el.dataset.id); if (v && S.seasonYear() === YEAR_NEW) loadVersion(v); },
     'pf-rename': (el) => {
-      const y = S.seasonYear(), list = P.versions.list(y), v = list.find((x) => x.id === el.dataset.id);
+      const y = S.seasonYear(), v = P.versions.list(y).find((x) => x.id === el.dataset.id);
       if (!v) return;
       const n = window.prompt('새 이름', v.name);
-      if (n && n.trim()) { v.name = n.trim(); if (!P.versions.put(y, list)) noRoom(); S.render(); }
+      if (renameVersion(y, v.id, n)) S.render();
     },
     'pf-del': (el) => {
       const y = S.seasonYear(), list = P.versions.list(y), v = list.find((x) => x.id === el.dataset.id);
@@ -1065,7 +1127,7 @@
           if (err) { S.toast('올리지 못했습니다 — ' + err, 'bad', 6000); return; }
           const differ = P.rescoreVersion(v);
           const list = P.versions.list(y);
-          v.id = 'v' + Date.now(); v.year = y; v.name = String(v.name || '받은 버전').trim() || '받은 버전'; delete v.builtin; list.push(v);
+          v.id = 'v' + Date.now(); v.year = y; v.name = String(v.name || '받은 버전').trim() || '받은 버전'; delete v.builtin; delete v.auto; delete v.no; delete v.kept; list.push(v); // 받은 버전은 번호를 세지 않고 지우지도 않는다
           if (!P.versions.put(y, list)) { noRoom(); return; }
           S.toast('「' + v.name + '」을(를) 올렸습니다.' + (differ ? ' 파일에 적힌 숫자와 달라 일정으로 다시 계산한 숫자를 보여 줍니다.' : ''), differ ? 'warn' : 'ok', differ ? 6000 : undefined); S.render();
         }).catch(() => S.toast('올리지 못했습니다 — 파일을 읽을 수 없습니다.', 'bad', 6000));
@@ -1096,7 +1158,7 @@
     if (!Number.isInteger(v) || v < TIME_MIN || v > TIME_MAX) { el.classList.add('err'); S.toast(TIME_MIN + '~' + TIME_MAX + '분 사이의 정수를 적어 주세요.', 'bad'); return; }
     P.timeSec = v * 60; S.render();
   };
-  S.inputs['pf-name'] = (el) => { P.name = el.value; };
+  S.inputs['pf-name'] = (el) => { if (!String(el.value).trim()) { S.render(); return; } if (renameVersion(YEAR_NEW, el.dataset.id, el.value)) { S.toast('이름을 바꿨습니다. 이 결과는 지우지 않고 남깁니다.', 'ok'); S.render(); } };
   S.inputs['pf-cmp'] = (el) => {
     const id = el.dataset.id;
     P.cmpPicked = true;
