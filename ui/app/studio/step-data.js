@@ -516,12 +516,16 @@
       const names = st.teams.map((t) => t.name);
       const values = names.map((a) => names.map((b) => (a === b ? null : (app().distanceOf(a, b) || {}).distance)));
       const mapOpen = !!(u.tmMapOpen || u.mapPick || findCands());
-      const dist = S.feature('T7') ? '<div class="blk tm-dist"><div class="blk-head">' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></div><div class="chart-box tm-heat">' +
-        KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: Math.max(40, Math.floor(((window.innerWidth - 36) / 2 - 62) / Math.max(1, names.length))), cellH: (tmTwoLast = tmTwoCellH()), labelW: 44, darkAt: 2, scale: (v, max, min) => ((v - min) / ((max - min) || 1) > 0.75 ? '#FFE8CC' : '#FFFFFF'), format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) + '</div></div>' : '';
+      // 계획 흐름(plan-flow.js)이 있으면 2단계와 같은 흰 구역 모양으로 그 쪽이 짓는다(칸 크기도 그 쪽이 정한다)
+      const sec = S.planFlow && S.planFlow.teamsSec;
+      const heat = S.feature('T7') ? KBO.Chart.heatmap({ rows: names, cols: names, values, cellW: sec ? sec.cellW(names.length) : Math.max(40, Math.floor(((window.innerWidth - 36) / 2 - 62) / Math.max(1, names.length))), cellH: (tmTwoLast = sec ? sec.cellH() : tmTwoCellH()), labelW: 44, darkAt: 2, scale: (v, max, min) => ((v - min) / ((max - min) || 1) > 0.75 ? '#FFE8CC' : '#FFFFFF'), format: (v) => (v == null ? '' : String(Math.round(v))), title: '구단 간 이동거리' }) : '';
+      const dist = heat ? '<div class="blk tm-dist"><div class="blk-head">' + icon('grid') + '구장 간 거리표 <span class="muted">km · 왼쪽 = 출발 구단, 위 = 도착 구단</span></div><div class="chart-box tm-heat">' + heat + '</div></div>' : '';
       S.afterRender(mountTeamMap);
+      const mapBar = '<button class="tm-mapbar" data-act="tm-map-toggle" aria-expanded="' + mapOpen + '">' + icon('map') + '구장 지도<span class="muted">' + (mapOpen ? '접기' : '펼치기') + '</span></button>' + (mapOpen ? '<div class="tm-mapblk"><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>' : '');
+      if (sec) return sec.render({ table, road, popup: S.teamsPopup(), heat, mapBar, rowH: Math.round((11 * tmTwoLast + 47) / 10), teams: st.teams.length, dists: st.distanceMatrix.filter((d) => d.from !== d.to).length });
       // 왼쪽 구단 표 줄 높이: 오른쪽 거리표·지도 줄과 아래 끝이 맞게
       return '<div class="pane-body tm-two" data-sk="d-teams" style="--tm-r:' + Math.round((11 * tmTwoLast + 47) / 10) + 'px"><div class="tm-two-lead">' + S.teamsLead() + '</div><div class="tm-wait tm-two-l">' + table + road + S.teamsPopup() + '</div>' +
-        '<div class="tm-wait tm-two-r">' + dist + '<div class="blk tm-mapwrap"><button class="tm-mapbar" data-act="tm-map-toggle" aria-expanded="' + mapOpen + '">' + icon('map') + '구장 지도<span class="muted">' + (mapOpen ? '접기' : '펼치기') + '</span></button>' + (mapOpen ? '<div class="tm-mapblk"><div class="blk-body tm-maphost" id="teamMapHost"></div>' + mapFoot() + '</div>' : '') + '</div></div></div>';
+        '<div class="tm-wait tm-two-r">' + dist + '<div class="blk tm-mapwrap">' + mapBar + '</div></div></div>';
     }
     let s = '<div class="pane-head"><span class="pane-title">구단 정보</span><span class="pane-desc">구단과 구장, 구장 위치입니다. 구단 줄을 누르면 오른쪽에서 고칩니다. 구장 사이 거리표는 표 아래에 있습니다.</span></div>';
     s += '<div class="pane-body pad tm-body" data-sk="d-teams"><div class="tm-grid"><div class="tm-left">' + table + road;

@@ -101,7 +101,8 @@
     return h;
   }
   S.homeTotalsEditor = () => '<div class="pf-ht-ed">' + homeTotalsEd() + '</div>';
-  /** 4 확인. o.grid = 줄을 두 칸씩, o.below = 줄 아래(맨 아래 단추 줄 위)에 붙일 것(2027 흐름의 시즌 달력), o.noNext = 카드 안 「다음」 단추를 빼기(아래 줄에 같은 단추가 있을 때) */
+  /** 4 확인. o.grid = 줄을 두 칸씩, o.below = 줄 아래(맨 아래 단추 줄 위)에 붙일 것, o.noNext = 카드 안 「다음」 단추를 빼기(아래 줄에 같은 단추가 있을 때)
+   *  o.sec = { title, count, desc }: 큰 카드 대신 2단계와 같은 흰 구역(제목·오른쪽 개수·한 줄 설명)으로. o.after = 그 구역 밑에 둘 것(2027 흐름의 시즌 달력 구역) */
   S.renderCheck = function (o) {
     o = o || {};
     const st = app().state, s = st.settings, fs = S.flowStatus(), gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), sr = S.calSeriesState(), y = S.seasonYear();
@@ -111,9 +112,12 @@
     const dm = st.distanceMatrix.filter((d) => d.from !== d.to).length, shared = Array.from(app().sharedStadiums()).map(([x, n]) => x.replace(/종합운동장$/, '') + '(' + n.join('·') + ')').join(', ');
     const hol = s.holidays.filter((x) => x.date >= (s.seasonStart || y + '-03-01') && x.date <= (s.seasonEnd || y + '-10-31'));
     const ht = s.homeTotals && Array.isArray(s.homeTotals.moreTeams) ? ' · 격년 홈 ' + ((s.homeTotals.more && s.homeTotals.more.total) || 73) + ' ' + s.homeTotals.moreTeams.join('·') : '', g4 = ' · 후반기 첫 4연전 ' + (s.fourGameHome === 'swap' ? '홈 바꿈' : '개막전 홈 그대로');
-    return '<div class="ck-wrap" data-sk="ck"><div class="fl-card ck-card" aria-label="확인">' +
-      '<div class="fl-kick">4 / 4단계 · 확인</div><h2>' + (fs.allDone || (fs.done[0] && fs.done[1] && fs.done[2]) ? y + ' 시즌 데이터가 모두 준비됐습니다' : y + ' 시즌 — 아직 맞지 않는 곳이 있습니다') + '</h2>' +
-      '<p class="fl-sub">아래가 맞으면 「다음: ② 검토·실행」을 누릅니다. 고칠 곳이 있으면 그 줄의 「고치기」로 그 단계에 갑니다.</p>' +
+    const head = o.sec
+      ? '<div class="pf-page ck-page" data-sk="ck"><div class="pf-sec ck-card" aria-label="확인"><h3>' + esc(o.sec.title) + '<span class="r">' + o.sec.count + '</span></h3><p class="pf-d">' + esc(o.sec.desc) + '</p>'
+      : '<div class="ck-wrap" data-sk="ck"><div class="fl-card ck-card" aria-label="확인">' +
+        '<div class="fl-kick">4 / 4단계 · 확인</div><h2>' + (fs.allDone || (fs.done[0] && fs.done[1] && fs.done[2]) ? y + ' 시즌 데이터가 모두 준비됐습니다' : y + ' 시즌 — 아직 맞지 않는 곳이 있습니다') + '</h2>' +
+        '<p class="fl-sub">아래가 맞으면 「다음: ② 검토·실행」을 누릅니다. 고칠 곳이 있으면 그 줄의 「고치기」로 그 단계에 갑니다.</p>';
+    return head +
       (o.grid ? '<div class="ck-grid">' : '') +
       row(1, '1 구단 정보', esc(st.teams.length + '구단 · 구장 간 거리 ' + dm + '개' + (shared ? ' · 같이 쓰는 구장 ' + shared : '')), fix(1)) +
       row(2, '2 시즌 기간·연전 묶음', esc(s.seasonStart ? '개막 ' + fmt.date(s.seasonStart) + ' ~ 1차 편성 ' + fmt.date(s.initialEnd) + ' · 시즌 종료 ' + fmt.date(s.seasonEnd) + ' · 묶음 ' + st.calendar.length + '개(2연전 ' + (h[2] || 0) + ' · 3연전 ' + (h[3] || 0) + ' · 4연전 ' + (h[4] || 0) + ') · 경기일 ' + gd.have + ' / ' + gd.need + '일' : '개막일을 아직 고르지 않았습니다'), fix(2)) +
@@ -125,7 +129,7 @@
       (o.below || '') +
       '<div class="fl-foot ck-foot"><span>' + esc(S.savedText()) + '</span><button class="btn sm" data-act="repo-export">' + icon('download') + '파일로 내려받기</button><span class="sc-xl"><button class="btn sm" data-act="cal-xl-down" title="구단 정보 · 시즌 기간과 공휴일 · 연전 기간 · 홈 구장 지정 시트 4개">' + icon('sheet') + '엑셀 서식 내려받기</button><button class="btn sm" data-act="cal-xl-up">' + icon('upload') + '채운 엑셀 올리기</button></span>' +
       (o.noNext ? '' : '<button class="btn primary" data-act="cal-next">다음: ' + S.CIRCLED[2] + ' 검토·실행' + icon('right') + '</button>') + '</div>' +
-      '</div></div>';
+      '</div>' + (o.after || '') + '</div>';
   };
 
   // ───────── 하단 ─────────
