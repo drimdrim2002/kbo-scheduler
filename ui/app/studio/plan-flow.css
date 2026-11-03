@@ -242,6 +242,16 @@ table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { c
 /* 이동 횟수·거리 한 칸: 구단 | 횟수 막대 | 숫자 | 거리 막대 | 숫자 */
 .pf-mv2 .pf-rw { grid-template-columns: 44px 1fr 40px 1fr 62px; }
 .pf-mv2 .pf-rw.hd { font-size: 11px; color: var(--text-3); font-weight: 600; flex: none; }
+/* 세 칸 나란히(이동 · 주말·공휴일 · 구단별 한눈에) */
+.pf-dash.pf-dash3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; }
+.pf-dash.pf-dash3 .pf-heat { grid-row: auto; grid-column: auto; }
+.pf-gh { font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.7; }
+.pf-mv2.stk .pf-rw { grid-template-columns: 44px 1fr; }
+.pf-mv2.stk .two { display: flex; flex-direction: column; gap: 2px; }
+.pf-mv2.stk .ln { display: grid; grid-template-columns: 1fr 58px; gap: 8px; align-items: center; }
+.pf-dash .pf-mv2.stk .tr { height: 9px; } .pf-dash .pf-mv2.stk .bar { top: 2px; height: 5px; }
+.pf-mv2.stk .k2 .bar { background: var(--navy); }
+.pf-mvp .pf-leg i { background: var(--blue); } .pf-mvp .pf-leg i.k2 { background: var(--navy); }
 .pf-dash .pf-rw { font-size: 11px; } .pf-dash .pf-rw .tr { height: 12px; } .pf-dash .pf-rw .bar { top: 3px; height: 6px; }
 table.pf-h { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; table-layout: fixed; } /* 숫자 열은 모두 같은 너비 */
 table.pf-h col.tm { width: 56px; }
