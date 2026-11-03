@@ -334,11 +334,12 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .stepview.fl .pf-rv .why { margin-top: 1px; }
 .stepview.fl .pf-rv2 { gap: clamp(5px, .8vh, 8px); }
 .pf-rv .v.in { font-size: 15px; font-weight: 700; margin-left: 4px; } /* 값을 제목 줄 끝에(3단계) */
-/* 아래 시즌 달력: 칸 높이 노트북 15px(2단계) · 28px(3단계·4 확인, 숫자 + 두 줄 글자) */
+/* 아래 시즌 달력: 칸 높이 노트북 15px(2단계) · 29px(3단계·4 확인, 숫자 + 두 줄 글자) */
 .stepview.fl .pf-cal { --cal-row: clamp(15px, 1.9vh, 30px); gap: 4px; margin-top: 4px; }
 .stepview.fl .pf-cal-leg .btn.sm { height: 20px; }
-.stepview.fl .pf-strip.f3 { --cal-row: clamp(28px, 3.2vh, 42px); }
-.stepview.fl .pf-strip.f3 .sd.lab { gap: 0; line-height: 1; }
+/* 3단계·4 확인: 줄 사이를 2px로 줄여 칸을 29px로. 글자 칸은 테두리를 1.5px로(두 줄 글자의 아래가 테두리에 가리지 않게) */
+.stepview.fl .pf-strip.f3 { --cal-row: clamp(29px, 3.2vh, 42px); row-gap: 2px; min-height: calc(var(--m, 7) * (var(--cal-row) + 2px)); }
+.stepview.fl .pf-strip.f3 .sd.lab { gap: 0; line-height: 1; outline-width: 1.5px; outline-offset: -1.5px; }
 .stepview.fl .pf-strip.f3 .sd.lab b { font-size: 10px; line-height: 1; }
 .stepview.fl .pf-strip.f3 .sd .lb { line-height: 1; }
 /* 3단계·4 확인 달력: 범례를 구역 제목 줄 오른쪽에(이 구역 제목 줄에는 개수가 없다) */
@@ -371,3 +372,5 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .ck-page .ck-grid { margin-top: 0; }
 .ck-page .fl-foot { margin-top: clamp(5px, .8vh, 12px); padding-top: clamp(5px, .8vh, 10px); }
 .ck-page > .ck-cal { margin-top: 0; }
+/* 2단계 「달력 고치기」(끌어서 묶음 만들기)는 칸을 지금까지 크기(20px)로. 이때만 넘치면 스크롤 */
+.stepview.fl .pf-cal.live { --cal-row: clamp(20px, 2.2vh, 30px); }
