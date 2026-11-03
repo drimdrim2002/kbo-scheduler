@@ -557,7 +557,7 @@
     const C = P.policyCopy;
     const pan = (cx) => '<line x1="' + cx + '" y1="30" x2="' + cx + '" y2="56" stroke="#0A1E3C" stroke-width="1.5"/>' +
       '<path d="M' + (cx - 34) + ' 56 Q' + cx + ' 78 ' + (cx + 34) + ' 56 Z" fill="#F8F9FB" stroke="#0A1E3C" stroke-width="1.5"/>';
-    return '<figure class="pf-scale"><svg viewBox="0 0 440 96" height="90" aria-label="수평을 잡은 저울: 왼쪽 접시 ' + esc(C.left) + ', 오른쪽 접시 ' + esc(C.right) + '">' +
+    return '<figure class="pf-scale"><svg viewBox="0 6 440 90" height="90" aria-label="수평을 잡은 저울: 왼쪽 접시 ' + esc(C.left) + ', 오른쪽 접시 ' + esc(C.right) + '">' +
       '<line x1="168" y1="88" x2="272" y2="88" stroke="#B4BBC7" stroke-width="3" stroke-linecap="round"/>' +
       '<polygon points="220,32 198,88 242,88" fill="#E2E5EA" stroke="#B4BBC7" stroke-width="1.5"/>' +
       '<line x1="60" y1="30" x2="380" y2="30" stroke="#0A1E3C" stroke-width="3" stroke-linecap="round"/>' +
@@ -633,14 +633,14 @@
     const min = P.timeSec / 60;
     return '<div class="pf-page pf-spread">' +
       '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p></div>' + scaleFigure() + '</div>' +
-      '<div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
-      '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
+      '<div class="pf-pair"><div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
+      '<div class="pf-side"><div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
       '<div class="pf-sec pf-run"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
       '<div class="pf-sl"><div class="k"><b>실행 시간</b></div><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div>' +
       (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
-      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div>';
+      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div></div>';
   }
   /** 결과 화면 맨 위 한 줄: 결과의 실제 격차를 방침의 허용 수준과 목표마다 견준다. 옆에 「수준 다시 정하기」 */
   function policyCheck(data, ob) {
