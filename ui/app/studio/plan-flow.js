@@ -379,7 +379,7 @@
   function render2025() {
     const ours = P.builtin['2025-best'];
     if (!ours) return '<div class="pf-page"><div class="pf-sec">' + (P.builtinFailed ? '<h3>저장된 2025 결과를 읽지 못했습니다</h3><p class="pf-d">편성 서버 주소로 열면 볼 수 있습니다. 2027 새 계획은 지금도 만들 수 있습니다.</p>' : '<h3>결과를 불러오는 중입니다</h3>') + '</div></div>';
-    if (P.view25 === 'dash') return '<div class="pf-page">' + dashboard(ours, ours.objective, { title: '2025 이 엔진', noSave: true }) + '</div>';
+    if (P.view25 === 'dash') return '<div class="pf-page">' + dashboard(ours, ours.objective) + '</div>';
     const kbo = kboData(), ob = ours.objective, ids = ob.order;
     const pct = (id) => Math.round((1 - goalValue(ours, id) / goalValue(kbo, id)) * 100);
     const card = (id, k) => { const g = GOALS[id];
@@ -751,25 +751,46 @@
   }
 
   // ───────── 3 현재 결과 분석 ─────────
-  function dashboard(data, ob, o) {
-    const opt = o || {};
-    const panel = (id, k, body) => { const g = GOALS[id], ok = within(data, id, ob);
-      return '<div class="pf-sec"><h3><span class="pf-rk">' + (k + 1) + '순위</span>' + g.name + '<span class="r">' + (g.tol ? '격차 <b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> / 허용 ' + num(ob[g.tol]) + g.unit + ' <span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>' : '<b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> 10구단 합') + '</span></h3>' + body + '</div>'; };
-    const kbo = kboData(), ours = P.builtin['2025-best'];
-    const refs = [['2025 KBO 실제', kbo.gaps.totalKm, 'g']].concat(ours ? [['2025 이 엔진', ours.gaps.totalKm, '']] : []).concat(opt.noSave ? [] : [[opt.title || '이 결과', data.gaps.totalKm, '']]);
-    const totalBody = '<div class="pf-big3">' + refs.map(([l, v, c]) => '<div class="pf-b ' + c + '"><span>' + esc(l) + '</span><span class="tr"><i style="width:' + (v / 80000 * 100).toFixed(1) + '%"></i></span><span class="n">' + num(v) + 'km</span></div>').join('') + '</div><div class="xs muted" style="margin-top:6px">참고로 2025 숫자를 함께 둡니다(해가 다르면 일정이 다릅니다).</div>';
-    const body = (id) => (id === 'total' ? totalBody : bars(data, GOALS[id].metric, ob[GOALS[id].tol], GOALS[id].d));
-    const cols = [['이동 거리', 'km', 1], ['이동 횟수', 'moves', 0], ['주말·공휴일 홈(점)', 'hol', 0], ['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]];
+  // 전체 이동 거리는 늘 마지막 순위라 이 화면에서 따로 보이지 않는다(사용자 결정 2026-11-04). 이동 횟수·거리는 한 칸에 함께,
+  // 주말·공휴일은 따로. 「구단별 한눈에」 표는 방침의 순위대로 왼쪽부터, 순위에 없는 두 열은 오른쪽 끝에 두고 열 너비를 같게 한다.
+  const HEAT_COLS = { moves: ['이동 횟수', 'moves', 0], distance: ['이동 거리', 'km', 1], holiday: ['주말·공휴일 홈(점)', 'hol', 0] };
+  const rankOf = (ob, id) => ob.order.indexOf(id) + 1;
+  const tolTag = (data, id, ob) => { const ok = within(data, id, ob); return '<span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>'; };
+  const gapHead = (data, id, ob, label) => { const g = GOALS[id]; return (label ? esc(label) + ' ' : '격차 ') + '<b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> / 허용 ' + num(ob[g.tol]) + g.unit + ' ' + tolTag(data, id, ob); };
+  /** 막대 눈금: 가장 적은 구단 + 허용 수준까지 들어가게 */
+  function barScale(a, k, tol) {
+    const lo = Math.min(...a), hi = Math.max(...a);
+    const base = k === 'km' ? Math.floor(lo * 0.9 / 100) * 100 : Math.max(0, Math.floor(lo - 4));
+    const top = Math.max(hi, lo + tol) * (k === 'km' ? 1.02 : 1) + (k === 'km' ? 0 : 1);
+    return { base, mn: lo, x: (v) => ((v - base) / (top - base) * 100).toFixed(1) + '%' };
+  }
+  const track = (sc, tol, v) => '<span class="tr"><span class="tol" style="left:' + sc.x(sc.mn) + ';width:calc(' + sc.x(sc.mn + tol) + ' - ' + sc.x(sc.mn) + ')"></span><span class="bar" style="width:' + sc.x(v) + '"></span></span>';
+  /** 이동 횟수·거리 한 칸: 구단마다 두 막대를 한 줄에. 줄 순서는 둘 중 앞 순위 목표의 많은 순 */
+  function moveBars(data, ob) {
+    const ids = ob.order.filter((id) => id === 'moves' || id === 'distance'), names = Object.keys(data.teams);
+    const sc = {}; for (const id of ids) sc[id] = barScale(vals(data, GOALS[id].metric), GOALS[id].metric, ob[GOALS[id].tol]);
+    const lead = GOALS[ids[0]].metric, rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
+    const unit = (id) => GOALS[id].unit;
+    return '<div class="pf-tb pf-mv2"><div class="pf-rw hd"><span></span>' + ids.map((id) => '<span>' + esc(shortName(id)) + ' (' + unit(id) + ')</span><span></span>').join('') + '</div>' +
+      rows.map((t) => '<div class="pf-rw"><span class="t">' + esc(t) + '</span>' + ids.map((id) => { const g = GOALS[id], v = data.teams[t][g.metric]; return track(sc[id], ob[g.tol], v) + '<span class="n">' + num(v, g.d) + '</span>'; }).join('') + '</div>').join('') +
+      '</div><div class="xs muted" style="margin-top:4px">막대는 ' + ids.map((id) => num(sc[id].base) + unit(id)).join(' · ') + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
+  }
+  function dashboard(data, ob) {
+    const ids = ob.order.filter((id) => GOALS[id].tol), mv = ids.filter((id) => id !== 'holiday');
+    const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => '<span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id))).join(' · ') + ' 격차 최소화<span class="r">' + mv.map((id) => gapHead(data, id, ob, shortName(id))).join(' · ') + '</span></h3>' + moveBars(data, ob) + '</div>';
+    const g = GOALS.holiday, holPanel = '<div class="pf-sec"><h3><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span>' + g.name + '<span class="r">' + gapHead(data, 'holiday', ob) + '</span></h3>' + bars(data, g.metric, ob[g.tol], g.d) + '</div>';
+    const cols = ids.map((id) => HEAT_COLS[id]).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
     const heat = (k, v) => { const a = vals(data, k), mean = a.reduce((s, x) => s + x, 0) / a.length, span = (Math.max(...a) - Math.min(...a)) || 1, z = (v - mean) / span; return z > 0 ? 'rgba(232,140,40,' + (z * 0.9).toFixed(2) + ')' : 'rgba(31,95,214,' + (-z * 0.6).toFixed(2) + ')'; };
     const names = Object.keys(data.teams);
-    const allIn = ob.order.every((id) => within(data, id, ob));
-    const heatT = '<table class="pf-h"><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
+    const allIn = ids.every((id) => within(data, id, ob));
+    const heatT = '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
       names.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => '<td style="background:' + heat(k, data.teams[t][k]) + '">' + num(data.teams[t][k], d) + '</td>').join('') + '</tr>').join('') +
       '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => { const a = vals(data, k); return '<td><b>' + num(Math.max(...a) - Math.min(...a), d) + '</b></td>'; }).join('') + '</tr></tfoot></table>' +
       '<div class="pf-leg"><span><i style="background:rgba(232,140,40,.8)"></i>평균보다 많음</span><span><i style="background:rgba(31,95,214,.5)"></i>평균보다 적음</span></div>' +
       '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙이 있습니다') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
-    return '<div class="pf-dash pf-fill">' + panel(ob.order[0], 0, body(ob.order[0])) + panel(ob.order[1], 1, body(ob.order[1])) +
-      '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">색 = 리그 평균과 차이</p>' + heatT + '</div>' + panel(ob.order[2], 2, body(ob.order[2])) + panel(ob.order[3], 3, body(ob.order[3])) + '</div>';
+    const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">색 = 리그 평균과 차이 · 왼쪽부터 방침의 순위대로</p>' + heatT + '</div>';
+    const first = ids[0] === 'holiday' ? [holPanel, movePanel] : [movePanel, holPanel]; // 앞 순위 칸이 위
+    return '<div class="pf-dash pf-fill">' + first[0] + heatSec + first[1] + '</div>';
   }
   /** 지금 연결이 아니라 그 결과를 낸 엔진으로 본다(서버에서 낸 버전을 서버 없이 불러와도 시험 엔진 결과가 아니다). 기록이 없는 옛 결과는 지금 연결로 */
   const byTestEngine = (res) => (res.engine ? res.engine !== 'REST' : !res.from && app().engineConfig.kind !== 'REST');
@@ -944,7 +965,7 @@
     render() {
       const v = P.final.version(YEAR_NEW);
       if (!v) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>' + (P.builtinFailed ? '확정한 일정을 읽지 못했습니다' : '확정한 일정을 불러오는 중입니다') + '</h3></div></div></div>';
-      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec" style="padding:8px 14px"><div class="pf-save"><b>' + esc(v.name) + '</b><span class="pf-tag ok">확정</span><span class="small muted" style="flex:1">' + esc(v.note || '') + '</span><button class="btn" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button></div></div>' + dashboard(v, v.objective, { title: v.name }) + '</div></div>';
+      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec" style="padding:8px 14px"><div class="pf-save"><b>' + esc(v.name) + '</b><span class="pf-tag ok">확정</span><span class="small muted" style="flex:1">' + esc(v.note || '') + '</span><button class="btn" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button></div></div>' + dashboard(v, v.objective) + '</div></div>';
     }
   };
 
