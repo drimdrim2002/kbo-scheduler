@@ -323,3 +323,51 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .e-op { --ev: #13703F; } .e-ch { --ev: #D9480F; } .e-as { --ev: #7048E8; } .e-4 { --ev: #1F5FD6; } .e-end { --ev: #8D5A00; } .e-hol { --ev: var(--bad); }
 .pf-cal-leg i.sd.lab { background: var(--ev); box-shadow: none; }
 .pf-cal-leg i.sd.e-hol { background: #FDECEC; box-shadow: inset 0 0 0 2px var(--bad); }
+
+/* 편성 조건 1~4단계(2027): 모두 2단계 모양(회색 바탕·여백 · 흰 구역 · 머리 줄 = 굵은 제목 / 오른쪽 개수 / 밑에 한 줄 설명).
+   노트북(창 안쪽 1440×790)에서 스크롤 없이: 여백은 낮은 창에서 줄고, 남는 높이는 아래 시즌 달력이 받는다(큰 창은 --pf-zoom으로 통째로 키움) */
+.stepview.fl .pf-page, body.pf .pane-body.tm-sec { padding: clamp(8px, 1.1vh, 20px) 18px; gap: clamp(6px, 1vh, 16px) 12px; }
+.stepview.fl .pf-sec { padding: clamp(8px, 1.15vh, 18px) 16px; }
+.stepview.fl .pf-sec > h3 { line-height: 20px; }
+.stepview.fl .pf-d { margin: 1px 0 clamp(4px, .7vh, 12px); }
+.stepview.fl .pf-rv { padding: clamp(5px, .75vh, 12px) 12px; }
+.stepview.fl .pf-rv .why { margin-top: 1px; }
+.stepview.fl .pf-rv2 { gap: clamp(5px, .8vh, 8px); }
+.pf-rv .v.in { font-size: 15px; font-weight: 700; margin-left: 4px; } /* 값을 제목 줄 끝에(3단계) */
+/* 아래 시즌 달력: 칸 높이 노트북 15px(2단계) · 28px(3단계·4 확인, 숫자 + 두 줄 글자) */
+.stepview.fl .pf-cal { --cal-row: clamp(15px, 1.9vh, 30px); gap: 4px; margin-top: 4px; }
+.stepview.fl .pf-cal-leg .btn.sm { height: 20px; }
+.stepview.fl .pf-strip.f3 { --cal-row: clamp(28px, 3.2vh, 42px); }
+.stepview.fl .pf-strip.f3 .sd.lab { gap: 0; line-height: 1; }
+.stepview.fl .pf-strip.f3 .sd.lab b { font-size: 10px; line-height: 1; }
+.stepview.fl .pf-strip.f3 .sd .lb { line-height: 1; }
+/* 3단계·4 확인 달력: 범례를 구역 제목 줄 오른쪽에(이 구역 제목 줄에는 개수가 없다) */
+.stepview.fl .pf-sec.pf-fill { position: relative; }
+.stepview.fl .pf-sec > .pf-cal:has(> .pf-strip.f3) > .pf-cal-leg { position: absolute; top: clamp(8px, 1.15vh, 18px); right: 16px; height: 20px; align-items: center; }
+/* 2단계 반영 결과: 숫자를 머리 줄 오른쪽에 */
+.pf-sum b { color: var(--navy); font-size: 15px; } .pf-sum i { font-style: normal; color: var(--text-3); margin: 0 2px; } .pf-sum small { color: var(--text-3); font-size: 11.5px; }
+/* 3단계 구단 칸: 구단·상대를 한 줄에, 구장은 한 줄(넘치면 줄임표, 칸에 올리면 전체 이름) */
+.stepview.fl .pf-open { margin: 4px 0 3px; gap: 4px; }
+.stepview.fl .pf-open .g { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 4px; padding: 4px 2px; }
+.stepview.fl .pf-open .a { margin-top: 0; font-size: 12.5px; white-space: nowrap; }
+.stepview.fl .pf-open .s { flex: 0 0 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+/* 1 구단 정보: 위 = 질문 줄, 아래 왼쪽 = 구단 표, 오른쪽 = 구장 간 거리표(거리표 칸 높이는 plan-flow.js가 남는 높이에 맞춘다) */
+body.pf .pane-body.tm-sec { background: var(--bg); zoom: var(--pf-zoom, 1); }
+.tm-sec .tm-two-lead.pf-sec { display: block; }
+.tm-sec .tm-two-l.pf-sec, .tm-sec .tm-two-r.pf-sec { gap: 0; }
+.tm-sec .tm-two-l > .tm-road, .tm-sec .tm-two-l > .gs-edit { margin-top: 10px; }
+.tm-sec .tm-dist { border: 1px solid var(--line); border-radius: var(--r); }
+.tm-sec .tm-heat { padding: 3px 6px 1px; overflow-x: auto; }
+.tm-sec .tm-mapwrap { margin-top: 8px; }
+/* 질문 줄: 2단계의 검토 줄 모양(답 전 = 파란 테두리, 답 뒤 = 초록). .fl-ask는 따라 하기가 가리키는 자리라 이름을 남긴다 */
+.tm-sec .fl-ask.pf-rv { display: grid; flex-direction: row; gap: 4px 14px; border: 1px solid var(--line); border-radius: 8px; padding: clamp(5px, .75vh, 12px) 12px; background: #fff; }
+.tm-sec .fl-ask.pf-rv.ok { border-color: var(--ok-line); background: #FAFDFB; }
+.tm-sec .fl-ask.pf-rv.cur { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+
+/* 4 확인: 위 = 확인 줄 구역, 아래 = 시즌 달력 구역(남는 높이를 받는다) */
+body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width: none; margin: 0; padding: clamp(8px, 1.15vh, 18px) 16px; }
+.ck-page .ck-row { padding: clamp(6px, 1vh, 12px) 12px; }
+.ck-page .ck-grid { margin-top: 0; }
+.ck-page .fl-foot { margin-top: clamp(5px, .8vh, 12px); padding-top: clamp(5px, .8vh, 10px); }
+.ck-page > .ck-cal { margin-top: 0; }
