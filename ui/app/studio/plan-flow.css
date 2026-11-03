@@ -231,12 +231,32 @@ table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { c
 /* 한 장 대시보드 */
 .pf-save { display: flex; gap: 8px; align-items: center; }
 .pf-save input { flex: 1; border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
-.pf-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; gap: 10px; align-items: stretch; }
+/* 자동 저장한 이름 줄(3 현재 결과 분석): 이름 칸은 이름 길이만큼, 옆에 작은 글 두 줄(줄 높이는 단추와 같게) */
+.pf-savesec { padding: 8px 14px; }
+.pf-savesec .pf-save input { flex: 0 1 300px; min-width: 0; }
+.pf-save .grow { flex: 1; } .pf-save .pf-nm { color: var(--navy); font-size: 14px; }
+.pf-meta { font-size: 11px; line-height: 15px; color: var(--text-3); min-width: 0; }
+.pf-dash { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 10px; align-items: stretch; }
 .pf-dash .pf-sec { padding: clamp(8px, 1.3vh, 16px) 14px; }
-.pf-dash .pf-heat { grid-row: 1 / 3; grid-column: 3; }
+.pf-dash .pf-heat { grid-row: 1 / 3; grid-column: 2; }
+/* 이동 횟수·거리 한 칸: 구단 | 횟수 막대 | 숫자 | 거리 막대 | 숫자 */
+.pf-mv2 .pf-rw { grid-template-columns: 44px 1fr 40px 1fr 62px; }
+.pf-mv2 .pf-rw.hd { font-size: 11px; color: var(--text-3); font-weight: 600; flex: none; }
+/* 세 칸 나란히(이동 · 주말·공휴일 · 구단별 한눈에) */
+.pf-dash.pf-dash3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; }
+.pf-dash.pf-dash3 .pf-heat { grid-row: auto; grid-column: auto; }
+.pf-gh { font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.7; }
+.pf-mv2.stk .pf-rw { grid-template-columns: 44px 1fr; }
+.pf-mv2.stk .two { display: flex; flex-direction: column; gap: 2px; }
+.pf-mv2.stk .ln { display: grid; grid-template-columns: 1fr 58px; gap: 8px; align-items: center; }
+.pf-dash .pf-mv2.stk .tr { height: 9px; } .pf-dash .pf-mv2.stk .bar { top: 2px; height: 5px; }
+.pf-mv2.stk .k2 .bar { background: var(--navy); }
+.pf-mvp .pf-leg i { background: var(--blue); } .pf-mvp .pf-leg i.k2 { background: var(--navy); }
 .pf-dash .pf-rw { font-size: 11px; } .pf-dash .pf-rw .tr { height: 12px; } .pf-dash .pf-rw .bar { top: 3px; height: 6px; }
-table.pf-h { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
-table.pf-h th, table.pf-h td { padding: 6px; text-align: center; border-bottom: 1px solid #fff; }
+table.pf-h { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; table-layout: fixed; } /* 숫자 열은 모두 같은 너비 */
+table.pf-h col.tm { width: 56px; }
+table.pf-h th, table.pf-h td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #fff; }
+table.pf-h th { word-break: keep-all; line-height: 1.25; vertical-align: bottom; } /* 열이 같은 너비라 제목은 두 줄이 될 수 있다(낱말 안에서는 끊지 않음) */
 table.pf-h th { font-size: 11px; color: var(--text-3); font-weight: 600; background: var(--surface-2); } table.pf-h td:first-child { text-align: left; font-weight: 700; }
 table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff; border-top: 1px solid var(--line); }
 .pf-leg { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-2); margin-top: 8px; } .pf-leg i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; }
@@ -249,7 +269,7 @@ table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff;
 .pf-ver { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; }
 .pf-ver + .pf-ver { margin-top: 8px; }
 .pf-ver.on { border-color: var(--blue); background: #F7FAFF; }
-.pf-ver b { color: var(--navy); font-size: 14px; } .pf-ver small { display: block; color: var(--text-2); font-size: 12px; } .pf-ver .w { font-size: 11px; color: var(--text-3); }
+.pf-ver b { color: var(--navy); font-size: 14px; word-break: keep-all; overflow-wrap: anywhere; } .pf-ver small { display: block; color: var(--text-2); font-size: 12px; } .pf-ver .w { font-size: 11px; color: var(--text-3); }
 .pf-ver .acts { display: flex; flex-direction: column; gap: 4px; }
 .pf-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .pf-tabs button { padding: 6px 14px; font: inherit; font-size: 13px; color: var(--text-2); background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }

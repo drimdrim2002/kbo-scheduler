@@ -186,12 +186,18 @@
       S.go({ step: 5 }); flush();
       ok('시험 엔진 결과임을 표시(서버 없을 때만)', app().engineConfig.kind === 'REST' || /시험 엔진으로 낸 결과/.test(page()));
 
-      // ── 버전
-      const nameIn = q('[data-in="pf-name"]');
-      nameIn.value = '<b>첫 버전</b>'; nameIn.dispatchEvent(new Event('change', { bubbles: true }));
-      click('[data-act="pf-save"]'); flush();
+      // ── 버전: 실행이 끝나면 「#번호_방침_횟수_거리_점수」로 저절로 저장
+      const o1 = ob(), auto1 = '#0001_이동격차_' + o1.moveGap + '회_' + o1.distanceGapKm + 'km_' + o1.holidayGap + '점';
       const v1 = P.versions.list(2027)[0];
-      ok('버전 저장 → 비교 화면 · 이름은 글자 그대로', S.ui.step === 6 && !!v1 && v1.name === '<b>첫 버전</b>' && !q('.pf-ver b b') && !!v1.inputs && v1.inputs.calendar.length === 45);
+      ok('실행이 끝나면 저절로 저장 · 이름 규칙', P.versions.list(2027).length === 1 && !!v1 && v1.name === auto1 && v1.auto && v1.no === 1 && !v1.kept && st().meta.result.vid === v1.id && !q('[data-act="pf-save"]'), v1 && v1.name);
+      ok('이름 칸에 저장한 이름 · 아래 줄에 실행 시각', (q('[data-in="pf-name"]') || {}).value === auto1 && /\d+월 \d+일 \d\d:\d\d/.test((q('.pf-meta') || {}).innerText || ''));
+      const nameIn = q('[data-in="pf-name"]');
+      nameIn.value = '  '; nameIn.dispatchEvent(new Event('change', { bubbles: true })); flush();
+      ok('빈 이름이면 바꾸지 않음', P.versions.get(2027, v1.id).name === auto1 && !P.versions.get(2027, v1.id).kept);
+      q('[data-in="pf-name"]').value = '<b>첫 버전</b>'; q('[data-in="pf-name"]').dispatchEvent(new Event('change', { bubbles: true })); flush();
+      Object.assign(v1, P.versions.get(2027, v1.id));
+      S.go({ step: 6 }); flush();
+      ok('이름 바꾸기 → 남길 결과 · 이름은 글자 그대로', v1.name === '<b>첫 버전</b>' && v1.kept && !q('.pf-ver b b') && /남김/.test(q('.pf-ver input[data-id="' + v1.id + '"]').closest('.pf-ver').innerText) && !!v1.inputs && v1.inputs.calendar.length === 45);
       ok('저장한 일정·숫자·개막 대진', v1.matches.length === 225 && v1.plan.length === 225 && v1.pairs.some((x) => x.home === 'KIA' && x.away === '키움') && Number.isFinite(v1.gaps.totalKm));
       // 연전이 바뀌면 묻고 지운다
       S.flowGo(2); flush();
@@ -239,7 +245,7 @@
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig2;
-      ok('이어 풀기가 끝나면 결과 기록', !S.run && S.ui.step === 5 && !!st().meta.result);
+      ok('이어 풀기가 끝나면 결과 기록 · 2번으로 저장', !S.run && S.ui.step === 5 && !!st().meta.result && /^#0002_이동격차_/.test(st().meta.result.name) && !!P.versions.get(2027, st().meta.result.vid));
       S.go({ step: 2 }); flush();
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
       let sent3 = null;
@@ -250,6 +256,18 @@
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig3;
+      ok('주말·공휴일 격차 우선으로 실행 → 3번 · 그 방침 이름', /^#0003_주말공휴일_\d+회_\d+km_\d+점$/.test(st().meta.result.name) && P.versions.list(2027).filter((v) => v.auto).length === 3, st().meta.result.name);
+      // 최근 몇 개만 남기기 · 번호는 다시 쓰지 않음
+      const keepRuns = P.versions.list(2027), fakeRun = (i, more) => Object.assign({ id: 'a' + i, no: 100 + i, auto: true, name: 'r' + i, year: 2027 }, more);
+      const many = keepRuns.concat([fakeRun(0, { kept: true }), fakeRun(1, { id: 'a-final' })]).concat(Array.from({ length: 10 }, (_, i) => fakeRun(i + 2)));
+      P.final.set(2027, 'a-final');
+      const pruned = P.pruneRuns(many, 2027), left = pruned.filter((v) => v.auto && !v.kept && v.id !== 'a-final');
+      P.final.clear(2027);
+      ok('정리: 이름 안 바꾼 결과는 최근 ' + P.AUTO_KEEP + '개만 · 이름 바꾼 것·확정한 것은 남음', left.length === P.AUTO_KEEP && left[left.length - 1].id === 'a11' && pruned.some((v) => v.id === 'a0') && pruned.some((v) => v.id === 'a-final') && pruned.some((v) => v.id === v1.id), left.map((v) => v.id).join());
+      const nextNo = P.nextRunNo(2027);
+      P.versions.put(2027, keepRuns.filter((v) => v.no !== 3));
+      ok('결과를 지워도 번호는 다시 쓰지 않음', nextNo === 4 && P.nextRunNo(2027) === 4);
+      P.versions.put(2027, keepRuns);
       // 기본 제공 대진안처럼 값이 없는 버전(개막 대진만 다름)
       const pairs2 = [{ home: 'KT', away: '한화' }, { home: '삼성', away: 'NC' }, { home: 'KIA', away: '롯데' }, { home: 'LG', away: '키움' }, { home: 'SSG', away: '두산' }];
       const gen = S.builtinOf(2027).build();
@@ -341,10 +359,15 @@
       const ls = S.ls.set;
       S.ls.set = () => false;
       const before = P.versions.list(2027).length;
+      app().store.commit('시험: 저장 못 한 결과', (s) => { s.meta.result = Object.assign({}, s.meta.result, { from: undefined, vid: null, no: 9, option: 'balance', name: '#0009_시험' }); }, { tags: ['meta'], undo: false });
       S.go({ step: 5 }); flush();
-      const none = q('[data-act="pf-save"]') ? (click('[data-act="pf-save"]'), flush(), P.versions.list(2027).length) : -1;
+      const retry = !!q('[data-act="pf-save"]') && /저장하지 못함/.test(page());
+      if (retry) { click('[data-act="pf-save"]'); flush(); }
+      const none = P.versions.list(2027).length;
       S.ls.set = ls;
-      ok('저장 공간 부족: 버전이 늘지 않고 화면에 남음', none === before && S.ui.step === 5);
+      ok('저장 공간 부족: 다시 저장 단추 · 눌러도 늘지 않고 화면에 남음', retry && none === before && S.ui.step === 5 && !!q('[data-act="pf-save"]'));
+      click('[data-act="pf-save"]'); flush();
+      ok('다시 저장 → 같은 번호로 저장', P.versions.list(2027).length === before + 1 && P.versions.list(2027).some((v) => v.no === 9 && v.id === st().meta.result.vid) && !q('[data-act="pf-save"]'));
 
       // ── 처음 화면: 결과가 생긴 뒤 · 확정
       S.actions['pf-home'](); flush();
@@ -355,7 +378,7 @@
       ok('편성 조건 검토가 먼저, 실행 결과 보기는 네 단계 아래', !!(reviewBtn.compareDocumentPosition(cards()[1].querySelector('ul')) & 4) && !!(cards()[1].querySelector('ul').compareDocumentPosition(resultBtn) & 4));
       click('[data-act="pf-open-2027"][data-to="result"]'); flush();
       ok('실행 결과 보기 → 현재 결과 화면', S.ui.step === 5 && S.seasonYear() === 2027);
-      const finalKeep = P.versions.list(2027), vFinal = Object.assign({}, finalKeep[0], { id: 'v-final', name: '확정할 버전', engine: 'REST', feasible: true, inputs: finalKeep[0].inputs, gaps: Object.assign({}, finalKeep[0].gaps, { totalKm: 12345 }) }), vTest = Object.assign({}, vFinal, { id: 'v-test', name: '시험 버전', engine: 'MOCK' }), vRule = Object.assign({}, vFinal, { id: 'v-bad', name: '규칙 어긴 버전', feasible: false }), vNext = Object.assign({}, vFinal, { id: 'v-next', name: '다음 버전' });
+      const finalKeep = P.versions.list(2027), vFinal = Object.assign({}, finalKeep[0], { id: 'v-final', name: '확정할 버전', engine: 'REST', feasible: true, inputs: finalKeep[0].inputs, gaps: Object.assign({}, finalKeep[0].gaps, { distanceKm: 1234.5 }) }), vTest = Object.assign({}, vFinal, { id: 'v-test', name: '시험 버전', engine: 'MOCK' }), vRule = Object.assign({}, vFinal, { id: 'v-bad', name: '규칙 어긴 버전', feasible: false }), vNext = Object.assign({}, vFinal, { id: 'v-next', name: '다음 버전' });
       P.versions.put(2027, finalKeep.concat([vFinal, vTest, vRule, vNext]));
       S.go({ step: 6 }); flush();
       ok('시험 엔진·규칙 어긴 버전에는 확정 단추가 없음', !!q('[data-act="pf-final"][data-id="v-final"]') && !q('[data-act="pf-final"][data-id="v-test"]') && !q('[data-act="pf-final"][data-id="v-bad"]'));
@@ -373,7 +396,7 @@
       S.actions['pf-home'](); flush();
       ok('확정하면 결과 확인에 2027 줄', yrsOf(cards()[0]) === '2025,2027' && /확정할 버전/.test(cards()[0].innerText) && !!cards()[0].querySelector('[data-act="pf-open-final"]'));
       click('[data-act="pf-open-final"]'); flush();
-      ok('결과 확인 > 2027 → 확정 일정 화면(단계 띠 없음 · 확정한 숫자)', S.ui.step === 7 && document.body.classList.contains('pf-ro') && /확정할 버전/.test(page()) && /12,345km/.test(page()), S.ui.step);
+      ok('결과 확인 > 2027 → 확정 일정 화면(단계 띠 없음 · 확정한 숫자)', S.ui.step === 7 && document.body.classList.contains('pf-ro') && /확정할 버전/.test(page()) && /1,234.5km/.test(page()), S.ui.step);
       ok('확정 일정을 봐도 작업 중인 값·결과는 그대로', JSON.stringify(st().plan) === planAtFinal && JSON.stringify(st().meta.result) === resAtFinal);
       S.go({ step: 6 }); flush();
       click('[data-act="pf-final-off"]'); flush();
