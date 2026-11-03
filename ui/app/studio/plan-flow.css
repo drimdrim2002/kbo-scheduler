@@ -112,6 +112,31 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-spread .pf-orders { flex: 1 0 auto; }
 .pf-spread .pf-oc { display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(8px, 1.3vh, 16px) 14px; }
 .pf-spread .pf-sec > .pf-sl { flex: 1 0 auto; align-content: center; } /* 줄이 늘어나도 안의 문장·좁히면/넓히면은 붙어서 가운데에 */
+/* 노트북(창 안쪽 1440×790)에서 스크롤 없이 한 화면에(사용자 요청 2026-11-03). 머리글 아래를 두 단으로:
+   왼쪽 우선순위(카드를 세로로, 카드 안은 지키는 것·내주는 것 | 순서), 오른쪽 허용 수준 위·실행 아래 */
+.pf-page.pf-spread { padding-top: clamp(8px, 1.2vh, 20px); padding-bottom: clamp(8px, 1.2vh, 20px); gap: clamp(8px, 1vh, 16px); }
+.pf-spread .pf-sec { padding-top: clamp(8px, 1.2vh, 18px); padding-bottom: clamp(8px, 1.2vh, 18px); }
+.pf-spread .pf-sec > .pf-d { margin-bottom: clamp(4px, .7vh, 12px); }
+.pf-spread .pf-scale svg { height: clamp(72px, 9.5vh, 90px); width: auto; }
+.pf-spread > .pf-pair { flex: 1 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: clamp(8px, 1vh, 16px); align-items: stretch; }
+.pf-pair > .pf-sec, .pf-side > .pf-sec { display: flex; flex-direction: column; }
+.pf-side { display: flex; flex-direction: column; gap: clamp(8px, 1vh, 16px); min-width: 0; }
+.pf-side > #pf-levels { flex: 1 0 auto; }
+.pf-pair .pf-orders { flex: 1 0 auto; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(min-content, min(140px, 12vh)); align-content: space-evenly; gap: 8px; margin-top: 4px; } /* 큰 창에서 카드는 창 높이의 12%(최대 140px)까지만 늘고 남는 높이는 카드 사이로(사용자 요청 2026-11-03) */
+.pf-pair .pf-oc { display: grid; grid-template-columns: minmax(0, 380px) auto; grid-template-rows: auto auto; column-gap: 24px; align-content: center; padding: clamp(6px, 1vh, 14px) 14px; }
+.pf-pair .pf-oc > * { align-self: start; }
+.pf-pair .pf-oc h4 { grid-column: 1; margin-bottom: 4px; }
+.pf-pair .pf-oc .pf-kg, .pf-pair .pf-oc p { grid-column: 1; margin: 0; line-height: 1.35; }
+.pf-pair .pf-oc ol { grid-column: 2; grid-row: 1 / span 2; margin: 0; line-height: 1.4; min-width: 200px; }
+.pf-pair .pf-bridge { margin-top: 8px; }
+.pf-side #pf-levels .pf-sl { flex: 1 0 auto; align-content: center; grid-template-columns: 150px minmax(0, 1fr); row-gap: 2px; padding: clamp(3px, .5vh, 12px) 0; }
+.pf-side #pf-levels .pf-tw { flex-direction: column; gap: 0; margin: 0; line-height: 1.35; }
+.pf-side #pf-levels .pf-tn, .pf-side #pf-levels .pf-th { margin-top: 0; }
+.pf-side .pf-run { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
+.pf-side .pf-run > .pf-d { margin: 0; }
+.pf-side .pf-run > .pf-sl { grid-template-columns: auto auto; padding: 0; border: 0; }
+.pf-side .pf-run > .pf-runbar, .pf-side .pf-run > .pf-note { grid-column: 1 / -1; }
+.pf-side .pf-run > .pf-runbar { margin-top: 4px; }
 /* 운영 방침 — 머리글(제목·한 줄·수평 저울) */
 .pf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
 .pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
