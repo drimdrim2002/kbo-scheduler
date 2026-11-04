@@ -812,8 +812,8 @@
     const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">왼쪽부터 방침의 순위대로 · 줄은 1순위 많은 순 · 막대는 열 안에서 견준 길이</p>' + heatTable(data, ob, cols) + note + '</div>';
     // 왼쪽 위에 목표 셋을 같은 크기 칸으로 나란히(격차·허용), 누른 칸의 구단별 막대를 아래에(처음은 1순위). 셋을 위아래로 두면 홀수라 칸이 고르지 않았다(2026-11-05 대안 다)
     const cur = shownGoal(ids), gc = GOALS[cur];
-    const tiles = '<div class="pf-gtiles">' + ids.map((id) => { const g = GOALS[id], ok = within(data, id, ob);
-      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + '</span><span class="v"><b>' + goalShow(data, id) + '</b>' + g.unit + '</span><span class="s">허용 ' + num(ob[g.tol]) + g.unit + ' ' + tolTag(data, id, ob) + '</span></button>'; }).join('') + '</div>';
+    const tiles = '<div class="pf-gtiles">' + ids.map((id) => { const g = GOALS[id];
+      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + '</span><span class="v"><b>' + goalShow(data, id) + g.unit + '</b><span class="s">허용 ' + num(ob[g.tol]) + g.unit + '</span>' + tolTag(data, id, ob) + '</span></button>'; }).join('') + '</div>';
     const goalPanel = '<div class="pf-sec pf-goal"><h3>목표별 격차</h3>' + tiles + '<div class="pf-gsub">' + gc.name + ' · 구단별</div>' + goalOne(data, ob, cur) + '</div>';
     return '<div class="pf-dash pf-dash3 pf-fill"><div class="pf-dl">' + goalPanel + '</div>' + heatSec + '</div>'; // 왼쪽 목표 셋 칸 + 고른 목표의 막대, 오른쪽 구단별 한눈에
   }
