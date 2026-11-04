@@ -50,7 +50,7 @@
   function dataOf(ex) {
     const teams = {};
     for (const t of ex.teamMetrics) teams[t.name] = { km: t.distanceTenths / 10, moves: t.moves, hol: t.holidayWeight, wk: t.weekendHome, away: t.maxAwayRun };
-    return { teams, gaps: ex.objectiveGaps, feasible: ex.feasible };
+    return { teams, gaps: ex.objectiveGaps, feasible: ex.feasible, hardCount: (ex.violations || []).length };
   }
   const vals = (data, k) => Object.keys(data.teams).map((t) => data.teams[t][k]);
   const rangeText = (data, k) => { const a = vals(data, k); return Math.min(...a) + '~' + Math.max(...a); };
@@ -694,22 +694,11 @@
       return '<span class="it ' + (ok ? 'ok' : 'over') + '">' + esc(shortName(id)) + ' <i>' + (ok ? '✓' : '✗') + '</i> ' + (ok ? '허용 안' : num(v - tol, g.d) + g.unit + ' 넘음') + '</span>'; });
     return '<div class="pf-sec pf-vs"><span class="l"><b>방침과 견주기</b> — ' + items.join(' · ') + '</span><button class="btn sm" data-act="pf-relevel">수준 다시 정하기</button></div>';
   }
-  function tiles(data, ob) {
-    return '<div class="pf-tiles">' + ob.order.map((id, k) => { const g = GOALS[id], v = goalValue(data, id), ok = within(data, id, ob);
-      return '<div class="pf-tile"><span class="pf-rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '</div><div class="v">' + goalShow(data, id) + '<small>' + g.unit + '</small></div>' +
-        (g.tol ? '<div class="pf-meter"><i class="' + (ok ? '' : 'over') + '" style="width:' + Math.min(100, ob[g.tol] ? v / ob[g.tol] * 100 : 100).toFixed(0) + '%"></i></div><div class="s">허용 ' + num(ob[g.tol]) + g.unit + ' — ' + (ok ? '<b style="color:var(--ok)">안</b>' : '<b style="color:var(--bad)">넘음</b>') + '</div>' : '<div class="s" style="margin-top:6px">짧을수록 좋음 · 10구단 합</div>') + '</div>'; }).join('') + '</div>';
-  }
-  // 지킨 규칙으로 읽히는 이름(엔진 규칙 이름은 위반을 가리키는 말이라 ✓ 옆에 두면 반대로 읽힌다)
-  const RULE_OK = { 'H0-a': '모든 구단 출전', 'H0-b': '구장 겹침 없음', 'H0-c': '하루 5경기', 'H0-d': '연전 수 맞음', 'H0-e': '지정한 날 홈 구단', 'H0-f': '홈·원정 연속 3시리즈까지', H1: '같은 대진 연속 없음' };
-  function rulesList(ex) {
-    return '<div class="pf-rules">' + Score.HARD_RULES.map((r) => { const c = ex.byCode[r.code]; const bad = c && c.count > 0;
-      return '<div class="pf-rl' + (bad ? ' bad' : '') + '"><i>' + (bad ? '!' : '✓') + '</i><b>' + esc(RULE_OK[r.code] || S.ruleName(r.code)) + '</b><span class="small muted">' + (bad ? c.count + '건' : '') + '</span></div>'; }).join('') + '</div>';
-  }
+  /** 찾는 중 화면: 머리글 한 줄 + 현재 결과 분석과 같은 구성(사용자 결정 2026-11-04). 지킨 규칙 목록은 구단별 한눈에 아래 한 줄로 줄였다 */
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
     return '<div class="pf-page">' + explainLink() + '<div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
-      tiles(data, ob) + '<div class="pf-cols pf-fill" style="grid-template-columns:1.3fr 1fr"><div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">초록 띠 = 가장 적은 구단 + 허용 수준 ' + num(ob.distanceGapKm) + 'km</p>' + bars(data, 'km', ob.distanceGapKm, 1) + '</div>' +
-      '<div class="pf-sec"><h3>반드시 지킴</h3><p class="pf-d">지금 결과 기준</p>' + rulesList(ex) + '</div></div></div>';
+      dashboard(data, ob) + '</div>';
   }
   const origStep2 = S.steps[2].render;
   S.steps[2].render = function () {
@@ -752,7 +741,8 @@
 
   // ───────── 3 현재 결과 분석 ─────────
   // 전체 이동 거리는 늘 마지막 순위라 이 화면에서 따로 보이지 않는다(사용자 결정 2026-11-04). 이동 횟수·거리는 한 칸에 함께,
-  // 주말·공휴일은 따로. 「구단별 한눈에」 표는 방침의 순위대로 왼쪽부터, 순위에 없는 두 열은 오른쪽 끝에 두고 열 너비를 같게 한다.
+  // 주말·공휴일은 따로 — 이 둘은 왼쪽에 위아래로, 오른쪽에 「구단별 한눈에」를 넓게(사용자 결정 2026-11-04).
+  // 표는 방침의 순위대로 왼쪽부터, 순위에 없는 두 열은 오른쪽 끝에 두고 열 너비를 같게 한다. 색 채움(엑셀 느낌)은 쓰지 않는다.
   const HEAT_COLS = { moves: ['이동 횟수', 'moves', 0], distance: ['이동 거리', 'km', 1], holiday: ['주말·공휴일 홈(점)', 'hol', 0] };
   const rankOf = (ob, id) => ob.order.indexOf(id) + 1;
   const tolTag = (data, id, ob) => { const ok = within(data, id, ob); return '<span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>'; };
@@ -765,33 +755,47 @@
     return { base, mn: lo, x: (v) => ((v - base) / (top - base) * 100).toFixed(1) + '%' };
   }
   const track = (sc, tol, v) => '<span class="tr"><span class="tol" style="left:' + sc.x(sc.mn) + ';width:calc(' + sc.x(sc.mn + tol) + ' - ' + sc.x(sc.mn) + ')"></span><span class="bar" style="width:' + sc.x(v) + '"></span></span>';
-  /** 이동 횟수·거리 한 칸: 구단마다 두 막대를 위아래로(위 = 앞 순위). 줄 순서는 앞 순위 목표의 많은 순 */
+  /** 이동 횟수·거리 한 칸: 구단마다 두 막대를 옆으로(왼쪽 = 앞 순위). 줄 순서는 앞 순위 목표의 많은 순.
+   *  위아래 두 줄(B안)은 칸이 넓고 낮아진 지금 배치(왼쪽 위아래)에서는 노트북 높이(790)에 들어가지 않아 옆으로 둔다(2026-11-04) */
   function moveBars(data, ob) {
     const ids = ob.order.filter((id) => id === 'moves' || id === 'distance'), names = Object.keys(data.teams);
     const sc = {}; for (const id of ids) sc[id] = barScale(vals(data, GOALS[id].metric), GOALS[id].metric, ob[GOALS[id].tol]);
     const lead = GOALS[ids[0]].metric, rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
     const unit = (id) => GOALS[id].unit;
-    return '<div class="pf-leg" style="margin:2px 0 0">' + ids.map((id, i) => '<span><i class="' + (i ? 'k2' : '') + '"></i>' + esc(shortName(id)) + ' (' + unit(id) + ')</span>').join('') + '</div><div class="pf-tb pf-mv2 stk">' +
-      rows.map((t) => '<div class="pf-rw"><span class="t">' + esc(t) + '</span><span class="two">' + ids.map((id, i) => { const g = GOALS[id], v = data.teams[t][g.metric]; return '<span class="ln' + (i ? ' k2' : '') + '">' + track(sc[id], ob[g.tol], v) + '<span class="n">' + num(v, g.d) + '</span></span>'; }).join('') + '</span></div>').join('') +
+    return '<div class="pf-tb pf-mv2"><div class="pf-rw hd"><span></span>' + ids.map((id, i) => '<span class="' + (i ? 'k2' : '') + '"><i></i>' + esc(shortName(id)) + ' (' + unit(id) + ')</span><span></span>').join('') + '</div>' +
+      rows.map((t) => '<div class="pf-rw"><span class="t">' + esc(t) + '</span>' + ids.map((id, i) => { const g = GOALS[id], v = data.teams[t][g.metric]; return '<span class="ln' + (i ? ' k2' : '') + '">' + track(sc[id], ob[g.tol], v) + '</span><span class="n">' + num(v, g.d) + '</span>'; }).join('') + '</div>').join('') +
       '</div><div class="xs muted" style="margin-top:4px">막대는 ' + ids.map((id) => num(sc[id].base) + unit(id)).join(' · ') + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
+  }
+  /** 구단별 한눈에 표: 색 채움 대신 숫자 옆에 열 안 비율 막대. 열마다 가장 많은 구단과 가장 적은 구단만 진하게(둘의 차이가 맨 아래 「격차」). 줄은 1순위 많은 순 */
+  function heatTable(data, ob, cols) {
+    const names = Object.keys(data.teams), lead = cols[0][1];
+    const rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
+    const sc = {}; for (const [, k] of cols) { const a = vals(data, k), lo = Math.min(...a), hi = Math.max(...a); sc[k] = { lo, hi, x: (v) => (hi > lo ? 25 + (v - lo) / (hi - lo) * 75 : 100).toFixed(0) + '%' }; }
+    const cell = (k, d, v) => { const c = sc[k], cls = v === c.hi && c.hi !== c.lo ? ' hi' : v === c.lo && c.hi !== c.lo ? ' lo' : '';
+      return '<td class="c' + cls + '"><div><span class="n">' + num(v, d) + '</span><span class="b"><i style="width:' + c.x(v) + '"></i></span></div></td>'; };
+    return '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => cell(k, d, data.teams[t][k])).join('') + '</tr>').join('') +
+      '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => '<td><b>' + num(sc[k].hi - sc[k].lo, d) + '</b></td>').join('') + '</tr></tfoot></table>' +
+      '<div class="pf-leg"><span><i class="hi"></i>열에서 가장 많은 구단</span><span><i class="lo"></i>가장 적은 구단</span><span>격차 = 그 둘의 차이</span></div>';
   }
   function dashboard(data, ob) {
     const ids = ob.order.filter((id) => GOALS[id].tol), mv = ids.filter((id) => id !== 'holiday');
     const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => '<span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id))).join(' · ') + ' 격차 최소화</h3><div class="pf-gh">' + mv.map((id) => gapHead(data, id, ob, shortName(id))).join('<br>') + '</div>' + moveBars(data, ob) + '</div>';
     const g = GOALS.holiday, holPanel = '<div class="pf-sec"><h3><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span>' + g.name + '</h3><div class="pf-gh">' + gapHead(data, 'holiday', ob) + '</div>' + bars(data, g.metric, ob[g.tol], g.d) + '</div>';
     const cols = ids.map((id) => HEAT_COLS[id]).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
-    const heat = (k, v) => { const a = vals(data, k), mean = a.reduce((s, x) => s + x, 0) / a.length, span = (Math.max(...a) - Math.min(...a)) || 1, z = (v - mean) / span; return z > 0 ? 'rgba(232,140,40,' + (z * 0.9).toFixed(2) + ')' : 'rgba(31,95,214,' + (-z * 0.6).toFixed(2) + ')'; };
-    const names = Object.keys(data.teams);
     const allIn = ids.every((id) => within(data, id, ob));
-    const heatT = '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
-      names.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => '<td style="background:' + heat(k, data.teams[t][k]) + '">' + num(data.teams[t][k], d) + '</td>').join('') + '</tr>').join('') +
-      '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => { const a = vals(data, k); return '<td><b>' + num(Math.max(...a) - Math.min(...a), d) + '</b></td>'; }).join('') + '</tr></tfoot></table>' +
-      '<div class="pf-leg"><span><i style="background:rgba(232,140,40,.8)"></i>평균보다 많음</span><span><i style="background:rgba(31,95,214,.5)"></i>평균보다 적음</span></div>' +
-      '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙이 있습니다') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
-    const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">색 = 리그 평균과 차이 · 왼쪽부터 방침의 순위대로</p>' + heatT + '</div>';
+    const note = '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙 ' + num(data.hardCount || 0) + '건') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
+    const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">왼쪽부터 방침의 순위대로 · 줄은 1순위 많은 순 · 막대는 열 안에서 견준 길이</p>' + heatTable(data, ob, cols) + note + '</div>';
     const first = ids[0] === 'holiday' ? [holPanel, movePanel] : [movePanel, holPanel];
-    return '<div class="pf-dash pf-dash3 pf-fill">' + first[0] + first[1] + heatSec + '</div>'; // 세 칸 나란히: 앞 순위 칸이 왼쪽
+    return '<div class="pf-dash pf-dash3 pf-fill"><div class="pf-dl">' + first[0] + first[1] + '</div>' + heatSec + '</div>'; // 왼쪽 위아래(앞 순위 칸이 위), 오른쪽 구단별 한눈에
   }
+  /** 점검용 주소 demo=run27: 실행 없이 지금 달력을 결과로 삼아 현재 결과 분석 화면을 본다(저장 목록에는 넣지 않는다) */
+  S.demos.run27 = function () {
+    const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = optionOf(ob);
+    const res = { at: new Date().toISOString(), elapsedMs: 61000, why: '최대 실행 시간', objective: ob, sig: inputSig(st), calSig: calSig(st), engine: 'MOCK', no: 1, option, name: runName(1, option, ob) };
+    const v = storeRun(res, app().derived().ex); res.vid = v ? v.id : null;
+    app().store.commit('점검용 결과', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
+  };
   /** 지금 연결이 아니라 그 결과를 낸 엔진으로 본다(서버에서 낸 버전을 서버 없이 불러와도 시험 엔진 결과가 아니다). 기록이 없는 옛 결과는 지금 연결로 */
   const byTestEngine = (res) => (res.engine ? res.engine !== 'REST' : !res.from && app().engineConfig.kind !== 'REST');
   S.steps[5] = {
