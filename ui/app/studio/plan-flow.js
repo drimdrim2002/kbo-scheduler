@@ -3,7 +3,7 @@
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
- *   2 운영 방침: 읽는 순서대로 네 띠 — 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나) → 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) → 목표마다 허용 수준(가장 많은·적은 구단 격차) | 실행 칸 → settings.objective로 서버에 보낸다. 값 형식은 그대로.
+ *   2 운영 방침: 읽는 순서대로 네 띠 — 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나) → 추천 순서 카드(이동 격차 줄이기 우선·주말·공휴일 격차 줄이기 우선·직접 정하기) + 오른쪽 「지금 순위」 칸(고른 순서 1~4, 직접 정하기면 화살표) → 목표마다 허용 수준(가장 많은·적은 구단 격차, 전체 폭) → settings.objective로 서버에 보낸다. 실행 시간·실행 단추는 아래 줄에만. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
@@ -27,20 +27,20 @@
 
   // ───────── 평가 기준 ─────────
   const GOALS = {
-    moves: { name: '이동 횟수 격차 최소화', desc: '구단마다 다른 도시로 옮겨 가는 횟수를 비슷하게', unit: '회', metric: 'moves', gap: 'moves', tol: 'moveGap', d: 0 },
-    distance: { name: '이동 거리 격차 최소화', desc: '구단마다 시즌 동안 이동하는 거리를 비슷하게', unit: 'km', metric: 'km', gap: 'distanceKm', tol: 'distanceGapKm', d: 1 },
-    holiday: { name: '주말·공휴일 홈 격차 최소화', desc: '주말 하루 1점 · 공휴일 2점 · 어린이날 3점', unit: '점', metric: 'hol', gap: 'holiday', tol: 'holidayGap', d: 0 },
-    total: { name: '전체 이동 거리 최소화', desc: '10구단 이동 거리를 모두 더한 값', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
+    moves: { name: '이동 횟수 격차 줄이기', desc: '구단마다 다른 도시로 옮겨 가는 횟수를 비슷하게', unit: '회', metric: 'moves', gap: 'moves', tol: 'moveGap', d: 0 },
+    distance: { name: '이동 거리 격차 줄이기', desc: '구단마다 시즌 동안 이동하는 거리를 비슷하게', unit: 'km', metric: 'km', gap: 'distanceKm', tol: 'distanceGapKm', d: 1 },
+    holiday: { name: '주말·공휴일 홈 격차 줄이기', desc: '주말 하루 1점 · 공휴일 2점 · 어린이날 3점', unit: '점', metric: 'hol', gap: 'holiday', tol: 'holidayGap', d: 0 },
+    total: { name: '전체 이동 거리 줄이기', desc: '10구단 이동 거리를 모두 더한 값', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
   };
   const DEFAULT_OBJECTIVE = { order: ['moves', 'distance', 'holiday', 'total'], moveGap: 4, distanceGapKm: 600, holidayGap: 3 };
   // 격차는 두 가지다: 이동 횟수·거리의 격차와 주말·공휴일 홈의 격차. 방침은 이 둘 사이의 균형이고, 전체 이동 거리는 언제나 마지막 순위다(사용자 결정 2026-11-02).
   // 카드 이름은 어느 격차를 먼저 줄이는지로 읽힌다. 이름의 「균형·균등·공평」은 쓰지 않는다(사용자 결정 2026-11-02: 수치의 격차다). 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
   const ORDERS = [
-    { id: 'balance', name: '이동 격차 우선 (기본)', desc: '이동 횟수·거리의 격차를 먼저 줄임', keep: '구단 사이 이동 횟수·거리 격차를 좁힘', give: '주말·공휴일 홈 격차가 벌어질 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
-    { id: 'holiday', name: '주말·공휴일 격차 우선', desc: '주말·공휴일 홈의 격차를 먼저 줄임', keep: '주말·공휴일 홈 경기를 구단마다 고르게', give: '구단 사이 이동 횟수·거리 격차가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
+    { id: 'balance', name: '이동 격차 줄이기 우선 (기본)', desc: '이동 횟수·거리의 격차를 먼저 줄임', keep: '이동 횟수·거리 격차를 좁힘', give: '주말·공휴일 홈 격차가 벌어질 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
+    { id: 'holiday', name: '주말·공휴일 격차 줄이기 우선', desc: '주말·공휴일 홈의 격차를 먼저 줄임', keep: '주말·공휴일 홈 격차를 좁힘', give: '이동 횟수·거리 격차가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
   ];
   const LAST = 'total'; // 직접 정하기에서도 늘 마지막
-  const shortName = (id) => GOALS[id].name.replace(/ 홈 격차 최소화$| 격차 최소화$| 최소화$/, ''); // 「이동 횟수」 「주말·공휴일」 「전체 이동 거리」
+  const shortName = (id) => GOALS[id].name.replace(/ 홈 격차 줄이기$| 격차 줄이기$| 줄이기$/, ''); // 「이동 횟수」 「주말·공휴일」 「전체 이동 거리」
   const objective = () => app().state.settings.objective || DEFAULT_OBJECTIVE;
   const goalValue = (data, id) => data.gaps[GOALS[id].gap];
   const goalShow = (data, id) => num(goalValue(data, id), GOALS[id].d);
@@ -591,41 +591,40 @@
   // 그 가운데 어디에 설지는 운영자가 고른다. 「파레토」 같은 말은 화면에 쓰지 않는다. 2025 숫자(이 엔진·KBO 실제)도 쓰지 않는다.
   P.policyCopy = {
     title: '운영 방침 정하기',
-    lead: '이동의 격차와 주말·공휴일 홈의 격차를 둘 다 최소로 만들 수는 없습니다. 둘 사이 어디에 무게를 둘지 정하는 것이 운영자의 일이고, 여기가 운영의 묘가 드러나는 자리입니다.',
-    left: '이동 횟수·거리의 격차', right: '주말·공휴일 홈의 격차',
-    caption: '받침점을 어디에 둘지는 운영자가 정합니다',
-    bridge: '1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다.',
+    lead: '이동 격차와 주말·공휴일 홈 격차, 둘 다 최소로 만들 수는 없습니다. 어느 쪽에 무게를 둘지는 운영자의 몫이고, 운영의 묘는 여기서 드러납니다.', // 다듬은 글(사용자 결정 2026-11-04)
+    left: '이동 격차 줄이기', right: '주말·공휴일 홈 격차 줄이기', // 가로 띠의 양 끝(카드 이름과 같은 말)
+    caption: '카드를 고르면 점이 옮겨 갑니다',
+    bridge: '1순위가 아래 허용 수준 안에 들면 만족으로 보고 2순위로 넘어갑니다.',
     levelsTitle: '목표마다 허용 수준',
-    levelsLead: '가장 많은 구단과 가장 적은 구단의 격차를 어디까지 봐줄지 목표마다 정합니다. 좁힐수록 그 격차는 줄고 다른 쪽 격차를 내주게 됩니다.'
+    levelsLead: '격차를 어디까지 봐줄지 목표마다 정합니다. 좁힐수록 그 격차는 줄고, 다른 쪽 격차는 커질 수 있습니다.'
   };
-  /** 머리글 그림: 수평을 잡은 저울. 왼쪽 접시 「이동 횟수·거리의 격차」, 오른쪽 접시 「주말·공휴일 홈의 격차」, 받침점에 작은 손잡이(기울어진 저울이 아니다) */
-  function scaleFigure() {
+  /** 머리글 그림: 가로 띠. 왼쪽 끝 「이동 격차 줄이기」, 오른쪽 끝 「주말·공휴일 홈 격차 줄이기」, 고른 방침의 자리에 파란 점(카드를 고르면 옮겨 간다).
+   *  누르는 것이 아니라 표시만. 저울 그림을 대신한다(2026-11-04: 저울은 첫 문장과 같은 말을 되풀이했고 접시 이름이 길어져 눌려 보였다) */
+  function bandFigure(ob) {
     const C = P.policyCopy;
-    const pan = (cx) => '<line x1="' + cx + '" y1="30" x2="' + cx + '" y2="56" stroke="#0A1E3C" stroke-width="1.5"/>' +
-      '<path d="M' + (cx - 34) + ' 56 Q' + cx + ' 78 ' + (cx + 34) + ' 56 Z" fill="#F8F9FB" stroke="#0A1E3C" stroke-width="1.5"/>';
-    return '<figure class="pf-scale"><svg viewBox="0 6 440 90" height="90" aria-label="수평을 잡은 저울: 왼쪽 접시 ' + esc(C.left) + ', 오른쪽 접시 ' + esc(C.right) + '">' +
-      '<line x1="168" y1="88" x2="272" y2="88" stroke="#B4BBC7" stroke-width="3" stroke-linecap="round"/>' +
-      '<polygon points="220,32 198,88 242,88" fill="#E2E5EA" stroke="#B4BBC7" stroke-width="1.5"/>' +
-      '<line x1="60" y1="30" x2="380" y2="30" stroke="#0A1E3C" stroke-width="3" stroke-linecap="round"/>' +
-      pan(60) + pan(380) +
-      '<circle cx="220" cy="30" r="7" fill="#1F5FD6" stroke="#fff" stroke-width="2"/><rect x="216" y="10" width="8" height="12" rx="3" fill="#1F5FD6"/>' +
-      '<text x="60" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#0A1E3C">' + esc(C.left) + '</text>' +
-      '<text x="380" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#0A1E3C">' + esc(C.right) + '</text>' +
-      '</svg><figcaption>' + esc(C.caption) + '</figcaption></figure>';
+    const custom = P.customOrder || !ORDERS.some((o) => o.order.join() === ob.order.join());
+    const pos = custom ? (ob.order[0] === 'holiday' ? 66 : 34) : ob.order[0] === 'holiday' ? 84 : 16; // 직접 정하기는 1순위가 어느 쪽인지로 안쪽에
+    return '<figure class="pf-band" aria-label="지금 방침의 자리: 왼쪽 끝 ' + esc(C.left) + ', 오른쪽 끝 ' + esc(C.right) + '">' +
+      '<div class="tr"><span class="now" style="left:' + pos + '%">' + esc(policyName(ob)) + '</span><i class="dot" style="left:' + pos + '%"></i></div>' +
+      '<div class="ends"><span>' + esc(C.left) + '</span><span>' + esc(C.right) + '</span></div>' +
+      '<figcaption>' + esc(C.caption) + '</figcaption></figure>';
   }
   function orderCards(ob) {
     const key = ob.order.join();
     const hit = ORDERS.find((o) => o.order.join() === key);
     const custom = P.customOrder || !hit;
     const kg = (o) => '<dl class="pf-kg"><div><dt>지키는 것</dt><dd>' + esc(o.keep) + '</dd></div><div><dt>내주는 것</dt><dd>' + esc(o.give) + '</dd></div></dl>';
-    // 순서 목록은 늘 보인다(접지 않음 — 사용자 결정 2026-11-03)
+    // 카드는 고르는 자리(이름 + 지키는 것·내주는 것)만. 고른 순서 1~4는 오른쪽 「지금 순위」 칸 한 곳에 늘 보인다(사용자 결정 2026-11-04: 같은 네 줄을 카드마다 되풀이하지 않는다)
+    // 「선택」 표는 제목 왼쪽 같은 줄(2026-11-05: 위 줄에 두니 네 칸의 제목선이 어긋났다)
+    const pick = (on) => on ? '<span class="pf-tag blue">선택</span>' : '';
     const card = (o) => { const on = !custom && hit && hit.id === o.id;
-      return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + (on ? '<span class="pf-tag blue">선택</span>' : '') + esc(o.name) + '</h4>' + kg(o) +
-        '<ol>' + o.order.map((i) => '<li>' + GOALS[i].name + '</li>').join('') + '</ol></div>'; };
+      return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + pick(on) + esc(o.name) + '</h4>' + kg(o) + '</div>'; };
     const lastFixed = ob.order[3] === LAST, top = lastFixed ? 2 : 3; // 전체 이동 거리가 마지막이면 그 줄은 움직이지 않는다(옛 버전으로 순서가 다르면 모두 움직일 수 있게)
-    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + (custom ? '<span class="pf-tag blue">선택</span>' : '') + '직접 정하기</h4><p>화살표로 순서를 바꿉니다. 전체 이동 거리는 늘 마지막</p><ol>' +
-      ob.order.map((i, k) => '<li>' + GOALS[i].name + (custom && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : lastFixed && i === LAST ? '<span class="pf-last">늘 마지막</span>' : '') + '</li>').join('') + '</ol></div>';
-    return ORDERS.map(card).join('') + diy;
+    const diy = '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + pick(custom) + '직접 정하기</h4><p>순서는 오른쪽 「지금 순위」에서 화살표로 바꿉니다.</p></div>' // 「늘 마지막」은 지금 순위 칸 마지막 줄에 있어 되풀이하지 않는다(1440×790에서 「마지막」 한 낱말이 줄 끝에 홀로 남았다);
+    // 지금 순위: 직접 정하기를 골랐을 때만 화살표가 붙는다
+    const now = '<div class="pf-now" id="pf-order-now"><h4>지금 순위</h4><p>' + esc(custom ? '직접 정한 순서' : hit.name.replace(/ \(기본\)$/, '')) + '</p><ol>' +
+      ob.order.map((i, k) => '<li><span class="pf-rk">' + (k + 1) + '순위</span><span class="nm">' + GOALS[i].name + '</span>' + (custom && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="위로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="아래로">▼</button></span>' : lastFixed && i === LAST ? '<span class="pf-last">늘 마지막</span>' : '') + '</li>').join('') + '</ol></div>';
+    return ORDERS.map(card).join('') + diy + now;
   }
   // 허용 수준은 폭(가장 많은 구단 − 가장 적은 구단)이지 축 위의 위치가 아니다. 결과가 어디에 놓일지는 실행 전에 모르므로
   // 그림 없이 문장 하나와 숫자로만 받는다. −·+ 한 번의 폭은 지난 결과가 아니라 여기 고정값이다. 값 키·서버로 가는 형식은 그대로다.
@@ -645,17 +644,13 @@
   const GOAL_DESC = {
     moves: '다른 구장으로 옮겨 간 횟수. 멀고 가까움은 보지 않음',
     distance: '옮겨 간 거리를 더한 km. 횟수가 같아도 먼 곳을 오가면 커짐',
-    holiday: '홈 연전 날짜의 점수 합. 토·일 1점, 공휴일 2점, 어린이날 3점',
+    holiday: '홈 연전 날짜마다 매긴 점수의 합. 기본은 토·일 1점, 공휴일 2점, 어린이날 3점', // 점수는 1단계 「공휴일·가중치」에서 바꿀 수 있어 「기본은」(2026-11-05)
     total: '10구단이 옮겨 간 거리를 모두 더한 값. 격차가 아니라 합'
   };
   P.GOAL_DESC = GOAL_DESC;
-  const goalsBand = () => '<p class="pf-goals-lead"><b>목표는 넷.</b> 앞의 셋은 구단 사이 격차(가장 많은 구단 − 가장 적은 구단)라 작을수록 좋고 허용 수준이 있습니다. 전체 이동 거리는 리그 전체의 합이라 허용 수준이 없습니다.</p>' +
-    '<div class="pf-goals">' + ['moves', 'distance', 'holiday', 'total'].map((id) => '<div class="g' + (id === 'total' ? ' sum' : '') + '"><b>' + esc(GOALS[id].name.replace(/ 최소화$/, '')) + '</b><span>' + esc(GOAL_DESC[id]) + '</span></div>').join('') + '</div>';
-  const TOL_MOVE = {
-    moves: { narrow: '구단 사이 이동 횟수 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 횟수 격차가 커질 수 있음' },
-    distance: { narrow: '구단 사이 이동 거리 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 거리 격차가 커질 수 있음' },
-    holiday: { narrow: '주말·공휴일 홈 격차가 더 줄어듦 · 이동 횟수·거리 격차가 벌어질 수 있음', wide: '이동 횟수·거리를 맞출 여지 · 주말·공휴일 홈 격차가 커질 수 있음' }
-  };
+  const goalsLead = () => '<p class="pf-goals-lead"><b>목표는 넷.</b> 앞의 셋은 구단 사이 격차(가장 많은 구단 − 가장 적은 구단)로, 허용 수준을 둡니다. 전체 이동 거리는 리그 전체의 합이라 허용 수준이 없습니다.</p>';
+  const goalsTiles = () => '<div class="pf-goals">' + ['moves', 'distance', 'holiday', 'total'].map((id) => '<div class="g' + (id === 'total' ? ' sum' : '') + '"><b>' + esc(GOALS[id].name) + '</b><span>' + esc(GOAL_DESC[id]) + '</span></div>').join('') + '</div>'; // 칸 이름은 목표 이름 그대로 「… 격차 줄이기」(사용자 요청 2026-11-04: 「격차」로만 끝내지 않는다)
+  // 줄마다 붙이던 「좁히면·넓히면」 두 토막은 뺐다(2026-11-05: 머리말 「좁힐수록 그 격차는 줄고, 다른 쪽 격차는 커질 수 있습니다」와 같은 말)
   /** 값에 따라 바뀌는 안내는 두 끝에서만: 0이면 반드시 맞추려는 것, 기본값의 3배 이상이면 사실상 보지 않는 것. 그 사이에는 없다 */
   function tolHint(id, ob, f) {
     const g = GOALS[id], v = ob[g.tol], def = DEFAULT_OBJECTIVE[g.tol];
@@ -664,11 +659,10 @@
     return '';
   }
   function slider(id, ob, f) {
-    const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol], m = TOL_MOVE[id];
+    const g = GOALS[id], tol = ob[g.tol], st = GAP_STEP[g.tol];
     return '<div class="pf-sl" data-goal="' + id + '"><div class="k"><b>' + g.name + '</b></div>' +
       '<div class="pf-st">가장 많은 구단이 가장 적은 구단보다 <span class="n"><button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="-' + st + '" aria-label="' + esc(g.name) + ' 허용 수준 줄이기">−</button>' + '<input value="' + num(tol).replace(/,/g, '') + '" data-in="pf-gap" data-k="' + g.tol + '" inputmode="numeric" aria-label="' + esc(g.name) + ' 허용 수준 숫자">' + '<button data-act="pf-gap-step" data-k="' + g.tol + '" data-d="' + st + '" aria-label="' + esc(g.name) + ' 허용 수준 늘리기">+</button></span>' + g.unit + ' 넘게 많지 않으면 만족</div>' +
-      '<div class="pf-tw"><span><b>좁히면</b> ' + m.narrow + '</span><span><b>넓히면</b> ' + m.wide + '</span></div>' +
-      (id === 'holiday' && !f.even ? '<div class="pf-tn">점수 합이 나누어떨어지지 않아 0은 될 수 없습니다(최소 1점) — 이 달력은 모두 ' + num(f.holTotal) + '점, ' + f.n + '구단이면 ' + num(f.holEach, 1) + '점씩</div>' : '') +
+      (id === 'holiday' && !f.even ? '<div class="pf-tn">이 달력은 점수가 ' + f.n + '구단에 똑같이 나뉘지 않아, 격차는 가장 좁혀도 1점입니다.</div>' : '') +
       tolHint(id, ob, f) + '</div>';
   }
   /** 「운영 방침 설명하기」 → 설명 창(objective-help.js). 운영 방침 화면(머리글 오른쪽)과 실행 중 화면(오른쪽 위)에만 둔다 */
@@ -681,26 +675,22 @@
   }
   P.policyName = policyName;
   // 방침 요약은 아래 줄(실행 단추 옆)과 실행 칸의 「지금 방침」에 둔다. 실행 단추는 아래 줄 하나뿐이다(화면 안에 하나 더 두면 파란 단추가 둘이라 — 사용자 결정 2026-11-03, 2026-11-04에도 유지)
+  /** 아래 줄의 실행 시간 입력: 최대 [−] N [+] 분 — 실행 단추 바로 왼쪽 */
+  const timeBox = () => { const min = P.timeSec / 60; return '<span class="pf-ftime pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분</span>'; };
   const policyText = (ob) => '지금 방침: <b>' + esc(policyName(ob)) + '</b> · 이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점';
   function renderOptions() {
     const ob = objective(), pf = app().preflight(), f = tolFacts(), C = P.policyCopy;
     const rest = app().engineConfig.kind === 'REST', info = (app().engineConfig && app().engineConfig.info) || {};
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
-    const min = P.timeSec / 60;
     return '<div class="pf-page pf-spread">' +
-      '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p>' + goalsBand() + '</div>' + scaleFigure() + '</div>' +
-      '<div class="pf-pair"><div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
-      '<div class="pf-side"><div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
-      ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
-      '<div class="pf-sec pf-run"><h3>실행</h3><p class="pf-d">아래 줄의 「이 방침으로 최대 ' + min + '분 실행」 단추로 시작합니다.</p>' +
-      '<div class="pf-run3">' +
-      '<div class="pf-rb"><div class="k">지금 방침</div><div class="v">' + esc(policyName(ob)) + '</div><div class="s">이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점까지 허용</div></div>' +
-      '<div class="pf-rb"><div class="k">실행 시간</div><div class="pf-sl"><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div><div class="s">최대치입니다. 더 나아지지 않으면 그 전에 끝납니다.</div></div>' +
-      '<div class="pf-rb"><div class="k">실행하면</div><div class="v">' + (inputsEdited(app().state) ? '지금 결과에서 이어서 풉니다' : '처음부터 풉니다') + '</div><div class="s">찾는 동안 가장 좋은 결과를 계속 보여 주고, 끝나면 현재 결과 분석으로 넘어갑니다.</div></div>' +
-      '</div>' +
+      '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p>' + goalsLead() + '</div>' + bandFigure(ob) + goalsTiles() + '</div>' + // 윗줄: 제목·설명 | 띠, 아랫줄: 목표 네 칸 전체 폭(2026-11-04: 띠가 머리글 한가운데 떠 있어 어디와도 줄이 안 맞았다)
+      '<div class="pf-pair"><div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막이라 세 격차가 같을 때만 봅니다. 반드시 지킬 규칙은 어느 순서든 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
+      '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
+      ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') +
+      // 실행에 관한 알림만 이 칸 끝에. 실행 칸은 없앴다(2026-11-04: 방침 요약·시간은 아래 줄에 있어 되풀이였다). 실행 시간 입력은 아래 줄 단추 옆
       (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
-      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div></div>';
+      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div>';
   }
   /** 결과 화면 맨 위 한 줄: 결과의 실제 격차를 방침의 허용 수준과 목표마다 견준다. 옆에 「수준 다시 정하기」 */
   function policyCheck(data, ob) {
@@ -791,7 +781,7 @@
   }
   function dashboard(data, ob) {
     const ids = ob.order.filter((id) => GOALS[id].tol), mv = ids.filter((id) => id !== 'holiday');
-    const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => '<span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id))).join(' · ') + ' 격차 최소화</h3><div class="pf-gh">' + mv.map((id) => gapHead(data, id, ob, shortName(id))).join('<br>') + '</div>' + moveBars(data, ob) + '</div>';
+    const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => '<span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id))).join(' · ') + ' 격차 줄이기</h3><div class="pf-gh">' + mv.map((id) => gapHead(data, id, ob, shortName(id))).join('<br>') + '</div>' + moveBars(data, ob) + '</div>';
     const g = GOALS.holiday, holPanel = '<div class="pf-sec"><h3><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span>' + g.name + '</h3><div class="pf-gh">' + gapHead(data, 'holiday', ob) + '</div>' + bars(data, g.metric, ob[g.tol], g.d) + '</div>';
     const cols = ids.map((id) => HEAT_COLS[id]).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
     const heat = (k, v) => { const a = vals(data, k), mean = a.reduce((s, x) => s + x, 0) / a.length, span = (Math.max(...a) - Math.min(...a)) || 1, z = (v - mean) / span; return z > 0 ? 'rgba(232,140,40,' + (z * 0.9).toFixed(2) + ')' : 'rgba(31,95,214,' + (-z * 0.6).toFixed(2) + ')'; };
@@ -1015,7 +1005,7 @@
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 운영 방침입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 최대 ' + P.timeSec / 60 + '분 실행</button>'); }
+    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (!running && inputsEdited(app().state) ? ' · 지금 결과에서 이어서' : '') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';

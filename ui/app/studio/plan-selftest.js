@@ -87,19 +87,21 @@
 
       // ── 운영 방침 → settings.objective
       const cardNames = () => qa('.pf-oc h4').map((h) => h.innerText.replace('선택', '').trim()).join();
-      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 수평 저울(이동 횟수·거리의 격차 ↔ 주말·공휴일 홈의 격차) · 설명 링크(제목 바로 오른쪽)', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !!q('.pf-head .pf-scale svg') && /이동 횟수·거리의 격차/.test(q('.pf-head').innerText) && /주말·공휴일 홈의 격차/.test(q('.pf-head').innerText) && /최소로 만들 수는 없습니다/.test(q('.pf-head').innerText) && q('.pf-head h2 [data-act="pf-explain"]').getBoundingClientRect().left - q('.pf-head h2').getBoundingClientRect().left < 320 && !/리그 전체 효율/.test(page()) && /받침점을 어디에 둘지는 운영자가 정합니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'));
+      const dotAt = () => parseFloat(q('.pf-band .dot').style.left);
+      ok('머리글: 「운영 방침 정하기」 · 한 줄 · 가로 띠(이동 격차 줄이기 ↔ 주말·공휴일 홈 격차 줄이기, 점은 왼쪽에 「이동 격차 우선」) · 설명 링크(제목 바로 오른쪽)', /운영 방침 정하기/.test(page()) && /운영의 묘/.test(page()) && !q('.pf-head .pf-scale') && !!q('.pf-head .pf-band .dot') && /이동 격차 줄이기/.test(q('.pf-band .ends').innerText) && /주말·공휴일 홈 격차 줄이기/.test(q('.pf-band .ends').innerText) && dotAt() < 50 && /이동 격차 줄이기 우선/.test(q('.pf-band .now').innerText) && /최소로 만들 수는 없습니다/.test(q('.pf-head').innerText) && q('.pf-head h2 [data-act="pf-explain"]').getBoundingClientRect().left - q('.pf-head h2').getBoundingClientRect().left < 320 && !/리그 전체 효율/.test(page()) && /카드를 고르면 점이 옮겨 갑니다/.test(page()) && !!q('.pf-head [data-act="pf-explain"]'), String(dotAt()));
       ok('단계 띠: 「운영 방침·실행」 · 아래 줄: 방침 요약 + 실행 단추 하나(화면 안에는 없음)', /운영 방침·실행/.test(q('#stepper').innerText) && /지금 방침/.test(q('.footer .pf-policy').innerText) && qa('[data-act="pf-run"]').length === 1 && !!q('.footer [data-act="pf-run"]') && !q('.pf-page [data-act="pf-run"]'));
-      ok('카드 이름: 이동 격차 우선·주말·공휴일 격차 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음) · 고른 카드는 「선택」', cardNames() === '이동 격차 우선 (기본),주말·공휴일 격차 우선,직접 정하기' && /선택/.test(q('.pf-oc.on h4').innerText), cardNames());
+      ok('카드 이름: 이동 격차 줄이기 우선·주말·공휴일 격차 줄이기 우선 + 직접 정하기(전체 이동 거리를 먼저 두는 카드는 없음) · 고른 카드는 「선택」 · 네 칸 제목이 한 줄', cardNames() === '이동 격차 줄이기 우선 (기본),주말·공휴일 격차 줄이기 우선,직접 정하기' && /선택/.test(q('.pf-oc.on h4').innerText) && new Set(qa('.pf-orders h4').map((h) => Math.round(h.getBoundingClientRect().top))).size === 1, cardNames());
       ok('우선순위 설명: 전체 이동 거리는 늘 마지막', /전체 이동 거리는 늘 마지막/.test(page()));
       ok('카드마다 지키는 것·내주는 것, 내주는 것은 단정하지 않음', qa('.pf-oc[data-id] .pf-kg').length === 2 && qa('.pf-oc[data-id] .pf-kg div:nth-child(2) dd').every((d) => /수 있음$/.test(d.innerText)));
-      ok('카드마다 순서 4줄이 늘 보이고(접지 않음) 전체 이동 거리가 맨 끝', qa('.pf-oc[data-id] ol').length === 2 && qa('.pf-oc[data-id] ol').every((ol) => ol.querySelectorAll('li').length === 4 && /전체 이동 거리 최소화$/.test(ol.lastElementChild.innerText)) && !q('[data-act="pf-order-peek"]') && qa('[data-act="pf-order-custom"] ol li').length === 4);
-      ok('카드 아래 다리 한 줄', /1순위가 아래에서 정한 허용 안에 들면 만족으로 보고 2순위로 넘어갑니다/.test(page()));
+      const nowLines = () => qa('#pf-order-now li').map((li) => li.querySelector('.nm').innerText);
+      ok('순서는 카드에 없고 오른쪽 「지금 순위」 한 곳에 4줄(1순위부터) · 전체 이동 거리가 맨 끝 「늘 마지막」 · 화살표 없음', !q('.pf-oc ol') && /지금 순위/.test(q('#pf-order-now').innerText) && nowLines().join() === '이동 횟수 격차 줄이기,이동 거리 격차 줄이기,주말·공휴일 홈 격차 줄이기,전체 이동 거리 줄이기' && /늘 마지막/.test(qa('#pf-order-now li')[3].innerText) && !q('#pf-order-now [data-act="pf-move"]') && !q('[data-act="pf-order-peek"]'), nowLines().join());
+      ok('카드 아래 다리 한 줄', /1순위가 아래 허용 수준 안에 들면 만족으로 보고 2순위로 넘어갑니다/.test(page()));
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
-      ok('「주말·공휴일 격차 우선」 → 순서(전체 이동 거리는 마지막)', ob().order.join() === 'holiday,moves,distance,total');
+      ok('「주말·공휴일 격차 줄이기 우선」 → 순서(전체 이동 거리는 마지막) · 지금 순위 1순위가 주말·공휴일', ob().order.join() === 'holiday,moves,distance,total' && nowLines()[0] === '주말·공휴일 홈 격차 줄이기' && /주말·공휴일 격차 줄이기 우선/.test(q('#pf-order-now p').innerText) && dotAt() > 50 && /주말·공휴일 격차 줄이기 우선/.test(q('.pf-band .now').innerText));
       click('[data-act="pf-order-custom"]'); flush();
       click('[data-act="pf-move"][data-k="0"][data-d="1"]'); flush();
-      ok('직접 정하기 ▼ → 순서가 바뀌고 직접 정하기로 남음', ob().order.join() === 'moves,holiday,distance,total' && /직접 정하기/.test(q('.pf-oc.on').innerText));
-      ok('맨 위 ▲·셋째 ▼는 눌리지 않고 전체 이동 거리 줄에는 화살표가 없음(늘 마지막)', q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="2"][data-d="1"]').disabled && !q('[data-act="pf-move"][data-k="3"]') && /늘 마지막/.test(q('[data-act="pf-order-custom"]').innerText));
+      ok('직접 정하기 ▼ → 순서가 바뀌고 직접 정하기로 남음 · 화살표는 지금 순위 칸에만', ob().order.join() === 'moves,holiday,distance,total' && /직접 정하기/.test(q('.pf-oc.on').innerText) && qa('#pf-order-now [data-act="pf-move"]').length === 6 && !q('.pf-oc [data-act="pf-move"]') && /직접 정한 순서/.test(q('#pf-order-now p').innerText) && dotAt() < 50 && /직접 정한 순서/.test(q('.pf-band .now').innerText));
+      ok('맨 위 ▲·셋째 ▼는 눌리지 않고 전체 이동 거리 줄에는 화살표가 없음(늘 마지막)', q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="2"][data-d="1"]').disabled && !q('[data-act="pf-move"][data-k="3"]') && /늘 마지막/.test(qa('#pf-order-now li')[3].innerText));
       S.actions['pf-move']({ dataset: { k: '2', d: '1' } }); flush();
       ok('셋째를 아래로 내리려 해도 전체 이동 거리는 마지막 그대로', ob().order.join() === 'moves,holiday,distance,total');
       setBox(1, '800');
@@ -120,8 +122,8 @@
       ok('3배 미만이면 안내 없음', !q('.pf-sl[data-goal="distance"] .pf-th'));
       setBox(1, '1800');
       ok('딱 3배면 「사실상 보지 않습니다」', !!q('.pf-sl[data-goal="distance"] .pf-th[data-tolstate="wide"]'));
-      ok('줄마다 좁히면·넓히면 두 토막', qa('.pf-sl[data-goal] .pf-tw').length === 3 && qa('.pf-sl[data-goal] .pf-tw span').every((e) => /^(좁히면|넓히면) /.test(e.innerText)));
-      ok('주말·공휴일 줄: 점수 합이 나누어떨어지지 않아 0은 될 수 없다는 안내(2027은 275점 ÷ 10)', /0은 될 수 없습니다/.test((q('.pf-sl[data-goal="holiday"] .pf-tn') || {}).innerText || '') && /275점/.test(q('.pf-sl[data-goal="holiday"] .pf-tn').innerText) && !q('.pf-sl[data-goal="moves"] .pf-tn'));
+      ok('줄에 좁히면·넓히면 토막이 없음(머리말이 대신 말함)', !q('.pf-sl .pf-tw') && !/좁히면|넓히면/.test(q('#pf-levels').innerText) && /좁힐수록/.test(q('#pf-levels .pf-d').innerText));
+      ok('주말·공휴일 줄: 점수가 똑같이 나뉘지 않아 격차는 1점까지라는 안내(2027은 275점 ÷ 10) · 다른 줄에는 없음', /10구단에 똑같이 나뉘지 않아/.test((q('.pf-sl[data-goal="holiday"] .pf-tn') || {}).innerText || '') && /가장 좁혀도 1점/.test(q('.pf-sl[data-goal="holiday"] .pf-tn').innerText) && !q('.pf-sl[data-goal="moves"] .pf-tn'));
       setBox(2, '0');
       ok('주말·공휴일 0 → 0은 될 수 없다는 안내와 함께', /0은 될 수 없어/.test((q('.pf-sl[data-goal="holiday"] .pf-th[data-tolstate="zero"]') || {}).innerText || ''));
       setBox(2, '3');
@@ -135,8 +137,8 @@
       setBox(1, '600'); setBox(0, '4');
       ok('방침 요약: 직접 정한 순서', /지금 방침: 직접 정한 순서 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText), q('.pf-policy').innerText);
       click('[data-act="pf-order"][data-id="balance"]'); flush();
-      ok('방침 요약: 이동 격차 우선 · 허용 수준 셋', /지금 방침: 이동 격차 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
-      ok('실행 단추: 「이 방침으로 최대 N분 실행」', /^이 방침으로 최대 \d분 실행$/.test(q('[data-act="pf-run"]').innerText.trim()));
+      ok('방침 요약: 이동 격차 줄이기 우선 · 허용 수준 셋', /지금 방침: 이동 격차 줄이기 우선 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText) && ob().order.join() === 'moves,distance,holiday,total');
+      ok('실행 단추: 「이 방침으로 실행」 · 실행 시간 입력은 아래 줄 단추 옆 · 화면 안에 실행 칸 없음', /^이 방침으로 실행$/.test(q('[data-act="pf-run"]').innerText.trim()) && !!q('.footer .pf-ftime input[data-in="pf-time"]') && !q('.pf-page .pf-run') && !q('.pf-page input[data-in="pf-time"]'));
       // ── 운영 방침 설명하기 → 오른쪽 설명 창(뒤 화면은 가리지 않음)
       click('[data-act="pf-explain"]'); flush();
       ok('「운영 방침 설명하기」 → 설명 창이 열리고 방침 화면은 그대로', S.ui.drawer === 'explain' && !!q('.drawer.explain') && !q('.drawer-scrim') && !!q('[data-act="pf-run"]') && /운영 방침 설명하기/.test(q('.drawer.explain .pane-title').innerText));
@@ -154,14 +156,14 @@
       const setTime = (v) => { const el = timeBox(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
       setTime('2');
       click('[data-act="pf-time-step"][data-d="1"]'); flush();
-      ok('실행 시간 +: 2분 → 3분, 실행 단추도 따라감', timeBox().value === '3' && /최대 3분 실행/.test(q('[data-act="pf-run"]').innerText));
+      ok('실행 시간 +: 2분 → 3분(아래 줄 숫자 칸)', timeBox().value === '3' && /최대/.test(q('.footer .pf-ftime').innerText));
       setTime('9');
-      ok('실행 시간 범위 밖 숫자는 받지 않음', /최대 3분 실행/.test(q('[data-act="pf-run"]').innerText));
+      ok('실행 시간 범위 밖 숫자는 받지 않음', timeBox().value === '3');
       setTime('5');
       ok('실행 시간 5분이면 + 잠김', q('[data-act="pf-time-step"][data-d="1"]').disabled);
       setTime('1');
       ok('실행 시간 1분이면 − 잠김', q('[data-act="pf-time-step"][data-d="-1"]').disabled);
-      ok('결과가 없으면 처음부터 푼다는 안내 · 「절반」 문장은 없음', /처음부터 풉니다/.test(page()) && !/절반/.test(page()));
+      ok('결과가 없으면 「이어서」 안내가 없음(처음부터 푼다는 말도 따로 없음) · 「절반」 문장은 없음', !/지금 결과에서 이어서/.test(page()) && !/처음부터 풉니다/.test(page()) && !/절반/.test(page()));
       click('[data-act="pf-run"]');
       ok('실행: 순서·허용 차이가 엔진으로 간다', sent && sent.objective.order.join() === ob().order.join() && sent.objective.distanceGapKm === 600 && sent.opts.timeLimitSec === 60 && sent.opts.init === 'SCRATCH');
       ok('실행 중: 화면이 진행 표시로', /찾는 중/.test(page()));
