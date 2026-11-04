@@ -3,7 +3,7 @@
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
- *   2 운영 방침: 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) + 목표마다 허용 수준(가장 많은·적은 구단 격차) → settings.objective로 서버에 보낸다. 값 형식은 그대로.
+ *   2 운영 방침: 읽는 순서대로 네 띠 — 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나) → 추천 순서 카드(이동 격차 우선·주말·공휴일 격차 우선) → 목표마다 허용 수준(가장 많은·적은 구단 격차) | 실행 칸 → settings.objective로 서버에 보낸다. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
@@ -641,6 +641,16 @@
   P.tolFacts = tolFacts;
   P.DEFAULT_OBJECTIVE = DEFAULT_OBJECTIVE;
   // 줄마다: 좁히면 / 넓히면 두 토막. 내주는 쪽은 단정하지 않는다
+  // 머리글의 목표 넷: 무엇을 세는지 한 줄씩. 우선순위를 고르기 전에 읽힌다(사용자 요청 2026-11-04). 「이동 횟수와 이동 거리는 무슨 차이?」에 답하는 자리. 자세한 계산법은 설명 창
+  const GOAL_DESC = {
+    moves: '다른 구장으로 옮겨 간 횟수. 멀고 가까움은 보지 않음',
+    distance: '옮겨 간 거리를 더한 km. 횟수가 같아도 먼 곳을 오가면 커짐',
+    holiday: '홈 연전 날짜의 점수 합. 토·일 1점, 공휴일 2점, 어린이날 3점',
+    total: '10구단이 옮겨 간 거리를 모두 더한 값. 격차가 아니라 합'
+  };
+  P.GOAL_DESC = GOAL_DESC;
+  const goalsBand = () => '<p class="pf-goals-lead"><b>목표는 넷.</b> 앞의 셋은 구단 사이 격차(가장 많은 구단 − 가장 적은 구단)라 작을수록 좋고 허용 수준이 있습니다. 전체 이동 거리는 리그 전체의 합이라 허용 수준이 없습니다.</p>' +
+    '<div class="pf-goals">' + ['moves', 'distance', 'holiday', 'total'].map((id) => '<div class="g' + (id === 'total' ? ' sum' : '') + '"><b>' + esc(GOALS[id].name.replace(/ 최소화$/, '')) + '</b><span>' + esc(GOAL_DESC[id]) + '</span></div>').join('') + '</div>';
   const TOL_MOVE = {
     moves: { narrow: '구단 사이 이동 횟수 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 횟수 격차가 커질 수 있음' },
     distance: { narrow: '구단 사이 이동 거리 격차가 더 줄어듦 · 주말·공휴일 홈 격차가 벌어질 수 있음', wide: '주말·공휴일 홈을 맞출 여지 · 구단 사이 이동 거리 격차가 커질 수 있음' },
@@ -670,7 +680,7 @@
     return !P.customOrder && hit ? hit.name.replace(/ \(기본\)$/, '') : '직접 정한 순서';
   }
   P.policyName = policyName;
-  // 방침 요약은 아래 줄(실행 단추 옆)에만 둔다. 실행 단추도 아래 줄 하나뿐이다(화면 안에 하나 더 두면 파란 단추가 둘이라 — 사용자 결정 2026-11-03)
+  // 방침 요약은 아래 줄(실행 단추 옆)과 실행 칸의 「지금 방침」에 둔다. 실행 단추는 아래 줄 하나뿐이다(화면 안에 하나 더 두면 파란 단추가 둘이라 — 사용자 결정 2026-11-03, 2026-11-04에도 유지)
   const policyText = (ob) => '지금 방침: <b>' + esc(policyName(ob)) + '</b> · 이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점';
   function renderOptions() {
     const ob = objective(), pf = app().preflight(), f = tolFacts(), C = P.policyCopy;
@@ -678,12 +688,16 @@
     const maxSec = rest && info.maxSeconds ? info.maxSeconds : null;
     const min = P.timeSec / 60;
     return '<div class="pf-page pf-spread">' +
-      '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p></div>' + scaleFigure() + '</div>' +
+      '<div class="pf-sec pf-head"><div class="t"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + esc(C.lead) + '</p>' + goalsBand() + '</div>' + scaleFigure() + '</div>' +
       '<div class="pf-pair"><div class="pf-sec"><h3>우선순위</h3><p class="pf-d">어느 격차를 먼저 줄일지 고릅니다. 1순위가 조금이라도 나은 결과를 고르고, 2순위는 1순위가 같을 때만 봅니다. 전체 이동 거리는 늘 마지막 순위라 격차가 같은 결과 사이에서만 짧은 쪽을 고릅니다. 반드시 지킬 규칙은 어느 순서든 항상 지킵니다.</p><div class="pf-orders">' + orderCards(ob) + '</div><p class="pf-bridge">' + esc(C.bridge) + '</p></div>' +
       '<div class="pf-side"><div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') + '</div>' +
-      '<div class="pf-sec pf-run"><h3>실행</h3><p class="pf-d">' + (inputsEdited(app().state) ? '<b>편성 조건을 고쳐서 지금 결과에서 이어서 풉니다.</b> ' : '<b>처음부터 풉니다.</b> ') + '정한 시간은 최대치입니다. 그동안 지금까지 가장 좋은 결과를 계속 보여 줍니다.</p>' +
-      '<div class="pf-sl"><div class="k"><b>실행 시간</b></div><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div>' +
+      '<div class="pf-sec pf-run"><h3>실행</h3><p class="pf-d">아래 줄의 「이 방침으로 최대 ' + min + '분 실행」 단추로 시작합니다.</p>' +
+      '<div class="pf-run3">' +
+      '<div class="pf-rb"><div class="k">지금 방침</div><div class="v">' + esc(policyName(ob)) + '</div><div class="s">이동 횟수 ' + num(ob.moveGap) + '회 · 이동 거리 ' + num(ob.distanceGapKm) + 'km · 주말·공휴일 ' + num(ob.holidayGap) + '점까지 허용</div></div>' +
+      '<div class="pf-rb"><div class="k">실행 시간</div><div class="pf-sl"><div class="pf-st">최대 <span class="n"><button data-act="pf-time-step" data-d="-1" aria-label="실행 시간 줄이기"' + (min <= TIME_MIN ? ' disabled' : '') + '>−</button><input value="' + min + '" data-in="pf-time" inputmode="numeric" aria-label="실행 시간(분)"><button data-act="pf-time-step" data-d="1" aria-label="실행 시간 늘리기"' + (min >= TIME_MAX ? ' disabled' : '') + '>+</button></span>분까지 찾기</div></div><div class="s">최대치입니다. 더 나아지지 않으면 그 전에 끝납니다.</div></div>' +
+      '<div class="pf-rb"><div class="k">실행하면</div><div class="v">' + (inputsEdited(app().state) ? '지금 결과에서 이어서 풉니다' : '처음부터 풉니다') + '</div><div class="s">찾는 동안 가장 좋은 결과를 계속 보여 주고, 끝나면 현재 결과 분석으로 넘어갑니다.</div></div>' +
+      '</div>' +
       (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div></div>';
@@ -1009,7 +1023,9 @@
     return null;
   };
   // 창이 노트북(1440×790)보다 크면 본문을 통째로 키운다(최대 1.25배, 높이 830마다 1배). 노트북 배치가 그대로 커져 줄 사이가 벌어지는 대신 글자·막대가 커진다
-  const fitZoom = () => document.documentElement.style.setProperty('--pf-zoom', Math.max(1, Math.min(1.25, window.innerWidth / 1440, window.innerHeight / 830)).toFixed(3));
+  const fitZoom = () => { const z = Math.max(1, Math.min(1.25, window.innerWidth / 1440, window.innerHeight / 830));
+    document.documentElement.style.setProperty('--pf-zoom', z.toFixed(3));
+    document.documentElement.classList.toggle('pf-tall', window.innerHeight / z >= 960); }; // 키운 뒤 높이가 960 이상이면 운영 방침 실행 칸의 보조 줄을 펼친다(plan-flow.css html.pf-tall)
   fitZoom();
   window.addEventListener('resize', fitZoom);
   /** body에 표시 클래스(2025 보기 전용이면 단계 띠·상태를 숨김) */
