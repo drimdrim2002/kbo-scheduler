@@ -750,7 +750,6 @@
   const HEAT_COLS = { moves: ['이동 횟수', 'moves', 0], distance: ['이동 거리', 'km', 1], holiday: ['주말·공휴일 홈(점)', 'hol', 0] };
   const rankOf = (ob, id) => ob.order.indexOf(id) + 1;
   const tolTag = (data, id, ob) => { const ok = within(data, id, ob); return '<span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>'; };
-  const gapHead = (data, id, ob, label) => { const g = GOALS[id]; return (label ? esc(label) + ' ' : '격차 ') + '<b style="color:var(--navy);font-size:15px">' + goalShow(data, id) + g.unit + '</b> / 허용 ' + num(ob[g.tol]) + g.unit + ' ' + tolTag(data, id, ob); };
   /** 막대 눈금: 가장 적은 구단 + 허용 수준까지 들어가게 */
   function barScale(a, k, tol) {
     const lo = Math.min(...a), hi = Math.max(...a);
@@ -759,29 +758,6 @@
     return { base, mn: lo, x: (v) => ((v - base) / (top - base) * 100).toFixed(1) + '%' };
   }
   const track = (sc, tol, v) => '<span class="tr"><span class="tol" style="left:' + sc.x(sc.mn) + ';width:calc(' + sc.x(sc.mn + tol) + ' - ' + sc.x(sc.mn) + ')"></span><span class="bar" style="width:' + sc.x(v) + '"></span></span>';
-  /** 이동 횟수·거리 한 칸: 구단마다 두 막대를 옆으로(왼쪽 = 앞 순위). 줄 순서는 앞 순위 목표의 많은 순.
-   *  위아래 두 줄(B안)은 칸이 넓고 낮아진 지금 배치(왼쪽 위아래)에서는 노트북 높이(790)에 들어가지 않아 옆으로 둔다(2026-11-04) */
-  function moveBars(data, ob, head) {
-    const ids = ob.order.filter((id) => id === 'moves' || id === 'distance'), names = Object.keys(data.teams);
-    const sc = {}; for (const id of ids) sc[id] = barScale(vals(data, GOALS[id].metric), GOALS[id].metric, ob[GOALS[id].tol]);
-    const lead = GOALS[ids[0]].metric, rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
-    const unit = (id) => GOALS[id].unit;
-    // 머리줄: 칸마다 순위·이름(색) 아래에 그 목표의 격차·허용 — 막대와 숫자 두 열에 걸쳐 그 열 바로 위에 둔다(2026-11-05)
-    return '<div class="pf-tb pf-mv2"><div class="pf-rw hd"><span></span>' + ids.map((id, i) => '<span class="hc' + (i ? ' k2' : '') + '"><span class="nm"><span class="pf-rk">' + rankOf(ob, id) + '순위</span><i></i>' + esc(shortName(id)) + ' (' + unit(id) + ')</span>' + (head ? '<span class="pf-gh">' + head(id) + '</span>' : '') + '</span>').join('') + '</div>' +
-      rows.map((t) => '<div class="pf-rw"><span class="t">' + esc(t) + '</span>' + ids.map((id, i) => { const g = GOALS[id], v = data.teams[t][g.metric]; return '<span class="ln' + (i ? ' k2' : '') + '">' + track(sc[id], ob[g.tol], v) + '</span><span class="n">' + num(v, g.d) + '</span>'; }).join('') + '</div>').join('') +
-      '</div><div class="xs muted" style="margin-top:4px">막대는 ' + ids.map((id) => num(sc[id].base) + unit(id)).join(' · ') + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
-  }
-  /** 주말·공휴일 한 칸: 이동 칸과 같은 열(구단 | 막대 | 숫자 | 둘째 열 | 숫자)에 맞춘다 — 막대는 이동 횟수 막대와 같은 너비,
-   *  순위·이름·격차는 막대 열 머리에, 평균과의 차이는 둘째 열 자리에 머리와 함께(2026-11-05) */
-  function holBars(data, ob) {
-    const g = GOALS.holiday, names = Object.keys(data.teams), a = vals(data, g.metric), tol = ob[g.tol];
-    const sc = barScale(a, g.metric, tol), mean = a.reduce((s, v) => s + v, 0) / a.length;
-    const rows = names.slice().sort((p, q) => data.teams[q][g.metric] - data.teams[p][g.metric]);
-    return '<div class="pf-tb pf-mv2 pf-hol"><div class="pf-rw hd"><span></span><span class="hc"><span class="nm"><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span><i></i>' + esc(shortName('holiday')) + ' (' + g.unit + ')</span><span class="pf-gh">' + gapHead(data, 'holiday', ob) + '</span></span>' +
-      '<span class="hc dvh"><span class="nm">평균과 차이 (' + g.unit + ')</span></span></div>' +
-      rows.map((t) => { const v = data.teams[t][g.metric], dv = v - mean; return '<div class="pf-rw"><span class="t">' + esc(t) + '</span><span class="ln">' + track(sc, tol, v) + '</span><span class="n">' + num(v, g.d) + '</span><span class="dv">' + (dv >= 0 ? '+' : '−') + num(Math.abs(dv), 1) + '</span></div>'; }).join('') +
-      '</div><div class="xs muted" style="margin-top:4px">막대는 ' + num(sc.base) + g.unit + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
-  }
   /** 목표 하나의 구단별 막대(왼쪽 칸에 한 번에 하나만 보일 때): 구단 | 막대 | 숫자 | 평균과 차이. 줄은 많은 순 */
   function goalOne(data, ob, id) {
     const g = GOALS[id], a = vals(data, g.metric), tol = ob[g.tol], sc = barScale(a, g.metric, tol), mean = a.reduce((s, v) => s + v, 0) / a.length;
