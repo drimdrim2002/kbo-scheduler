@@ -153,7 +153,6 @@
     if (u.drawer && S.drawers[u.drawer]) s += (S.drawers[u.drawer].noScrim ? '' : '<div class="drawer-scrim" data-act="close-drawer"></div>') + S.drawers[u.drawer]();
     if (u.modal && S.modals[u.modal]) s += '<div class="scrim" data-act="scrim">' + S.modals[u.modal]() + '</div>';
     if (u.menu && S.menus[u.menu]) s += S.menus[u.menu]();
-    s += '<div class="minw-note">이 화면은 1280px 이상 폭에 맞췄습니다. 창을 넓혀 주세요.</div>';
     return s;
   }
 
