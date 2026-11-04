@@ -761,14 +761,26 @@
   const track = (sc, tol, v) => '<span class="tr"><span class="tol" style="left:' + sc.x(sc.mn) + ';width:calc(' + sc.x(sc.mn + tol) + ' - ' + sc.x(sc.mn) + ')"></span><span class="bar" style="width:' + sc.x(v) + '"></span></span>';
   /** 이동 횟수·거리 한 칸: 구단마다 두 막대를 옆으로(왼쪽 = 앞 순위). 줄 순서는 앞 순위 목표의 많은 순.
    *  위아래 두 줄(B안)은 칸이 넓고 낮아진 지금 배치(왼쪽 위아래)에서는 노트북 높이(790)에 들어가지 않아 옆으로 둔다(2026-11-04) */
-  function moveBars(data, ob) {
+  function moveBars(data, ob, head) {
     const ids = ob.order.filter((id) => id === 'moves' || id === 'distance'), names = Object.keys(data.teams);
     const sc = {}; for (const id of ids) sc[id] = barScale(vals(data, GOALS[id].metric), GOALS[id].metric, ob[GOALS[id].tol]);
     const lead = GOALS[ids[0]].metric, rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
     const unit = (id) => GOALS[id].unit;
-    return '<div class="pf-tb pf-mv2"><div class="pf-rw hd"><span></span>' + ids.map((id, i) => '<span class="' + (i ? 'k2' : '') + '"><i></i>' + esc(shortName(id)) + ' (' + unit(id) + ')</span><span></span>').join('') + '</div>' +
+    // 머리줄: 칸마다 순위·이름(색) 아래에 그 목표의 격차·허용 — 막대와 숫자 두 열에 걸쳐 그 열 바로 위에 둔다(2026-11-05)
+    return '<div class="pf-tb pf-mv2"><div class="pf-rw hd"><span></span>' + ids.map((id, i) => '<span class="hc' + (i ? ' k2' : '') + '"><span class="nm"><span class="pf-rk">' + rankOf(ob, id) + '순위</span><i></i>' + esc(shortName(id)) + ' (' + unit(id) + ')</span>' + (head ? '<span class="pf-gh">' + head(id) + '</span>' : '') + '</span>').join('') + '</div>' +
       rows.map((t) => '<div class="pf-rw"><span class="t">' + esc(t) + '</span>' + ids.map((id, i) => { const g = GOALS[id], v = data.teams[t][g.metric]; return '<span class="ln' + (i ? ' k2' : '') + '">' + track(sc[id], ob[g.tol], v) + '</span><span class="n">' + num(v, g.d) + '</span>'; }).join('') + '</div>').join('') +
       '</div><div class="xs muted" style="margin-top:4px">막대는 ' + ids.map((id) => num(sc[id].base) + unit(id)).join(' · ') + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
+  }
+  /** 주말·공휴일 한 칸: 이동 칸과 같은 열(구단 | 막대 | 숫자 | 둘째 열 | 숫자)에 맞춘다 — 막대는 이동 횟수 막대와 같은 너비,
+   *  순위·이름·격차는 막대 열 머리에, 평균과의 차이는 둘째 열 자리에 머리와 함께(2026-11-05) */
+  function holBars(data, ob) {
+    const g = GOALS.holiday, names = Object.keys(data.teams), a = vals(data, g.metric), tol = ob[g.tol];
+    const sc = barScale(a, g.metric, tol), mean = a.reduce((s, v) => s + v, 0) / a.length;
+    const rows = names.slice().sort((p, q) => data.teams[q][g.metric] - data.teams[p][g.metric]);
+    return '<div class="pf-tb pf-mv2 pf-hol"><div class="pf-rw hd"><span></span><span class="hc"><span class="nm"><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span><i></i>' + esc(shortName('holiday')) + ' (' + g.unit + ')</span><span class="pf-gh">' + gapHead(data, 'holiday', ob) + '</span></span>' +
+      '<span class="hc dvh"><span class="nm">평균과 차이 (' + g.unit + ')</span></span></div>' +
+      rows.map((t) => { const v = data.teams[t][g.metric], dv = v - mean; return '<div class="pf-rw"><span class="t">' + esc(t) + '</span><span class="ln">' + track(sc, tol, v) + '</span><span class="n">' + num(v, g.d) + '</span><span class="dv">' + (dv >= 0 ? '+' : '−') + num(Math.abs(dv), 1) + '</span></div>'; }).join('') +
+      '</div><div class="xs muted" style="margin-top:4px">막대는 ' + num(sc.base) + g.unit + '부터 · 초록 띠 = 가장 적은 구단 + 허용 수준</div>';
   }
   /** 구단별 한눈에 표: 색 채움 대신 숫자 옆에 열 안 비율 막대. 열마다 가장 많은 구단과 가장 적은 구단만 진하게(둘의 차이가 맨 아래 「격차」). 줄은 1순위 많은 순 */
   function heatTable(data, ob, cols) {
@@ -784,8 +796,9 @@
   }
   function dashboard(data, ob) {
     const ids = ob.order.filter((id) => GOALS[id].tol), mv = ids.filter((id) => id !== 'holiday');
-    const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => '<span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id))).join(' · ') + ' 격차 줄이기</h3><div class="pf-gh">' + mv.map((id) => gapHead(data, id, ob, shortName(id))).join('<br>') + '</div>' + moveBars(data, ob) + '</div>';
-    const g = GOALS.holiday, holPanel = '<div class="pf-sec"><h3><span class="pf-rk">' + rankOf(ob, 'holiday') + '순위</span>' + g.name + '</h3><div class="pf-gh">' + gapHead(data, 'holiday', ob) + '</div>' + bars(data, g.metric, ob[g.tol], g.d) + '</div>';
+    // 순위 표시는 제목이 아니라 열마다 머리에(그 열 바로 위) 둔다(2026-11-05)
+    const movePanel = '<div class="pf-sec pf-mvp"><h3>' + mv.map((id) => esc(shortName(id))).join(' · ') + ' 격차 줄이기</h3>' + moveBars(data, ob, (id) => gapHead(data, id, ob)) + '</div>';
+    const g = GOALS.holiday, holPanel = '<div class="pf-sec"><h3>' + g.name + '</h3>' + holBars(data, ob) + '</div>';
     const cols = ids.map((id) => HEAT_COLS[id]).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
     const allIn = ids.every((id) => within(data, id, ob));
     const note = '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙 ' + num(data.hardCount || 0) + '건') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
