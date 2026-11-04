@@ -285,6 +285,17 @@ table.pf-t td.good { color: var(--ok); font-weight: 700; } table.pf-t td.bad { c
 .pf-dl > .pf-sec { flex: 1 0 auto; }
 .pf-dl .pf-tb { gap: 2px; margin-top: 4px; }
 .pf-gh { font-size: 12px; color: var(--text-2); margin-top: 2px; line-height: 1.5; } .pf-gh .nw { white-space: nowrap; }
+/* 왼쪽 목표 하나 칸: 구단 | 막대 | 숫자(막대 바로 옆) | 평균과 차이. 막대는 창 높이에 맞춰 줄이 늘어난다 */
+.pf-one .pf-rw { grid-template-columns: 44px 1fr 56px 72px; column-gap: 6px; }
+.pf-one .pf-rw .n { text-align: left; } .pf-one .pf-rw .dv { font-family: var(--mono); }
+.pf-one .pf-rw.hd { font-size: 11px; color: var(--text-3); font-weight: 600; flex: none; } .pf-one .pf-rw.hd span:last-child { text-align: right; }
+.pf-one .pf-rw.hd i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; background: var(--blue); }
+.pf-one .ln { display: block; } .pf-one .ln .tr { display: block; }
+.pf-dash .pf-one .pf-rw { font-size: 12px; } .pf-dash .pf-one .pf-rw .tr { height: 14px; } .pf-dash .pf-one .pf-rw .bar { top: 3px; height: 8px; }
+/* 탭(실행 결과 비교의 탭과 같은 모양): 순위 표시 + 이름 */
+.pf-gtabs { margin: -2px 0 8px; } .pf-gtabs button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
+.pf-gtabs button:not(.on) .pf-rk { background: var(--text-3); }
+.pf-gtabs button:not(.on) { color: var(--blue); }
 /* 창 높이 960 아래(노트북 1440×790·점검 창 877): 왼쪽 두 칸의 「막대는 …부터」 줄을 접어 두 칸이 스크롤 없이 한 화면에 */
 @media (max-height: 960px) { .pf-dash .pf-dl .xs { display: none; } }
 
