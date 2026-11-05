@@ -1,6 +1,11 @@
 /*
- * alt-a 편성 스튜디오 — ③ 결과·수정
- * 왼쪽: 위반 목록 · 구단 필터 · 미배정 풀 / 가운데: 월간 캘린더(슬롯 띠) · 슬롯 목록 · 구단×슬롯 / 오른쪽: 위반·시리즈 인스펙터(핀, 이동 후보 Δ)
+ * 편성 스튜디오 — ③ 일정 자세히 보기 (대안 다: 달력 하나 + 위반 넘기기 띠)
+ * 위: 위반 띠(건수 · ‹ n / N › · 내용 · 고치는 방법 · 목록 ▾)
+ *     도구줄(달력 | 구단별 연전 표 · 월 탭 · 구단 ▾ · 보관함 N(있을 때만) · 범례 · 실행 취소 · 중간 저장)
+ * 가운데: 월간 달력(연전 띠) 또는 구단별 연전 표가 화면 전체. 왼쪽·오른쪽 칸은 없다.
+ * 경기 칸을 누르면 옆에 「경기 창」, 위반 띠의 「고치는 방법」은 그 연전 띠 옆에 창.
+ * 옮기기는 두 번 누르기: 경기 창 「옮기기…」 → 「옮기는 중」 → 놓을 수 있는 띠의 「여기로 · 위반 N↓」(또는 그 띠의 경기를 눌러 맞바꾸기).
+ * 끌어 놓기는 없다(사용자 결정 2026-11-06).
  */
 (function () {
   'use strict';
@@ -8,7 +13,6 @@
   const { KBO, esc, icon, fmt } = S;
   const { Score, Dates } = KBO;
 
-  const MONTHS = [3, 4, 5, 6, 7, 8];
   const hardOf = (a) => a[0] + a[1];
   const softOf = (a) => a[2] + a[3] + a[4] + a[5] + a[6];
 
@@ -68,8 +72,8 @@
   function candLabel(cd) {
     const st = app().state, c = D();
     const sl = (s) => fmt.date(c.slots[s].day);
-    if (cd.kind === 'swap') return { kind: '시리즈 맞바꾸기', what: app().matchLabel(cd.m) + ' ↔ ' + app().matchLabel(cd.n) + ' (' + sl(c.plan[cd.n]) + ')' };
-    if (cd.kind === 'slots') return { kind: '연전 맞바꾸기', what: sl(cd.a) + ' ↔ ' + sl(cd.b) + ' (' + c.slots[cd.a].consecutive + '연전 ' + (st.teams.length >> 1) + '시리즈 통째로)' };
+    if (cd.kind === 'swap') return { kind: '경기 맞바꾸기', what: app().matchLabel(cd.m) + ' ↔ ' + app().matchLabel(cd.n) + ' (' + sl(c.plan[cd.n]) + ')' };
+    if (cd.kind === 'slots') return { kind: '연전 기간 맞바꾸기', what: sl(cd.a) + ' ↔ ' + sl(cd.b) + ' (' + c.slots[cd.a].consecutive + '연전 ' + (st.teams.length >> 1) + '경기 통째로)' };
     const m = st.matches[cd.m];
     return { kind: '홈·원정 바꾸기 · 입력 데이터도 바뀜', what: app().matchLabel(cd.m) + ' → ' + m.home + ' vs ' + m.away };
   }
@@ -86,8 +90,13 @@
     if (!S.feature('M2')) return '';
     return S.deltaHtml(cd.dh, cd.ds);
   }
+  /** 짧은 증감 말: 「위반 2↓」·「위반 1↑」·「그대로」 (옮기는 중 띠·칸에 붙는다) */
+  function deltaWord(h) {
+    if (S.dev()) return 'Hard ' + fmt.signed(h);
+    return h > 0 ? '위반 ' + h + '↓' : h < 0 ? '위반 ' + (-h) + '↑' : '위반 그대로';
+  }
   function candList(list) {
-    if (!list.length) return '<div class="empty">옮길 수 있는 후보가 없습니다(고정된 시리즈).</div>';
+    if (!list.length) return '<div class="empty">옮길 수 있는 후보가 없습니다(고정된 경기).</div>';
     return '<div class="cands">' + list.map((cd, i) => {
       const L = candLabel(cd);
       return '<div class="cand"><span class="what"><span class="kind">' + esc(L.kind) + '</span>' + esc(L.what) + '</span>' + deltaHtml(cd) +
@@ -95,45 +104,96 @@
     }).join('') + '</div>';
   }
 
-  // ───────── 왼쪽: 위반 · 구단 필터 · 미배정 풀 ─────────
-  function renderList() {
-    const c = D(), ex = c.ex, u = S.ui;
-    let s = '<div class="pane-head"><span class="pane-title">' + esc(S.term('hardViol')) + '</span><span class="pane-desc">' + (ex.violations.length ? '누르면 그 자리로 갑니다' : '없음') + '</span>' +
-      '<span style="margin-left:auto">' + (ex.violations.length ? S.stat('block', ex.violations.length + '건') : S.stat('ok', '0건')) + '</span></div>';
-    s += '<div class="pane-body" data-sk="r-list">';
-    if (!ex.violations.length) s += '<div class="empty"><b>' + icon('check') + ' ' + esc(S.termPlain('hardViol')) + '이 없습니다</b>편성 가능한 일정입니다. ④ 공정성·배포로 넘어가세요.</div>';
-    for (const r of Score.HARD_RULES) {
-      const vs = ex.violations.filter((v) => v.code === r.code);
-      if (!vs.length) continue;
-      s += '<div class="vrule">' + S.ruleLabel(r.code) + '<span class="cnt">' + vs.length + '</span></div>';
-      for (const v of vs) {
-        const sig = S.vsig(v);
-        const on = u.sel === 'v:' + sig;
-        s += '<button class="li v vitem' + (on ? ' active' : '') + '" data-act="sel-viol" data-sig="' + esc(sig) + '">' +
-          '<span class="ico" style="color:var(--bad)">' + icon('x') + '</span><span class="li-main"><span class="msg">' + esc(shortMsg(v)) + '</span>' +
-          '<span class="loc">' + icon('cal') + esc(fmt.date(c.slots[v.slot].day)) + (S.isVirtual(v) ? ' ' + S.virt() : '') + '</span></span></button>';
-      }
-    }
-    s += '<div class="list-sep"></div>';
-    s += '<div class="label">구단 고르기<span class="cnt">' + (u.teamFilter.length ? '<button class="btn xs ghost" data-act="tf-clear">해제</button>' : '전체') + '</span></div>';
-    s += '<div class="tf">' + app().state.teams.map((t) => {
-      const on = u.teamFilter.includes(t.name);
-      return '<button class="' + (on ? 'on' : '') + '" data-act="tf" data-team="' + esc(t.name) + '" aria-pressed="' + on + '"><i class="sw" style="background:' + esc(t.color) + '"></i>' + esc(t.name) + '<span class="ck">' + (on ? icon('check') : '') + '</span></button>';
-    }).join('') + '</div>';
-    if (S.feature('M8')) {
-      s += '<div class="label">일정 미정 보관함<span class="cnt">' + c.pool.length + '</span></div>';
-      if (c.pool.length) s += '<div class="pool" data-drop-pool="1">' + c.pool.map((m) => chip(m, -1)).join('') + '</div>';
-      else s += '<div class="small muted" style="padding:0 12px 12px" data-drop-pool="1">비어 있음. 시리즈를 여기로 끌어다 놓거나 오른쪽 자세히 보기에서 뺄 수 있습니다.</div>';
-    }
-    s += '</div>';
-    return s;
+  // ───────── 위반 순서 (띠·목록 공통: 규칙별 묶음) ─────────
+  function orderedViolations() {
+    const vs = D().ex.violations, out = [];
+    for (const r of Score.HARD_RULES) for (const v of vs) if (v.code === r.code) out.push(v);
+    return out;
+  }
+  function curViolIndex(list) {
+    const u = S.ui;
+    if (!u.sel || !u.sel.startsWith('v:')) return -1;
+    const sig = u.sel.slice(2);
+    return list.findIndex((v) => S.vsig(v) === sig);
   }
   function shortMsg(v) {
-    // 날짜 접두를 떼고 원인만 남긴다(날짜는 아래 줄에 표시)
+    // 날짜 접두를 떼고 원인만 남긴다(날짜는 따로 표시)
     return S.plain(String(v.message)).replace(/^\d+\/\d+\([^)]+\) \d연전\s*(—\s*)?/, '');
   }
+  /** 월 탭: 연전 기간이 있는 달만(2027은 3~9월). 연전 기간이 없으면 지금 달 하나 */
+  function months() {
+    const ms = Array.from(new Set(D().slots.map((s) => s.month))).sort((a, b) => a - b);
+    return ms.length ? ms : [S.ui.month || 4];
+  }
+  function monthViolations(mo) {
+    const c = D();
+    return c.ex.violations.filter((v) => c.slots[v.slot] && c.slots[v.slot].month === mo).length;
+  }
+  /** 옮기는 중인 경기를 slot에 놓을 수 있나(연전 수가 같고 지금 자리가 아님). target을 주면 그 경기와 맞바꾸기(고정이면 불가) */
+  function canDrop(mv, slot, target) {
+    const c = D(), st = app().state, mt = st.matches[mv];
+    if (!mt || !c.slots[slot] || c.plan[mv] === slot || c.slots[slot].consecutive !== mt.consecutive) return false;
+    if (target != null && (st.matches[target].pinned || target === mv)) return false;
+    return true;
+  }
 
-  // ───────── 가운데: 캘린더 ─────────
+  // ───────── 위반 띠 ─────────
+  function renderVBand() {
+    const c = D(), u = S.ui, list = orderedViolations(), n = list.length;
+    if (!n) {
+      return '<div class="vband ok"><span class="vb-ok">' + icon('check') + '<b>' + esc(S.termPlain('hardViol')) + ' 없음</b><span class="muted">· 편성 가능</span></span>' +
+        (c.pool.length ? '<span class="vb-note">' + icon('pool') + '일정 미정 ' + c.pool.length + '경기 — 도구줄의 「보관함」에서 넣을 자리를 고릅니다</span>' : '') + '</div>';
+    }
+    const i = curViolIndex(list), v = i >= 0 ? list[i] : null;
+    return '<div class="vband"><span class="vb-count">' + S.stat('block', n + '건') + '<b>' + esc(S.term('hardViol')) + '</b></span>' +
+      '<span class="vb-nav"><button class="btn sm icon" data-act="viol-prev" title="이전 위반" aria-label="이전 위반">' + icon('left') + '</button><span class="vb-pos">' + (i >= 0 ? i + 1 : '–') + ' / ' + n + '</span><button class="btn sm icon" data-act="viol-next" title="다음 위반" aria-label="다음 위반">' + icon('right') + '</button></span>' +
+      (v
+        ? '<span class="vb-msg" title="' + esc(shortMsg(v)) + '"><span class="vb-rule">' + S.ruleLabel(v.code) + '</span><span class="vb-text">' + esc(shortMsg(v)) + '</span><span class="vb-loc">' + icon('cal') + esc(fmt.date(c.slots[v.slot].day)) + '</span>' + (S.isVirtual(v) ? S.virt() : '') + '</span>'
+        : '<span class="vb-msg muted">‹ ›로 위반을 하나씩 봅니다. 달력이 그 자리로 갑니다.</span>') +
+      '<button class="btn sm' + (u.pop === 'fix' ? ' on' : ' primary') + '" data-act="viol-fix">' + icon('bolt') + '고치는 방법</button>' +
+      '<button class="btn sm' + (u.menu === 'viols' ? ' on' : '') + '" data-act="viol-menu" aria-haspopup="menu">' + icon('list') + '목록' + icon('down') + '</button></div>';
+  }
+
+  // ───────── 도구줄 ─────────
+  function renderToolbar() {
+    const c = D(), u = S.ui, tf = u.teamFilter;
+    const views = [['calendar', '달력', 'cal'], ['matrix', '구단별 연전 표', 'grid']];
+    let s = '<div class="toolbar r3-tools"><div class="seg" role="tablist">' + views.map((v) => '<button class="' + (u.view === v[0] ? 'on' : '') + '" data-act="r-view" data-view="' + v[0] + '" role="tab" aria-selected="' + (u.view === v[0]) + '">' + icon(v[2]) + v[1] + '</button>').join('') + '</div>';
+    if (u.view === 'calendar') s += '<div class="month-tabs">' + months().map((mo) => { const n = monthViolations(mo); return '<button class="' + (u.month === mo ? 'on' : '') + '" data-act="r-month" data-month="' + mo + '">' + mo + '월' + (n ? '<span class="mv">' + icon('x') + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
+    s += '<button class="btn sm' + (tf.length ? ' on' : '') + (u.menu === 'teams' ? ' on' : '') + '" data-act="teams-menu" aria-haspopup="menu" title="구단을 고르면 그 구단 경기만 진하게 보입니다">' + icon('team') + (tf.length ? esc(tf.length > 2 ? '구단 ' + tf.length : tf.join('·')) : '구단') + icon('down') + '</button>';
+    if (S.feature('M8') && c.pool.length) s += '<button class="btn sm' + (u.menu === 'pool' ? ' on' : '') + '" data-act="pool-menu" aria-haspopup="menu" title="일정 미정 경기 — 누르면 넣을 자리를 고릅니다">' + icon('pool') + '보관함 ' + c.pool.length + icon('down') + '</button>';
+    s += renderLegend();
+    s += '<span style="margin-left:auto;display:flex;gap:6px;align-items:center">' + S.undoButtons() +
+      '<button class="btn sm" data-act="snap-menu" aria-haspopup="menu">' + icon('bookmark') + '중간 저장 ' + app().state.snapshots.length + icon('down') + '</button></span></div>';
+    if (u.moving != null) s += renderMoveBand();
+    return s;
+  }
+  /** 범례는 지금 화면에 있는 것만 */
+  function renderLegend() {
+    const c = D(), u = S.ui, items = [];
+    const anyViol = c.ex.violations.length > 0, anyPin = app().state.matches.some((m) => m.pinned);
+    if (u.view === 'calendar') {
+      if (u.teamFilter.length) items.push('<span><span class="fm h">홈</span>홈 경기</span><span><span class="fm a">원</span>원정 경기</span>');
+      if (anyViol) items.push('<span><i class="lg-viol"></i>위반</span>');
+      if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
+    } else {
+      items.push('<span><i class="lg-home"></i>홈</span><span><i class="lg-away"></i>원정</span>');
+      if (anyViol) items.push('<span><i class="lg-mviol"></i>위반</span>');
+      if (c.ex.teamMetrics.some((t) => t.runs.some((r) => r.length > 3))) items.push('<span><i class="lg-run"></i>홈·원정 4연속 이상</span>');
+      if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
+    }
+    return items.length ? '<span class="legend r3-legend">' + items.join('') + '</span>' : '';
+  }
+  function renderMoveBand() {
+    const u = S.ui, c = D(), mt = app().state.matches[u.moving];
+    if (!mt) return '';
+    const s0 = c.plan[u.moving];
+    return '<div class="moveband"><span class="mb-title">' + icon('move') + '<b>옮기는 중</b>' + S.team(mt.away) + '<span class="muted">vs</span>' + S.team(mt.home) + (s0 >= 0 ? '<span class="muted">· 지금 ' + esc(c.slots[s0].label) + '</span>' : '<span class="muted">· 일정 미정</span>') + '</span>' +
+      '<span class="mb-hint">' + (u.view === 'calendar' ? '놓을 수 있는 연전 기간에 「여기로」가 켜집니다. 그 기간의 경기를 누르면 둘을 맞바꿉니다.' : '점선 칸을 누르면 그 자리의 경기와 맞바꿉니다.') + ' 월을 넘겨도 유지됩니다 · Esc 취소</span>' +
+      '<button class="btn sm" data-act="move-cancel">' + icon('x') + '취소</button></div>';
+  }
+
+  // ───────── 달력 ─────────
   function chip(m, slot) {
     const st = app().state, c = D(), u = S.ui;
     const mt = st.matches[m];
@@ -148,9 +208,17 @@
     const sel = u.sel === 'm:' + m;
     const vsel = S._selViol && (S._selViol.matches || []).includes(m);
     const flash = u.flashMatches && u.flashMatches.includes(m);
-    const cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (vsel ? ' vsel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
+    let cls = 'gm' + (flags.length ? ' viol' : '') + (sel ? ' sel' : '') + (vsel ? ' vsel' : '') + (!involved ? ' dim' : '') + (f.length && involved ? ' focus-team' : '') + (flash ? ' flash' : '');
     const stad = (app().team(mt.home) || {}).stadium || '';
-    return '<button class="' + cls + '" data-act="sel-match" data-m="' + m + '" draggable="true" data-drag-m="' + m + '" title="' + esc(app().matchLabel(m) + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '')) + '">' +
+    let title = app().matchLabel(m) + ' · ' + stad + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '');
+    let act = 'sel-match', extra = '';
+    const mv = u.moving;
+    if (mv != null) {
+      if (mv === m) { cls += ' moving'; act = 'move-cancel'; title = '옮기는 중 · 누르면 취소'; }
+      else if (slot >= 0 && canDrop(mv, slot, m)) { cls += ' swap-ok'; act = 'move-swap'; extra = ' data-slot="' + slot + '"'; title = app().matchLabel(m) + ' · 누르면 맞바꾸기 · ' + deltaWord(app().previewDrop(mv, slot, m).hardDelta); }
+      else { cls += ' off'; act = ''; }
+    }
+    return '<button class="' + cls + '"' + (act ? ' data-act="' + act + '"' : ' disabled') + ' data-m="' + m + '"' + extra + ' title="' + esc(title) + '">' +
       fm + (mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.away)) + '"></i>' + esc(mt.away) + '</span><span class="at">vs</span>' +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.home)) + '"></i>' + esc(mt.home) + '</span>' +
@@ -179,6 +247,8 @@
       if (w + 6 < seasonStart) continue;
       weeks.push(w);
     }
+    const vslot = S._selViol ? S._selViol.slot : -1;
+    const mv = u.moving, fromSlot = mv != null ? c.plan[mv] : -2;
     let s = '<div class="cal-wrap"><div class="cal-head"><div></div>' + ['월', '화', '수', '목', '금', '토', '일'].map((d, i) => '<div class="' + (i === 6 ? 'sun' : i === 0 ? 'mon' : '') + '">' + d + '</div>').join('') + '</div>';
     s += '<div class="cal-grid" style="grid-template-rows:repeat(' + weeks.length + ',minmax(0,1fr))">';
     for (const w of weeks) {
@@ -203,7 +273,10 @@
         const col = wd(ds[0]) + 2;
         const hard = c.ex.slotHard[sl.index] > 0;
         const outMonth = ds.every((d) => d < first || d > last);
-        s += '<div class="slotband' + (hard ? ' hard' : '') + '" style="grid-column:' + col + ' / span ' + ds.length + (outMonth ? ';opacity:.5' : '') + '" data-drop-slot="' + sl.index + '" title="' + esc(sl.label) + '">' +
+        let drop = '';
+        if (mv != null && sl.index === fromSlot) drop = '<div class="sb-from">' + icon('move') + '지금 자리</div>';
+        else if (mv != null && canDrop(mv, sl.index)) { const h = app().previewDrop(mv, sl.index).hardDelta; drop = '<button class="sb-drop ' + (h > 0 ? 'good' : h < 0 ? 'bad' : 'zero') + '" data-act="move-here" data-slot="' + sl.index + '" title="이 연전 기간으로 옮기기">' + icon('move') + '여기로 · ' + esc(deltaWord(h)) + '</button>'; }
+        s += '<div class="slotband' + (hard ? ' hard' : '') + (sl.index === vslot ? ' vsel' : '') + (mv != null && sl.index === fromSlot ? ' from' : '') + (drop && sl.index !== fromSlot ? ' can' : '') + '" style="grid-column:' + col + ' / span ' + ds.length + (outMonth ? ';opacity:.5' : '') + '" data-slot="' + sl.index + '" title="' + esc(sl.label) + '">' + drop +
           '<div class="sb-list" style="grid-template-rows:repeat(' + Math.max(5, c.bySlot[sl.index].length) + ',minmax(0,1fr))">' + c.bySlot[sl.index].map((m) => chip(m, sl.index)).join('') + '</div></div>';
       }
       s += '</div>';
@@ -221,60 +294,56 @@
     return Math.floor((d - s0) / 7) + 1;
   }
 
-  function renderSlotList() {
-    const c = D(), st = app().state;
-    let s = '<div class="pane-body" data-sk="r-slots"><table class="slotlist"><thead><tr><th>#</th><th>연전 기간</th><th>연전 수</th><th>주중/주말</th><th>휴일 등급</th><th>상태</th><th>시리즈 (원정 vs 홈)</th></tr></thead><tbody>';
-    for (const sl of c.slots) {
-      const hard = c.ex.slotHard[sl.index];
-      s += '<tr class="' + (hard ? 'hard' : '') + '"><td class="mono">' + (sl.index + 1) + '</td><td>' + esc(fmt.date(sl.day)) + '</td><td>' + sl.consecutive + '</td><td>' + (sl.weekend ? '주말' : '주중') + '</td><td>' + sl.holiday + '</td><td>' +
-        (hard ? S.stat('block', '위반 ' + hard) : S.stat('ok', '문제 없음')) + '</td><td>' + c.bySlot[sl.index].map((m) => '<button class="btn xs ghost" data-act="sel-match" data-m="' + m + '">' + esc(app().matchLabel(m)) + ((c.ex.matchFlags[m] || []).length ? ' ' + icon('warn') : '') + '</button>').join('') + '</td></tr>';
-    }
-    return s + '</tbody></table></div>';
-  }
-
+  // ───────── 구단별 연전 표 (라) ─────────
+  /** 세로 10구단 × 가로 연전 기간 전체(가로 스크롤). 진한 칸 = 홈, 빈 칸 = 원정, 위반 칸 빨간 테두리, 홈·원정 4연속 이상 구간은 빨간 묶음 테두리 */
   function renderMatrix() {
-    const c = D(), st = app().state;
-    let s = '<div class="pane-body xy" data-sk="r-mx"><table class="slotlist" style="width:auto"><thead><tr><th style="position:sticky;left:0;background:#F5F6F8;z-index:2">구단</th>' + c.slots.map((sl) => '<th class="mono" style="font-size:10px">' + esc(Dates.fmtShort(sl.day)) + '</th>').join('') + '</tr></thead><tbody>';
+    const c = D(), st = app().state, u = S.ui, tf = u.teamFilter;
+    const mv = u.moving, mvm = mv != null ? st.matches[mv] : null;
+    const vslot = S._selViol ? S._selViol.slot : -1;
+    const vms = S._selViol ? (S._selViol.matches || []) : [];
+    const over = new Map(); // 구단 → (연전 기간 → 묶음 안 위치)
+    for (const tm of c.ex.teamMetrics) {
+      const mp = new Map();
+      for (const r of tm.runs) if (r.length > 3) r.slots.forEach((sx, i) => mp.set(sx, i === 0 ? 'rs' : i === r.slots.length - 1 ? 're' : 'rm'));
+      over.set(tm.name, mp);
+    }
+    const byMonth = [];
+    for (const sl of c.slots) { const last = byMonth[byMonth.length - 1]; if (last && last.month === sl.month) last.n++; else byMonth.push({ month: sl.month, n: 1 }); }
+    if (!c.slots.length) return '<div class="mx-wrap"><div class="empty"><b>연전 기간이 없습니다</b>연전 기간을 입력하면 구단별 연전 표가 여기에 나옵니다.</div></div>';
+    let s = '<div class="mx-wrap xy" data-sk="r-mx"><table class="mx"><thead><tr><th class="mx-team mx-corner" rowspan="2">구단</th>' + byMonth.map((g) => '<th class="mx-mo" colspan="' + g.n + '">' + g.month + '월</th>').join('') + '</tr><tr>' +
+      c.slots.map((sl) => '<th class="mx-col' + (c.ex.slotHard[sl.index] ? ' hard' : '') + (sl.index === vslot ? ' vsel' : '') + (sl.weekend ? ' we' : '') + '" data-slot="' + sl.index + '" title="' + esc(sl.label + (sl.weekend ? ' · 주말' : ' · 주중')) + '"><span class="d">' + esc(Dates.fmtShort(sl.day)) + '</span><span class="n">' + sl.consecutive + '연전</span></th>').join('') + '</tr></thead><tbody>';
     for (const t of st.teams) {
-      s += '<tr><th style="position:sticky;left:0;background:#fff;z-index:1">' + S.team(t.name) + '</th>';
+      const focus = tf.includes(t.name), dim = tf.length && !focus;
+      const mp = over.get(t.name) || new Map();
+      s += '<tr class="' + (focus ? 'focus' : dim ? 'dim' : '') + '"><th class="mx-team">' + S.team(t.name) + '</th>';
       for (const sl of c.slots) {
         const m = c.bySlot[sl.index].find((i) => st.matches[i].home === t.name || st.matches[i].away === t.name);
-        if (m == null) { s += '<td class="muted">·</td>'; continue; }
+        if (m == null) {
+          const can = mv != null && (mvm.home === t.name || mvm.away === t.name) && canDrop(mv, sl.index);
+          s += '<td class="mx-c rest' + (can ? ' swap-ok' : '') + '"' + (can ? ' data-act="move-here" data-slot="' + sl.index + '" title="이 연전 기간으로 옮기기 · ' + esc(deltaWord(app().previewDrop(mv, sl.index).hardDelta)) + '"' : ' title="경기 없음"') + '>·</td>';
+          continue;
+        }
         const mt = st.matches[m];
         const home = mt.home === t.name;
-        const bad = (c.ex.matchFlags[m] || []).length;
-        s += '<td style="' + (home ? 'background:#0A1E3C;color:#fff;' : '') + (bad ? 'box-shadow:inset 0 0 0 2px #B3261E;' : '') + 'font-size:11px;cursor:pointer" data-act="sel-match" data-m="' + m + '">' + (home ? '홈 ' : '원 ') + esc(home ? mt.away : mt.home) + '</td>';
+        const flags = c.ex.matchFlags[m] || [];
+        const run = mp.get(sl.index);
+        const flash = u.flashMatches && u.flashMatches.includes(m);
+        let cls = 'mx-c ' + (home ? 'h' : 'a') + (flags.length ? ' viol' : '') + (u.sel === 'm:' + m ? ' sel' : '') + (vms.includes(m) ? ' vsel' : '') + (run ? ' ' + run : '') + (mt.pinned ? ' pinned' : '') + (flash ? ' flash' : '');
+        let title = app().matchLabel(m) + ' · ' + sl.label + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '');
+        let act = 'sel-match';
+        if (mv != null) {
+          if (mv === m) { cls += ' moving'; act = 'move-cancel'; title = '옮기는 중 · 누르면 취소'; }
+          else if ((mvm.home === t.name || mvm.away === t.name) && canDrop(mv, sl.index, m)) { cls += ' swap-ok'; act = 'move-swap'; title = app().matchLabel(m) + ' · 누르면 맞바꾸기 · ' + deltaWord(app().previewDrop(mv, sl.index, m).hardDelta); }
+          else { cls += ' off'; act = ''; }
+        }
+        s += '<td class="' + cls + '"' + (act ? ' data-act="' + act + '"' : '') + ' data-m="' + m + '" data-slot="' + sl.index + '" title="' + esc(title) + '">' + (mt.pinned ? icon('pin') : '') + esc(home ? mt.away : mt.home) + '</td>';
       }
       s += '</tr>';
     }
     return s + '</tbody></table></div>';
   }
 
-  function monthViolations(mo) {
-    const c = D();
-    return c.ex.violations.filter((v) => c.slots[v.slot] && c.slots[v.slot].month === mo).length;
-  }
-
-  function renderMain() {
-    const u = S.ui;
-    const views = [['calendar', '달력', 'cal'], ['slots', '연전 기간 목록', 'list']];
-    if (S.feature('V6')) views.push(['matrix', '구단별 연전 표', 'grid']);
-    if (!views.some((v) => v[0] === u.view)) u.view = 'calendar';
-    let s = '<div class="toolbar">' +
-      '<div class="seg" role="tablist">' + views.map((v) => '<button class="' + (u.view === v[0] ? 'on' : '') + '" data-act="r-view" data-view="' + v[0] + '">' + icon(v[2]) + v[1] + '</button>').join('') + '</div>';
-    if (u.view === 'calendar') {
-      s += '<div class="month-tabs">' + MONTHS.map((mo) => { const n = monthViolations(mo); return '<button class="' + (u.month === mo ? 'on' : '') + '" data-act="r-month" data-month="' + mo + '">' + mo + '월' + (n ? '<span class="mv">' + icon('x') + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
-      s += '<span class="legend" style="margin-left:6px"><span><span class="fm h" style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;background:var(--navy);color:#fff;font-size:9px;font-weight:800">홈</span>홈 경기</span><span><span style="display:inline-grid;place-items:center;width:13px;height:13px;border-radius:2px;border:1px solid var(--navy);font-size:9px;font-weight:800">원</span>원정 경기</span><span><i style="background:#FFF1F0;box-shadow:inset 2px 0 0 #B3261E"></i>위반</span><span>' + icon('pin') + '고정</span></span>';
-    }
-    s += '<span style="margin-left:auto;display:flex;gap:6px;align-items:center">' + S.undoButtons() +
-      '<button class="btn sm" data-act="snap-menu" aria-haspopup="menu">' + icon('bookmark') + '중간 저장 ' + app().state.snapshots.length + icon('down') + '</button></span></div>';
-    if (u.view === 'calendar') s += renderCalendar();
-    else if (u.view === 'slots') s += renderSlotList();
-    else s += renderMatrix();
-    return s;
-  }
-
-  // ───────── 오른쪽: 인스펙터 ─────────
+  // ───────── 경기 창 · 고치는 방법 창 ─────────
   function teamStrip(name, hiSlot) {
     const c = D();
     const tm = c.ex.teamMetrics.find((x) => x.name === name);
@@ -282,167 +351,283 @@
     const bySlot = new Map(tm.visits.map((v) => [v.slot, v]));
     const overSlots = new Set();
     for (const r of tm.runs) if (r.length > 3) r.slots.slice(3).forEach((x) => overSlots.add(x));
-    let s = '<div class="mini-strip" title="' + esc(name) + ' 연전 기간별 홈(진한 칸)/원정">';
+    let s = '<div class="mini-strip" style="grid-template-columns:repeat(' + c.slots.length + ',minmax(0,1fr))" title="' + esc(name) + ' 연전 기간별 홈(진한 칸)/원정">';
     for (const sl of c.slots) {
       const v = bySlot.get(sl.index);
       s += '<i class="' + (v && v.home ? 'h' : '') + (overSlots.has(sl.index) ? ' over' : '') + '" style="' + (sl.index === hiSlot ? 'outline:2px solid #1F5FD6;outline-offset:0;' : '') + (v ? '' : 'background:#fff;') + '"></i>';
     }
     return s + '</div>';
   }
-
-  function inspViolation(v) {
-    const c = D(), st = app().state;
+  function popHead(title, tags) {
+    return '<div class="pop-head"><span class="pop-title">' + title + '</span>' + (tags || '') + '<button class="btn sm icon ghost" data-act="pop-close" aria-label="닫기" title="닫기 (Esc)">' + icon('x') + '</button></div>';
+  }
+  function popMatch(m) {
+    const c = D(), st = app().state, u = S.ui;
+    const mt = st.matches[m];
+    if (!mt) return '';
+    const s0 = c.plan[m];
+    const sl = s0 >= 0 ? c.slots[s0] : null;
+    const team = app().team(mt.home) || {};
+    const vs = c.ex.violations.filter((v) => (v.matches || []).includes(m));
+    const ev = mt.eventId ? st.events.find((e) => e.id === mt.eventId) : null;
+    let s = '<div class="pop pop-m" role="dialog" aria-label="경기 자세히" data-anchor-m="' + m + '">' +
+      popHead(S.team(mt.away) + '<span class="muted">vs</span>' + S.team(mt.home), mt.pinned ? '<span class="tag pin">' + icon('pin') + '고정</span>' : '') +
+      '<div class="pop-sub">' + (sl ? esc(fmt.date(sl.day) + ' ~ ' + fmt.date(sl.days[sl.days.length - 1])) : '일정 미정') + ' · ' + mt.consecutive + '연전 · ' + esc(team.stadium || '-') + (S.dev() ? ' · 경기 #' + (m + 1) : '') + '</div>';
+    s += '<dl class="props pop-props">' +
+      '<dt>홈</dt><dd>' + S.team(mt.home) + '<span class="home-mark">홈</span>' + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</dd>' +
+      '<dt>원정</dt><dd>' + S.team(mt.away) + '<span class="away-mark">원</span></dd>' +
+      (sl ? '<dt>연전 기간</dt><dd>' + esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : ' <span class="tag ref">주중</span>') + (sl.holiday ? ' <span class="tag ref">휴일 등급 ' + sl.holiday + '</span>' : '') + '</dd>' : '') +
+      (ev ? '<dt>특별 경기</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
+      '<dt>위반</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '" title="이 위반으로">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '없음')) + '</dd>' +
+      '</dl>';
+    s += '<div class="pop-acts"><label class="pop-pin"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>고정<span class="muted small">자동 편성이 옮기지 않음</span></label>' +
+      (S.feature('M8') && s0 >= 0 ? '<button class="btn sm" data-act="to-pool" data-m="' + m + '"' + (mt.pinned ? ' disabled' : '') + '>' + icon('pool') + '보관함으로 빼기</button>' : '') + '</div>';
+    if (s0 < 0) {
+      const opts = c.slots.filter((x) => x.consecutive === mt.consecutive).map((x) => { const p = app().previewDrop(m, x.index); return { x, p }; }).sort((a, b) => b.p.hardDelta - a.p.hardDelta).slice(0, 5);
+      s += '<div class="pop-sec"><h4>넣을 연전 기간</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">이 기간에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
+    } else {
+      const cands = S.candidates([m], [], 3).filter((x) => x.kind === 'swap' || x.kind === 'flip');
+      s += '<div class="pop-sec"><h4>옮길 곳 추천' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ 미리보기' : '적용하면 이렇게 달라집니다') + '</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 경기는 옮길 수 없습니다. 고정을 풀면 옮길 곳이 나옵니다.</div>' : candList(cands)) + '</div>';
+      if (!mt.pinned) s += '<div class="pop-row"><button class="btn sm primary" data-act="move-start" data-m="' + m + '">' + icon('move') + '옮기기…</button><span class="muted small">' + (u.view === 'calendar' ? '달력에서 놓을 자리를 직접 고릅니다' : '표에서 맞바꿀 칸을 직접 고릅니다') + '</span></div>';
+    }
+    s += '<button class="pop-fold" data-act="pop-hv" aria-expanded="' + (u.hvOpen ? 'true' : 'false') + '">' + icon(u.hvOpen ? 'down' : 'right') + '홈/원정 흐름 보기<span class="muted small">연전 기간 ' + c.slots.length + '</span></button>';
+    if (u.hvOpen) {
+      s += '<div class="pop-hv"><div class="small" style="margin-bottom:3px">' + S.team(mt.home) + '</div>' + teamStrip(mt.home, s0) +
+        '<div class="small" style="margin:6px 0 3px">' + S.team(mt.away) + '</div>' + teamStrip(mt.away, s0) +
+        '<div class="legend" style="margin-top:6px"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>홈·원정 4연속 이상</span><span><i style="outline:2px solid var(--blue)"></i>이 경기</span></div></div>';
+    }
+    return s + '</div>';
+  }
+  function popFix(v) {
+    const c = D();
     const rule = Score.RULE_BY_CODE[v.code];
-    let s = '<div class="insp-sec"><div class="insp-title"><span class="vrule" style="padding:0;font-size:inherit;color:inherit">' + S.ruleLabel(v.code) + '</span>' + (S.isVirtual(v) ? S.virt() : '') + '</div>' +
-      '<div class="insp-sub">' + esc(rule.desc) + '</div></div>';
-    if (S.isVirtual(v)) s += '<div class="insp-sec"><h4>시연용 위반</h4><div class="small muted">' + icon('info') + ' 시연용으로 일부러 만든 위반입니다: ' + esc(virtNote(v)) + '. 원인 문장은 왼쪽 위반 목록에 있습니다.</div></div>';
-    s += '<div class="insp-sec"><h4>위치<span class="r">' + esc(c.slots[v.slot].label) + '</span></h4>' +
-      (v.matches || []).map((m) => '<button class="li" data-act="sel-match" data-m="' + m + '" style="padding-left:6px"><span class="ico">' + icon('target') + '</span><span class="li-main">' + esc(app().matchLabel(m)) + ' <span class="muted small">' + esc(c.plan[m] >= 0 ? fmt.date(c.slots[c.plan[m]].day) : '일정 미정') + '</span></span>' + icon('right') + '</button>').join('') +
+    let s = '<div class="pop pop-v" role="dialog" aria-label="고치는 방법" data-anchor-slot="' + v.slot + '">' +
+      popHead('<span class="vb-rule">' + S.ruleLabel(v.code) + '</span>', S.isVirtual(v) ? S.virt() : '') +
+      '<div class="pop-sub">' + esc(rule.desc) + '</div>';
+    if (S.isVirtual(v)) s += '<div class="pop-note">' + icon('info') + '<span>시연용으로 일부러 만든 위반입니다: ' + esc(virtNote(v)) + '.</span></div>';
+    s += '<div class="pop-sec"><h4>어디서<span class="r">' + esc(c.slots[v.slot].label) + '</span></h4>' +
+      (v.matches || []).map((m) => '<button class="li" data-act="sel-match" data-m="' + m + '" style="padding-left:6px" title="경기 창 열기"><span class="ico">' + icon('target') + '</span><span class="li-main">' + esc(app().matchLabel(m)) + ' <span class="muted small">' + esc(c.plan[m] >= 0 ? fmt.date(c.slots[c.plan[m]].day) : '일정 미정') + '</span></span>' + icon('right') + '</button>').join('') +
       '</div>';
     const slots = v.code === 'H0-f' ? [] : [v.slot];
     if (v.code === 'H0-f') for (const m of v.matches || []) if (c.plan[m] >= 0) slots.push(c.plan[m]);
     const cands = S.candidates((v.matches || []).filter((m) => c.plan[m] >= 0), slots, 5);
-    s += '<div class="insp-sec"><h4>고치는 방법' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ = 적용 후 − 현재' : '적용하면 이렇게 달라집니다') + '</span>' : '') + '</h4>' + candList(cands) + '</div>';
-    return s;
+    s += '<div class="pop-sec"><h4>고치는 방법' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ = 적용 후 − 현재' : '적용하면 이렇게 달라집니다') + '</span>' : '') + '</h4>' + candList(cands) + '</div>';
+    return s + '</div>';
   }
   function virtNote(v) {
     // 같은 코드의 시드가 여럿이면(H1 슬롯 맞바꾸기 2건) 위반 슬롯이 맞바꾼 슬롯(또는 그 직후)인 것을 고른다
     const sd = S.SEEDS.filter((x) => x.code === v.code).find((x) => !x.slots || x.slots.some((k) => k === v.slot || k + 1 === v.slot)) || S.SEEDS.find((x) => x.code === v.code);
     return sd ? sd.note + (S.dev() ? ' (' + sd.code + ')' : '') : '시연용으로 넣은 위반';
   }
-
-  function inspMatch(m) {
-    const c = D(), st = app().state;
-    const mt = st.matches[m];
-    if (!mt) return '<div class="empty">시리즈를 찾을 수 없습니다.</div>';
-    const s0 = c.plan[m];
-    const sl = s0 >= 0 ? c.slots[s0] : null;
-    const team = app().team(mt.home) || {};
-    const flags = c.ex.matchFlags[m] || [];
-    const vs = c.ex.violations.filter((v) => (v.matches || []).includes(m));
-    const ev = mt.eventId ? st.events.find((e) => e.id === mt.eventId) : null;
-    let s = '<div class="insp-sec"><div class="insp-title">' + S.team(mt.away) + '<span class="muted"> vs </span>' + S.team(mt.home) + (mt.pinned ? '<span class="tag pin">' + icon('pin') + '고정</span>' : '') + '</div>' +
-      '<div class="insp-sub">' + (sl ? esc(fmt.date(sl.day) + ' ~ ' + fmt.date(sl.days[sl.days.length - 1])) + ' · ' : '일정 미정 · ') + mt.consecutive + '연전' + (S.dev() ? ' · 시리즈 #' + (m + 1) : '') + '</div></div>';
-    s += '<div class="insp-sec"><h4>정보</h4><dl class="props">' +
-      '<dt>홈</dt><dd>' + S.team(mt.home) + '<span class="home-mark">홈</span></dd>' +
-      '<dt>원정</dt><dd>' + S.team(mt.away) + '<span class="away-mark">원</span></dd>' +
-      '<dt>구장</dt><dd>' + esc(team.stadium || '-') + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</dd>' +
-      '<dt>연전 기간</dt><dd>' + (sl ? esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : '') + (sl.holiday ? ' <span class="tag ref">휴일 등급 ' + sl.holiday + '</span>' : '') : '일정 미정') + '</dd>' +
-      (ev ? '<dt>특별 경기</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
-      '<dt>상태</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '위반 없음')) + '</dd>' +
-      '</dl></div>';
-    s += '<div class="insp-sec"><h4>고정·보관</h4><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-      '<label style="display:inline-flex;gap:8px;align-items:center"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>고정 <span class="muted small">(자동 편성이 옮기지 않음)</span></label>' +
-      (S.feature('M8') ? (s0 >= 0 ? '<button class="btn sm" style="margin-left:auto" data-act="to-pool" data-m="' + m + '">' + icon('pool') + '보관함으로 빼기</button>' : '') : '') +
-      '</div></div>';
-    if (s0 < 0) {
-      // 풀에서 넣을 슬롯 후보
-      const c2 = D();
-      const opts = c2.slots.filter((x) => x.consecutive === mt.consecutive).map((x) => { const p = app().previewDrop(m, x.index); return { x, p }; }).sort((a, b) => b.p.hardDelta - a.p.hardDelta).slice(0, 5);
-      s += '<div class="insp-sec"><h4>넣을 연전 기간</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">이 기간에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
-    } else {
-      const cands = S.candidates([m], [], 5).filter((x) => x.kind === 'swap' || x.kind === 'flip');
-      s += '<div class="insp-sec"><h4>옮길 곳' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ 미리보기' : '바꾸면 어떻게 되나') + '</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 시리즈는 옮길 수 없습니다. 고정을 풀면 옮길 곳이 나옵니다.</div>' : candList(cands)) + '</div>';
-    }
-    s += '<div class="insp-sec"><h4>홈/원정 흐름<span class="r">연전 기간 ' + c.slots.length + '</span></h4>' +
-      '<div class="small" style="margin-bottom:3px">' + S.team(mt.home) + '</div>' + teamStrip(mt.home, s0) +
-      '<div class="small" style="margin:6px 0 3px">' + S.team(mt.away) + '</div>' + teamStrip(mt.away, s0) +
-      '<div class="legend" style="margin-top:6px"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>홈·원정 4연속 이상</span><span><i style="outline:2px solid var(--blue)"></i>이 시리즈</span></div></div>';
-    return s;
+  /** 창을 기준 칸 오른쪽에 둔다. 화면 밖으로 나가면 왼쪽. 기준 칸이 없으면(다른 달·보관함) 오른쪽 위 */
+  function positionPop(root) {
+    const pop = root.querySelector('.pop');
+    if (!pop) return;
+    let a = null;
+    if (pop.dataset.anchorM != null) a = root.querySelector('.gm[data-m="' + pop.dataset.anchorM + '"], .mx-c[data-m="' + pop.dataset.anchorM + '"]');
+    else if (pop.dataset.anchorSlot != null) a = root.querySelector('.slotband[data-slot="' + pop.dataset.anchorSlot + '"], .mx-c.vsel, .mx-col[data-slot="' + pop.dataset.anchorSlot + '"]');
+    const rr = root.getBoundingClientRect();
+    const body = root.querySelector('.r3-body');
+    const minTop = (body ? body.offsetTop : 0) + 6; // 위반 띠·도구줄은 가리지 않는다
+    pop.style.maxHeight = Math.max(120, rr.height - minTop - 8) + 'px';
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left, top;
+    if (a) {
+      const ar = a.getBoundingClientRect();
+      left = ar.right - rr.left + 8; top = ar.top - rr.top - 6;
+      if (left + pw > rr.width - 8) left = ar.left - rr.left - pw - 8;
+    } else { left = rr.width - pw - 12; top = minTop; }
+    left = Math.max(8, Math.min(left, rr.width - pw - 8));
+    top = Math.max(minTop, Math.min(top, rr.height - ph - 8));
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    pop.classList.add('ready');
   }
-
-  function renderInsp() {
-    const u = S.ui;
-    if (u.sel && u.sel.startsWith('v:')) {
-      const v = S.findViolation(u.sel.slice(2));
-      if (v) return { title: '위반 자세히', html: inspViolation(v) };
-    }
-    if (u.sel && u.sel.startsWith('m:')) return { title: '시리즈 자세히', html: inspMatch(parseInt(u.sel.slice(2), 10)) };
-    const ex = D().ex;
-    return { title: '자세히', html: '<div class="empty"><b>항목을 고르세요</b>왼쪽 위반이나 달력의 시리즈를 고르면 원인, 고정 여부, 옮길 곳과 달라지는 점이 여기에 나옵니다.</div>' +
-      '<div class="insp-sec"><h4>규칙별 건수</h4><dl class="props rules">' + Score.HARD_RULES.map((r) => '<dt>' + S.ruleLabel(r.code) + '</dt><dd>' + (ex.byCode[r.code].count ? S.stat('block', ex.byCode[r.code].count + '건') : S.stat('ok', '0')) + '</dd>').join('') + '</dl></div>' };
+  /** 구단별 표: 고른 경기·위반 칸이 보이게 가로 스크롤(고른 것이 바뀌었을 때만) */
+  function revealMatrix(root) {
+    const wrap = root.querySelector('.mx-wrap');
+    if (!wrap) return;
+    const key = S.ui.sel || '';
+    if (S._mxRevealed === key) return;
+    S._mxRevealed = key;
+    const cell = wrap.querySelector('.mx-c.sel, .mx-c.vsel');
+    if (!cell) return;
+    const x = cell.offsetLeft - wrap.clientWidth / 2;
+    wrap.scrollLeft = Math.max(0, x);
   }
 
   // ───────── 단계 ─────────
   S.steps[3] = {
     render() {
+      const u = S.ui, st = app().state;
       S.wide = window.innerWidth >= 1800;
-      S._selViol = S.ui.sel && S.ui.sel.startsWith('v:') ? S.findViolation(S.ui.sel.slice(2)) : null;
-      const insp = renderInsp();
-      return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: renderMain(), insp: insp.html, inspTitle: insp.title, listLabel: '위반·구단 고르기' }) + '</div>';
+      if (u.view === 'slots') u.view = 'matrix'; // 예전 주소의 「연전 기간 목록」은 구단별 연전 표로
+      if (u.view !== 'calendar' && u.view !== 'matrix') u.view = 'calendar';
+      const ms = months();
+      if (!ms.includes(u.month)) u.month = ms[0];
+      if (u.moving != null && !st.matches[u.moving]) u.moving = null;
+      S._selViol = u.sel && u.sel.startsWith('v:') ? S.findViolation(u.sel.slice(2)) : null;
+      let pop = '';
+      if (u.sel && u.sel.startsWith('m:') && u.moving == null) { pop = popMatch(parseInt(u.sel.slice(2), 10)); u.pop = null; }
+      else if (u.pop === 'fix' && S._selViol) pop = popFix(S._selViol);
+      else u.pop = null;
+      return '<div class="stepview no-band"><div class="r3' + (u.moving != null ? ' moving' : '') + '">' + renderVBand() + renderToolbar() +
+        '<div class="r3-body">' + (u.view === 'calendar' ? renderCalendar() : renderMatrix()) + '</div>' + pop + '</div></div>';
     },
     after() {
       const u = S.ui;
-      if (u.sel) S.revealSelected('.li.active', '.pane.list .pane-body');
+      const root = document.querySelector('.r3');
+      if (!root) return;
+      revealMatrix(root);
+      positionPop(root);
       if (u.flashMatches) setTimeout(() => { u.flashMatches = null; }, 50);
-      bindDnD();
+      // 빈 곳을 누르면 창이 닫힌다(단추·창 안·메뉴는 제외)
+      root.addEventListener('click', (e) => {
+        if (!u.sel && !u.pop) return;
+        if (e.target.closest('.pop') || e.target.closest('[data-act]') || e.target.closest('.menu')) return;
+        if (u.sel && u.sel.startsWith('m:')) S.go({ sel: null, pop: null });
+        else if (u.pop) S.go({ pop: null });
+      });
     }
   };
+  // Esc: 옮기는 중 취소 → 경기 창 닫기 → 고치는 방법 창 닫기 (메뉴·창·서랍이 열려 있으면 그쪽이 먼저)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const u = S.ui;
+    if (u.step !== 3 || u.ops || u.menu || u.modal || u.drawer || !S.booted) return;
+    if (u.moving != null) { e.preventDefault(); S.go({ moving: null }); }
+    else if (u.sel && u.sel.startsWith('m:')) { e.preventDefault(); S.go({ sel: null, pop: null }); }
+    else if (u.pop) { e.preventDefault(); S.go({ pop: null }); }
+  });
 
   // ───────── 동작 ─────────
+  function gotoViolation(v, patch) {
+    S.go(Object.assign({ step: 3, ops: null, sel: 'v:' + S.vsig(v), month: S.slotMonth(v.slot), flashMatches: (v.matches || []).slice() }, patch || {}));
+  }
+  function stepViol(d) {
+    const list = orderedViolations();
+    if (!list.length) return;
+    let i = curViolIndex(list);
+    i = i < 0 ? (d > 0 ? 0 : list.length - 1) : (i + d + list.length) % list.length;
+    gotoViolation(list[i]);
+  }
+  function openMenu(el, name) {
+    const r = el.getBoundingClientRect();
+    S.ui.menuPos = { x: r.right, y: r.bottom + 4 };
+    S.ui.menu = S.ui.menu === name ? null : name;
+    S.render();
+  }
+  function doMove(slot, target) {
+    const m = S.ui.moving;
+    if (m == null) return;
+    const pv = app().previewDrop(m, slot, target);
+    S.ui.moving = null;
+    if (app().drop(m, slot, target)) {
+      S.ui.flashMatches = target != null ? [m, target] : [m];
+      S.toast((target != null ? '맞바꿨습니다' : '옮겼습니다') + ' · ' + deltaWord(pv.hardDelta) + ' · 실행 취소로 되돌릴 수 있습니다', pv.hardDelta >= 0 ? 'ok' : 'warn');
+    }
+    S.render();
+  }
   Object.assign(S.actions, {
-    'sel-viol': (el) => {
-      const v = S.findViolation(el.dataset.sig);
-      if (!v) return;
-      S.go({ step: 3, ops: null, sel: 'v:' + el.dataset.sig, month: S.slotMonth(v.slot), view: S.ui.view === 'matrix' ? 'matrix' : 'calendar', flashMatches: (v.matches || []).slice() });
+    'sel-viol': (el) => { const v = S.findViolation(el.dataset.sig); if (v) gotoViolation(v); },
+    'viol-prev': () => stepViol(-1),
+    'viol-next': () => stepViol(1),
+    'viol-fix': () => {
+      const list = orderedViolations();
+      if (!list.length) return;
+      if (curViolIndex(list) < 0) { gotoViolation(list[0], { pop: 'fix' }); return; }
+      S.go({ pop: S.ui.pop === 'fix' ? null : 'fix' });
     },
+    'viol-menu': (el) => openMenu(el, 'viols'),
+    'teams-menu': (el) => openMenu(el, 'teams'),
+    'pool-menu': (el) => openMenu(el, 'pool'),
     'sel-match': (el) => {
+      if (S.ui.moving != null) return;
       const m = parseInt(el.dataset.m, 10);
-      const s = D().plan[m];
-      S.go({ step: 3, sel: 'm:' + m, month: s >= 0 && S.ui.view === 'calendar' ? S.slotMonth(s) : S.ui.month });
+      S.go({ step: 3, ops: null, sel: 'm:' + m, pop: null }); // 달은 바꾸지 않는다
     },
+    'pop-close': () => { const u = S.ui; S.go(u.sel && u.sel.startsWith('m:') ? { sel: null, pop: null } : { pop: null }); },
+    'pop-hv': () => { S.ui.hvOpen = !S.ui.hvOpen; S.render(); },
+    'move-start': (el) => { const m = parseInt(el.dataset.m, 10); if (app().state.matches[m] && !app().state.matches[m].pinned) S.go({ moving: m, sel: null, pop: null }); },
+    'move-cancel': () => S.go({ moving: null }),
+    'move-here': (el) => doMove(+el.dataset.slot, null),
+    'move-swap': (el) => doMove(+el.dataset.slot, +el.dataset.m),
     'r-view': (el) => S.go({ view: el.dataset.view }),
-    'r-month': (el) => S.go({ month: +el.dataset.month }),
-    'tf': (el) => { const f = S.ui.teamFilter.slice(); const t = el.dataset.team; const i = f.indexOf(t); if (i >= 0) f.splice(i, 1); else f.push(t); S.go({ teamFilter: f }); },
+    'r-month': (el) => { const u = S.ui; S.go({ month: +el.dataset.month, pop: null, sel: u.sel && u.sel.startsWith('m:') ? null : u.sel }); }, // 달을 바꾸면 창은 닫힌다(옮기는 중은 유지)
+    'tf': (el) => { const f = S.ui.teamFilter.slice(); const t = el.dataset.team; const i = f.indexOf(t); if (i >= 0) f.splice(i, 1); else f.push(t); S.ui.teamFilter = f; S.render(); }, // 메뉴는 열어 둔다(여러 구단)
     'tf-clear': () => S.go({ teamFilter: [] }),
     'to-pool': (el) => { app().moveMatch(+el.dataset.m, -1); },
-    'from-pool': (el) => { app().moveMatch(+el.dataset.m, +el.dataset.slot); },
+    'from-pool': (el) => { const slot = +el.dataset.slot; S.ui.month = S.slotMonth(slot); app().moveMatch(+el.dataset.m, slot); },
     'apply-cand': (el) => {
       const cd = JSON.parse(el.dataset.c);
-      const before = D().ex.violations.length;
+      const list0 = orderedViolations(), idx0 = curViolIndex(list0);
+      const before = list0.length;
       const sel = S.ui.sel;
       let ok;
       if (cd.kind === 'swap') ok = app().swapMatches(cd.m, cd.n);
       else if (cd.kind === 'slots') {
         const c = D();
-        ok = app().commit('연전 맞바꾸기: ' + fmt.date(c.slots[cd.a].day) + ' ↔ ' + fmt.date(c.slots[cd.b].day), (s) => { for (const p of s.plan) { if (p.calendar === cd.a) p.calendar = cd.b; else if (p.calendar === cd.b) p.calendar = cd.a; } }, ['plan']);
+        ok = app().commit('연전 기간 맞바꾸기: ' + fmt.date(c.slots[cd.a].day) + ' ↔ ' + fmt.date(c.slots[cd.b].day), (s) => { for (const p of s.plan) { if (p.calendar === cd.a) p.calendar = cd.b; else if (p.calendar === cd.b) p.calendar = cd.a; } }, ['plan']);
       } else ok = app().commit('홈·원정 바꾸기: ' + app().matchLabel(cd.m), (s) => { const m = s.matches[cd.m]; const t = m.home; m.home = m.away; m.away = t; }, ['matches']);
       if (!ok) return;
-      const after = D().ex.violations.length;
-      if (sel && sel.startsWith('v:') && !S.findViolation(sel.slice(2))) S.ui.sel = after ? 'v:' + S.vsig(D().ex.violations[0]) : null;
+      const list = orderedViolations(), after = list.length;
+      if (sel && sel.startsWith('v:') && !S.findViolation(sel.slice(2))) {
+        // 고친 위반이 사라졌으면 같은 자리의 다음 위반으로(없으면 띠만 남긴다)
+        const nv = after ? list[Math.min(Math.max(idx0, 0), after - 1)] : null;
+        S.ui.sel = nv ? 'v:' + S.vsig(nv) : null;
+        if (nv) { S.ui.month = S.slotMonth(nv.slot); S.ui.flashMatches = (nv.matches || []).slice(); }
+        else S.ui.pop = null;
+      }
       S.toast((after < before ? '위반 ' + (before - after) + '건 해소 · ' : '') + '적용했습니다. 실행 취소로 되돌릴 수 있습니다.', after < before ? 'ok' : 'info');
     },
-    'snap-menu': (el) => { const r = el.getBoundingClientRect(); S.ui.menuPos = { x: r.right, y: r.bottom + 4 }; S.ui.menu = S.ui.menu === 'snap' ? null : 'snap'; S.render(); },
+    'snap-menu': (el) => openMenu(el, 'snap'),
     'snap-save': () => { const d = new Date(); app().saveSnapshot('수정안 ' + (app().state.snapshots.length + 1) + ' — ' + fmt.clock(d)); S.ui.menu = null; },
     'snap-restore': (el) => { app().restoreSnapshot(el.dataset.id); S.ui.menu = null; S.render(); }
   });
   S.inputs.pin = (el) => { app().togglePin(+el.dataset.m, el.checked); };
 
+  // ───────── 메뉴: 위반 목록 · 구단 고르기 · 보관함 · 중간 저장 ─────────
+  const menuPos = () => { const p = S.ui.menuPos || { x: 0, y: 0 }; return 'top:' + p.y + 'px;right:' + Math.max(8, window.innerWidth - p.x) + 'px'; };
+  S.menus.viols = function () {
+    const c = D(), u = S.ui, list = orderedViolations();
+    let s = '<div class="menu vmenu" role="menu" style="' + menuPos() + '"><div class="mh">' + esc(S.termPlain('hardViol')) + ' ' + list.length + '건 · 누르면 그 자리로 갑니다</div>';
+    for (const r of Score.HARD_RULES) {
+      const vs = list.filter((v) => v.code === r.code);
+      if (!vs.length) continue;
+      s += '<div class="vrule">' + S.ruleLabel(r.code) + '<span class="cnt">' + vs.length + '</span></div>';
+      for (const v of vs) {
+        const sig = S.vsig(v);
+        s += '<button role="menuitem" class="vitem' + (u.sel === 'v:' + sig ? ' active' : '') + '" data-act="sel-viol" data-sig="' + esc(sig) + '"><span class="ico">' + icon('x') + '</span><span class="li-main"><span class="msg">' + esc(shortMsg(v)) + '</span><span class="loc">' + icon('cal') + esc(fmt.date(c.slots[v.slot].day)) + (S.isVirtual(v) ? ' ' + S.virt() : '') + '</span></span></button>';
+      }
+    }
+    return s + '</div>';
+  };
+  S.menus.teams = function () {
+    const u = S.ui;
+    return '<div class="menu tmenu" role="menu" style="' + menuPos() + '"><div class="mh">구단 고르기 · 여러 구단을 고를 수 있습니다</div><div class="tf">' + app().state.teams.map((t) => {
+      const on = u.teamFilter.includes(t.name);
+      return '<button class="' + (on ? 'on' : '') + '" data-act="tf" data-team="' + esc(t.name) + '" aria-pressed="' + on + '"><i class="sw" style="background:' + esc(t.color) + '"></i>' + esc(t.name) + '<span class="ck">' + (on ? icon('check') : '') + '</span></button>';
+    }).join('') + '</div><div class="msep"></div><button role="menuitem" data-act="tf-clear"' + (u.teamFilter.length ? '' : ' disabled') + '>' + icon('x') + '모두 해제</button></div>';
+  };
+  S.menus.pool = function () {
+    const c = D(), st = app().state;
+    return '<div class="menu" role="menu" style="' + menuPos() + '"><div class="mh">일정 미정 ' + c.pool.length + '경기 · 누르면 넣을 자리를 고릅니다</div>' +
+      (c.pool.length ? c.pool.map((m) => { const mt = st.matches[m]; return '<button role="menuitem" data-act="sel-match" data-m="' + m + '">' + S.team(mt.away) + '<span class="muted">vs</span>' + S.team(mt.home) + '<span class="muted" style="margin-left:auto">' + mt.consecutive + '연전</span></button>'; }).join('') : '<div class="small muted" style="padding:6px 12px">비어 있음</div>') + '</div>';
+  };
   S.menus.snap = function () {
-    const p = S.ui.menuPos || { x: 0, y: 0 };
     const snaps = app().state.snapshots.slice().reverse();
-    return '<div class="menu" role="menu" style="top:' + p.y + 'px;right:' + Math.max(8, window.innerWidth - p.x) + 'px;width:330px">' +
+    return '<div class="menu" role="menu" style="' + menuPos() + ';width:330px">' +
       '<button role="menuitem" data-act="snap-save">' + icon('plus') + '지금 일정을 중간 저장</button><div class="msep"></div><div class="mh">중간 저장 ' + snaps.length + '개</div>' +
       (snaps.length ? snaps.map((sn) => '<button role="menuitem" data-act="snap-restore" data-id="' + esc(sn.id) + '" style="height:auto;padding:6px 12px;flex-direction:column;align-items:flex-start;gap:1px"><span style="display:flex;gap:6px;width:100%"><b>' + esc(sn.name) + '</b><span class="tag ref" style="margin-left:auto">되돌리기</span></span>' + (S.dev() ? '<span class="mono muted" style="font-size:10.5px">' + esc((sn.score || '').replace(/-/g, '−')) + '</span>' : '<span class="muted" style="font-size:11px">' + (sn.feasible ? '편성 가능' : '필수 규칙 위반 있음') + '</span>') + '</button>').join('') : '<div class="small muted" style="padding:6px 12px">없음</div>') +
       '</div>';
   };
 
-  // ───────── 드래그 앤 드롭 (FR-M1) ─────────
-  function bindDnD() {
-    const root = document.querySelector('.pane.main');
-    if (!root || root._dnd) return;
-    root._dnd = true;
-    root.addEventListener('dragstart', (e) => { const el = e.target.closest('[data-drag-m]'); if (!el) return; e.dataTransfer.setData('text/plain', el.dataset.dragM); e.dataTransfer.effectAllowed = 'move'; S._dragM = +el.dataset.dragM; });
-    root.addEventListener('dragover', (e) => { if (S._dragM == null) return; const band = e.target.closest('[data-drop-slot]'); if (band) { e.preventDefault(); band.classList.add('drop-ok'); } });
-    root.addEventListener('dragleave', (e) => { const band = e.target.closest('[data-drop-slot]'); if (band) band.classList.remove('drop-ok'); });
-    root.addEventListener('drop', (e) => {
-      const band = e.target.closest('[data-drop-slot]');
-      if (!band || S._dragM == null) return;
-      e.preventDefault();
-      const target = e.target.closest('[data-drag-m]');
-      const m = S._dragM; S._dragM = null;
-      const pv = app().previewDrop(m, +band.dataset.dropSlot, target ? +target.dataset.dragM : null);
-      if (app().drop(m, +band.dataset.dropSlot, target ? +target.dataset.dragM : null)) S.toast('옮겼습니다 · ' + (S.dev() ? 'Hard ' + fmt.signed(pv.hardDelta) : pv.hardDelta > 0 ? '위반 ' + pv.hardDelta + ' 줄어듦' : pv.hardDelta < 0 ? '위반 ' + (-pv.hardDelta) + ' 늘어남' : '위반 그대로') + ' · 실행 취소 가능', pv.hardDelta >= 0 ? 'ok' : 'warn');
-    });
-  }
+  // ───────── 점검용 주소(demo=) : 스크린샷·검사에서 창·옮기는 중 상태를 만든다 ─────────
+  /** demo=fix: 세 번째 위반(없으면 첫 위반)으로 가서 고치는 방법 창을 연다 */
+  S.demos.fix = function () { const list = orderedViolations(); if (list.length) gotoViolation(list[Math.min(2, list.length - 1)], { pop: 'fix' }); };
+  /** demo=viol3: 위반 띠의 ›를 세 번 누른 상태 */
+  S.demos.viol3 = function () { for (let i = 0; i < 3; i++) stepViol(1); };
+  /** demo=pop: 지금 달 첫 연전 기간의 두 번째 경기 창을 연다 */
+  S.demos.pop = function () { const c = D(); const sl = c.slots.find((x) => x.month === S.ui.month); const m = sl ? (c.bySlot[sl.index][1] != null ? c.bySlot[sl.index][1] : c.bySlot[sl.index][0]) : null; if (m != null) S.go({ sel: 'm:' + m, pop: null }); };
+  /** demo=moving: 지금 달 첫 연전 기간의 두 번째 경기를 옮기는 중 */
+  S.demos.moving = function () { const c = D(); const sl = c.slots.find((x) => x.month === S.ui.month); const m = sl ? (c.bySlot[sl.index][1] != null ? c.bySlot[sl.index][1] : c.bySlot[sl.index][0]) : null; if (m != null) S.go({ moving: m, sel: null, pop: null }); };
 })();
