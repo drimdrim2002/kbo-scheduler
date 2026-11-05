@@ -12,7 +12,7 @@
   const { KBO, esc, icon, fmt } = S;
   const { Dates, MapKit } = KBO;
   const YEAR_NEW = 2027;
-  const LAYOUT = 'card';
+  const LAYOUT = 'table';
   const is27 = () => S.seasonYear() === YEAR_NEW;
   const app = () => S.app;
   const D = () => S.app.derived();
