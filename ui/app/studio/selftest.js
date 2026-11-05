@@ -64,23 +64,56 @@
     S.app.updateSolverSettings({ timeLimitSec: 10, unimprovedSec: 5 });
     // 6. 위반 클릭 → 위치
     S.ui.month = 3; flush();
-    const v = document.querySelector('.vitem'); v.click(); flush();
-    ok('위반 클릭 → 해당 월·강조', Number.isFinite(S.ui.month) && document.querySelectorAll('.gm.vsel').length > 0 && S.ui.sel.startsWith('v:'), 'month ' + S.ui.month);
+    click('[data-act="viol-menu"]'); flush();
+    const v = document.querySelector('.menu .vitem'); v.click(); flush();
+    ok('위반 목록에서 클릭 → 해당 월·띠 강조·메뉴 닫힘', Number.isFinite(S.ui.month) && document.querySelectorAll('.gm.vsel').length > 0 && !!document.querySelector('.slotband.vsel') && S.ui.sel.startsWith('v:') && !S.ui.menu, 'month ' + S.ui.month);
+    const n0v = S.app.derived().ex.violations.length, pos0 = document.querySelector('.vb-pos').textContent;
+    click('[data-act="viol-next"]'); flush();
+    ok('위반 띠 › → 다음 위반', document.querySelector('.vb-pos').textContent !== pos0 && S.ui.sel.startsWith('v:') && document.querySelector('.vb-pos').textContent.endsWith('/ ' + n0v), pos0 + ' → ' + document.querySelector('.vb-pos').textContent);
+    click('[data-act="viol-prev"]'); flush();
+    ok('위반 띠 ‹ → 이전 위반', document.querySelector('.vb-pos').textContent === pos0);
     // 7. 조치 후보 적용 → 위반 감소 → 되돌리기
     const before = hard();
-    click('.insp [data-act="apply-cand"]'); flush();
+    click('[data-act="viol-fix"]'); flush();
+    ok('고치는 방법 창 열림(띠 옆)', !!document.querySelector('.pop.pop-v.ready [data-act="apply-cand"]') && S.ui.pop === 'fix');
+    click('.pop [data-act="apply-cand"]'); flush();
     ok('조치 후보 적용(Δ)', hard() < before, before + ' → ' + hard());
     S.app.undo(); flush();
     ok('조치 실행 취소', hard() === before);
     // 8. 구단 필터
-    click('[data-act="tf"][data-team="KT"]'); flush();
-    ok('구단 필터', document.querySelectorAll('.gm.dim').length > 0 && document.querySelectorAll('.gm .fm').length > 0);
-    click('[data-act="tf-clear"]'); flush();
+    click('[data-act="teams-menu"]'); flush();
+    click('.menu [data-act="tf"][data-team="KT"]'); flush();
+    ok('구단 고르기(메뉴는 열린 채)', document.querySelectorAll('.gm.dim').length > 0 && document.querySelectorAll('.gm .fm').length > 0 && S.ui.menu === 'teams' && S.ui.teamFilter.join() === 'KT');
+    click('.menu [data-act="tf-clear"]'); flush();
+    ok('구단 고르기 해제', !S.ui.teamFilter.length && !document.querySelector('.gm.dim'));
     // 9. 시리즈 선택·핀
+    S.go({ month: S.slotMonth(S.app.derived().plan[91]), sel: null, pop: null });
+    const mo91 = S.ui.month;
     click('.gm[data-m="91"]'); flush();
-    const pin = document.querySelector('[data-in="pin"]'); pin.checked = true; pin.dispatchEvent(new Event('change', { bubbles: true })); flush();
-    ok('핀 고정', S.app.state.matches[91].pinned === true && !!document.querySelector('.gm[data-m="91"] .pin-ico'));
+    ok('경기 칸 클릭 → 경기 창(달은 그대로)', S.ui.sel === 'm:91' && !!document.querySelector('.pop.pop-m.ready') && S.ui.month === mo91 && !!document.querySelector('.pop [data-act="move-start"]'));
+    const pin = document.querySelector('.pop [data-in="pin"]'); pin.checked = true; pin.dispatchEvent(new Event('change', { bubbles: true })); flush();
+    ok('고정', S.app.state.matches[91].pinned === true && !!document.querySelector('.gm[data-m="91"] .pin-ico'));
     S.app.undo(); flush();
+    // 9a. 두 번 누르기 옮기기: 옮기기… → 「여기로」 → 옮겨짐 → 실행 취소
+    click('.pop [data-act="move-start"]'); flush();
+    const drops = document.querySelectorAll('.sb-drop[data-act="move-here"]');
+    ok('옮기기… → 옮기는 중(띠·여기로 단추)', S.ui.moving === 91 && !!document.querySelector('.moveband') && drops.length > 0 && !!document.querySelector('.gm.moving'), '여기로 ' + drops.length);
+    click('[data-act="r-month"][data-month="' + (mo91 === 5 ? 6 : 5) + '"]'); flush();
+    ok('월을 넘겨도 옮기는 중 유지', S.ui.moving === 91 && !!document.querySelector('.moveband'));
+    S.go({ month: mo91 });
+    const slot91 = S.app.derived().plan[91];
+    const dropBtn = document.querySelector('.sb-drop[data-act="move-here"]'); const toSlot = +dropBtn.dataset.slot;
+    dropBtn.click(); flush();
+    ok('「여기로」 → 그 연전 기간으로 옮겨짐·옮기는 중 해제', S.app.derived().plan[91] === toSlot && toSlot !== slot91 && S.ui.moving == null && !document.querySelector('.moveband'));
+    S.app.undo(); flush();
+    ok('옮기기 실행 취소', S.app.derived().plan[91] === slot91);
+    S.go({ sel: 'm:91' });
+    click('.pop [data-act="move-start"]'); flush();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); flush();
+    ok('Esc → 옮기기 취소', S.ui.moving == null);
+    S.go({ sel: 'm:91' }); flush();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); flush();
+    ok('Esc → 경기 창 닫힘', !S.ui.sel && !document.querySelector('.pop'));
     // 10. 스냅샷 저장·복원
     const snaps1 = S.app.state.snapshots.length;
     click('[data-act="snap-menu"]'); flush();
@@ -102,12 +135,18 @@
     click('[data-act="close-ops"]'); flush();
     // 12. 설정: 기능 끄기 → DOM에서 사라짐, localStorage 저장
     click('.step[data-step="3"]'); flush();
-    ok('미배정 풀 표시(기본 켜짐)', !!document.querySelector('[data-drop-pool]'));
+    ok('보관함: 비어 있으면 단추 없음', !document.querySelector('[data-act="pool-menu"]') && !!document.querySelector('.r3') && !document.querySelector('.pane.list') && !document.querySelector('.pane.insp'));
+    S.app.moveMatch(91, -1); flush();
+    ok('보관함에 경기가 있으면 도구줄에 「보관함 1」(기본 켜짐)', !!document.querySelector('[data-act="pool-menu"]') && /보관함 1/.test(document.querySelector('[data-act="pool-menu"]').textContent));
+    click('[data-act="pool-menu"]'); flush();
+    click('.menu [data-act="sel-match"][data-m="91"]'); flush();
+    ok('보관함 메뉴 → 경기 창에 「넣을 연전 기간」', S.ui.sel === 'm:91' && !!document.querySelector('.pop [data-act="from-pool"]'));
     click('.tb-btn[data-act="open-settings"]'); flush();
     const f = document.querySelector('[data-in="feat"][data-id="M8"]'); f.checked = false; f.dispatchEvent(new Event('change', { bubbles: true })); flush();
     click('[data-act="close-drawer"]'); flush();
     let saved = null; try { saved = JSON.parse(localStorage.getItem(S.KEY + 'features')); } catch (e) { saved = null; }
-    ok('M8 끄면 화면에서 제거', !document.querySelector('[data-drop-pool]') && saved && saved.M8 === false);
+    ok('M8 끄면 화면에서 제거', !document.querySelector('[data-act="pool-menu"]') && saved && saved.M8 === false);
+    S.app.undo(); S.go({ sel: null }); flush();
     ok('Must 잠금', document.querySelectorAll('[data-in="feat"][data-id="A1"]').length === 0);
     S.resetFeatures(); flush();
 
@@ -279,7 +318,7 @@
       // 빈 상태에서 모든 화면이 오류 없이 그려진다
       const e1 = window.__studioErrors.length;
       for (const t of ['season', 'holidays', 'restex', 'blackouts', 'slots', 'series', 'events', 'teams']) S.go({ step: 1, tab: t, cell: null, edit: null });
-      S.go({ step: 2 }); S.go({ step: 3, view: 'calendar' }); S.go({ step: 3, view: 'slots' }); S.go({ step: 3, view: 'matrix' });
+      S.go({ step: 2 }); S.go({ step: 3, view: 'calendar' }); S.go({ step: 3, view: 'matrix' });
       for (const q of ['metrics', 'soft', 'a1', 'a2', 'a3', 'a4', 'a5', 'sched', 'export']) S.go({ step: 4, qv: q, team: 'KT' });
       S.go({ ops: 'games' }); S.go({ ops: 'reschedule' }); S.go({ ops: null, step: 1, tab: 'slots' });
       ok('빈 상태: ①~④·시즌 운영 모든 화면 콘솔 오류 0', window.__studioErrors.length === e1, String(window.__studioErrors.slice(e1).join(' | ')).slice(0, 120));
@@ -342,12 +381,17 @@
     at({ step: 2 }, '② 차단', () => { S.demos.block(); }); S.app.undo();
     at({ step: 2 }, '② 실행 중', () => { S.demos.running(); });
     S.quiet = true; S.actions['run-stop'](); flush();
-    for (const v of S.app.derived().ex.violations) at({ step: 3, sel: 'v:' + S.vsig(v), month: S.slotMonth(v.slot), view: 'calendar' }, '③ 위반 ' + v.code);
-    at({ step: 3, sel: 'm:91', month: 5 }, '③ 시리즈');
-    at({ step: 3, sel: null }, '③ 빈 인스펙터');
-    at({ step: 3, view: 'slots' }, '③ 슬롯 목록');
-    at({ step: 3, view: 'matrix' }, '③ 구단×슬롯');
-    at({ step: 3, view: 'calendar' }, '③ 스냅샷 메뉴', () => { S.ui.menu = 'snap'; S.ui.menuPos = { x: 1200, y: 140 }; });
+    for (const v of S.app.derived().ex.violations) at({ step: 3, sel: 'v:' + S.vsig(v), month: S.slotMonth(v.slot), view: 'calendar', pop: 'fix' }, '③ 위반 ' + v.code + ' 고치는 방법 창');
+    at({ step: 3, sel: 'm:91', month: 5, pop: null, hvOpen: true }, '③ 경기 창(홈/원정 흐름 펼침)');
+    at({ step: 3, sel: 'm:91', month: 5, view: 'matrix' }, '③ 구단별 연전 표 + 경기 창');
+    at({ step: 3, sel: null, view: 'calendar', moving: 91 }, '③ 옮기는 중');
+    at({ step: 3, view: 'matrix', moving: 91 }, '③ 구단별 연전 표 옮기는 중'); S.ui.moving = null; S.ui.hvOpen = false;
+    at({ step: 3, sel: null, view: 'calendar', teamFilter: ['KT'] }, '③ 구단 고름'); S.ui.teamFilter = [];
+    at({ step: 3, sel: null }, '③ 아무것도 안 고름');
+    at({ step: 3, view: 'slots' }, '③ 예전 주소 연전 기간 목록 → 구단별 연전 표');
+    at({ step: 3, view: 'calendar' }, '③ 위반 목록 메뉴', () => { S.ui.menu = 'viols'; S.ui.menuPos = { x: 900, y: 80 }; });
+    at({ step: 3, view: 'calendar' }, '③ 구단 고르기 메뉴', () => { S.ui.menu = 'teams'; S.ui.menuPos = { x: 700, y: 140 }; });
+    at({ step: 3, view: 'calendar' }, '③ 중간 저장 메뉴', () => { S.ui.menu = 'snap'; S.ui.menuPos = { x: 1200, y: 140 }; });
     at({ step: 3 }, '데이터 메뉴', () => { S.ui.menu = 'data'; S.ui.menuPos = { x: 1200, y: 44 }; });
     at({ step: 4, qv: 'metrics', team: 'KT', mtOpen: true }, '④ metrics 표 펼침');
     at({ step: 4, qv: 'metrics', team: null, mtOpen: false }, '④ metrics 구단 없음');
@@ -367,7 +411,7 @@
     at({ step: 1, tab: 'series' }, '빈 시리즈 자동 채우기', () => { S.openImport('draft-series'); });
     at({ step: 2 }, '빈 ②');
     at({ step: 3, sel: null, view: 'calendar' }, '빈 ③');
-    at({ step: 3, view: 'slots' }, '빈 ③ 연전 목록');
+    at({ step: 3, view: 'matrix' }, '빈 ③ 구단별 연전 표');
     for (const q of ['metrics', 'a1', 'a3', 'a5', 'sched', 'export']) at({ step: 4, qv: q, team: 'KT' }, '빈 ④ ' + q);
     at({ ops: 'games' }, '빈 시즌 운영');
     S.loadExample({ quiet: true, stay: true }); S.go({ ops: null, step: 1, tab: 'slots', modal: null, drawer: null, menu: null });
