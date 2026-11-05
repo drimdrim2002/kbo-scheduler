@@ -305,12 +305,26 @@ table.pf-h th, table.pf-h td { padding: 4px 6px; text-align: center; border-bott
 table.pf-h th { word-break: keep-all; line-height: 1.25; vertical-align: bottom; } /* 열이 같은 너비라 제목은 두 줄이 될 수 있다(낱말 안에서는 끊지 않음) */
 table.pf-h th { font-size: 11px; color: var(--text-3); font-weight: 600; background: var(--surface-2); } table.pf-h td:first-child { text-align: left; font-weight: 700; }
 table.pf-h td.c > div { display: flex; align-items: center; gap: 7px; } /* 숫자 | 막대 */
-table.pf-h td.c .n { flex: none; width: 54px; text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
+table.pf-h td.c .n { flex: none; width: 64px; text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
 table.pf-h td.c .b { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 table.pf-h td.c .b i { display: block; height: 100%; border-radius: 3px; background: #C9CFD9; }
 table.pf-h td.c.hi .n { color: #B4590B; font-weight: 800; } table.pf-h td.c.hi .b i { background: #E88C28; }
 table.pf-h td.c.lo .n { color: var(--blue); font-weight: 800; } table.pf-h td.c.lo .b i { background: var(--blue); }
-table.pf-h tfoot td { font-size: 11.5px; color: var(--text-2); background: #fff; border-top: 1px solid var(--line-2); border-bottom: 0; }
+/* 제목 줄: 누르면 그 열로 줄을 세운다(파랑 = 누를 수 있음, 사용자 결정 2026-11-05). 누를 곳임이 보이게 높이를 키움. 지금 기준인 열은 ▼/▲ */
+table.pf-h thead th { padding: 0; height: 48px; vertical-align: middle; }
+table.pf-h th button { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; min-height: 48px; padding: 6px 4px; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 700; color: var(--blue); cursor: pointer; word-break: keep-all; line-height: 1.25; }
+table.pf-h th button:hover { background: var(--blue-weak); }
+table.pf-h th button i { flex: none; font-style: normal; font-size: 10px; color: var(--text-3); font-weight: 400; }
+table.pf-h th.on { background: var(--blue-weak); box-shadow: inset 0 -2px 0 var(--blue); } table.pf-h th.on button { color: var(--navy); } table.pf-h th.on button i { color: var(--blue); }
+table.pf-h th:first-child button { justify-content: flex-start; padding-left: 6px; }
+/* 격차 줄: 제목 바로 밑, 정렬과 상관없이 늘 맨 위. 목표 셋은 밑에 허용 수준, 넘으면 빨강 */
+table.pf-h tr.gap td { background: #F3F7FF; border-bottom: 2px solid var(--blue-line); padding: 6px 6px 5px; color: var(--navy); line-height: 1.2; }
+table.pf-h tr.gap td:first-child { font-size: 13px; font-weight: 800; }
+table.pf-h tr.gap td.c .n { color: inherit; } table.pf-h td.c .b0 { flex: 1; } /* 격차 줄: 막대 자리만 비움 */
+table.pf-h tr.gap td b { font-size: 15px; font-family: var(--mono); font-weight: 800; }
+table.pf-h tr.gap td small { display: block; font-size: 10.5px; color: var(--text-3); }
+table.pf-h tr.gap td.over b, table.pf-h tr.gap td.over small { color: var(--bad); }
+.pf-halert { margin: 6px 0 2px; } .pf-halert div + div { margin-top: 2px; }
 .pf-leg i.hi { background: #E88C28; } .pf-leg i.lo { background: var(--blue); }
 .pf-leg { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-2); margin-top: 8px; } .pf-leg i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .pf-big3 { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }

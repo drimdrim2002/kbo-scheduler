@@ -180,7 +180,7 @@
       flush();
       ok('실행이 끝나면 현재 결과 분석으로 · 결과 기록', !S.run && S.ui.step === 5 && !!st().meta.result && !!st().meta.result.sig, st().meta.result && st().meta.result.why);
       const vsText = () => (q('.pf-vs') || {}).innerText || '';
-      ok('결과 맨 위: 「방침과 견주기」 목표 셋 · 안/넘음 · 「수준 다시 정하기」 · 결과 화면은 「격차」로', /^방침과 견주기 — 이동 횟수 /.test(vsText()) && /격차 셋 모두 허용 안|허용을 넘은 격차/.test(page()) && !/차이 \d|균형 3가지/.test(page()) && qa('.pf-vs .it').length === 3 && qa('.pf-vs .it').every((e) => /(허용 안|넘음)$/.test(e.innerText)) && !!q('.pf-vs [data-act="pf-relevel"]'));
+      ok('결과 맨 위: 「방침과 견주기」 목표 셋 · 안/넘음 · 「수준 다시 정하기」 · 결과 화면은 「격차」로 · 구단별 한눈에 경고는 어겼을 때만', /^방침과 견주기 — 이동 횟수 /.test(vsText()) && !!q('.pf-halert') === (!app().derived().ex.feasible || qa('.pf-vs .it.over').length > 0) && !/차이 \d|균형 3가지/.test(page()) && qa('.pf-vs .it').length === 3 && qa('.pf-vs .it').every((e) => /(허용 안|넘음)$/.test(e.innerText)) && !!q('.pf-vs [data-act="pf-relevel"]'));
       ok('방침과 견주기: 결과의 실제 차이와 허용 수준을 견줌(1순위부터)', (() => { const gaps = app().derived().ex.objectiveGaps, o = ob(), key = { moves: ['moves', 'moveGap'], distance: ['distanceKm', 'distanceGapKm'], holiday: ['holiday', 'holidayGap'] };
         return o.order.filter((id) => key[id]).every((id, i) => { const it = qa('.pf-vs .it')[i], inside = gaps[key[id][0]] <= o[key[id][1]]; return it.classList.contains(inside ? 'ok' : 'over') && (inside ? /허용 안$/ : /넘음$/).test(it.innerText); }); })());
       click('[data-act="pf-relevel"]'); flush();

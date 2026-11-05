@@ -768,24 +768,42 @@
   }
   /** 왼쪽 칸에 보일 목표: 고른 것이 방침에 없으면 1순위 */
   const shownGoal = (ids) => (ids.includes(P.dashGoal) ? P.dashGoal : ids[0]);
-  /** 구단별 한눈에 표: 색 채움 대신 숫자 옆에 열 안 비율 막대. 열마다 가장 많은 구단과 가장 적은 구단만 진하게(둘의 차이가 맨 아래 「격차」). 줄은 1순위 많은 순 */
+  /** 구단별 한눈에 정렬(사용자 결정 2026-11-05: 제목을 누르면 그 열로). P.heatSort = null(1순위 많은 순) 또는 { k: 열 값 이름(moves·km·hol·wk·away) 또는 'team', dir: -1 많은 순 · 1 적은 순 }.
+   *  열 순서가 아니라 값 이름으로 기억해 방침 순위가 바뀌어도 같은 기준이 남는다 */
+  function heatSortOf(cols) {
+    const s = P.heatSort;
+    return s && (s.k === 'team' || cols.some((c) => c[1] === s.k)) ? s : { k: cols[0][1], dir: -1 };
+  }
+  const heatSortText = (s, cols) => (s.k === 'team' ? '구단 이름 ' + (s.dir > 0 ? '가나다 순' : '가나다 거꾸로') : cols.find((c) => c[1] === s.k)[0] + ' ' + (s.dir < 0 ? '많은 순' : '적은 순'));
+  /** 어긴 것만 보인다(지켰으면 아무것도 없음): 반드시 지킬 규칙 · 허용을 넘은 격차(얼마나 넘었는지) */
+  function heatAlert(data, ob, ids) {
+    const over = ids.filter((id) => !within(data, id, ob)).map((id) => { const g = GOALS[id]; return esc(shortName(id)) + ' ' + num(goalValue(data, id) - ob[g.tol], g.d) + g.unit + ' 넘음'; });
+    const parts = (data.feasible ? [] : ['<b>지키지 못한 규칙 ' + num(data.hardCount || 0) + '건</b>']).concat(over.length ? ['<b>허용을 넘은 격차</b> — ' + over.join(' · ')] : []);
+    return parts.length ? '<div class="pf-note warn pf-halert">' + parts.map((p) => '<div>! ' + p + '</div>').join('') + '</div>' : '';
+  }
+  /** 구단별 한눈에 표: 제목(누르면 정렬) → 격차 줄(늘 맨 위, 정렬과 상관없음) → 구단 줄. 숫자 옆에 열 안 비율 막대, 열마다 가장 많은 구단과 가장 적은 구단만 진하게 */
   function heatTable(data, ob, cols) {
-    const names = Object.keys(data.teams), lead = cols[0][1];
-    const rows = names.slice().sort((p, q) => data.teams[q][lead] - data.teams[p][lead]);
+    const names = Object.keys(data.teams), s = heatSortOf(cols);
+    const rows = names.slice().sort((p, q) => (s.k === 'team' ? s.dir * p.localeCompare(q, 'ko') : s.dir * (data.teams[p][s.k] - data.teams[q][s.k])));
     const sc = {}; for (const [, k] of cols) { const a = vals(data, k), lo = Math.min(...a), hi = Math.max(...a); sc[k] = { lo, hi, x: (v) => (hi > lo ? 25 + (v - lo) / (hi - lo) * 75 : 100).toFixed(0) + '%' }; }
     const cell = (k, d, v) => { const c = sc[k], cls = v === c.hi && c.hi !== c.lo ? ' hi' : v === c.lo && c.hi !== c.lo ? ' lo' : '';
       return '<td class="c' + cls + '"><div><span class="n">' + num(v, d) + '</span><span class="b"><i style="width:' + c.x(v) + '"></i></span></div></td>'; };
-    return '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr><th>구단</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>' +
+    const th = (label, k) => { const on = s.k === k;
+      return '<th' + (on ? ' class="on" aria-sort="' + (s.dir < 0 ? 'descending' : 'ascending') + '"' : '') + '><button data-act="pf-hsort" data-v="' + k + '" title="이 기준으로 줄 세우기">' + label + '<i>' + (on ? (s.dir < 0 ? '▼' : '▲') : '↕') + '</i></button></th>'; };
+    const gap = ([, k, d, id]) => { const v = sc[k].hi - sc[k].lo, tol = id ? ob[GOALS[id].tol] : null, over = id && !within(data, id, ob);
+      // 숫자는 구단 줄 숫자와 같은 자리(오른쪽 끝 맞춤)에, 막대 자리는 비워 둔다(사용자 결정 2026-11-05: 줄마다 정렬이 달라 균형이 안 맞았다)
+      return '<td class="c' + (over ? ' over' : '') + '"><div><span class="n"><b>' + num(v, d) + '</b>' + (id ? '<small>허용 ' + num(tol) + '</small>' : '') + '</span><span class="b0"></span></div></td>'; };
+    return '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr>' + th('구단', 'team') + cols.map((c) => th(c[0], c[1])).join('') + '</tr>' +
+      '<tr class="gap"><td>격차</td>' + cols.map(gap).join('') + '</tr></thead><tbody>' +
       rows.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => cell(k, d, data.teams[t][k])).join('') + '</tr>').join('') +
-      '</tbody><tfoot><tr><td>격차</td>' + cols.map(([, k, d]) => '<td><b>' + num(sc[k].hi - sc[k].lo, d) + '</b></td>').join('') + '</tr></tfoot></table>' +
+      '</tbody></table>' +
       '<div class="pf-leg"><span><i class="hi"></i>열에서 가장 많은 구단</span><span><i class="lo"></i>가장 적은 구단</span><span>격차 = 그 둘의 차이</span></div>';
   }
   function dashboard(data, ob) {
     const ids = ob.order.filter((id) => GOALS[id].tol);
-    const cols = ids.map((id) => HEAT_COLS[id]).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
-    const allIn = ids.every((id) => within(data, id, ob));
-    const note = '<div class="pf-note ' + (data.feasible && allIn ? 'ok' : 'warn') + '">' + (data.feasible ? '✓ 반드시 지킬 규칙 모두 지킴' : '! 지키지 못한 규칙 ' + num(data.hardCount || 0) + '건') + ' · ' + (allIn ? '격차 셋 모두 허용 안' : '허용을 넘은 격차가 있습니다') + '</div>';
-    const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3><p class="pf-d">왼쪽부터 방침의 순위대로 · 줄은 1순위 많은 순 · 막대는 열 안에서 견준 길이</p>' + heatTable(data, ob, cols) + note + '</div>';
+    const cols = ids.map((id) => HEAT_COLS[id].concat(id)).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
+    const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3>' + heatAlert(data, ob, ids) +
+      '<p class="pf-d">제목을 누르면 그 기준으로 줄을 세웁니다 · 지금 <b>' + heatSortText(heatSortOf(cols), cols) + '</b> · 열은 방침 순위대로</p>' + heatTable(data, ob, cols) + '</div>';
     // 왼쪽 위에 목표 셋을 같은 크기 칸으로 나란히(격차·허용), 누른 칸의 구단별 막대를 아래에(처음은 1순위). 셋을 위아래로 두면 홀수라 칸이 고르지 않았다(2026-11-05 대안 다)
     const cur = shownGoal(ids), gc = GOALS[cur];
     const tiles = '<div class="pf-gtiles">' + ids.map((id) => { const g = GOALS[id];
@@ -1172,6 +1190,10 @@
     'pf-25': (el) => { P.view25 = el.dataset.v; S.render(); },
     'pf-cmp-tab': (el) => { P.cmpTab = el.dataset.v; S.render(); },
     'pf-goal': (el) => { P.dashGoal = el.dataset.v; S.render(); },
+    'pf-hsort': (el) => { // 같은 제목을 다시 누르면 거꾸로. 처음 누르면 숫자는 많은 순, 구단은 가나다 순
+      const k = el.dataset.v, th = el.closest('th'), now = th.getAttribute('aria-sort'); // 지금 기준인 열에만 aria-sort가 있다
+      P.heatSort = { k, dir: now ? (now === 'ascending' ? -1 : 1) : (k === 'team' ? 1 : -1) }; S.render();
+    },
     'pf-load': (el) => { const v = P.versions.get(S.seasonYear(), el.dataset.id); if (v && S.seasonYear() === YEAR_NEW) loadVersion(v); },
     'pf-rename': (el) => {
       const y = S.seasonYear(), v = P.versions.list(y).find((x) => x.id === el.dataset.id);
