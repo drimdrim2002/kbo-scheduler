@@ -791,7 +791,8 @@
     const th = (label, k) => { const on = s.k === k;
       return '<th' + (on ? ' class="on" aria-sort="' + (s.dir < 0 ? 'descending' : 'ascending') + '"' : '') + '><button data-act="pf-hsort" data-v="' + k + '" title="이 기준으로 줄 세우기">' + label + '<i>' + (on ? (s.dir < 0 ? '▼' : '▲') : '↕') + '</i></button></th>'; };
     const gap = ([, k, d, id]) => { const v = sc[k].hi - sc[k].lo, tol = id ? ob[GOALS[id].tol] : null, over = id && !within(data, id, ob);
-      return '<td' + (over ? ' class="over"' : '') + '><b>' + num(v, d) + '</b>' + (id ? '<small>허용 ' + num(tol) + '</small>' : '') + '</td>'; };
+      // 숫자는 구단 줄 숫자와 같은 자리(오른쪽 끝 맞춤)에, 막대 자리는 비워 둔다(사용자 결정 2026-11-05: 줄마다 정렬이 달라 균형이 안 맞았다)
+      return '<td class="c' + (over ? ' over' : '') + '"><div><span class="n"><b>' + num(v, d) + '</b>' + (id ? '<small>허용 ' + num(tol) + '</small>' : '') + '</span><span class="b0"></span></div></td>'; };
     return '<table class="pf-h"><colgroup><col class="tm">' + cols.map(() => '<col>').join('') + '</colgroup><thead><tr>' + th('구단', 'team') + cols.map((c) => th(c[0], c[1])).join('') + '</tr>' +
       '<tr class="gap"><td>격차</td>' + cols.map(gap).join('') + '</tr></thead><tbody>' +
       rows.map((t) => '<tr><td>' + esc(t) + '</td>' + cols.map(([, k, d]) => cell(k, d, data.teams[t][k])).join('') + '</tr>').join('') +
