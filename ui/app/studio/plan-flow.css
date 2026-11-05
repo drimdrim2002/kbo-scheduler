@@ -518,3 +518,8 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tf button .tag2 { font-size: var(--fs-xs); color: var(--blue); font-weight: 700; }
 .workspace.tv-noinsp { grid-template-columns: var(--list-w) minmax(0, 1fr) 0; }
 .workspace.tv-noinsp .pane.insp { display: none; }
+/* 지도는 viewBox(520)보다 작게 그려지므로 글자를 키워 둔다. 카드 표는 셀 안에서 줄을 바꾸되 낱말은 자르지 않는다 */
+.tv-svg .kmap-label { font-size: 14px; }
+.tv-svg .kmap-sub { font-size: 11px; }
+.tv-tbl.card td { white-space: normal; word-break: keep-all; }
+.tv-tbl.card td:first-child { white-space: nowrap; }
