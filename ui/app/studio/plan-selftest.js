@@ -418,9 +418,9 @@
 
       // ── 글
       S.go({ step: 5 }); flush();
-      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3 }), 공정성: () => S.go({ step: 4, qv: 'metrics' }) };
-      S.go({ step: 4, qv: 'export' }); flush();
-      ok('내보내기 화면은 빼고 공정성으로', S.ui.qv === 'metrics' && !q('[data-qv="export"]'));
+      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3 }), 공정성: () => S.go({ step: 4 }) };
+      for (const v of ['export', 'metrics', 'soft', 'a1', 'a2']) { S.go({ step: 4, qv: v }); flush(); ok('구단 간 비교·내보내기 보기(' + v + ')는 빼고 구단별 보기로', S.ui.qv === 'sched' && !q('[data-qv="' + v + '"]')); }
+      ok('남은 보기는 한 구단을 따라가는 것뿐', qa('[data-act="q-view"]').length >= 3 && qa('[data-act="q-view"]').every((b) => !['metrics', 'soft', 'a1', 'a2', 'export'].includes(b.dataset.qv)));
       S.ui.step = 1; S.g1.mode = 'all'; S.render(); flush();
       ok('모든 표 보기: 동작하지 않는 가져오기 단추 없음', !q('[data-act="import-xlsx"]') && !q('[data-act="import-gsheet"]') && !q('.band [data-act="export"]') && !!q('.band'));
       S.g1.mode = 'flow';

@@ -932,12 +932,16 @@
   };
   // 예전 화면의 번호와 평균 ± 범위는 새 흐름의 말과 다르다. 2027에서는 번호를 빼고, 평균 ± 범위는 「참고 범위」로 부른다(엔진이 맞추는 기준은 허용 차이)
   const origStep3 = S.steps[3].render;
-  S.steps[3].render = function () { return origStep3().replace(/④ 공정성·배포로 넘어가세요\.?/g, '「구단별 공정성」에서 구단 사이 균형을 보세요.'); };
+  S.steps[3].render = function () { return origStep3().replace(/④ 공정성·배포로 넘어가세요\.?/g, '「구단별 공정성」에서 한 구단씩 살펴보세요.'); };
+  // 구단 간 비교 보기(한눈에·점수 구성·총 이동거리·이동/휴일/주말 비교)는 뺀다(사용자 결정 2026-11-06): 「현재 결과 분석」과 겹치고, 리그 평균 ± 범위라는 옛 기준이라 방침의 허용 수준과 말이 달랐다.
+  // 내보내기도 대부분 시안이라 뺀다(일정표 CSV는 데이터 메뉴에 있다). 남는 것은 한 구단을 따라가는 보기와 오른쪽 구단 카드
+  const HIDDEN_VIEWS = ['metrics', 'soft', 'a1', 'a2', 'export'];
+  S.qvHidden = (id) => S.seasonYear() === YEAR_NEW && HIDDEN_VIEWS.includes(id);
+  S.qvDefault = () => (S.seasonYear() === YEAR_NEW ? 'sched' : null); // 들어오면 처음 보이는 보기
   const origStep4 = S.steps[4].render;
   S.steps[4].render = function () {
-    if (S.ui.qv === 'export') S.ui.qv = 'metrics'; // 내보내기 화면은 대부분 시안이라 뺀다. 일정표 CSV는 데이터 메뉴에 있다
-    const html = origStep4().replace(/③ 달력에서/g, '달력에서').replace(/허용 범위/g, '참고 범위').replace(/<button class="li[^"]*" data-act="q-view" data-qv="export"[\s\S]*?<\/button>/, '');
-    return '<div class="pf-note" style="margin:8px 12px 0">이 화면의 범위는 리그 평균을 기준으로 한 참고값입니다. 엔진이 맞추는 기준은 「현재 결과 분석」의 허용 수준입니다.</div>' + html;
+    if (HIDDEN_VIEWS.includes(S.ui.qv)) S.ui.qv = S.qvDefault(); // 옛 주소·단추로 들어와도 숨긴 보기는 열지 않는다
+    return origStep4().replace(/③ 달력에서/g, '달력에서').replace(/허용 범위/g, '참고 범위');
   };
 
   // ───────── 4 실행 결과 비교 ─────────

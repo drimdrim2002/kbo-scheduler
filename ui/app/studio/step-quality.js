@@ -26,7 +26,7 @@
     { id: 'sched', group: '배포', label: '구단별 일정표', icon: 'print', ref: 'FR-A11', f: 'A11' },
     { id: 'export', group: '배포', label: '내보내기', icon: 'download', ref: 'FR-D·X6' }
   ];
-  const visible = () => VIEWS.filter((v) => !v.f || S.feature(v.f));
+  const visible = () => VIEWS.filter((v) => (!v.f || S.feature(v.f)) && !(S.qvHidden && S.qvHidden(v.id))); // qvHidden: 흐름이 숨기는 보기(2027 흐름은 구단 간 비교 보기를 숨긴다, plan-flow.js)
 
   function tms() { return D().ex.teamMetrics; }
   function league() { return D().ex.league; }
@@ -363,7 +363,7 @@
     render() {
       S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
       const u = S.ui;
-      if (!visible().some((v) => v.id === u.qv)) u.qv = 'metrics';
+      if (!visible().some((v) => v.id === u.qv)) u.qv = (S.qvDefault && S.qvDefault()) || visible()[0].id;
       const fn = { metrics: renderMetrics, soft: renderSoft, a1, a2, a3, a4, a5, a8, a9, a10, a12, sched: renderSched, export: renderExport }[u.qv];
       if (!u.team && !S._teamDefaulted) { S._teamDefaulted = true; const top = tms().slice().sort((a, b) => b.distanceKm - a.distanceKm)[0]; u.team = top ? top.name : null; }
       const insp = renderInsp();
