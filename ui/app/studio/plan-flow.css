@@ -68,6 +68,8 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-note.ok { border-color: var(--ok-line); background: var(--ok-bg); }
 .pf-note.warn { border-color: var(--warn-line); background: var(--warn-bg); }
 .pf-note.blue { border-color: var(--blue-line); background: var(--blue-weak); }
+/* 2027 「구단별 공정성」은 화면 위에 안내 줄을 하나 더 얹는다. 본문 칸이 한 줄짜리라 안내 줄이 남는 높이를 다 차지하고 화면은 내용 높이로 줄던 것을 막는다 */
+.body:has(> .pf-note) { grid-template-rows: auto minmax(0, 1fr); }
 .pf-link { background: none; border: 0; padding: 0; color: var(--blue); cursor: pointer; font: inherit; }
 
 /* 처음 화면 */
