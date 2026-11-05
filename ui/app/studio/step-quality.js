@@ -26,7 +26,7 @@
     { id: 'sched', group: '배포', label: '구단별 일정표', icon: 'print', ref: 'FR-A11', f: 'A11' },
     { id: 'export', group: '배포', label: '내보내기', icon: 'download', ref: 'FR-D·X6' }
   ];
-  const visible = () => VIEWS.filter((v) => (!v.f || S.feature(v.f)) && !(S.qvHidden && S.qvHidden(v.id))); // qvHidden: 흐름이 숨기는 보기(2027 흐름은 구단 간 비교 보기를 숨긴다, plan-flow.js)
+  const visible = () => VIEWS.concat(S.qvExtraViews || []).filter((v) => (!v.f || S.feature(v.f)) && !(S.qvHidden && S.qvHidden(v.id))); // qvExtraViews: 흐름이 더하는 보기(2027 두 구단 비교, team-view.js) // qvHidden: 흐름이 숨기는 보기(2027 흐름은 구단 간 비교 보기를 숨긴다, plan-flow.js)
 
   function tms() { return D().ex.teamMetrics; }
   function league() { return D().ex.league; }
@@ -231,6 +231,7 @@
   function chartWrap(title, desc, svg, extra) {
     return S.paneHead(title, desc) + '<div class="pane-body" data-sk="q-chart"><div class="chart-box">' + svg + '</div>' + (extra || '') + '</div>';
   }
+  S.qvParts = { tms, league, tols, chartWrap, visible, VIEWS };
   function a1() {
     const L = league();
     const items = tms().map((t) => ({ label: t.name, value: t.distanceKm, color: t.team != null ? app().state.teams[t.team].color : '#1F5FD6', flag: t.overDistance, key: t.name, note: t.overDistance ? '허용 범위 밖' : '' }));
@@ -364,10 +365,11 @@
       S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
       const u = S.ui;
       if (!visible().some((v) => v.id === u.qv)) u.qv = (S.qvDefault && S.qvDefault()) || visible()[0].id;
-      const fn = { metrics: renderMetrics, soft: renderSoft, a1, a2, a3, a4, a5, a8, a9, a10, a12, sched: renderSched, export: renderExport }[u.qv];
+      const fn = Object.assign({ metrics: renderMetrics, soft: renderSoft, a1, a2, a3, a4, a5, a8, a9, a10, a12, sched: renderSched, export: renderExport }, S.qvRenderers || {})[u.qv];
       if (!u.team && !S._teamDefaulted) { S._teamDefaulted = true; const top = tms().slice().sort((a, b) => b.distanceKm - a.distanceKm)[0]; u.team = top ? top.name : null; }
-      const insp = renderInsp();
-      return '<div class="stepview no-band">' + S.workspace({ list: renderList(), main: fn(), insp: insp.html, inspTitle: insp.title, listLabel: '공정성 보기' }) + '</div>';
+      const insp = S.qvInsp ? S.qvInsp(renderInsp) : renderInsp();
+      const list = S.qvList ? S.qvList(renderList) : renderList();
+      return '<div class="stepview no-band">' + S.workspace({ list, main: fn(), insp: insp.html, inspTitle: insp.title, inspHead: insp.head, listLabel: '공정성 보기', cls: insp.cls }) + '</div>';
     },
     after() {
       // opt-2: 대시보드 차트 상자 크기 재기 → 그린 크기와 4px 넘게 다르면 다시 그린다

@@ -332,7 +332,7 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'team2', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume'];
   S.ROUTE_KEYS = ROUTE_KEYS;
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
@@ -353,7 +353,7 @@
       o.step = u.step;
       if (u.step === 1) { o.tab = u.tab; if (S.g1Hash) S.g1Hash(o); } // ① 단계 흐름: tab 없음(pick=year·resume=1·fs=·day=·slot=), 모든 표 보기: tab=
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
-      if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
+      if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.team2) o.team2 = u.team2; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
       if (u.sel) o.sel = u.sel;
     }
@@ -385,6 +385,7 @@
     if (o.view) u.view = o.view;
     if (o.qv) u.qv = o.qv;
     if (o.team) u.team = o.team;
+    u.team2 = o.team2 || null; // ④ 두 구단 비교의 둘째 구단(2027, team-view.js)
     if (o.teams) u.teamFilter = o.teams.split(',').filter(Boolean);
     u.sel = o.sel || null;
     u.modal = o.modal || null;

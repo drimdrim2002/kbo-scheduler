@@ -486,3 +486,35 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .ck-page > .ck-cal { margin-top: 0; }
 /* 2단계 「달력 고치기」(끌어서 묶음 만들기)는 칸을 지금까지 크기(20px)로. 이때만 넘치면 스크롤 */
 .stepview.fl .pf-cal.live { --cal-row: clamp(20px, 2.2vh, 30px); }
+
+/* ───────── 2027 「구단별 보기」 두 구단 비교 (team-view.js) ───────── */
+.tv-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; margin-bottom: 10px; font-size: var(--fs); }
+.tv-sum .tv-k b { font-variant-numeric: tabular-nums; }
+.tv-sum .diff { margin-left: auto; color: var(--text-3); }
+.tv-two { display: inline-flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tv-t { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.tv-t i.ln { width: 22px; height: 0; border-top: 3px solid var(--text-2); display: inline-block; }
+.tv-t i.ln.dash { border-top-style: dashed; }
+.tv-sub { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: .6px; margin-bottom: 6px; }
+.tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.tv-grid .chart-box { margin: 0; }
+.tv-map svg.kmap { max-height: 460px; max-width: none !important; width: 100%; }
+.tv-svg .kmap-line { opacity: .75; }
+.tv-svg .kmap-line:hover { opacity: 1; stroke-width: 3.5; }
+.tv-tbl { border-collapse: collapse; font-size: var(--fs); }
+.tv-tbl.wide { width: 100%; max-width: 760px; }
+.tv-tbl.card { width: 100%; font-size: var(--fs-s); }
+.tv-tbl th, .tv-tbl td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tv-tbl.card th, .tv-tbl.card td { padding: 4px 4px; }
+.tv-tbl th { font-weight: 600; color: var(--text-2); }
+.tv-tbl th:first-child, .tv-tbl td:first-child { text-align: left; color: var(--text-3); font-size: var(--fs-s); white-space: normal; }
+.tv-tbl td.lo { font-weight: 700; color: var(--text); }
+.tv-tbl.card th:last-child, .tv-tbl.card td:last-child { display: none; }
+.tv-strips { display: grid; gap: 6px; margin-top: 8px; }
+.tv-strips > div > .tv-t { font-size: var(--fs-s); margin-bottom: 3px; }
+.tv-pick, .label.tv-pick { color: var(--blue); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tf.picking button:not(.on) { border-color: var(--blue); }
+.tf button.on2 { border-color: var(--blue); border-style: dashed; font-weight: 700; }
+.tf button .tag2 { font-size: var(--fs-xs); color: var(--blue); font-weight: 700; }
+.workspace.tv-noinsp { grid-template-columns: var(--list-w) minmax(0, 1fr) 0; }
+.workspace.tv-noinsp .pane.insp { display: none; }
