@@ -164,6 +164,29 @@ public final class RequirementChecker {
             }
         }
 
+        /**
+         * 점검한 일정의 지문: 시리즈 목록(홈>원정/연전) · 연전 기간(시작일/연전) · 배정(시리즈 id 순 기간 id, 미배정 -1)을 한 줄로 잇고
+         * FNV-1a 32비트로 줄인 8자리 16진수. 화면({@code ui/core/engine-adapter.js planSignature})이 같은 식으로 지금 일정의 지문을 만들어
+         * 견주고, 다르면 「다른 일정의 점검표」라고 알린다 — 점검표가 보이는 일정의 것인지 서버가 아니라 지문이 증명한다.
+         */
+        String signature() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < series.size(); i++) {
+                Series s = series.get(i);
+                sb.append(i > 0 ? "," : "").append(s.home()).append('>').append(s.away()).append('/').append(s.length());
+            }
+            sb.append('|');
+            for (int i = 0; i < slots.size(); i++) {
+                Slot s = slots.get(i);
+                sb.append(i > 0 ? "," : "").append(s.start()).append('/').append(s.length());
+            }
+            sb.append('|');
+            for (int i = 0; i < series.size(); i++) {
+                sb.append(i > 0 ? "," : "").append(slotOfSeries.getOrDefault(i, -1));
+            }
+            return fnv1a(sb.toString());
+        }
+
         Slot slotContaining(LocalDate d) {
             for (Slot s : slots) {
                 if (!d.isBefore(s.start()) && !d.isAfter(s.end())) {
@@ -317,6 +340,7 @@ public final class RequirementChecker {
             }
         }
         return Json.obj("checkedAt", Instant.now().toString(), "method", "서버가 완성된 일정을 날짜별 경기로 풀어 다시 셈(엔진 점수와 따로)",
+                "planSig", in.signature(),
                 "total", passed + failed, "passed", passed, "failed", failed, "info", info, "ok", failed == 0,
                 "failedTitles", Json.arr(failedTitles), "groups", Json.arr(groups), "tables", tables(in));
     }
@@ -1126,6 +1150,21 @@ public final class RequirementChecker {
     }
 
     // ───────────── 공통 ─────────────
+
+    /** 시험·도구용: 이 문제·배정의 지문({@link Input#signature()}). */
+    static String planSignature(JSONObject problem, JSONArray plan) {
+        return new Input(problem, plan).signature();
+    }
+
+    /** FNV-1a 32비트(UTF-8 바이트) → 8자리 16진수. 화면의 같은 함수와 값이 같아야 한다. */
+    static String fnv1a(String text) {
+        int h = 0x811c9dc5;
+        for (byte b : text.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+            h ^= (b & 0xff);
+            h *= 0x01000193;
+        }
+        return String.format("%08x", h);
+    }
 
     static LocalDate parseDate(String s) {
         if (s == null || s.length() < 10) {

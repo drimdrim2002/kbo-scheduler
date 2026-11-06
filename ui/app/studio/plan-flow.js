@@ -733,7 +733,7 @@
     S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
     const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) };
     // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
-    if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); res.planSig = P.verify.planSig(st); if (S.run && S.run.verification) P.verify.took(S.run.verification, st); }
+    if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 점검표에 적힌 지문(planSig)으로 지금 일정의 것인지 가린다
     const v = storeRun(res, ex);
     res.vid = v ? v.id : null;
     app().store.commit('실행 결과 기록', (s) => { s.meta.result = Object.assign({}, res); }, { tags: ['meta'], undo: false });
@@ -955,7 +955,7 @@
     const changed = inputSig(before) !== inputSig(base);
     app().commit('버전 불러오기: ' + v.name, (s) => {
       applyVersion(s, v);
-      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), verification: v.verification || null, planSig: P.verify ? P.verify.planSig(s) : null };
+      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), verification: v.verification || null };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 편성 조건도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);
     S.go({ step: 5, sel: null });

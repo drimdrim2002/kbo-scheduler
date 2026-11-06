@@ -23,12 +23,15 @@
   const V = P.verify = { data: null, at: null, sig: null, loading: false, error: null, offline: false, filter: 'all', open: {}, gopen: {}, day: null };
 
   // ───────── 공통 ─────────
-  /** 일정의 지문: 시리즈 수 + 배정. 실행 뒤 경기를 옮겼는지 본다 */
-  V.planSig = (st) => st.matches.length + ':' + st.plan.map((x) => x.calendar).join(',');
+  /** 일정의 지문(서버 점검표의 planSig와 같은 식, core/engine-adapter.js). 점검표가 지금 보이는 일정의 것인지는 이 값이 같은지로만 본다 */
+  V.planSig = (st) => KBO.Engine.planSignature(st, st.plan);
+  /** 점검표가 이 일정(또는 저장한 버전)의 것인가 */
+  V.matches = (v, st) => !!(v && v.planSig && st && v.planSig === V.planSig(st));
   /** 결과·버전에 남길 몫: 근거 원자료(tables)는 크니까 뺀다 */
   V.slim = (v) => { if (!v) return null; const o = Object.assign({}, v); delete o.tables; return o; };
-  /** 실행이 끝날 때 받은 점검표(원자료 포함)를 이 화면의 값으로 삼는다 */
-  V.took = (v, st) => { V.data = v; V.at = v.checkedAt; V.sig = V.planSig(st); V.error = null; V.offline = false; V.day = null; V.gopen = {}; V.open = {}; };
+  /** 실행이 끝날 때 받은 점검표(원자료 포함)를 이 화면의 값으로 삼는다. 지문은 점검표에 적힌 것 — 지금 일정과 같은지는 보일 때마다 견준다 */
+  V.took = (v) => { V.data = v; V.at = v.checkedAt; V.error = null; V.offline = false; V.day = null; V.gopen = {}; V.open = {}; };
+  const STALE = '이 점검표는 지금 보이는 일정의 것이 아닙니다';
   const when = (iso) => { if (!iso) return ''; const d = new Date(iso), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
   const verdictIcon = (v) => (v === FAIL ? '<span class="pf-vic bad">' + icon('x') + '</span>' : v === INFO ? '<span class="pf-vic info">' + icon('info') + '</span>' : '<span class="pf-vic ok">' + icon('check') + '</span>');
   const verdictWord = (v) => (v === FAIL ? '어김' : v === INFO ? '참고' : '지킴');
@@ -40,30 +43,33 @@
   // ───────── 요약 줄(현재 결과 분석) · 비교 표 칸 ─────────
   /** 현재 결과 분석 맨 위 줄: 늘 보인다. 지키면 개수, 어기면 어긴 항목 이름. 밑 줄에 셈 방법과 시각 */
   V.summary = function (res) {
-    const st = app().state, v = res && res.verification, changed = !!(res && res.planSig && res.planSig !== V.planSig(st));
+    const st = app().state, v = res && res.verification;
     let cls, head, note;
     if (!v || v.error) { cls = 'none'; head = '요구 사항 점검 없음'; note = v && v.error ? v.error : res && res.engine && res.engine !== 'REST' ? '서버에 연결되지 않아 시험 엔진으로 낸 결과입니다. 서버 엔진으로 실행하면 서버가 요구 사항을 다시 셉니다.' : '이 결과에는 서버 점검표가 없습니다. 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; }
+    else if (!V.matches(v, st)) { cls = 'stale'; head = STALE; note = '실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다(' + when(v.checkedAt) + '에 센 것). 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; } // 지문이 다르면 지킨 개수를 내걸지 않는다
     else if (v.failed) { cls = 'bad'; head = '요구 사항 ' + v.failed + '개 어김 — ' + (v.failedTitles || []).join(' · '); note = METHOD + ' · ' + when(v.checkedAt); }
     else { cls = 'ok'; head = '요구 사항 ' + v.total + '개 모두 지킴' + (v.info ? ' · 참고 ' + v.info + '개' : ''); note = METHOD + ' · ' + when(v.checkedAt); }
-    if (changed) note += ' · 실행 뒤 일정을 고쳤습니다 — 점검표에서 지금 일정을 다시 셉니다';
-    return '<div class="pf-sec pf-vsum ' + cls + '"><div class="pf-vsum-row">' + (cls === 'none' ? '<span class="pf-vic none">' + icon('todo') + '</span>' : verdictIcon(cls === 'bad' ? FAIL : PASS)) + '<b>' + esc(head) + '</b><button class="pf-link" data-act="go-step" data-step="8">점검표 보기 ›</button></div><div class="xs muted">' + esc(note) + '</div></div>';
+    return '<div class="pf-sec pf-vsum ' + cls + '"><div class="pf-vsum-row">' + (cls === 'none' ? '<span class="pf-vic none">' + icon('todo') + '</span>' : cls === 'stale' ? '<span class="pf-vic warn">' + icon('warn') + '</span>' : verdictIcon(cls === 'bad' ? FAIL : PASS)) + '<b>' + esc(head) + '</b><button class="pf-link" data-act="go-step" data-step="8">점검표 보기 ›</button></div><div class="xs muted">' + esc(note) + '</div></div>';
   };
-  /** 실행 결과 비교 표의 「요구 사항」 칸 */
-  V.cell = function (v) {
+  /** 실행 결과 비교 표의 「요구 사항」 칸. 버전의 일정(matches·plan·그때 달력)과 점검표의 지문이 같을 때만 개수를 적는다 */
+  V.cell = function (ver) {
+    const v = ver && ver.verification;
     if (!v || v.error) return '<span class="muted small">점검 없음</span>';
+    const cal = ver.inputs && ver.inputs.calendar ? ver.inputs.calendar : app().state.calendar;
+    if (v.planSig !== KBO.Engine.planSignature({ matches: ver.matches || [], calendar: cal }, ver.plan || [])) return '<span class="pf-tag est">다른 일정의 점검표</span>';
     return v.failed ? '<span class="pf-tag over">' + v.failed + '개 어김</span> <span class="small">' + (v.total - v.failed) + '/' + v.total + '</span>' : '<span class="pf-tag ok">' + v.total + '/' + v.total + ' 지킴</span>';
   };
 
   // ───────── 서버에 묻기 ─────────
   /** 지금 일정으로 서버에 점검을 청한다(이미 같은 일정의 점검표가 있으면 그대로) */
   function ensure(force) {
-    const st = app().state, sig = V.planSig(st);
+    const st = app().state;
     if (V.loading) return;
-    if (!force && V.data && V.sig === sig) return;
+    if (!force && V.matches(V.data, st)) return;
     if (!fromRest()) {
-      // 서버 없음: 실행 때 받아 둔 것(판정·근거 줄)이라도 보여 주되, 지금 일정과 다르면 그 사실을 적는다
+      // 서버 없음: 실행 때 받아 둔 것(판정·근거 줄)이라도 보여 주되, 지금 일정과 지문이 다르면 화면이 그 사실을 크게 적는다(render의 stale)
       const res = st.meta.result;
-      if (!V.data && res && res.verification && !res.verification.error) { V.data = res.verification; V.at = res.verification.checkedAt; V.sig = res.planSig || null; }
+      if (!V.data && res && res.verification && !res.verification.error) { V.data = res.verification; V.at = res.verification.checkedAt; }
       V.offline = true; V.error = null;
       return;
     }
@@ -72,7 +78,7 @@
     app().engine.verify(st, plan).then((v) => {
       V.loading = false;
       if (!v || v.error) { V.error = (v && v.error) || '점검표를 받지 못했습니다.'; }
-      else { V.data = v; V.at = v.checkedAt; V.sig = sig; V.day = null; V.gopen = {}; V.open = {}; }
+      else { V.took(v); }
       S.scheduleRender();
     }).catch((e) => { V.loading = false; V.error = e && e.offline ? null : (e && e.message) || '서버에 연결하지 못했습니다.'; V.offline = !!(e && e.offline); S.scheduleRender(); });
   }
@@ -139,15 +145,16 @@
   // ───────── 화면 ─────────
   S.steps[8] = {
     render() {
-      const st = app().state, res = st.meta.result, v = V.data, sig = V.planSig(st), stale = v && V.sig && V.sig !== sig;
-      const status = V.loading ? '<span class="pf-tag blue">지금 일정을 서버가 다시 세는 중…</span>' : V.error ? '<span class="pf-tag over">점검 못 함</span> <span class="small">' + esc(V.error) + '</span>' : V.offline ? '<span class="pf-tag est">서버 점검을 할 수 없음</span> <span class="small muted">서버에 연결되지 않았습니다' + (v ? ' · 아래는 ' + when(V.at) + '에 받아 둔 점검표' + (stale ? '(그 뒤 일정을 고쳤습니다)' : '') : '') + '</span>' : v ? '<span class="small muted">' + METHOD + ' · ' + when(V.at) + (stale ? ' · <b>그 뒤 일정을 고쳤습니다</b>' : '') + '</span>' : '';
-      const tools = '<span class="grow"></span>' + (fromRest() ? '<button class="btn sm" data-act="vf-again"' + (V.loading ? ' disabled' : '') + '>' + icon('redo') + '지금 일정 다시 점검</button>' : '') + (v && v.tables ? '<button class="btn sm" data-act="vf-xlsx">' + icon('download') + '엑셀로 받기</button>' : '');
+      const st = app().state, res = st.meta.result, v = V.data, stale = !!(v && !V.matches(v, st)); // 지문이 다르면 = 다른 일정의 점검표
+      const status = V.loading ? '<span class="pf-tag blue">지금 일정을 서버가 다시 세는 중…</span>' : V.error ? '<span class="pf-tag over">점검 못 함</span> <span class="small">' + esc(V.error) + '</span>' : V.offline ? '<span class="pf-tag est">서버 점검을 할 수 없음</span> <span class="small muted">서버에 연결되지 않았습니다' + (v ? ' · 아래는 ' + when(V.at) + '에 받아 둔 점검표' : '') + '</span>' : v ? '<span class="small muted">' + METHOD + ' · ' + when(V.at) + '</span>' : '';
+      const tools = '<span class="grow"></span>' + (fromRest() ? '<button class="btn sm" data-act="vf-again"' + (V.loading ? ' disabled' : '') + '>' + icon('redo') + '지금 일정 다시 점검</button>' : '') + (v && v.tables && !stale ? '<button class="btn sm" data-act="vf-xlsx">' + icon('download') + '엑셀로 받기</button>' : '');
       let head;
       if (!v) head = '<div class="pf-sec pf-vsum none"><div class="pf-vsum-row"><span class="pf-vic none">' + icon('todo') + '</span><b>' + (V.loading ? '점검표를 받는 중' : '점검표가 없습니다') + '</b>' + tools + '</div><div class="xs">' + status + '</div></div>';
+      else if (stale) head = '<div class="pf-sec pf-vsum stale"><div class="pf-vsum-row"><span class="pf-vic warn">' + icon('warn') + '</span><b>' + STALE + '</b>' + tools + '</div><div class="xs">실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다. 아래 판정·근거는 <b>' + when(V.at) + '에 센 그 일정</b>의 것이지 지금 달력의 것이 아닙니다. ' + (fromRest() ? '「지금 일정 다시 점검」을 누르면 서버가 지금 일정을 다시 셉니다.' : '서버에 연결되면 지금 일정을 다시 셀 수 있습니다.') + ' ' + status + '</div></div>';
       else head = '<div class="pf-sec pf-vsum ' + (v.failed ? 'bad' : 'ok') + '"><div class="pf-vsum-row">' + verdictIcon(v.failed ? FAIL : PASS) + '<b>' + (v.failed ? '요구 사항 ' + v.failed + '개 어김 — ' + esc((v.failedTitles || []).join(' · ')) : '요구 사항 ' + v.total + '개 모두 지킴') + '</b>' + (v.info ? '<span class="pf-tag got">참고 ' + v.info + '개 · 정한 값이 없어 숫자만</span>' : '') + tools + '</div><div class="xs">' + status + '</div></div>';
-      const list = v ? '<div class="pf-sec pf-vlist"><h3>점검표<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고</span></h3><p class="pf-d">묶음을 누르면 항목이, 「근거」를 누르면 서버가 일정에서 뽑은 줄이 보입니다. 다 지킨 묶음은 접혀 있습니다.</p>' + (v.groups || []).map(groupHtml).join('') + '</div>'
+      const list = v ? '<div class="pf-sec pf-vlist' + (stale ? ' pf-vstale' : '') + '"><h3>점검표' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고</span></h3><p class="pf-d">' + (stale ? '지금 보이는 일정의 판정이 아닙니다. ' : '') + '묶음을 누르면 항목이, 「근거」를 누르면 서버가 일정에서 뽑은 줄이 보입니다. 다 지킨 묶음은 접혀 있습니다.</p>' + (v.groups || []).map(groupHtml).join('') + '</div>'
         : '<div class="pf-sec pf-vlist"><h3>점검표</h3><p class="pf-d">' + (V.offline ? '서버에 연결되면 지금 일정을 다시 셉니다. 서버 엔진으로 실행한 결과에는 실행이 끝날 때 받은 점검표가 함께 남습니다.' : V.error ? '서버가 점검표를 주지 못했습니다.' : '잠시만 기다려 주세요.') + '</p>' + (!res ? '<p class="pf-d">아직 실행한 결과가 없습니다.</p>' : '') + '</div>';
-      const right = v && v.tables ? dayHtml(v) + gridHtml(v) : '';
+      const right = v && v.tables ? (stale ? '<div class="pf-note warn" style="margin:0">아래 출전표는 ' + when(V.at) + '에 센 다른 일정의 것입니다.</div>' : '') + dayHtml(v) + gridHtml(v) : '';
       return '<div class="stepview no-band"><div class="pf-page pf-vf">' + head + '<div class="pf-cols pf-vcols">' + list + '<div class="pf-vright">' + right + '</div></div></div></div>';
     },
     after() { ensure(false); }
@@ -195,10 +202,11 @@
     S.demos.run27();
     const go = () => fetch('show/fixtures/result-default.json').then((r) => (r.ok ? r.json() : null)).then((j) => {
       if (!j || !j.verification) return;
-      V.took(j.verification, app().state); V.offline = true;
+      // 2025 기본 결과의 점검표를 2027 달력에 얹는 것이라 지문이 다르다 → 화면이 「다른 일정의 점검표」로 알려야 한다(그것이 이 점검 경로가 보는 것)
+      V.took(j.verification); V.offline = true;
       V.gopen.special = true; V.open.opening = true; // 점검 화면 그림에 펼친 묶음·근거 표가 보이게
-      const slim = V.slim(j.verification), sig = V.planSig(app().state);
-      app().store.commit('점검용 점검표', (s) => { if (s.meta.result) { s.meta.result.verification = slim; s.meta.result.planSig = sig; s.meta.result.engine = 'REST'; } }, { tags: ['meta'], undo: false });
+      const slim = V.slim(j.verification);
+      app().store.commit('점검용 점검표', (s) => { if (s.meta.result) { s.meta.result.verification = slim; s.meta.result.engine = 'REST'; } }, { tags: ['meta'], undo: false });
       S.scheduleRender();
     }).catch(() => { /* 없으면 서버 없음 화면 */ });
     if (typeof fetch === 'function') go();

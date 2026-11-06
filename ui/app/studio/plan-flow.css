@@ -679,3 +679,8 @@ table.pf-vgrid th:not(:first-child), table.pf-vgrid td:not(:first-child) { text-
 .pf-vday-teams span { font-size: 11.5px; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok); font-weight: 700; }
 .pf-vday-teams span.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
 .pf-vday .ok { color: var(--ok); font-weight: 700; } .pf-vday .bad { color: var(--bad); font-weight: 700; }
+/* 지문이 다른 점검표(실행 뒤 일정을 고쳤거나 다른 일정): 노랑 띠로 크게, 지킨 개수를 내걸지 않는다 */
+.pf-vsum.stale { border-color: var(--warn-line); background: var(--warn-bg); }
+.pf-vsum.stale .xs { color: var(--text); }
+.pf-vic.warn { background: var(--warn); }
+.pf-vlist.pf-vstale { opacity: .82; }

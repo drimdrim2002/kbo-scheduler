@@ -227,11 +227,31 @@
     return this._fetch('/api/v1/verify', { problem, plan: plan || problem.plan || null });
   };
 
+  /**
+   * 일정의 지문. 서버 점검표(RequirementChecker)의 planSig와 같은 식: 시리즈(홈>원정/연전) · 연전 기간(시작일/연전) · 배정(시리즈 번호 순 기간 번호,
+   * 없으면 -1)을 한 줄로 잇고 FNV-1a 32비트(UTF-8)로 줄인 8자리 16진수. 화면은 점검표의 planSig와 지금 일정의 지문이 같을 때만
+   * 「이 일정의 점검표」로 보여 주고, 다르면 숨기지 않고 「다른 일정의 점검표」라고 알린다.
+   */
+  function planSignature(problem, plan) {
+    const matches = problem.matches || [], cal = problem.calendar || [], p = plan || problem.plan || [];
+    const slotOf = new Array(matches.length).fill(-1);
+    for (const x of p) { if (x && x.match >= 0 && x.match < matches.length && x.calendar != null && x.calendar >= 0) slotOf[x.match] = x.calendar; }
+    const text = matches.map((m) => m.home + '>' + m.away + '/' + (m.consecutive | 0)).join(',') + '|' +
+      cal.map((c) => String(c.datetime || c.date || '').slice(0, 10) + '/' + (c.consecutive | 0)).join(',') + '|' + slotOf.join(',');
+    return fnv1a(text);
+  }
+  function fnv1a(text) {
+    const bytes = typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(text) : Buffer.from(text, 'utf8');
+    let h = 0x811c9dc5;
+    for (const b of bytes) { h ^= b; h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
   function createEngine(config) {
     const c = config || {};
     if (c.kind === 'REST') return new RestEngineAdapter(c);
     return new MockEngineAdapter(c);
   }
 
-  KBO.Engine = { SolveHandle, MockEngineAdapter, RestEngineAdapter, createEngine, toSolverProblem, workerSource, scoreLocal };
+  KBO.Engine = { SolveHandle, MockEngineAdapter, RestEngineAdapter, createEngine, toSolverProblem, workerSource, scoreLocal, planSignature, fnv1a };
 });
