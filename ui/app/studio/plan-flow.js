@@ -759,7 +759,7 @@
   }
 
   // ───────── 3 현재 결과 분석 ─────────
-  // 전체 이동 거리는 늘 마지막 순위라 이 화면에서 따로 보이지 않는다(사용자 결정 2026-11-04). 이동 횟수·거리는 한 칸에 함께,
+  // 전체 이동 거리(늘 마지막 순위)는 목표별 격차의 넷째 칸에 10구단 합으로 보인다(사용자 결정 2026-11-06, 11-04에는 뺐었다). 이동 횟수·거리는 한 칸에 함께,
   // 주말·공휴일은 따로 — 이 둘은 왼쪽에 위아래로, 오른쪽에 「구단별 한눈에」를 넓게(사용자 결정 2026-11-04).
   // 표는 방침의 순위대로 왼쪽부터, 순위에 없는 두 열은 오른쪽 끝에 두고 열 너비를 같게 한다. 색 채움(엑셀 느낌)은 쓰지 않는다.
   const HEAT_COLS = { moves: ['이동 횟수', 'moves', 0], distance: ['이동 거리', 'km', 1], holiday: ['주말·공휴일 홈(점)', 'hol', 0] };
@@ -814,10 +814,11 @@
       '</tbody></table>' +
       '<div class="pf-leg"><span><i class="hi"></i>열에서 가장 많은 구단</span><span><i class="lo"></i>가장 적은 구단</span><span>격차 = 그 둘의 차이</span></div>';
   }
-  /** 실행 중에만: 4순위 전체 이동 거리 칸(허용 수준이 없어 누르지 않는 칸). 1·2·3순위가 모두 허용 안이면 「줄이는 중」과 시작보다 줄어든 거리, 아니면 「다음 차례」 */
+  /** 4순위 전체 이동 거리 칸(허용 수준이 없어 누르지 않는 칸). 결과 화면이면 10구단 합만, 실행 중이면 1·2·3순위가 모두 허용 안일 때 「줄이는 중」과 시작보다 줄어든 거리, 아니면 「다음 차례」 */
   function totalTile(st) {
-    const now = st.focus === st.ids.length + 1;
-    return '<div class="pf-gtile pf-gtotal' + (now ? ' now' : '') + '"><span class="hd"><span class="pf-rk">' + (st.ids.length + 1) + '순위</span>전체 이동 거리</span><span class="v"><b>' + num(st.km) + 'km</b><span class="s">' + (now ? '<em>줄이는 중</em>' + (st.cut ? ' · −' + num(st.cut) + 'km' : '') : '1~' + st.ids.length + '순위 다음 차례') + '</span></span></div>';
+    const n = st.ids.length, now = !st.done && st.focus === n + 1;
+    const sub = st.done ? '10구단 합' : now ? '<em>줄이는 중</em>' + (st.cut ? ' · −' + num(st.cut) + 'km' : '') : '1~' + n + '순위 다음 차례';
+    return '<div class="pf-gtile pf-gtotal' + (now ? ' now' : '') + '"><span class="hd"><span class="pf-rk">' + (n + 1) + '순위</span>전체 이동 거리</span><span class="v"><b>' + num(st.km) + 'km</b><span class="s">' + sub + '</span></span></div>';
   }
   function dashboard(data, ob, run) {
     const ids = ob.order.filter((id) => GOALS[id].tol);
@@ -827,9 +828,9 @@
     // 왼쪽 위에 목표 셋을 같은 크기 칸으로 나란히(격차·허용), 누른 칸의 구단별 막대를 아래에(처음은 1순위). 셋을 위아래로 두면 홀수라 칸이 고르지 않았다(2026-11-05 대안 다)
     const cur = shownGoal(ids), gc = GOALS[cur];
     const tiles = '<div class="pf-gtiles">' + ids.map((id) => { const g = GOALS[id];
-      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + tolTag(data, id, ob) + '</span><span class="v"><b>' + goalShow(data, id) + g.unit + '</b><span class="s">허용 ' + num(ob[g.tol]) + g.unit + '</span></span></button>'; }).join('') + (run ? totalTile(run) : '') + '</div>';
+      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + tolTag(data, id, ob) + '</span><span class="v"><b>' + goalShow(data, id) + g.unit + '</b><span class="s">허용 ' + num(ob[g.tol]) + g.unit + '</span></span></button>'; }).join('') + totalTile(run || { done: true, ids, km: data.gaps.totalKm }) + '</div>';
     const goalPanel = '<div class="pf-sec pf-goal"><h3>목표별 격차</h3>' + tiles + '<div class="pf-gsub">' + gc.name + ' · 구단별</div>' + goalOne(data, ob, cur) + '</div>';
-    return '<div class="pf-dash pf-dash3 pf-fill' + (run ? ' pf-run4' : '') + '"><div class="pf-dl">' + goalPanel + '</div>' + heatSec + '</div>'; // 왼쪽 목표 셋 칸 + 고른 목표의 막대, 오른쪽 구단별 한눈에
+    return '<div class="pf-dash pf-dash3 pf-fill"><div class="pf-dl">' + goalPanel + '</div>' + heatSec + '</div>'; // 왼쪽 목표 칸 넷(4순위 전체 이동 거리는 누르지 않는 칸) + 고른 목표의 막대, 오른쪽 구단별 한눈에
   }
   /** 점검용 주소 demo=run27: 실행 없이 지금 달력을 결과로 삼아 현재 결과 분석 화면을 본다(저장 목록에는 넣지 않는다) */
   S.demos.run27 = function () {
