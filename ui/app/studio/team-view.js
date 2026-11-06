@@ -138,10 +138,13 @@
     let s = S.paneHead('두 구단 비교', '막대 하나가 이동 한 번, 높이가 그 구간 거리입니다. 위가 첫 구단, 아래가 둘째 구단. 막대에 마우스를 올리면 그 구간이 나옵니다.', right);
     s += '<div class="pane-body pad" data-sk="tv-cmp">';
     s += '<div class="tv-sum">' + head2(A, B) + '<span class="tv-k">총 이동 <b>' + fmt.km(A.distanceKm) + '</b> / <b>' + fmt.km(B.distanceKm) + '</b> km</span><span class="tv-k">이동 <b>' + A.moves + '</b> / <b>' + B.moves + '</b> 회</span><span class="tv-k diff">차이 ' + fmt.km(Math.abs(A.distanceKm - B.distanceKm)) + 'km · ' + Math.abs(A.moves - B.moves) + '회</span></div>';
-    const sw = S.wide ? 1180 : 900, sh = S.tall ? 220 : 190;
-    s += '<div class="tv-sub">이동 구간 거리 <span class="muted">· 빨간 점선 상자 = 장거리 연속 원정</span></div><div class="tv-strip">' + legStrip(A, B, sw, sh) + '</div>';
-    const cw = S.wide ? 560 : 440, ch = S.wide ? 300 : 270;
-    const table = cmpTable(A, B, 'wide') + '<div class="tv-strips"><div><span class="tv-t">' + S.team(A.name) + '</span>' + strip(A) + '</div><div><span class="tv-t">' + S.team(B.name) + '</span>' + strip(B) + '</div><div class="xs muted">진한 칸 홈 · 옅은 칸 원정 · 빨간 테두리 4연속 이상</div></div>';
+    // 창 크기에 맞춘다(사용자 요청 2026-11-06: 노트북에서도 큰 모니터에서도 띠·그래프·표가 가운데 칸을 꽉 채우고, 그래프와 표의 높이가 같게).
+    // 가운데 칸 너비·높이를 창에서 셈해 띠 40%, 아래 줄 나머지. 창 크기가 바뀌면 다시 그린다(아래 resize)
+    const listW = S.wide ? 260 : 232, mainW = Math.max(600, window.innerWidth - listW - 26), bodyH = Math.max(420, window.innerHeight - 226); // 위 틀·아래 줄(178) + 칸 안쪽 여백(24) + 요약 줄(24)
+    const stripH = Math.round(bodyH * 0.4), lowerH = Math.max(220, bodyH - stripH - 92); // 92 = 소제목 둘·띠 테두리·사이 간격
+    s += '<div class="tv-sub">이동 구간 거리 <span class="muted">· 빨간 점선 상자 = 장거리 연속 원정</span></div><div class="tv-strip">' + legStrip(A, B, mainW, stripH) + '</div>';
+    const cw = Math.round((mainW - 14) / 2 - 8), ch = lowerH; // 그래프와 표가 같은 높이
+    const table = '<div class="tv-tblbox" style="height:' + lowerH + 'px">' + cmpTable(A, B, 'wide fill') + '</div>';
     if (LAYOUT === 'table') {
       s += SHOW_CUM
         ? '<div class="tv-grid"><div class="tv-chart"><div class="tv-sub">누적 이동거리</div><div class="chart-box">' + cumChart(A, B, cw, ch) + '</div></div><div><div class="tv-sub">항목별 비교</div>' + table + '</div></div>'
@@ -197,6 +200,10 @@
   S.qvRenderers = Object.assign(S.qvRenderers || {}, { cmp: renderCmp });
   S.qvList = (orig) => (is27() ? renderList() : orig());
   S.qvInsp = (orig) => (is27() ? insp(orig) : orig());
+
+  // 창 크기가 바뀌면 두 구단 비교를 그 크기에 맞춰 다시 그린다
+  let tvResize = 0;
+  window.addEventListener('resize', () => { clearTimeout(tvResize); tvResize = setTimeout(() => { if (S.ui && !S.ui.ops && S.ui.step === 4 && S.ui.qv === 'cmp' && is27()) S.render(); }, 120); });
 
   // ───────── 동작 ─────────
   const origTeam = S.actions['q-team'];

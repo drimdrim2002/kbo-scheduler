@@ -496,8 +496,12 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-t i.ln { width: 22px; height: 0; border-top: 3px solid var(--text-2); display: inline-block; }
 .tv-t i.ln.dash { border-top-style: dashed; }
 .tv-sub { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: .6px; margin-bottom: 6px; }
-.tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
-.tv-grid .chart-box { margin: 0; }
+.tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.tv-grid .chart-box { margin: 0; padding: 0; }
+.tv-grid .chart-box svg.kc { max-width: none !important; }
+.tv-tblbox { display: flex; flex-direction: column; min-height: 0; }
+.tv-tbl.fill { flex: 1 1 auto; height: 100%; }
+.tv-tbl.fill td, .tv-tbl.fill th { padding-top: 0; padding-bottom: 0; }
 .tv-strip { border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; padding: 4px 6px; margin-bottom: 12px; }
 .tv-strip svg.tv-leg { display: block; width: 100%; height: auto; }
 .tv-leg-grid { stroke: var(--line); stroke-width: 1; }
@@ -575,8 +579,9 @@ button.tv-flow-blk.a { color: var(--text-2); }
 .legend i.lg-frun { background: #fff; width: 18px; border-bottom: 3px solid var(--bad); border-radius: 0; }
 .legend i.lg-pbad { background: #FFE3DF; box-shadow: inset 0 0 0 1px var(--bad); }
 /* 상대별 경기 수(step-result.js renderPairs): 가운데 칸 안에서 스크롤, 칸은 창 높이에 맞춘 정사각 */
-.r3-pairs { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px; }
-.r3-pairs .tv-pairs { width: min(100%, calc(100vh - 330px)); }
+/* 홈/원정 흐름 띠와 같은 높이로: 판정·설명을 뺀 나머지 높이를 표가 채우고, 칸은 그 높이 기준 정사각(사용자 요청 2026-11-06) */
+.r3-pairs { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 10px 12px; display: flex; flex-direction: column; }
+.r3-pairs .tv-pairs { flex: 1 1 auto; min-height: 0; height: auto; width: auto; max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
 /* 상대별 경기 수: 판정 한 줄 + 정사각 칸, 창 높이에 맞춤 */
 .tv-verdict { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--r); font-weight: 700; margin-bottom: 12px; }
 .tv-verdict.ok { background: var(--good-weak, #EAF6EE); color: var(--good, #1E7A3C); }
