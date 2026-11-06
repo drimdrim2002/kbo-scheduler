@@ -178,7 +178,7 @@
       if (anyViol) items.push('<span><i class="lg-viol"></i>위반</span>');
       if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
     } else if (u.view === 'flow') {
-      items.push('<span><i class="lg-home"></i>홈 연전</span><span><i class="lg-fa"></i>원정 연전</span>');
+      items.push('<span><i class="lg-home"></i>홈 연전</span><span><i class="lg-fa"></i>원정 연전</span><span><i class="lg-fg' + (FLOW_GRAPH === 'over' ? ' over' : '') + '"></i>' + (FLOW_GRAPH === 'cum' ? '쌓인 이동 거리' : '옮긴 거리') + '</span>');
       if (anyViol) items.push('<span><i class="lg-mviol"></i>위반</span>');
       if (c.ex.teamMetrics.some((t) => t.runs.some((r) => r.length > 3))) items.push('<span><i class="lg-frun"></i>4연속 이상</span>');
       if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
@@ -352,6 +352,14 @@
   }
 
   // ───────── 홈/원정 흐름 띠 · 상대별 경기 수 (2027 흐름의 보기 — 「구단별 보기」에서 옮겨 옴, 2026-11-06) ─────────
+  /** 이동 거리 그래프에 쓰는 거리(km). 가장 먼 두 구장이 그래프 맨 위 */
+  function flowKm(st) {
+    const m = new Map(); let max = 0, pair = '';
+    for (const d of st.distanceMatrix || []) { const v = +d.distance || 0; m.set(d.from + '|' + d.to, v); if (v > max) { max = v; pair = d.from + '↔' + d.to; } }
+    return { get: (a, b) => m.get(a + '|' + b) || 0, max, pair };
+  }
+  /** 이동 거리 그래프 모양: 'leg' = 줄 위쪽에 연전마다 옮긴 거리, 'over' = 막대 위에 겹친 선, 'cum' = 줄 위쪽에 쌓인 거리 */
+  const FLOW_GRAPH = 'leg';
   /** 구단마다 한 줄 띠. 홈 연전 = 진한 막대, 원정 = 옅은 막대, 달 경계선, 4연속 이상 = 빨간 밑줄. 높이는 창에 맞춘다(CSS)
    *  구단별 연전 표가 보여 주던 것(상대·날짜·위반·고정·고른 경기·옮기는 중 맞바꾸기)은 막대의 말풍선·테두리에 담았다. 막대를 누르면 경기 창.
    *  구단 이름을 누르면 그 구단만 진하게(달력의 구단 고르기와 같은 teamFilter) */
@@ -365,17 +373,25 @@
     const months = []; const seen = new Set();
     for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); months.push({ d, m }); } }
     const over = T.filter((t) => t.maxHomeRun > 3 || t.maxAwayRun > 3).length;
-    let s = '<div class="tv-flow r3-flow' + (tf.length ? ' has-sel' : '') + '" data-sk="r-flow">';
+    const km = flowKm(st), G = FLOW_GRAPH;
+    const cumMax = Math.max(1, ...T.map((t) => t.distanceKm || 0));
+    const gTop = G === 'cum' ? cumMax : km.max || 1; // 그래프 맨 위가 뜻하는 km
+    let s = '<div class="tv-flow r3-flow g-' + G + (tf.length ? ' has-sel' : '') + '" data-sk="r-flow">';
     s += '<div class="tv-flow-head"><span class="tv-flow-name"></span><span class="tv-flow-track">' + months.map((o, i) => { const next = i + 1 < months.length ? months[i + 1].d : dayN; return '<i style="left:' + pct(o.d) + '"></i>' + (next - o.d >= 8 ? '<b style="left:' + pct(o.d) + '">' + o.m + '월</b>' : ''); }).join('') + '</span><span class="tv-flow-right">최장 연속</span></div>';
     for (const t of T) {
       const focus = tf.includes(t.name), dim = tf.length && !focus;
       let row = '<div class="tv-flow-row' + (focus ? ' sel' : dim ? ' dim' : '') + '"><button class="tv-flow-name" data-act="tf" data-team="' + esc(t.name) + '" aria-pressed="' + focus + '" title="' + esc(t.name + (focus ? ' 강조 풀기' : '만 진하게 보기')) + '">' + S.team(t.name) + '</button><span class="tv-flow-track">' + months.map((o) => '<i style="left:' + pct(o.d) + '"></i>').join('');
-      for (const v of t.visits) {
+      const pts = [];
+      for (const [k, v] of t.visits.entries()) {
         const sl = slots[v.slot], a = sl.day, b = sl.day + sl.consecutive, m = v.match, mt = st.matches[m];
+        // 이 연전을 하러 오기까지 옮긴 거리. 시즌 첫 연전은 홈 구장에서 출발
+        const leg = k > 0 ? v.legTenths / 10 : v.home ? 0 : km.get(t.name, st.teams[v.loc].name);
+        const legWord = leg ? (k > 0 ? (v.home ? '집으로 ' : '앞 구장에서 ') : '홈 구장에서 ') + Math.round(leg) + 'km 이동' : '이동 없음';
+        pts.push({ x: (a + b) / 2, v: G === 'cum' ? v.cumTenths / 10 : leg, tip: Dates.fmtDate(a) + ' ' + (v.home ? '홈' : '원정') + ' · ' + (G === 'cum' ? '여기까지 ' + Math.round(v.cumTenths / 10).toLocaleString() + 'km' : legWord) });
         const flags = c.ex.matchFlags[m] || [];
         const flash = u.flashMatches && u.flashMatches.includes(m);
         let cls = 'tv-flow-blk ' + (v.home ? 'h' : 'a') + (flags.length ? ' viol' : '') + (u.sel === 'm:' + m ? ' sel' : '') + (vms.includes(m) ? ' vsel' : '') + (mt.pinned ? ' pinned' : '') + (flash ? ' flash' : '');
-        let title = Dates.fmtDate(a) + '~' + Dates.fmtDate(b - 1) + ' ' + (v.home ? '홈' : '원정') + ' vs ' + st.teams[v.opp].name + ' ' + sl.consecutive + '연전' + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '');
+        let title = Dates.fmtDate(a) + '~' + Dates.fmtDate(b - 1) + ' ' + (v.home ? '홈' : '원정') + ' vs ' + st.teams[v.opp].name + ' ' + sl.consecutive + '연전 · ' + legWord + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '');
         let act = 'sel-match';
         if (mv != null) {
           if (mv === m) { cls += ' moving'; act = 'move-cancel'; title = '옮기는 중 · 누르면 취소'; }
@@ -386,11 +402,24 @@
       }
       for (const r of t.runs) if (r.length > 3) { const a = slots[r.slots[0]].day, last = slots[r.slots[r.slots.length - 1]], b = last.day + last.consecutive;
         row += '<span class="tv-flow-run" style="left:' + pct(a) + ';width:calc(' + pct(b) + ' - ' + pct(a) + ' - 1px)" title="' + esc((r.home ? '홈 ' : '원정 ') + r.length + '연속') + '"></span>'; }
-      row += '</span><span class="tv-flow-right"><span class="' + (t.maxHomeRun > 3 ? 'bad' : '') + '">홈 ' + t.maxHomeRun + '</span> · <span class="' + (t.maxAwayRun > 3 ? 'bad' : '') + '">원정 ' + t.maxAwayRun + '</span></span></div>';
+      row += flowGraph(pts, gTop, (d) => (d - day0) / span * 100, G);
+      row += '</span><span class="tv-flow-right">' + (G === 'cum' ? '<b class="tv-flow-km">' + Math.round(t.distanceKm || 0).toLocaleString() + 'km</b>' : '') + '<span class="' + (t.maxHomeRun > 3 ? 'bad' : '') + '">홈 ' + t.maxHomeRun + '</span> · <span class="' + (t.maxAwayRun > 3 ? 'bad' : '') + '">원정 ' + t.maxAwayRun + '</span></span></div>';
       s += row;
     }
-    s += '<div class="tv-flow-foot xs muted">' + (over ? '홈이나 원정이 4연속을 넘는 구단 ' + over + '개' : '4연속을 넘는 구단 없음') + ' · 막대에 마우스를 올리면 상대와 날짜, 누르면 경기 창 · 구단 이름을 누르면 그 구단만 진하게</div></div>';
+    s += '<div class="tv-flow-foot xs muted">' + (over ? '홈이나 원정이 4연속을 넘는 구단 ' + over + '개' : '4연속을 넘는 구단 없음') + ' · ' + (G === 'cum' ? '선은 시즌 동안 쌓인 이동 거리(맨 위 ' + Math.round(cumMax).toLocaleString() + 'km)' : '선은 연전마다 옮긴 거리(맨 위 ' + Math.round(km.max) + 'km, ' + esc(km.pair) + ')') + ' · 막대에 마우스를 올리면 상대와 날짜, 누르면 경기 창 · 구단 이름을 누르면 그 구단만 진하게</div></div>';
     return s;
+  }
+  /** 구단 한 줄의 이동 거리 선. 가로는 날짜(막대와 같은 자리), 세로는 0 ~ top km. 점에 마우스를 올리면 거리 */
+  function flowGraph(pts, top, X, G) {
+    if (!pts.length) return '';
+    const P = pts.map((p) => ({ x: X(p.x), y: 100 - Math.min(1, p.v / top) * 100, tip: p.tip, v: p.v }));
+    const line = P.map((p) => p.x.toFixed(2) + ',' + p.y.toFixed(1)).join(' ');
+    let g = '<span class="tv-flow-g" aria-hidden="true"><svg viewBox="0 0 100 100" preserveAspectRatio="none">';
+    if (G !== 'over') g += '<polygon points="' + P[0].x.toFixed(2) + ',100 ' + line + ' ' + P[P.length - 1].x.toFixed(2) + ',100"/>';
+    else g += '<polyline class="halo" points="' + line + '"/>';
+    g += '<polyline points="' + line + '"/></svg>';
+    if (G !== 'over') g += P.filter((p) => p.v > 0).map((p) => '<i style="left:' + p.x.toFixed(2) + '%;top:' + p.y.toFixed(1) + '%" title="' + esc(p.tip) + '"></i>').join('');
+    return g + '</span>';
   }
   /** 상대별 경기 수: 맨 위에 판정 한 줄, 칸은 어긋난 곳만 색. 칸 크기는 창 높이에 맞춘다(CSS) */
   function renderPairs() {

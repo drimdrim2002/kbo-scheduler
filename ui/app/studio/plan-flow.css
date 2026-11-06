@@ -585,6 +585,23 @@ button.tv-flow-blk.a { color: var(--text-2); }
 .tv-flow-blk.flash { animation: flash2 1.4s ease-out 1; }
 .tv-flow-foot { flex: none; padding: 6px 0 8px; }
 .legend i.lg-fa { background: #D9DFE9; }
+/* 이동 거리 선(step-result.js flowGraph). g-leg·g-cum = 줄 위쪽 띠에 선, 막대는 아래쪽으로. g-over = 막대 위에 겹친 선 */
+.tv-flow-g { position: absolute; left: 0; right: 0; pointer-events: none; }
+.tv-flow-g svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tv-flow-g polyline { fill: none; stroke: #5B6B85; stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.tv-flow-g polygon { fill: #E6ECF5; }
+.tv-flow-g i { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #5B6B85; pointer-events: auto; }
+.r3-flow.g-leg .tv-flow-g, .r3-flow.g-cum .tv-flow-g { top: 8%; height: 34%; border-bottom: 1px solid var(--line); }
+.r3-flow.g-leg .tv-flow-blk.h, .r3-flow.g-cum .tv-flow-blk.h { top: 50%; bottom: 12%; }
+.r3-flow.g-leg .tv-flow-blk.a, .r3-flow.g-cum .tv-flow-blk.a { top: 66%; bottom: 12%; }
+.r3-flow.g-leg .tv-flow-run, .r3-flow.g-cum .tv-flow-run { bottom: 3%; }
+.r3-flow.g-over .tv-flow-g { top: 10%; height: 74%; z-index: 4; }
+.r3-flow.g-over .tv-flow-g polyline { stroke: #E07B00; stroke-width: 2; }
+.r3-flow.g-over .tv-flow-g polyline.halo { stroke: #fff; stroke-width: 4.5; }
+.tv-flow-right .tv-flow-km { display: block; color: var(--text); font-size: var(--fs-s); }
+.r3-flow.g-cum .tv-flow-right { flex-direction: column; align-items: flex-end; justify-content: center; }
+.legend i.lg-fg { background: none; width: 16px; border-radius: 0; border-top: 2px solid #5B6B85; height: 0; align-self: center; }
+.legend i.lg-fg.over { border-top-color: #E07B00; }
 .legend i.lg-frun { background: #fff; width: 18px; border-bottom: 3px solid var(--bad); border-radius: 0; }
 .legend i.lg-pbad { background: #FFE3DF; box-shadow: inset 0 0 0 1px var(--bad); }
 /* 상대별 경기 수(step-result.js renderPairs): 가운데 칸 안에서 스크롤, 칸은 창 높이에 맞춘 정사각 */
