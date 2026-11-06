@@ -151,6 +151,26 @@
   }
 
   // ───────── 오른쪽: 구단 카드 / 비교 카드 ─────────
+  /** 한 구단 카드(2027). 옛 카드의 「평균 ± 범위」 경고표와 평균값은 뺐다(사용자 결정 2026-11-06): 엔진이 맞추는 기준은 격차·허용 수준이라 말이 달랐다 */
+  function card(t) {
+    const c = D(), st = app().state;
+    const row = (k, v, unit, warn) => '<dt>' + esc(k) + '</dt><dd>' + (warn ? '<b style="color:var(--bad)">' + icon('warn') + v + '</b>' : '<b>' + v + '</b>') + (unit ? ' <span class="muted small">' + unit + '</span>' : '') + '</dd>';
+    let s = '<div class="insp-sec"><div class="insp-title">' + S.team(t.name) + '</div><div class="insp-sub">' + esc(st.teams[t.team].stadium) + ' · 홈 ' + t.homeSeries + ' / 원정 ' + t.awaySeries + ' 시리즈</div></div>';
+    s += '<div class="insp-sec"><h4>이동 · 휴일</h4><dl class="props">' +
+      row('총 이동거리', fmt.km(t.distanceKm), 'km') +
+      row('이동 횟수', t.moves, '회') +
+      row('주말·공휴일 홈', t.holidayWeight, '점') + '</dl></div>';
+    s += '<div class="insp-sec"><h4>홈 · 원정</h4><dl class="props">' +
+      row('주말 홈/원정', t.weekendHome + ' / ' + t.weekendAway) +
+      row('주중 이동', t.weekdayMoves + '회 · ' + fmt.km(t.weekdayMoveKm) + 'km') +
+      row('최장 연속', '홈 ' + t.maxHomeRun + ' · 원정 ' + t.maxAwayRun, '', t.maxHomeRun > 3 || t.maxAwayRun > 3) +
+      row('공휴일 홈', t.holidayHomeGames, '경기') +
+      row('7~8월 원정', t.summerAwayGames, '경기') + '</dl></div>';
+    s += '<div class="insp-sec"><h4>홈/원정 흐름<span class="r">연전 기간 ' + c.slots.length + '</span></h4>' + strip(t) + '</div>';
+    s += '<div class="insp-sec"><h4>장거리 연속 원정</h4>' + (t.longTrips.length ? t.longTrips.map((lt) => '<div class="small">' + esc(Dates.fmtDate(c.slots[lt.slots[0]].day)) + ' 부터 ' + lt.series + '시리즈 · <b>' + fmt.km(lt.tenths / 10) + 'km</b></div>').join('') : '<span class="small muted">600km 초과 구간 없음</span>') + '</div>';
+    s += '<div class="insp-sec"><button class="btn sm" data-act="q-to-cal" data-team="' + esc(t.name) + '">' + icon('cal') + '달력에서 이 구단만 보기</button></div>';
+    return s;
+  }
   function insp(orig) {
     const u = S.ui;
     if (u.qv === 'cmp') {
@@ -164,12 +184,13 @@
       s += '<div class="insp-sec"><button class="btn sm" data-act="tv-swap">' + icon('swap') + '자리 바꾸기</button> <button class="btn sm" data-act="tv-cmp-off">' + icon('x') + '비교 끝내기</button></div>';
       return { title: '두 구단 비교', html: s };
     }
-    const o = orig();
-    if (!u.team || !tm(u.team)) return o;
+    const t = u.team && tm(u.team);
+    if (!t) return orig();
+    const o = { title: '구단 카드', html: card(t) };
     const btn = u.pick2
       ? '<div class="insp-sec tv-pick"><b>' + icon('swap') + ' 왼쪽 목록에서 비교할 구단을 고르세요</b> <button class="btn sm ghost" data-act="tv-pick2-cancel">취소</button></div>'
       : '<div class="insp-sec"><button class="btn sm" data-act="tv-pick2">' + icon('swap') + '다른 구단과 비교</button>' + (u.team2 && tm(u.team2) ? ' <button class="btn sm ghost" data-act="q-view" data-qv="cmp">' + esc(u.team2) + '와(과) 비교 보기</button>' : '') + '</div>';
-    const at = o.html.indexOf('<div class="insp-sec"><h4>점수 반영 지표');
+    const at = o.html.indexOf('<div class="insp-sec"><h4>이동 · 휴일');
     return { title: o.title, html: at >= 0 ? o.html.slice(0, at) + btn + o.html.slice(at) : o.html + btn };
   }
 
