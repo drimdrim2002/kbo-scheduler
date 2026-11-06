@@ -48,6 +48,13 @@ curl -s -X POST localhost:8080/api/v1/score -H 'Content-Type: application/json' 
 - http://localhost:8080/og/default.png : 1200×630 이미지(한글 폰트 확인).
 - 편성 한 번 뒤 `data/results/<id>.json`이 생기고 `/og/<id>.png`도 열린다. 서버를 재시작해도 같은 조건은 즉시 돌아온다.
 
+### 2.4.2 요구 사항 점검 (2026-11-07, 엔진 점수와 따로 세는 서버 점검기)
+- `RequirementChecker`가 완성된 일정을 시리즈 → 연전 기간 → 날짜별 경기로 풀어 요구 사항 15항목(특별 경기·경기 수·날짜·연전 길이·후반기 첫 4연전·하루 단위·흐름·배정)을 직접 센다. `ScoreFormulas`·`score.js`를 쓰지 않으므로 점수 공식이 틀려도 여기서 잡힌다. 어겨도 결과를 막지 않고 표시만 한다.
+- 어디에 실리나: 편성 결과(SSE done·캐시)와 `/api/v1/results/<id>`의 `verification`. `default.json`처럼 점검 전에 저장된 결과는 열 때 센다(파일은 그대로). 정한 값(휴식 요일·휴식기·개막전·어린이날…)은 `data/baseball/project_2025.json`(`node ui/tools/build-project.js`로 만든 2025 프리셋 프로젝트)에서 읽는다.
+- 직접 점검: `curl -s -X POST localhost:8080/api/v1/verify -H 'Content-Type: application/json' -d "{\"problem\": $(cat data/baseball/project_2025.json)}"` → `"ok":true,"passed":14,"failed":0,"info":1`(홈 경기 수는 2025 설정에 정한 값이 없어 참고).
+- 화면: 스튜디오 현재 결과 분석 맨 위 요약 줄 + 「요구 사항 점검」 보기(`#step=8`, 점검표·근거 표·날짜별 출전표·아무 날 골라 보기·엑셀), 실행 결과 비교 표의 「요구 사항 n/n」 줄, 공유 링크 「규칙을 다 지켰을까요?」. 서버 없이 열면 「서버 점검을 할 수 없음」.
+- 시험: `RequirementChecker2025Test`(KBO 실제 2025 1차 일정 14항목 통과), `RequirementCheckerViolationTest`(항목마다 하나씩 일부러 어기면 그 항목만 어김), `StoredResultVerificationTest`(기본 결과 열 때 점검).
+
 ### 2.4.1 소개 → 편성 → 결과 → 스튜디오 (휴대폰 375에서도)
 1. http://localhost:8080/#try 에서 이동거리 단계와 어린이날 홈 5구단을 바꾸고 「편성 시작」. 두산·LG는 잠실을 같이 써서 **둘 중 정확히 하나**만 고를 수 있다(초기해 생성기 제약 `requireOneSharedStadiumHome`).
 2. 진행 막대와 "지금까지 가장 좋은 일정: 6x,xxx km · n/10초"가 갱신된다(사전식 점수라 km가 잠깐 늘 수도 있다). 다른 작업이 돌면 "대기 n번째", 같은 IP에서 이미 돌고 있으면 429 안내.
@@ -57,8 +64,8 @@ curl -s -X POST localhost:8080/api/v1/score -H 'Content-Type: application/json' 
 ### 2.5 자동 점검 (전부 통과해야 정상)
 | 점검 | 명령 | 기대 |
 | :--- | :--- | :--- |
-| Java 테스트 | `mvn -q test` | 29개 통과 |
-| UI 코어 테스트 | `node ui/core/test/run-tests.js` | 21 통과 |
+| Java 테스트 | `mvn -q test` | 95개 통과(2026-11-07) |
+| UI 코어 테스트 | `node ui/core/test/run-tests.js` | 47 통과 |
 | 위저드 자가 점검 | `bash ui/tools/studio/selftest.sh 1440 877` | ALL PASS / 64 |
 | 화면 점검 35경로×2크기 | `bash ui/tools/studio/checkall.sh` | 70줄 모두 `data-errors="0" data-scroll="OK…"` |
 | 재생기 단독 | `bash ui/tools/replay/check.sh` | `data-errors="0" data-replay="ready …"` |
