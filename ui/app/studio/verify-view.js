@@ -43,7 +43,8 @@
   // ───────── 요약 줄(현재 결과 분석) · 비교 표 칸 ─────────
   /** 현재 결과 분석 맨 위 줄: 늘 보인다. 지키면 개수, 어기면 어긴 항목 이름. 밑 줄에 셈 방법과 시각 */
   V.summary = function (res) {
-    const st = app().state, v = res && res.verification;
+    // 점검 화면에서 지금 일정으로 서버에 다시 물어 받은 점검표(지문이 같음)가 있으면 그것이 가장 새것이다. 없으면 실행 때 받은 것
+    const st = app().state, v = V.matches(V.data, st) ? V.data : res && res.verification;
     let cls, head, note;
     if (!v || v.error) { cls = 'none'; head = '요구 사항 점검 없음'; note = v && v.error ? v.error : res && res.engine && res.engine !== 'REST' ? '서버에 연결되지 않아 시험 엔진으로 낸 결과입니다. 서버 엔진으로 실행하면 서버가 요구 사항을 다시 셉니다.' : '이 결과에는 서버 점검표가 없습니다. 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; }
     else if (!V.matches(v, st)) { cls = 'stale'; head = STALE; note = '실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다(' + when(v.checkedAt) + '에 센 것). 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; } // 지문이 다르면 지킨 개수를 내걸지 않는다
