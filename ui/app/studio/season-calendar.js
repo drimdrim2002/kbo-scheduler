@@ -365,11 +365,11 @@
   /** 달력 칸 글자: 세 글자까지는 한 줄, 넷 이상이면 두 줄(띄어쓰기가 있으면 거기서, 없으면 세 글자 뒤에서) */
   // 3단계·4 확인 보기 달력의 이벤트 표시: 글자 대신 동그란 색 배지 안의 흰 그림(이름은 칸에 올리면 나온다). 공휴일은 그림 없이 빨간 칸
   const MARK_SVG = {
-    'e-op': '<path d="M4 2h1.4v12H4z"/><path d="M5.4 2.5h7.1l-1.9 2.75 1.9 2.75H5.4z"/>', // 개막전 = 깃발
-    'e-ch': '<ellipse cx="8" cy="5.6" rx="4.6" ry="5"/><path d="M6.8 10.3h2.4L8 11.8z"/><path d="M8 11.8q-1.6 1.1 0 2.1t0 1.9" fill="none" stroke="currentColor" stroke-width="1.2"/>', // 어린이날 = 풍선
-    'e-as': '<path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/>', // 올스타전 = 별
-    'e-4': '<path d="M5 2.8v10.4L13.2 8z"/>', // 후반기 첫 4연전 = 다시 시작(▶)
-    'e-end': '<path d="M3 1.5h1.5v13H3z"/><path d="M4.5 2h9.5v7H4.5z" fill-opacity=".4"/><path d="M4.5 2h3.2v3.5H4.5zm6.3 0H14v3.5h-3.2zM7.7 5.5h3.1V9H7.7z"/>', // 1차 편성 종료 = 체크무늬 결승 깃발
+    'e-op': '<path d="M.8 1h3.6v2.2H.8zm10.8 0h3.6v2.2h-3.6z"/><path class="w" d="M1.5 1.7h.7v.8h-.7zm1.5 0h.7v.8H3zm9.3 0h.7v.8h-.7zm1.5 0h.7v.8h-.7z"/><path d="M2.3 3.2h.7v4.3h-.7zm10.7 0h.7v4.3H13z"/><path d="M.4 8c2.5-1.4 5-2 7.6-2s5.1.6 7.6 2v5.3c-2.5 1.4-5 2-7.6 2s-5.1-.6-7.6-2z"/><path class="w" d="M.4 9.5c2.5-1.3 5-1.8 7.6-1.8s5.1.5 7.6 1.8" fill="none" stroke-width=".7"/><path class="w" d="M.4 11c2.5-1.2 5-1.7 7.6-1.7s5.1.5 7.6 1.7" fill="none" stroke-width=".6"/><ellipse class="w" cx="8" cy="12.4" rx="5" ry="1.6"/>', // 개막전 = 조명탑이 선 야구장
+    'e-ch': '<path d="M3.9 16c0-2.9 1.9-4.6 4.1-4.6s4.1 1.7 4.1 4.6z"/><circle class="w" cx="8" cy="6.6" r="4.6" stroke="currentColor" stroke-width="1.3"/><path d="M4.3 5.2C4.9 2.6 6.4 1.6 8 1.6s3.1 1 3.7 3.6C10.6 4 9.4 3.6 8 3.6S5.4 4 4.3 5.2z"/><path d="M7.3 1.9c-.4-1.1.5-1.9 1.8-1.7-.7.3-1.1.9-1 1.6z"/><circle cx="6.3" cy="6.6" r=".8"/><circle cx="9.7" cy="6.6" r=".8"/><circle class="k" cx="5.2" cy="8.2" r=".85"/><circle class="k" cx="10.8" cy="8.2" r=".85"/><path d="M6.6 8.5q1.4 1.2 2.8 0" fill="none" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/>', // 어린이날 = 웃는 아이
+    'e-as': '<path d="M6.6 2.6L8.3 6.8L12.9 7.2L9.4 10.1L10.5 14.5L6.6 12.2L2.7 14.5L3.8 10.1L0.3 7.2L4.9 6.8z"/><path d="M12.9 0.3L13.7 2.2L15.8 2.4L14.2 3.7L14.7 5.7L12.9 4.7L11.1 5.7L11.6 3.7L10.0 2.4L12.1 2.2z"/><path d="M13.5 10.1L14.1 11.6L15.7 11.7L14.5 12.7L14.9 14.3L13.5 13.4L12.1 14.3L12.5 12.7L11.3 11.7L12.9 11.6z"/>', // 올스타전 = 별 셋
+    'e-4': '<circle cx="8" cy="8" r="7.6"/><path class="w" d="M6 4.4v7.2L11.8 8z"/>', // 후반기 첫 4연전 = 다시 시작(▶)
+    'e-end': '<path d="M2.2 .8h1.5v14.6H2.2z"/><path class="w" d="M3.7 1.4h11v7.5h-11z" stroke="currentColor" stroke-width="1"/><path d="M3.7 1.4h2.75v2.5H3.7zm5.5 0h2.75v2.5H9.2zm-2.75 2.5H9.2v2.5H6.45zm5.5 0h2.75v2.5h-2.75zM3.7 6.4h2.75v2.5H3.7zm5.5 0h2.75v2.5H9.2z"/>', // 1차 편성 종료 = 체크무늬 결승 깃발
   };
   const markIcon = (mk) => (MARK_SVG[mk.c] ? '<i class="mk" role="img" aria-label="' + esc(mk.t) + '"><svg viewBox="0 0 16 16" aria-hidden="true">' + MARK_SVG[mk.c] + '</svg></i>' : '');
   /** view = 보기 전용(검토 화면 아래 달력): 누르고 끄는 칸이 아니고, 개막일·올스타 휴식기·1차 편성 종료일을 표시한다 */
