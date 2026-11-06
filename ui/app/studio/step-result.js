@@ -303,7 +303,7 @@
   }
 
   // ───────── 구단별 연전 표 (라) ─────────
-  /** 세로 10구단 × 가로 연전 기간 전체(가로 스크롤). 진한 칸 = 홈, 빈 칸 = 원정, 위반 칸 빨간 테두리, 홈·원정 4연속 이상 구간은 빨간 묶음 테두리 */
+  /** 세로 10구단 × 가로 연전 기간 전체(가로 스크롤). 옅은 칸 = 홈, 진한 칸 = 원정, 위반 칸 빨간 테두리, 홈·원정 4연속 이상 구간은 빨간 묶음 테두리 */
   function renderMatrix() {
     const c = D(), st = app().state, u = S.ui, tf = u.teamFilter;
     const mv = u.moving, mvm = mv != null ? st.matches[mv] : null;
@@ -360,7 +360,7 @@
   }
   /** 이동 거리 그래프 모양: 'leg' = 줄 위쪽에 연전마다 옮긴 거리, 'over' = 막대 위에 겹친 선, 'cum' = 줄 위쪽에 쌓인 거리 */
   const FLOW_GRAPH = 'leg';
-  /** 구단마다 한 줄 띠. 홈 연전 = 진한 막대, 원정 = 옅은 막대, 달 경계선, 4연속 이상 = 빨간 밑줄. 높이는 창에 맞춘다(CSS)
+  /** 구단마다 한 줄 띠. 홈 연전 = 낮고 옅은 막대, 원정 = 높고 진한 막대, 달 경계선, 4연속 이상 = 빨간 밑줄. 높이는 창에 맞춘다(CSS)
    *  구단별 연전 표가 보여 주던 것(상대·날짜·위반·고정·고른 경기·옮기는 중 맞바꾸기)은 막대의 말풍선·테두리에 담았다. 막대를 누르면 경기 창.
    *  구단 이름을 누르면 그 구단만 진하게(달력의 구단 고르기와 같은 teamFilter) */
   function renderFlow() {
@@ -448,7 +448,7 @@
     const bySlot = new Map(tm.visits.map((v) => [v.slot, v]));
     const overSlots = new Set();
     for (const r of tm.runs) if (r.length > 3) r.slots.slice(3).forEach((x) => overSlots.add(x));
-    let s = '<div class="mini-strip" style="grid-template-columns:repeat(' + c.slots.length + ',minmax(0,1fr))" title="' + esc(name) + ' 연전 기간별 홈(진한 칸)/원정">';
+    let s = '<div class="mini-strip" style="grid-template-columns:repeat(' + c.slots.length + ',minmax(0,1fr))" title="' + esc(name) + ' 연전 기간별 홈(옅은 칸)/원정(진한 칸)">';
     for (const sl of c.slots) {
       const v = bySlot.get(sl.index);
       s += '<i class="' + (v && v.home ? 'h' : '') + (overSlots.has(sl.index) ? ' over' : '') + '" style="' + (sl.index === hiSlot ? 'outline:2px solid #1F5FD6;outline-offset:0;' : '') + (v ? '' : 'background:#fff;') + '"></i>';
@@ -491,7 +491,7 @@
     if (u.hvOpen) {
       s += '<div class="pop-hv"><div class="small" style="margin-bottom:3px">' + S.team(mt.home) + '</div>' + teamStrip(mt.home, s0) +
         '<div class="small" style="margin:6px 0 3px">' + S.team(mt.away) + '</div>' + teamStrip(mt.away, s0) +
-        '<div class="legend" style="margin-top:6px"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>홈·원정 4연속 이상</span><span><i style="outline:2px solid var(--blue)"></i>이 경기</span></div></div>';
+        '<div class="legend" style="margin-top:6px"><span><i style="background:#D9DFE9"></i>홈</span><span><i style="background:var(--navy)"></i>원정</span><span><i style="box-shadow:inset 0 0 0 1.5px var(--bad)"></i>홈·원정 4연속 이상</span><span><i style="outline:2px solid var(--blue)"></i>이 경기</span></div></div>';
     }
     return s + '</div>';
   }
