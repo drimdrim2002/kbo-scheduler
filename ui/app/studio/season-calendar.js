@@ -363,7 +363,15 @@
 
   // ───────── 가운데 달력 ─────────
   /** 달력 칸 글자: 세 글자까지는 한 줄, 넷 이상이면 두 줄(띄어쓰기가 있으면 거기서, 없으면 세 글자 뒤에서) */
-  const twoLines = (t) => { if (t.replace(/\s/g, '').length <= 3) return esc(t); const sp = t.indexOf(' '), k = sp > 0 ? sp : 3; return esc(t.slice(0, k)) + '<br>' + esc(t.slice(sp > 0 ? k + 1 : k)); };
+  // 3단계·4 확인 보기 달력의 이벤트 표시: 글자 대신 동그란 색 배지 안의 흰 그림(이름은 칸에 올리면 나온다). 공휴일은 그림 없이 빨간 칸
+  const MARK_SVG = {
+    'e-op': '<path d="M4 2h1.4v12H4z"/><path d="M5.4 2.5h7.1l-1.9 2.75 1.9 2.75H5.4z"/>', // 개막전 = 깃발
+    'e-ch': '<ellipse cx="8" cy="5.6" rx="4.6" ry="5"/><path d="M6.8 10.3h2.4L8 11.8z"/><path d="M8 11.8q-1.6 1.1 0 2.1t0 1.9" fill="none" stroke="currentColor" stroke-width="1.2"/>', // 어린이날 = 풍선
+    'e-as': '<path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/>', // 올스타전 = 별
+    'e-4': '<path d="M5 2.8v10.4L13.2 8z"/>', // 후반기 첫 4연전 = 다시 시작(▶)
+    'e-end': '<path d="M3 1.5h1.5v13H3z"/><path d="M4.5 2h9.5v7H4.5z" fill-opacity=".4"/><path d="M4.5 2h3.2v3.5H4.5zm6.3 0H14v3.5h-3.2zM7.7 5.5h3.1V9H7.7z"/>', // 1차 편성 종료 = 체크무늬 결승 깃발
+  };
+  const markIcon = (mk) => (MARK_SVG[mk.c] ? '<i class="mk" role="img" aria-label="' + esc(mk.t) + '"><svg viewBox="0 0 16 16" aria-hidden="true">' + MARK_SVG[mk.c] + '</svg></i>' : '');
   /** view = 보기 전용(검토 화면 아래 달력): 누르고 끄는 칸이 아니고, 개막일·올스타 휴식기·1차 편성 종료일을 표시한다 */
   function calendarStrip(view) {
     const st = app().state, s = st.settings, y = S.seasonYear(), [m0, m1] = months();
@@ -399,7 +407,7 @@
           cls.push('game'); if (w === 0 || w === 6) cls.push('we');
           if (x.k === 0) cls.push('ss'); if (x.k === x.b.len - 1) cls.push('se'); if (x.wk) cls.push('wk');
           if (selSlot && selSlot.d === x.b.d) cls.push('sel');
-          tt.push((x.wk ? '토·일 낀 ' : '평일 ') + x.b.len + '연전 ' + (x.k + 1) + '일째');
+          tt.push((x.wk ? '주말 ' : '주중 ') + x.b.len + '연전 ' + (x.k + 1) + '일째');
         } else if (a != null && e1 != null && n >= a && n <= e1) { cls.push('rest'); tt.push(restDay(n) ? '휴식 요일' : '경기 없는 날'); }
         else if (a != null && e2 != null && n > e1 && n <= e2) { cls.push('re'); tt.push('재편성 기간'); }
         else cls.push(a == null ? 'pre' : 'off');
@@ -411,7 +419,7 @@
         const lab = !view && x && x.k === 0 ? '<i class="sl">' + x.b.len + '연전</i>' : ''; // 보기 전용은 칸이 작아 글자 없이 띠 모양(plan-flow.css 「연전 묶음 경계」)으로만 묶음을 보인다
         const mk = f3 ? mark.get(n) : null;
         if (mk) { cls.push('lab', mk.c); tt.push(mk.t); }
-        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 && fs() === 3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b><i class="lb">' + twoLines(mk.t) + '</i>' : d + lab) + '</span>'; continue; }
+        if (view) { h += '<span class="' + cls.join(' ') + '"' + (f3 && fs() === 3 ? ' data-act="pf-cal-day" data-d="' + n + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + (mk ? '<b>' + d + '</b>' + markIcon(mk) : d + lab) + '</span>'; continue; }
         h += '<span class="' + cls.join(' ') + '" role="gridcell" data-d="' + n + '"' + (x ? ' data-slot="' + x.b.i + '"' : '') + ' title="' + esc(tt.join(' · ')) + '">' + d + lab + '</span>';
       }
       h += '</div></div>';
@@ -433,7 +441,7 @@
   }
   function mainPane() {
     const st = app().state, y = S.seasonYear(), gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), [m0, m1] = months(), f = fs();
-    const legend = f === 2 ? [['bnd', '평일 연전'], ['bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일(빨강)'], ['sat', '토요일(파랑)'], ['sel', '고른 묶음']] : [['bnd', '평일 연전'], ['bnd wk', '토·일 낀 연전'], ['hol', '공휴일(빨강)'], ['ev', '홈 구장 지정'], ['pick', '고른 날']];
+    const legend = f === 2 ? [['bnd', '주중 경기'], ['bnd wk', '주말 경기'], ['rest', '경기 없음'], ['hol', '공휴일(빨강)'], ['sat', '토요일(파랑)'], ['sel', '고른 묶음']] : [['bnd', '주중 경기'], ['bnd wk', '주말 경기'], ['hol', '공휴일(빨강)'], ['ev', '홈 구장 지정'], ['pick', '고른 날']];
     const tips = f === 2
       ? '<span>' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음(2·3·4연전)</span><span>' + icon('grid') + '묶음을 <b>누르면</b> 연전 수 바꾸기 · 나누기 · 지우기</span>'
       : '<span>' + icon('target') + '날을 <b>누르면</b> 홈 구장 지정</span><span>빨간 동그라미 = 공휴일(가중치는 왼쪽 표)</span><span>연전 묶음은 2단계에서 고칩니다</span>';
@@ -461,8 +469,8 @@
   /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 주요 이벤트 일정 단계·4 확인(이벤트·공휴일 이름 표시. 날을 눌러 고치는 것은 3단계만) */
   S.seasonStripView = function (f3, tail) {
     const legend = f3
-      ? [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['game wk sat', '토요일'], ['game wk sun', '일요일'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기'], ['lab e-op', '개막전'], ['lab e-ch', '어린이날'], ['lab e-as', '올스타전'], ['lab e-4', '후반기 첫 4연전'], ['lab e-end', '1차 편성 종료']]
-      : [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일'], ['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']];
+      ? [['game bnd', '주중 경기'], ['game bnd wk', '주말 경기'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기']] // 이벤트(개막전·어린이날·올스타전·후반기 첫 4연전·1차 편성 종료)는 칸 안 그림 배지로, 범례 없이
+      : [['game bnd', '주중 경기'], ['game bnd wk', '주말 경기'], ['rest', '경기 없음'], ['hol', '공휴일'], ['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']];
     return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + (tail || '') + '</div>' + calendarStrip(true) + '</div>';
   };
   /** 검토 화면(plan-flow.js) 줄 안에서 펼치는 입력칸. key: opening · rest · allstar · initialEnd */
@@ -472,7 +480,7 @@
   };
   /** 검토 화면 아래 달력에서 바로 고칠 때: 수정 화면과 같은 달력(끌면 묶음, 묶음을 누르면 바꾸기·나누기·지우기) */
   S.seasonStripLive = function (tail) {
-    const legend = [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일']];
+    const legend = [['game bnd', '주중 경기'], ['game bnd wk', '주말 경기'], ['rest', '경기 없음'], ['hol', '공휴일']];
     S.afterRender(placePopover);
     return '<div class="pf-cal live"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') +
       '<span class="pf-cal-tip">' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음 · 묶음을 <b>누르면</b> 바꾸기·나누기·지우기<span id="scDragHint" class="sc-drag-hint"></span></span>' + (tail || '') + '</div>' +
