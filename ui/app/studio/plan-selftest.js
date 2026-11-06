@@ -445,6 +445,10 @@
       S.go({ step: 4, qv: 'cmp', team: 'LG', team2: null }); flush();
       ok('둘째 구단 없이 비교 보기 → 하나 더 고르라는 안내', S.ui.pick2 === true && /하나 더 고르세요/.test(page()));
       S.ui.pick2 = false; S.ui.team2 = null;
+      S.go({ step: 4, qv: 'a3', team: 'KT', team2: null }); flush();
+      ok('홈/원정 흐름: 표 대신 구단마다 한 줄 띠(홈 막대·원정 막대·달 경계)', qa('.tv-flow-row').length === st().teams.length && qa('.tv-flow-blk.h').length > 100 && qa('.tv-flow-head .tv-flow-track > b').length >= 5 && !q('table.has'));
+      S.go({ step: 4, qv: 'a5', team: 'KT' }); flush();
+      ok('상대별 경기 수: 판정 한 줄 + 칸', !!q('.tv-verdict') && qa('.tv-pairs .tv-pc').length === (st().teams.length + 1) * (st().teams.length + 1));
       const menuHtml = S.menus.data();
       ok('데이터 메뉴: 동작하지 않는 항목 없음 · 실제로 받는 항목은 남음', !/tag mock|import-xlsx|import-gsheet|엑셀/.test(menuHtml) && /파일로 내려받기/.test(menuHtml) && !/가져오기/.test(menuHtml));
       const found = [];

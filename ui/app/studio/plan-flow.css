@@ -529,3 +529,33 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 /* 카드 표는 셀 안에서 줄을 바꾸되 낱말은 자르지 않는다 */
 .tv-tbl.card td { white-space: normal; word-break: keep-all; }
 .tv-tbl.card td:first-child { white-space: nowrap; }
+
+/* 리그 전체: 홈/원정 흐름 띠 — 높이는 창에 맞춘다(노트북 768에서도 큰 화면에서도 줄이 고르게) */
+.tv-flow { display: flex; flex-direction: column; height: calc(100vh - 262px); min-height: 300px; padding: 8px 12px 0; }
+.tv-flow-head, .tv-flow-row { display: flex; align-items: stretch; gap: 10px; min-height: 0; }
+.tv-flow-head { flex: none; height: 22px; }
+.tv-flow-row { flex: 1 1 0; border-top: 1px solid var(--line); cursor: pointer; }
+.tv-flow-row:hover { background: var(--hover); }
+.tv-flow-row.sel { background: var(--sel); }
+.tv-flow.has-sel .tv-flow-row:not(.sel) .tv-flow-blk { opacity: .55; }
+.tv-flow-name { flex: none; width: 64px; display: flex; align-items: center; font-weight: 700; font-size: var(--fs-s); }
+.tv-flow-right { flex: none; width: 96px; display: flex; align-items: center; justify-content: flex-end; font-size: var(--fs-s); color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tv-flow-head .tv-flow-right { font-weight: 700; color: var(--text-3); font-size: 10.5px; }
+.tv-flow-track { flex: 1 1 auto; position: relative; min-width: 0; }
+.tv-flow-track > i { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line-2); }
+.tv-flow-head .tv-flow-track > b { position: absolute; top: 2px; margin-left: 4px; font-size: 11px; color: var(--text-3); font-weight: 700; }
+.tv-flow-blk { position: absolute; border-radius: 2px; }
+.tv-flow-blk.h { top: 18%; bottom: 18%; background: var(--navy); }
+.tv-flow-blk.a { top: 46%; bottom: 18%; background: #D9DFE9; }
+.tv-flow-run { position: absolute; bottom: 8%; height: 3px; background: var(--bad); border-radius: 2px; }
+.tv-flow-right .bad { color: var(--bad); font-weight: 700; }
+/* 상대별 경기 수: 판정 한 줄 + 정사각 칸, 창 높이에 맞춤 */
+.tv-verdict { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--r); font-weight: 700; margin-bottom: 12px; }
+.tv-verdict.ok { background: var(--good-weak, #EAF6EE); color: var(--good, #1E7A3C); }
+.tv-verdict.bad { background: #FFF4F2; color: var(--bad); }
+.tv-pairs { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); grid-auto-rows: 1fr; width: min(100%, calc(100vh - 330px)); min-width: 420px; aspect-ratio: 1; gap: 2px; margin: 0 auto; }
+.tv-pc { display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--surface-2); font-size: var(--fs); font-variant-numeric: tabular-nums; min-width: 0; }
+.tv-pc.hd { background: transparent; font-weight: 700; font-size: var(--fs-s); }
+.tv-pc.corner { background: transparent; font-size: 10.5px; color: var(--text-3); text-align: center; }
+.tv-pc.diag { background: var(--line); }
+.tv-pc.bad { background: #FFE3DF; color: var(--bad); font-weight: 700; }

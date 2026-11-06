@@ -231,7 +231,7 @@
   function chartWrap(title, desc, svg, extra) {
     return S.paneHead(title, desc) + '<div class="pane-body" data-sk="q-chart"><div class="chart-box">' + svg + '</div>' + (extra || '') + '</div>';
   }
-  S.qvParts = { tms, league, tols, chartWrap, visible, VIEWS };
+  S.qvParts = { tms, league, tols, chartWrap, visible, VIEWS, a3, a5 };
   function a1() {
     const L = league();
     const items = tms().map((t) => ({ label: t.name, value: t.distanceKm, color: t.team != null ? app().state.teams[t.team].color : '#1F5FD6', flag: t.overDistance, key: t.name, note: t.overDistance ? '허용 범위 밖' : '' }));
