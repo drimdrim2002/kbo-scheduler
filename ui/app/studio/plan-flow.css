@@ -514,6 +514,8 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-leg-base { stroke: var(--line); stroke-width: 1; }
 .tv-leg-wk { stroke: var(--text-3); stroke-width: 1; opacity: .55; }
 .tv-leg-date { fill: var(--text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.tv-leg-hatch { stroke: #CBD1DB; stroke-width: 2; }
+.tv-leg-note { fill: var(--text-2); font-size: 11px; font-weight: 600; }
 .tv-leg-tick { fill: var(--text-3); font-size: 10px; font-variant-numeric: tabular-nums; }
 .tv-leg-team { font-size: 12px; font-weight: 700; }
 .tv-leg-trip { fill: none; stroke: var(--bad); stroke-width: 1; stroke-dasharray: 4 3; }
