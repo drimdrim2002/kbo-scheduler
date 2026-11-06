@@ -378,11 +378,9 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .pf-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
 .pf-strip .sd.rest, .pf-cal-leg .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
 .pf-strip .sd.game, .pf-cal-leg .sd.game { background: #D3DFF5; box-shadow: none; color: var(--text); }
-.pf-strip .sd.game.we, .pf-cal-leg .sd.game.we { background: #A9C1EC; }
 .pf-strip .sd.sat { color: var(--blue); font-weight: 600; }
 .pf-strip .sd.sun, .pf-strip .sd.hol { color: var(--bad); font-weight: 600; }
 .pf-strip .sd.hol::after, .pf-cal-leg .sd.hol::after { top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }
-.pf-strip .sd.ss, .pf-cal-leg .sd.ss { box-shadow: inset 3px 0 0 var(--navy); }
 .pf-strip .sd .sl { position: absolute; left: 4px; bottom: 2px; font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--navy); white-space: nowrap; pointer-events: none; }
 .pf-strip .sd.as, .pf-cal-leg .sd.as { background: repeating-linear-gradient(135deg, #F3D9B5 0 3px, #FBEEDB 3px 6px); box-shadow: none; color: #6F4100; }
 .pf-strip .sd.op, .pf-cal-leg .sd.op { outline: 2px solid var(--ok); outline-offset: -2px; }
@@ -407,7 +405,7 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .pf-cal.live .sc-calbody { flex: 1 0 auto; display: flex; flex-direction: column; overflow: visible; padding: 0; }
 .pf-cal .sc-strip { flex: 1 0 auto; grid-auto-rows: minmax(20px, 1fr); }
 .pf-cal .sc-strip .sd { height: auto; min-height: 20px; padding-top: 0; place-items: center; font-size: 11px; }
-.pf-cal .sc-strip .sd .sl { display: none; } /* 칸이 작아 묶음 시작은 왼쪽 굵은 선으로만 */
+.pf-cal .sc-strip .sd .sl { display: none; } /* 칸이 작아 묶음은 띠 모양으로만 */
 /* 3단계 아래 달력: 날을 누르면 그 날 수정 */
 .pf-strip .sd[data-act] { cursor: pointer; }
 .pf-strip .sd[data-act]:hover { box-shadow: 0 0 0 2px var(--blue); z-index: 1; }
@@ -424,21 +422,23 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .pf-cal-leg .pf-cal-btn { margin-left: auto; }
 .pf-cal.live .pf-cal-tip { margin-left: 12px; }
 
-/* 3단계(주요 이벤트 일정) 달력: 이벤트 날은 칸 안에 글자 · 공휴일은 빨간 테두리와 이름 · 토(파랑)·일(빨강)은 칸 아래 띠 */
-.pf-strip.f3 { --cal-row: clamp(34px, 3.4vh, 42px); } /* 숫자 + 두 줄 글자 */
-.pf-strip.f3 .sd.ss { box-shadow: none; }
+/* 3단계(주요 이벤트 일정)·4 확인 달력: 이벤트 날은 칸 안에 그림 배지(이름은 칸에 올리면) · 공휴일은 빨간 테두리 · 토(파랑)·일(빨강)은 칸 아래 띠 */
+.pf-strip.f3 { --cal-row: clamp(34px, 3.4vh, 42px); } /* 숫자 + 그림 배지 */
 .pf-strip.f3 .sd.sat, .pf-cal-leg .sd.sat { box-shadow: inset 0 -3px 0 var(--blue); }
 .pf-strip.f3 .sd.sun, .pf-cal-leg .sd.sun { box-shadow: inset 0 -3px 0 var(--bad); }
 .pf-strip.f3 .sd.hol::after { display: none; }
 .pf-strip.f3 .sd.lab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.05; padding: 0 1px; overflow: hidden; }
 .pf-strip.f3 .sd.lab b { font-size: 10.5px; }
-.pf-strip.f3 .sd .lb { font-style: normal; font-size: 9px; font-weight: 700; line-height: 1.1; text-align: center; white-space: nowrap; max-width: 100%; overflow: hidden; border-radius: 3px; padding: 0 2px; color: #fff; background: var(--ev); }
-.pf-strip.f3 .sd.lab { outline: 2px solid var(--ev); outline-offset: -2px; }
-.pf-strip.f3 .sd.e-hol { --ev: var(--bad); background: #FDECEC; }
-.pf-strip.f3 .sd.e-hol .lb { color: var(--bad); background: none; padding: 0; }
+.pf-strip.f3 .sd.lab:has(.mk) { flex-direction: row; gap: 1px; overflow: visible; z-index: 1; } /* 숫자 옆에 그림. 그림이 칸보다 조금 커도 잘리지 않게 */
+.pf-strip.f3 .sd .mk { display: block; width: 26px; height: 26px; margin: -2px -3px -2px -1px; flex: none; color: var(--ev); filter: drop-shadow(0 0 .7px #fff) drop-shadow(0 0 .7px #fff); } /* 그림만(동그란 바탕 없이), 이벤트 색 + 흰 테두리 */
+.pf-strip.f3 .sd .mk svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.pf-strip.f3 .sd .mk .w { fill: #fff; stroke-linejoin: round; } /* 흰 부분(운동장·얼굴·깃발 바탕) */
+.pf-strip.f3 .sd .mk .w[fill="none"] { fill: none; stroke: #fff; }
+.pf-strip.f3 .sd .mk .k { fill: #FF9EAE; } /* 볼 */
+.pf-strip.f3 .sd.e-hol { outline: 2px solid var(--bad); outline-offset: -2px; } /* 공휴일 = 빨간 테두리 + 빨간 숫자(띠 색은 그대로) */
 .e-op { --ev: #13703F; } .e-ch { --ev: #D9480F; } .e-as { --ev: #7048E8; } .e-4 { --ev: #1F5FD6; } .e-end { --ev: #8D5A00; } .e-hol { --ev: var(--bad); }
 .pf-cal-leg i.sd.lab { background: var(--ev); box-shadow: none; }
-.pf-cal-leg i.sd.e-hol { background: #FDECEC; box-shadow: inset 0 0 0 2px var(--bad); }
+.pf-cal-leg i.sd.e-hol { background: #fff; box-shadow: inset 0 0 0 2px var(--bad); }
 
 /* 편성 조건 1~4단계(2027): 모두 2단계 모양(회색 바탕·여백 · 흰 구역 · 머리 줄 = 굵은 제목 / 오른쪽 개수 / 밑에 한 줄 설명).
    노트북(창 안쪽 1440×790)에서 스크롤 없이: 여백은 낮은 창에서 줄고, 남는 높이는 아래 시즌 달력이 받는다(큰 창은 --pf-zoom으로 통째로 키움) */
@@ -453,11 +453,10 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 /* 아래 시즌 달력: 칸 높이 노트북 15px(2단계) · 29px(3단계·4 확인, 숫자 + 두 줄 글자) */
 .stepview.fl .pf-cal { --cal-row: clamp(15px, 1.9vh, 30px); gap: 4px; margin-top: 4px; }
 .stepview.fl .pf-cal-leg .btn.sm { height: 20px; }
-/* 3단계·4 확인: 줄 사이를 2px로 줄여 칸을 29px로. 글자 칸은 테두리를 1.5px로(두 줄 글자의 아래가 테두리에 가리지 않게) */
+/* 3단계·4 확인: 줄 사이를 2px로 줄여 칸을 29px로. 공휴일 칸 테두리는 1.5px */
 .stepview.fl .pf-strip.f3 { --cal-row: clamp(29px, 3.2vh, 42px); row-gap: 2px; min-height: calc(var(--m, 7) * (var(--cal-row) + 2px)); }
 .stepview.fl .pf-strip.f3 .sd.lab { gap: 0; line-height: 1; outline-width: 1.5px; outline-offset: -1.5px; }
 .stepview.fl .pf-strip.f3 .sd.lab b { font-size: 10px; line-height: 1; }
-.stepview.fl .pf-strip.f3 .sd .lb { line-height: 1; }
 /* 3단계·4 확인 달력: 범례를 구역 제목 줄 오른쪽에(이 구역 제목 줄에는 개수가 없다) */
 .stepview.fl .pf-sec.pf-fill { position: relative; }
 .stepview.fl .pf-sec > .pf-cal:has(> .pf-strip.f3) > .pf-cal-leg { position: absolute; top: clamp(8px, 1.15vh, 18px); right: 16px; height: 20px; align-items: center; }
@@ -623,3 +622,19 @@ button.tv-flow-blk.h { color: var(--text-2); }
 .tv-pc.corner { background: transparent; font-size: 10.5px; color: var(--text-3); text-align: center; }
 .tv-pc.diag { background: var(--line); }
 .tv-pc.bad { background: #FFE3DF; color: var(--bad); font-weight: 700; }
+
+/* 연전 묶음 경계(2·3단계·4 확인의 모든 시즌 달력) — 이어진 띠: 한 묶음의 칸은 틈 없이 붙여 한 덩어리로,
+   묶음 첫날(ss)·끝날(se)은 바깥 모서리를 둥글게 + 2px씩 안으로 들여 붙어 있는 두 묶음 사이 틈을 넓힌다.
+   달이 바뀌어 다음 줄로 넘어가는 묶음은 줄 끝이 열린(네모) 채로 둔다. 칸 테두리선·그림자는 다른 표시(토·일 밑줄, 고른 날 고리, 이벤트 테두리)가 쓰므로 건드리지 않는다 */
+.pf-strip .sd.game, .sc-strip .sd.game { border-radius: 0; }
+.pf-strip .sd.game:not(.ss), .sc-strip .sd.game:not(.ss) { margin-left: -2px; } /* 칸 사이 틈(2px)을 메운다 */
+.pf-strip .sd.game.ss, .sc-strip .sd.game.ss { margin-left: 2px; border-top-left-radius: 7px; border-bottom-left-radius: 7px; }
+.pf-strip .sd.game.se, .sc-strip .sd.game.se { margin-right: 2px; border-top-right-radius: 7px; border-bottom-right-radius: 7px; }
+.pf-cal-leg i.sd.bnd { width: 26px; border-radius: 7px; }
+/* 띠 색은 연전마다 하나: 토·일이 낀 연전(wk, 관중이 많은 연전)은 진한 파랑, 평일만 있는 연전은 옅은 파랑. 토·일 칸은 글자색(토 파랑·일 빨강)으로 구별한다.
+   화~목 · 금~일이 번갈아 오므로 붙어 있는 두 연전도 대개 색이 달라 경계가 한 번 더 보인다 */
+.pf-strip, .sc-strip, .pf-cal-leg, .sc-legend { --cal-wd: #DFE7F6; --cal-wk: #A9C1EC; }
+.pf-strip .sd.game, .sc-strip .sd.game, .pf-cal-leg .sd.game { background: var(--cal-wd); }
+.pf-strip .sd.game.wk, .sc-strip .sd.game.wk, .pf-cal-leg .sd.game.wk { background: var(--cal-wk); }
+.sc-legend i.bnd { background: var(--cal-wd); border-color: var(--cal-wd); }
+.sc-legend i.bnd.wk { background: var(--cal-wk); border-color: var(--cal-wk); }

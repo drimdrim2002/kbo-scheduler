@@ -1310,7 +1310,7 @@ svg.mc text { font-family: var(--font); }
 .sc-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .sc-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; background: #fff; border: 1px solid var(--line-2); }
 .sc-legend i.game { background: #D3DFF5; border-color: #D3DFF5; }
-.sc-legend i.ss { background: #D3DFF5; border: 0; box-shadow: inset 3px 0 0 var(--navy); }
+.sc-legend i.bnd { width: 24px; border-radius: 6px; background: #D3DFF5; border-color: #D3DFF5; }
 .sc-legend i.rest { background: #F7F7F8; }
 .sc-legend i.hol { border-radius: 50%; border: 2px solid var(--bad); width: 9px; height: 9px; }
 .sc-legend i.sat { border: 0; background: none; width: auto; height: auto; }
@@ -1327,18 +1327,15 @@ svg.mc text { font-family: var(--font); }
 .sc-strip .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
 .sc-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
 .sc-strip .sd.game { background: #D3DFF5; color: var(--text); }
-.sc-strip .sd.game.we { background: #A9C1EC; }
 .sc-strip .sd.sat { color: var(--blue); font-weight: 600; }
 .sc-strip .sd.sun, .sc-strip .sd.hol { color: var(--bad); font-weight: 600; }
 .sc-strip .sd.hol::after { top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }
-.sc-strip .sd.ss { box-shadow: inset 3px 0 0 var(--navy); }
 .sc-strip .sd .sl { position: absolute; left: 4px; bottom: 3px; font-style: normal; font-size: 9.5px; font-weight: 700; color: var(--navy); white-space: nowrap; z-index: 1; pointer-events: none; }
 .sc-strip .sd.ev { outline: 2px solid var(--navy); outline-offset: -2px; }
 .sc-strip .sd.sel { background: var(--blue) !important; color: #fff !important; }
 .sc-strip .sd.sel .sl { color: #fff; }
 .sc-strip .sd.sel.hol::after { border-color: #fff; background: var(--blue); }
 .sc-strip .sd.pick { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--blue); z-index: 2; }
-.sc-strip .sd.pick.ss { box-shadow: inset 3px 0 0 var(--navy), 0 0 0 2px var(--surface), 0 0 0 4px var(--blue); }
 .sc-strip .sd.drag { background: #FFE7A3 !important; color: var(--text) !important; box-shadow: inset 0 0 0 1px #E3B13C; }
 .sc-strip .sd.drag-bad { background: var(--bad-bg) !important; color: var(--bad) !important; box-shadow: inset 0 0 0 1px var(--bad-line); }
 .sc-strip .sd:not(.off):hover { filter: brightness(.96); }
