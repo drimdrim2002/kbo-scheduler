@@ -698,11 +698,26 @@
       return '<span class="it ' + (ok ? 'ok' : 'over') + '">' + esc(shortName(id)) + ' <i>' + (ok ? '✓' : '✗') + '</i> ' + (ok ? '허용 안' : num(v - tol, g.d) + g.unit + ' 넘음') + '</span>'; });
     return '<div class="pf-sec pf-vs"><span class="l"><b>방침과 견주기</b> — ' + items.join(' · ') + '</span><button class="btn sm" data-act="pf-relevel">수준 다시 정하기</button></div>';
   }
+  /** 실행 중 4순위(전체 이동 거리)의 흐름: 엔진이 더 나은 결과를 보낼 때마다의 값(점수 맨 끝 칸이 늘 4순위). 실제 실행이 없으면(점검용 화면) S.run.kmTrend */
+  function totalTrend() {
+    const ar = app().run, h = ar && ar.history;
+    if (S.run && !S.run.kmTrend && h && h.length && h[0].score) return h.map((x) => ({ t: x.t, km: -x.score[x.score.length - 1] }));
+    return (S.run && S.run.kmTrend) || [];
+  }
+  /** 실행 중 단계: 반드시 지킬 규칙 → 1·2·3순위 허용 안 → 4순위 줄이기. focus = 지금 엔진이 붙들고 있는 순위(규칙을 맞추는 중이면 0) */
+  function runStage(data, ob) {
+    const ids = ob.order.filter((id) => GOALS[id].tol), tr = totalTrend(), km = data.gaps.totalKm;
+    const miss = ids.findIndex((id) => !within(data, id, ob));
+    const focus = !data.feasible ? 0 : miss < 0 ? ids.length + 1 : miss + 1;
+    const start = tr.length ? tr[0].km : null, cut = start != null && start > km ? start - km : 0;
+    return { ids, focus, km, cut, tr };
+  }
+  const cutText = (st) => (st.cut ? '시작보다 −' + num(st.cut) + 'km' : '10구단 합');
   /** 찾는 중 화면: 머리글 한 줄 + 현재 결과 분석과 같은 구성(사용자 결정 2026-11-04). 지킨 규칙 목록은 구단별 한눈에 아래 한 줄로 줄였다 */
   function renderRunning() {
     const c = app().derived(), ex = c.ex, data = dataOf(ex), ob = objective(), r = S.run;
     return '<div class="pf-page">' + explainLink() + '<div class="pf-hero run"><div class="big">찾는 중…</div><div><h2>지금까지 가장 좋은 결과</h2><p>' + fmt.time(r.elapsed) + ' 지남 · ' + (ex.feasible ? '반드시 지킬 규칙을 모두 지키는 중' : '규칙을 맞춰 가는 중') + ' · 더 나은 결과가 나오는 대로 받아 옵니다 · 더 나아지지 않으면 최대 시간 전에 끝납니다</p></div><div class="r"><button class="btn" data-act="run-stop">멈추고 이 결과 쓰기</button></div></div>' +
-      dashboard(data, ob) + '</div>';
+      dashboard(data, ob, runStage(data, ob)) + '</div>';
   }
   const origStep2 = S.steps[2].render;
   S.steps[2].render = function () {
@@ -799,7 +814,12 @@
       '</tbody></table>' +
       '<div class="pf-leg"><span><i class="hi"></i>열에서 가장 많은 구단</span><span><i class="lo"></i>가장 적은 구단</span><span>격차 = 그 둘의 차이</span></div>';
   }
-  function dashboard(data, ob) {
+  /** 실행 중에만: 4순위 전체 이동 거리 칸(허용 수준이 없어 누르지 않는 칸). 1·2·3순위가 모두 허용 안이면 「줄이는 중」과 시작보다 줄어든 거리, 아니면 「다음 차례」 */
+  function totalTile(st) {
+    const now = st.focus === st.ids.length + 1;
+    return '<div class="pf-gtile pf-gtotal' + (now ? ' now' : '') + '"><span class="hd"><span class="pf-rk">' + (st.ids.length + 1) + '순위</span>전체 이동 거리</span><span class="v"><b>' + num(st.km) + 'km</b><span class="s">' + (now ? '<em>줄이는 중</em>' + (st.cut ? ' · −' + num(st.cut) + 'km' : '') : '1~' + st.ids.length + '순위 다음 차례') + '</span></span></div>';
+  }
+  function dashboard(data, ob, run) {
     const ids = ob.order.filter((id) => GOALS[id].tol);
     const cols = ids.map((id) => HEAT_COLS[id].concat(id)).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
     const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3>' + heatAlert(data, ob, ids) +
@@ -807,9 +827,9 @@
     // 왼쪽 위에 목표 셋을 같은 크기 칸으로 나란히(격차·허용), 누른 칸의 구단별 막대를 아래에(처음은 1순위). 셋을 위아래로 두면 홀수라 칸이 고르지 않았다(2026-11-05 대안 다)
     const cur = shownGoal(ids), gc = GOALS[cur];
     const tiles = '<div class="pf-gtiles">' + ids.map((id) => { const g = GOALS[id];
-      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + tolTag(data, id, ob) + '</span><span class="v"><b>' + goalShow(data, id) + g.unit + '</b><span class="s">허용 ' + num(ob[g.tol]) + g.unit + '</span></span></button>'; }).join('') + '</div>';
+      return '<button class="pf-gtile' + (id === cur ? ' on' : '') + '" data-act="pf-goal" data-v="' + id + '"><span class="hd"><span class="pf-rk">' + rankOf(ob, id) + '순위</span>' + esc(shortName(id)) + tolTag(data, id, ob) + '</span><span class="v"><b>' + goalShow(data, id) + g.unit + '</b><span class="s">허용 ' + num(ob[g.tol]) + g.unit + '</span></span></button>'; }).join('') + (run ? totalTile(run) : '') + '</div>';
     const goalPanel = '<div class="pf-sec pf-goal"><h3>목표별 격차</h3>' + tiles + '<div class="pf-gsub">' + gc.name + ' · 구단별</div>' + goalOne(data, ob, cur) + '</div>';
-    return '<div class="pf-dash pf-dash3 pf-fill"><div class="pf-dl">' + goalPanel + '</div>' + heatSec + '</div>'; // 왼쪽 목표 셋 칸 + 고른 목표의 막대, 오른쪽 구단별 한눈에
+    return '<div class="pf-dash pf-dash3 pf-fill' + (run ? ' pf-run4' : '') + '"><div class="pf-dl">' + goalPanel + '</div>' + heatSec + '</div>'; // 왼쪽 목표 셋 칸 + 고른 목표의 막대, 오른쪽 구단별 한눈에
   }
   /** 점검용 주소 demo=run27: 실행 없이 지금 달력을 결과로 삼아 현재 결과 분석 화면을 본다(저장 목록에는 넣지 않는다) */
   S.demos.run27 = function () {
@@ -817,6 +837,20 @@
     const res = { at: new Date().toISOString(), elapsedMs: 61000, why: '최대 실행 시간', objective: ob, sig: inputSig(st), calSig: calSig(st), engine: 'MOCK', no: 1, option, name: runName(1, option, ob) };
     const v = storeRun(res, app().derived().ex); res.vid = v ? v.id : null;
     app().store.commit('점검용 결과', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
+  };
+  /** 점검용 주소 demo=running4: 1·2·3순위를 모두 지킨 처음 제공 결과(2027-rank1)를 실행 중 화면으로 — 4순위를 줄이는 단계를 본다 */
+  S.demos.running4 = function () {
+    const go = (n) => {
+      const v = P.builtin['2027-rank1'];
+      if (!v) { if (n < 60) setTimeout(() => go(n + 1), 50); return; }
+      app().commit('점검용 결과', (s) => applyVersion(s, v), ['teams', 'calendar', 'matches', 'plan', 'settings', 'events']);
+      S.demos.running();
+      const km = app().derived().ex.objectiveGaps.totalKm, h = S.run.history, n1 = Math.max(1, h.length - 1);
+      S.run.kmTrend = h.map((x, i) => ({ t: x.t, km: Math.round(km + 1840 * Math.pow(1 - i / n1, 2.4)) }));
+      S.ui.modal = null;
+      S.render();
+    };
+    go(0);
   };
   /** 지금 연결이 아니라 그 결과를 낸 엔진으로 본다(서버에서 낸 버전을 서버 없이 불러와도 시험 엔진 결과가 아니다). 기록이 없는 옛 결과는 지금 연결로 */
   const byTestEngine = (res) => (res.engine ? res.engine !== 'REST' : !res.from && app().engineConfig.kind !== 'REST');
