@@ -20,8 +20,10 @@ class ObjectiveSettingsTest {
         // 두 쌍(16-10, 16-12)이 넘음: 2 넘음, 0 넘음 → 2^2 * 100
         assertThat(ScoreFormulas.scaledGapPenalty(new long[] {10, 12, 16}, 4.0d)).isEqualTo(400L);
         assertThat(ScoreFormulas.distanceGapPenalty(new long[] {0, 100, 6000}, 6000L)).isZero();
-        // 7000-0은 1000 넘고 7000-100은 900 넘음 → (1000^2 + 900^2) / 100
-        assertThat(ScoreFormulas.distanceGapPenalty(new long[] {0, 100, 7000}, 6000L)).isEqualTo(18100L);
+        // 7000-0은 1000 넘고 7000-100은 900 넘음 → 1000^2 + 900^2 (0.1km 단위 제곱, 나누지 않음)
+        assertThat(ScoreFormulas.distanceGapPenalty(new long[] {0, 100, 7000}, 6000L)).isEqualTo(1_810_000L);
+        // 1km 안쪽으로 넘어도 벌점: 450.7km 차이, 허용 450km → 7^2
+        assertThat(ScoreFormulas.distanceGapPenalty(new long[] {0, 4507}, 4500L)).isEqualTo(49L);
     }
 
     @Test
@@ -46,7 +48,7 @@ class ObjectiveSettingsTest {
         long holiday = ScoreFormulas.softPenalty(3, totals, fixed);
         long total = ScoreFormulas.softPenalty(4, totals, fixed);
         assertThat(moves).isEqualTo(400L);
-        assertThat(distance).isEqualTo(18100L);
+        assertThat(distance).isEqualTo(1_810_000L);
         assertThat(holiday).isEqualTo(9800L);
         assertThat(total).isEqualTo(710L);
         assertThat(new long[] {ScoreFormulas.softPenalty(1, totals, reversed), ScoreFormulas.softPenalty(2, totals, reversed),

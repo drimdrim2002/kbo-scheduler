@@ -133,15 +133,12 @@ final class MultiStartSolver {
             lastImprovement[0] = elapsed;
             improvements[0]++;
             sink.seedBest(seed, score, elapsed);
-            boolean improved;
+            // 비교와 보내기를 한 잠금 안에서: 밖에서 보내면 두 시드가 엇갈려 더 나쁜 결과가 나중에 나갈 수 있다
             synchronized (lock) {
-                improved = globalBest[0] == null || score.compareTo(globalBest[0]) > 0;
-                if (improved) {
+                if (globalBest[0] == null || score.compareTo(globalBest[0]) > 0) {
                     globalBest[0] = score;
+                    sink.best(event.getNewBestSolution(), seed, score, elapsed, improvements[0]);
                 }
-            }
-            if (improved) {
-                sink.best(event.getNewBestSolution(), seed, score, elapsed, improvements[0]);
             }
         });
         synchronized (solvers) {

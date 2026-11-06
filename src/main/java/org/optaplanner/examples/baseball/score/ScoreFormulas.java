@@ -352,18 +352,21 @@ public final class ScoreFormulas {
         return Math.round(sum * 100.0d);
     }
 
-    /** Same shape as {@link #scaledGapPenalty} in tenths of a kilometre; the result is whole km squared. */
+    /**
+     * Same shape as {@link #scaledGapPenalty} in tenths of a kilometre; the result is (0.1 km) squared, not divided down,
+     * so going over the gap by even 0.1 km costs something (450.7 km against 450 km used to floor to 0 and count as within).
+     */
     public static long distanceGapPenalty(long[] distanceTenths, long gapTenths) {
-        long hundredths = 0L;
+        long tenthsSquared = 0L;
         for (int i = 0; i < distanceTenths.length; i++) {
             for (int j = i + 1; j < distanceTenths.length; j++) {
                 long excess = Math.abs(distanceTenths[i] - distanceTenths[j]) - gapTenths;
                 if (excess > 0L) {
-                    hundredths += excess * excess;
+                    tenthsSquared += excess * excess;
                 }
             }
         }
-        return hundredths / 100L;
+        return tenthsSquared;
     }
 
     /**
