@@ -369,7 +369,7 @@
     const st = app().state, s = st.settings, y = S.seasonYear(), [m0, m1] = months();
     const hol = new Map(s.holidays.map((h) => [dn(h.date), h]));
     const bs = bundles(), byDay = new Map();
-    bs.forEach((b) => { for (let k = 0; k < b.len; k++) byDay.set(b.d + k, { b, k }); });
+    bs.forEach((b) => { let wk = false; for (let k = 0; k < b.len; k++) { const w = Dates.weekday(b.d + k); if (w === 0 || w === 6) wk = true; } for (let k = 0; k < b.len; k++) byDay.set(b.d + k, { b, k, wk }); }); // wk = 토·일이 낀 연전(관중이 많은 연전 — 띠 색을 진하게)
     const evDays = new Map(st.events.map((e) => [dn(e.date), e]));
     const a = s.seasonStart ? dn(s.seasonStart) : null, e1 = s.initialEnd ? dn(s.initialEnd) : null, e2 = s.seasonEnd ? dn(s.seasonEnd) : null;
     const selSlot = !view && fs() === 2 && C.slotAt != null ? bs.find((b) => b.d === C.slotAt) : null;
@@ -397,9 +397,9 @@
         if (hh) { cls.push('hol'); tt.push(hh.name + ' · 가중치 ' + weightOf(hh)); }
         if (x) {
           cls.push('game'); if (w === 0 || w === 6) cls.push('we');
-          if (x.k === 0) cls.push('ss'); if (x.k === x.b.len - 1) cls.push('se');
+          if (x.k === 0) cls.push('ss'); if (x.k === x.b.len - 1) cls.push('se'); if (x.wk) cls.push('wk');
           if (selSlot && selSlot.d === x.b.d) cls.push('sel');
-          tt.push(x.b.len + '연전 ' + (x.k + 1) + '일째');
+          tt.push((x.wk ? '토·일 낀 ' : '평일 ') + x.b.len + '연전 ' + (x.k + 1) + '일째');
         } else if (a != null && e1 != null && n >= a && n <= e1) { cls.push('rest'); tt.push(restDay(n) ? '휴식 요일' : '경기 없는 날'); }
         else if (a != null && e2 != null && n > e1 && n <= e2) { cls.push('re'); tt.push('재편성 기간'); }
         else cls.push(a == null ? 'pre' : 'off');
@@ -433,7 +433,7 @@
   }
   function mainPane() {
     const st = app().state, y = S.seasonYear(), gd = S.gameDaysCheck(), h = CalendarGen.lengthHistogram(st.calendar), [m0, m1] = months(), f = fs();
-    const legend = f === 2 ? [['game', '경기일'], ['bnd', '연전 묶음'], ['rest', '경기 없음'], ['hol', '공휴일(빨강)'], ['sat', '토요일(파랑)'], ['sel', '고른 묶음']] : [['game', '경기일'], ['bnd', '연전 묶음'], ['hol', '공휴일(빨강)'], ['ev', '홈 구장 지정'], ['pick', '고른 날']];
+    const legend = f === 2 ? [['bnd', '평일 연전'], ['bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일(빨강)'], ['sat', '토요일(파랑)'], ['sel', '고른 묶음']] : [['bnd', '평일 연전'], ['bnd wk', '토·일 낀 연전'], ['hol', '공휴일(빨강)'], ['ev', '홈 구장 지정'], ['pick', '고른 날']];
     const tips = f === 2
       ? '<span>' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음(2·3·4연전)</span><span>' + icon('grid') + '묶음을 <b>누르면</b> 연전 수 바꾸기 · 나누기 · 지우기</span>'
       : '<span>' + icon('target') + '날을 <b>누르면</b> 홈 구장 지정</span><span>빨간 동그라미 = 공휴일(가중치는 왼쪽 표)</span><span>연전 묶음은 2단계에서 고칩니다</span>';
@@ -461,8 +461,8 @@
   /** 검토 화면(plan-flow.js) 아래에 두는 보기 전용 달력. f3 = 주요 이벤트 일정 단계·4 확인(이벤트·공휴일 이름 표시. 날을 눌러 고치는 것은 3단계만) */
   S.seasonStripView = function (f3, tail) {
     const legend = f3
-      ? [['game', '경기일'], ['game bnd', '연전 묶음'], ['game we sat', '토요일'], ['game we sun', '일요일'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기'], ['lab e-op', '개막전'], ['lab e-ch', '어린이날'], ['lab e-as', '올스타전'], ['lab e-4', '후반기 첫 4연전'], ['lab e-end', '1차 편성 종료']]
-      : [['game', '경기일'], ['game we', '주말 경기'], ['game bnd', '연전 묶음'], ['rest', '경기 없음'], ['hol', '공휴일'], ['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']];
+      ? [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['game wk sat', '토요일'], ['game wk sun', '일요일'], ['rest', '경기 없음'], ['lab e-hol', '공휴일'], ['as', '올스타 휴식기'], ['lab e-op', '개막전'], ['lab e-ch', '어린이날'], ['lab e-as', '올스타전'], ['lab e-4', '후반기 첫 4연전'], ['lab e-end', '1차 편성 종료']]
+      : [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일'], ['op', '개막일'], ['as', '올스타 휴식기'], ['end', '1차 편성 종료']];
     return '<div class="pf-cal"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') + (tail || '') + '</div>' + calendarStrip(true) + '</div>';
   };
   /** 검토 화면(plan-flow.js) 줄 안에서 펼치는 입력칸. key: opening · rest · allstar · initialEnd */
@@ -472,7 +472,7 @@
   };
   /** 검토 화면 아래 달력에서 바로 고칠 때: 수정 화면과 같은 달력(끌면 묶음, 묶음을 누르면 바꾸기·나누기·지우기) */
   S.seasonStripLive = function (tail) {
-    const legend = [['game', '경기일'], ['game we', '주말 경기'], ['game bnd', '연전 묶음'], ['rest', '경기 없음'], ['hol', '공휴일']];
+    const legend = [['game bnd', '평일 연전'], ['game bnd wk', '토·일 낀 연전'], ['rest', '경기 없음'], ['hol', '공휴일']];
     S.afterRender(placePopover);
     return '<div class="pf-cal live"><div class="pf-cal-leg">' + legend.map(([c, t]) => '<span><i class="sd ' + c + '"></i>' + t + '</span>').join('') +
       '<span class="pf-cal-tip">' + icon('move') + '날짜를 <b>끌면</b> 연전 묶음 · 묶음을 <b>누르면</b> 바꾸기·나누기·지우기<span id="scDragHint" class="sc-drag-hint"></span></span>' + (tail || '') + '</div>' +

@@ -1326,7 +1326,6 @@ svg.mc text { font-family: var(--font); }
 .sc-strip .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
 .sc-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
 .sc-strip .sd.game { background: #D3DFF5; color: var(--text); }
-.sc-strip .sd.game.we { background: #A9C1EC; }
 .sc-strip .sd.sat { color: var(--blue); font-weight: 600; }
 .sc-strip .sd.sun, .sc-strip .sd.hol { color: var(--bad); font-weight: 600; }
 .sc-strip .sd.hol::after { top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }

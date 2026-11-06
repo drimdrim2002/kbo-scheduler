@@ -378,7 +378,6 @@ body.pf .ck-card { margin: 0; flex: 1 0 auto; display: flex; flex-direction: col
 .pf-strip .sd.re { background: #EEF0F3; color: #8D95A3; }
 .pf-strip .sd.rest, .pf-cal-leg .sd.rest { background: #F7F7F8; box-shadow: inset 0 0 0 1px var(--line); color: #8D95A3; }
 .pf-strip .sd.game, .pf-cal-leg .sd.game { background: #D3DFF5; box-shadow: none; color: var(--text); }
-.pf-strip .sd.game.we, .pf-cal-leg .sd.game.we { background: #A9C1EC; }
 .pf-strip .sd.sat { color: var(--blue); font-weight: 600; }
 .pf-strip .sd.sun, .pf-strip .sd.hol { color: var(--bad); font-weight: 600; }
 .pf-strip .sd.hol::after, .pf-cal-leg .sd.hol::after { top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; border: 2px solid var(--bad); }
@@ -608,3 +607,10 @@ button.tv-flow-blk.a { color: var(--text-2); }
 .pf-strip .sd.game.ss, .sc-strip .sd.game.ss { margin-left: 2px; border-top-left-radius: 7px; border-bottom-left-radius: 7px; }
 .pf-strip .sd.game.se, .sc-strip .sd.game.se { margin-right: 2px; border-top-right-radius: 7px; border-bottom-right-radius: 7px; }
 .pf-cal-leg i.sd.bnd { width: 26px; border-radius: 7px; }
+/* 띠 색은 연전마다 하나: 토·일이 낀 연전(wk, 관중이 많은 연전)은 진한 파랑, 평일만 있는 연전은 옅은 파랑. 토·일 칸은 글자색(토 파랑·일 빨강)으로 구별한다.
+   화~목 · 금~일이 번갈아 오므로 붙어 있는 두 연전도 대개 색이 달라 경계가 한 번 더 보인다 */
+.pf-strip, .sc-strip, .pf-cal-leg, .sc-legend { --cal-wd: #DFE7F6; --cal-wk: #A9C1EC; }
+.pf-strip .sd.game, .sc-strip .sd.game, .pf-cal-leg .sd.game { background: var(--cal-wd); }
+.pf-strip .sd.game.wk, .sc-strip .sd.game.wk, .pf-cal-leg .sd.game.wk { background: var(--cal-wk); }
+.sc-legend i.bnd { background: var(--cal-wd); border-color: var(--cal-wd); }
+.sc-legend i.bnd.wk { background: var(--cal-wk); border-color: var(--cal-wk); }
