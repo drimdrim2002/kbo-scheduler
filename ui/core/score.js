@@ -202,15 +202,16 @@
     return Math.round(sum * 100);
   }
 
+  /** (0.1km)² 그대로 — 나누어 버리면 1km 안쪽으로 넘은 것이 0이 되어 「허용 안」으로 셈(엔진 distanceGapPenalty와 같음) */
   function distanceGapPenalty(values, n, gapTenths) {
-    let hundredths = 0;
+    let tenthsSquared = 0;
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
         const excess = Math.abs(values[i] - values[j]) - gapTenths;
-        if (excess > 0) hundredths += excess * excess;
+        if (excess > 0) tenthsSquared += excess * excess;
       }
     }
-    return Math.floor(hundredths / 100);
+    return tenthsSquared;
   }
 
   /** 목적식별 벌점 [이동 횟수, 이동 거리, 주말·공휴일, 전체 거리]를 순위대로 놓는다 */

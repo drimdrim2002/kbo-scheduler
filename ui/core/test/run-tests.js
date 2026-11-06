@@ -815,6 +815,8 @@ test('목적식 순서·허용 차이: 순위대로 점수를 놓고, 가장 많
   const wide = { moveGap: gaps.moves, distanceGapKm: gaps.distanceKm, holidayGap: gaps.holiday };
   const a = withOb(['moves', 'distance', 'holiday', 'total'], wide);
   eq(a.score.soft.slice(1), [-0, -0, -0, -gaps.totalKm].map((x) => x), '딱 허용 차이면 벌점 없음');
+  const near = withOb(['moves', 'distance', 'holiday', 'total'], Object.assign({}, wide, { distanceGapKm: gaps.distanceKm - 0.7 }));
+  assert(near.score.soft[2] < 0, '1km 안쪽(0.7km)으로 넘어도 벌점(예전에는 버려져 0)');
   const tight = { moveGap: 0, distanceGapKm: 0, holidayGap: 0 };
   const b = withOb(['moves', 'distance', 'holiday', 'total'], tight);
   const c = withOb(['total', 'holiday', 'distance', 'moves'], tight);
