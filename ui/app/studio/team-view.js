@@ -1,9 +1,9 @@
 /*
- * 2027 흐름 — 「구단별 보기」 (④ 화면을 한 구단 · 두 구단 비교 · 리그 전체(임시)로 다시 나눔)
+ * 2027 흐름 — 「구단별 보기」 (④ 화면을 한 구단 · 두 구단 비교로 다시 나눔)
  *   한 구단: 구단별 일정표 + 오른쪽 구단 카드 (step-quality.js 그대로)
  *   두 구단 비교(qv=cmp): 둘째 구단(team2)을 고르면 이동 구간 띠(위 첫 구단·아래 둘째 구단, 막대 = 이동 한 번) + 누적 이동거리 + 항목별 비교
  *   지도는 뺐다(사용자 결정 2026-11-06): 열 구장 중 다섯이 수도권에 몰려 선이 겹치고, 두 구단의 차이는 「어디」가 아니라 「언제 얼마나 멀리」에 있다
- *   리그 전체: 홈/원정 흐름 · 상대별 경기 수 표 — 「일정 자세히 보기」로 옮길 때까지 여기 둔다
+ *   리그 전체(홈/원정 흐름 띠 · 상대별 경기 수)는 「일정 자세히 보기」(step-result.js)의 탭으로 옮겼다(2026-11-06)
  * 화면 하나는 질문 하나(사용자 결정 2026-11-06): 가운데가 한 구단이면 오른쪽도 그 구단, 둘이면 둘.
  * LAYOUT: 'card' = 비교 항목을 오른쪽 카드에(표준 가) / 'table' = 오른쪽 칸 없이 지도 아래 표에(옵션 나)
  */
@@ -36,14 +36,11 @@
 
   // ───────── 왼쪽: 보기 · 구단 ─────────
   function renderList() {
-    const u = S.ui, V = Q().VIEWS.concat(S.qvExtraViews);
+    const u = S.ui;
     const vis = Q().visible().map((v) => v.id);
     const li = (id, label, ico, extra) => (vis.includes(id) ? '<button class="li' + (u.qv === id ? ' active' : '') + '" data-act="q-view" data-qv="' + id + '"><span class="ico">' + icon(ico) + '</span><span class="li-main">' + esc(label) + '</span>' + (extra || '') + '</button>' : '');
-    const label = (id) => { const v = V.find((x) => x.id === id); return v ? v.label : id; };
-    let s = '<div class="pane-head"><span class="pane-title">보기</span><span class="pane-desc">한 구단 · 두 구단 · 리그 전체</span></div><div class="pane-body" data-sk="q-list">';
+    let s = '<div class="pane-head"><span class="pane-title">보기</span><span class="pane-desc">한 구단 · 두 구단</span></div><div class="pane-body" data-sk="q-list">';
     s += '<div class="label">구단</div>' + li('sched', '구단별 일정표', 'print') + li('cmp', '두 구단 비교', 'swap', u.team2 ? '<span class="cnt">' + esc(u.team) + '·' + esc(u.team2) + '</span>' : '');
-    const league = ['a3', 'a5', 'a9', 'a10', 'a12'].filter((id) => vis.includes(id));
-    if (league.length) s += '<div class="label">리그 전체</div>' + league.map((id) => li(id, label(id), id === 'a3' ? 'grid' : id === 'a5' ? 'grid' : 'chart')).join('');
     s += '<div class="list-sep"></div>';
     s += u.pick2
       ? '<div class="label tv-pick">' + icon('swap') + ' 비교할 구단을 고르세요 <button class="btn sm ghost" data-act="tv-pick2-cancel">취소</button></div>'
@@ -176,52 +173,7 @@
     return { title: o.title, html: at >= 0 ? o.html.slice(0, at) + btn + o.html.slice(at) : o.html + btn };
   }
 
-  // ───────── 리그 전체: 홈/원정 흐름 띠 · 상대별 경기 수 (2027에서는 표 대신 띠·판정) ─────────
-  /** 구단마다 한 줄 띠. 홈 연전 = 진한 막대, 원정 = 옅은 바닥, 달 경계선, 4연속 이상 = 빨간 밑줄. 높이는 창에 맞춘다(CSS) */
-  function renderFlow() {
-    const c = D(), st = app().state, T = Q().tms(), u = S.ui, slots = c.slots;
-    const day0 = slots[0].day, dayN = slots[slots.length - 1].day + slots[slots.length - 1].consecutive, span = dayN - day0;
-    const pct = (d) => ((d - day0) / span * 100).toFixed(2) + '%';
-    const months = []; const seen = new Set();
-    for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); months.push({ d, m }); } }
-    const over = T.filter((t) => t.maxHomeRun > 3 || t.maxAwayRun > 3).length;
-    let s = S.paneHead('홈/원정 흐름', '구단마다 한 줄. 진한 막대는 홈 연전, 옅은 막대는 원정 연전. 빨간 밑줄은 홈이나 원정이 4연속 넘게 이어진 구간입니다. 막대에 마우스를 올리면 상대와 날짜가 나옵니다.',
-      '<span class="legend"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="background:var(--bad);height:3px;margin-top:5px"></i>4연속 이상</span></span>');
-    s += '<div class="pane-body" data-sk="q-chart"><div class="tv-flow' + (u.team ? ' has-sel' : '') + '">';
-    s += '<div class="tv-flow-head"><span class="tv-flow-name"></span><span class="tv-flow-track">' + months.map((o, i) => { const next = i + 1 < months.length ? months[i + 1].d : dayN; return '<i style="left:' + pct(o.d) + '"></i>' + (next - o.d >= 8 ? '<b style="left:' + pct(o.d) + '">' + o.m + '월</b>' : ''); }).join('') + '</span><span class="tv-flow-right">최장 연속</span></div>';
-    for (const t of T) {
-      const team = st.teams[t.team];
-      let row = '<div class="tv-flow-row' + (u.team === t.name ? ' sel' : '') + '" data-act="q-team" data-team="' + esc(t.name) + '"><span class="tv-flow-name">' + S.team(t.name) + '</span><span class="tv-flow-track">' + months.map((o) => '<i style="left:' + pct(o.d) + '"></i>').join('');
-      for (const v of t.visits) { const sl = slots[v.slot], a = sl.day, b = sl.day + sl.consecutive;
-        row += '<span class="tv-flow-blk ' + (v.home ? 'h' : 'a') + '" style="left:' + pct(a) + ';width:calc(' + pct(b) + ' - ' + pct(a) + ' - 1px)" title="' + esc(Dates.fmtDate(a) + '~' + Dates.fmtDate(b - 1) + ' ' + (v.home ? '홈' : '원정') + ' vs ' + st.teams[v.opp].name + ' ' + sl.consecutive + '연전') + '"></span>'; }
-      for (const r of t.runs) if (r.length > 3) { const a = slots[r.slots[0]].day, last = slots[r.slots[r.slots.length - 1]], b = last.day + last.consecutive;
-        row += '<span class="tv-flow-run" style="left:' + pct(a) + ';width:calc(' + pct(b) + ' - ' + pct(a) + ' - 1px)" title="' + esc((r.home ? '홈 ' : '원정 ') + r.length + '연속') + '"></span>'; }
-      row += '</span><span class="tv-flow-right"><span class="' + (t.maxHomeRun > 3 ? 'bad' : '') + '">홈 ' + t.maxHomeRun + '</span> · <span class="' + (t.maxAwayRun > 3 ? 'bad' : '') + '">원정 ' + t.maxAwayRun + '</span></span></div>';
-      s += row;
-    }
-    s += '</div><div class="xs muted" style="padding:6px 12px">' + (over ? '홈이나 원정이 4연속을 넘는 구단 ' + over + '개' : '4연속을 넘는 구단 없음') + ' · 구단을 누르면 그 줄을 강조합니다</div></div>';
-    return s;
-  }
-  /** 상대별 경기 수: 맨 위에 판정 한 줄, 칸은 어긋난 곳만 색. 칸 크기는 창 높이에 맞춘다(CSS) */
-  function renderPairs() {
-    const st = app().state, names = st.teams.map((t) => t.name), N = names.length;
-    const total = st.settings.initialGamesPerPair, major = st.settings.homeGamesMajor, minor = total - major;
-    const g = (h, a) => st.matches.filter((m) => m.home === h && m.away === a).reduce((x, m) => x + m.consecutive, 0);
-    const bad = []; // 맞대결 단위로 어긋난 것
-    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) { const x = g(names[i], names[j]), y = g(names[j], names[i]); const ok = x + y === total && Math.max(x, y) === major && Math.min(x, y) === minor; if (!ok) bad.push({ a: names[i], b: names[j], x, y }); }
-    const badCell = new Set(bad.flatMap((p) => [p.a + '|' + p.b, p.b + '|' + p.a]));
-    let s = S.paneHead('상대별 경기 수', '가로줄이 홈 구단, 세로줄이 원정 구단. 칸은 그 홈에서 치르는 경기 수입니다.');
-    s += '<div class="pane-body pad" data-sk="q-chart">';
-    s += bad.length
-      ? '<div class="tv-verdict bad">' + icon('warn') + ' 고르지 않은 맞대결 ' + bad.length + '개 — ' + esc(bad.slice(0, 4).map((p) => p.a + '–' + p.b + ' ' + (p.x + p.y) + '경기(' + p.x + '·' + p.y + ')').join(' · ')) + (bad.length > 4 ? ' …' : '') + '</div>'
-      : '<div class="tv-verdict ok">' + icon('check') + ' 모든 맞대결이 ' + total + '경기(홈 ' + major + ' · 원정 ' + minor + ')로 고릅니다</div>';
-    s += '<div class="tv-pairs" style="--n:' + (N + 1) + '"><div class="tv-pc corner"><span>홈 ↓ · 원정 →</span></div>' + names.map((n) => '<div class="tv-pc hd">' + S.team(n) + '</div>').join('');
-    for (const h of names) { s += '<div class="tv-pc hd">' + S.team(h) + '</div>'; for (const a of names) { if (h === a) { s += '<div class="tv-pc diag"></div>'; continue; } const v = g(h, a); s += '<div class="tv-pc' + (badCell.has(h + '|' + a) ? ' bad' : '') + '" title="' + esc(h + ' 홈에서 ' + a + '와 ' + v + '경기') + '">' + v + '</div>'; } }
-    s += '</div></div>';
-    return s;
-  }
-
-  S.qvRenderers = Object.assign(S.qvRenderers || {}, { cmp: renderCmp, a3: () => (is27() ? renderFlow() : Q().a3()), a5: () => (is27() ? renderPairs() : Q().a5()) });
+  S.qvRenderers = Object.assign(S.qvRenderers || {}, { cmp: renderCmp });
   S.qvList = (orig) => (is27() ? renderList() : orig());
   S.qvInsp = (orig) => (is27() ? insp(orig) : orig());
 

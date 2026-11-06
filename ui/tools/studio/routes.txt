@@ -87,12 +87,12 @@ pf-result-none|step=5&year=2027
 pf-compare-none|step=6&year=2027
 pf-all|step=1&g=all&year=2027
 pf-schedule|step=3&month=5&year=2027
+pf-schedule-flow|step=3&view=flow&teams=KT&year=2027
+pf-schedule-pairs|step=3&view=pairs&year=2027
 pf-fair|step=4&team=KT&year=2027
 pf-fair-old|step=4&qv=metrics&team=KT&year=2027
 pf-fair-sched|step=4&qv=sched&team=KT&year=2027
-pf-fair-flow|step=4&qv=a3&team=KT&year=2027
 pf-team-cmp|step=4&qv=cmp&team=KT&team2=%EC%82%BC%EC%84%B1&year=2027
-pf-fair-pairs|step=4&qv=a5&team=KT&year=2027
 pf-team-cmp-none|step=4&qv=cmp&team=KT&year=2027
 pf-other-year|step=5&year=2099
 pf-running|step=2&year=2027&demo=running

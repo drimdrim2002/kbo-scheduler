@@ -530,8 +530,8 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-tbl.card td { white-space: normal; word-break: keep-all; }
 .tv-tbl.card td:first-child { white-space: nowrap; }
 
-/* 리그 전체: 홈/원정 흐름 띠 — 높이는 창에 맞춘다(노트북 768에서도 큰 화면에서도 줄이 고르게) */
-.tv-flow { display: flex; flex-direction: column; height: calc(100vh - 262px); min-height: 300px; padding: 8px 12px 0; }
+/* 일정 자세히 보기 · 홈/원정 흐름 띠(step-result.js renderFlow) — 가운데 칸(.r3-body) 높이를 꽉 채운다(노트북 768에서도 큰 화면에서도 줄이 고르게) */
+.tv-flow { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px 12px 0; }
 .tv-flow-head, .tv-flow-row { display: flex; align-items: stretch; gap: 10px; min-height: 0; }
 .tv-flow-head { flex: none; height: 22px; }
 .tv-flow-row { flex: 1 1 0; border-top: 1px solid var(--line); cursor: pointer; }
@@ -549,6 +549,34 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-flow-blk.a { top: 46%; bottom: 18%; background: #D9DFE9; }
 .tv-flow-run { position: absolute; bottom: 8%; height: 3px; background: var(--bad); border-radius: 2px; }
 .tv-flow-right .bad { color: var(--bad); font-weight: 700; }
+.tv-flow-row { cursor: default; }
+.tv-flow-row.dim .tv-flow-name { color: var(--text-3); }
+button.tv-flow-name { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; border-radius: var(--r-s, 4px); }
+button.tv-flow-name:hover { color: var(--blue); }
+button.tv-flow-name[aria-pressed="true"] { color: var(--blue); }
+/* 막대 = 경기(연전 하나). 구단별 연전 표가 보여 주던 위반·고정·고른 경기·옮기는 중을 테두리로 */
+button.tv-flow-blk { border: 0; padding: 0 2px; margin: 0; cursor: pointer; overflow: hidden; white-space: nowrap; font: inherit; color: #fff; text-align: left; display: flex; align-items: center; }
+button.tv-flow-blk.a { color: var(--text-2); }
+.tv-flow-blk .opp { font-size: 9.5px; font-weight: 700; line-height: 1; }
+@media (max-width: 1799px) { .tv-flow-blk .opp { display: none; } }
+.tv-flow-blk:hover:not(.off) { box-shadow: inset 0 0 0 2px var(--blue); z-index: 2; }
+.tv-flow-blk.viol { box-shadow: inset 0 0 0 2px var(--bad); }
+.tv-flow-blk.viol.a { background: #FFD9D4; }
+.tv-flow-blk.sel { box-shadow: 0 0 0 2.5px var(--blue); z-index: 3; }
+.tv-flow-blk.vsel { box-shadow: 0 0 0 2.5px var(--bad); z-index: 3; }
+.tv-flow-blk.pinned::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; }
+.tv-flow-blk.pinned.a::after { background: var(--text-2); }
+.tv-flow-blk.moving { background: var(--blue) !important; color: #fff; }
+.tv-flow-blk.swap-ok { outline: 2px dashed var(--blue); outline-offset: 1px; z-index: 2; }
+.tv-flow-blk.off { opacity: .3; cursor: default; }
+.tv-flow-blk.flash { animation: flash2 1.4s ease-out 1; }
+.tv-flow-foot { flex: none; padding: 6px 0 8px; }
+.legend i.lg-fa { background: #D9DFE9; }
+.legend i.lg-frun { background: #fff; width: 18px; border-bottom: 3px solid var(--bad); border-radius: 0; }
+.legend i.lg-pbad { background: #FFE3DF; box-shadow: inset 0 0 0 1px var(--bad); }
+/* 상대별 경기 수(step-result.js renderPairs): 가운데 칸 안에서 스크롤, 칸은 창 높이에 맞춘 정사각 */
+.r3-pairs { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px; }
+.r3-pairs .tv-pairs { width: min(100%, calc(100vh - 330px)); }
 /* 상대별 경기 수: 판정 한 줄 + 정사각 칸, 창 높이에 맞춤 */
 .tv-verdict { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--r); font-weight: 700; margin-bottom: 12px; }
 .tv-verdict.ok { background: var(--good-weak, #EAF6EE); color: var(--good, #1E7A3C); }
