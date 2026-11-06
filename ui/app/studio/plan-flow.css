@@ -599,7 +599,11 @@ button.tv-flow-blk.a { color: var(--text-2); }
 .r3-flow.g-over .tv-flow-g polyline { stroke: #E07B00; stroke-width: 2; }
 .r3-flow.g-over .tv-flow-g polyline.halo { stroke: #fff; stroke-width: 4.5; }
 .tv-flow-right .tv-flow-km { display: block; color: var(--text); font-size: var(--fs-s); }
-.r3-flow.g-cum .tv-flow-right { flex-direction: column; align-items: flex-end; justify-content: center; }
+.r3-flow.g-cum .tv-flow-row .tv-flow-right { flex-direction: column; align-items: flex-end; justify-content: center; line-height: 1.25; }
+/* 쌓인 거리는 오름이 완만해서 띠를 조금 더 높게 */
+.r3-flow.g-cum .tv-flow-g { top: 5%; height: 42%; }
+.r3-flow.g-cum .tv-flow-blk.h { top: 54%; }
+.r3-flow.g-cum .tv-flow-blk.a { top: 69%; }
 .legend i.lg-fg { background: none; width: 16px; border-radius: 0; border-top: 2px solid #5B6B85; height: 0; align-self: center; }
 .legend i.lg-fg.over { border-top-color: #E07B00; }
 .legend i.lg-frun { background: #fff; width: 18px; border-bottom: 3px solid var(--bad); border-radius: 0; }
