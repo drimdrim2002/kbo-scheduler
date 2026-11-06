@@ -41,7 +41,7 @@
     const out = tm.visits.map((v) => {
       const sl = c.slots[v.slot];
       const can = (cancelBy.get(v.match) || []).filter((g) => sl.days.some((d) => Dates.isoDate(d) === g.date));
-      return { kind: 'season', slot: v.slot, day: sl.day, end: sl.days[sl.days.length - 1], len: sl.consecutive, home: v.home, opp: st.teams[v.opp].name, loc: v.loc, leg: v.legTenths / 10, cum: v.cumTenths / 10, cancelled: can };
+      return { kind: 'season', slot: v.slot, day: sl.day, end: sl.days[sl.days.length - 1], len: sl.consecutive, home: v.home, opp: st.teams[v.opp].name, loc: v.loc, leg: v.legTenths / 10, cum: v.cumTenths / 10, brk: !!v.afterBreak, cancelled: can };
     });
     // 재편성 묶음 (시즌 운영 → 재편성 실행 뒤)
     const rs = games.filter((g) => g.source === 'RESCHEDULE' && (g.home === name || g.away === name));
@@ -142,7 +142,7 @@
       '<div class="rt-vs">' + (l.home ? '<span class="home-mark" style="width:auto;padding:0 4px">홈</span>' : '<span class="away-mark" style="width:auto;padding:0 4px">원정</span>') + S.team(l.opp) + ' 상대 · ' + l.len + (l.kind === 'resched' ? '경기' : '연전') + '</div>' +
       '<div class="small muted">' + esc(at.stadium) + (l.kind === 'resched' ? ' · <span class="tag rs">재편성</span>' : '') + '</div>' +
       (l.cancelled.length ? '<div class="rt-cancel">' + icon('x') + '이 시리즈 중 ' + l.cancelled.length + '경기 취소 (' + esc(l.cancelled.map((g) => fmt.short(g.date) + ' ' + (KBO.Reschedule.REASONS[g.reason] || '')).join(', ')) + ')</div>' : '') + '</div>';
-    s += '<dl class="props" style="margin-top:8px"><dt>이번 구간</dt><dd><b class="mono">' + fmt.km(l.leg) + '</b> km' + (k > 0 && l.leg === 0 ? ' <span class="muted small">(같은 구장)</span>' : k === 0 ? ' <span class="muted small">(시즌 첫 경기)</span>' : '') + '</dd>' +
+    s += '<dl class="props" style="margin-top:8px"><dt>이번 구간</dt><dd><b class="mono">' + fmt.km(l.leg) + '</b> km' + (k > 0 && l.brk ? ' <span class="muted small">(휴식기 뒤라 세지 않음)</span>' : k > 0 && l.leg === 0 ? ' <span class="muted small">(같은 구장)</span>' : k === 0 ? ' <span class="muted small">(시즌 첫 경기)</span>' : '') + '</dd>' +
       '<dt>누적</dt><dd><b class="mono">' + fmt.km(l.cum) + '</b> km <span class="muted small">/ ' + fmt.km(total) + '</span></dd></dl>' +
       '<div class="progress" style="margin-top:6px" aria-hidden="true"><i style="width:' + (total ? (l.cum / total * 100).toFixed(1) : 0) + '%"></i></div>';
     if (nx) s += '<div class="rt-next small">' + icon('move') + '이동 중 → ' + esc(st.teams[nx.loc].stadium) + ' · ' + fmt.km(nx.leg) + ' km</div>';

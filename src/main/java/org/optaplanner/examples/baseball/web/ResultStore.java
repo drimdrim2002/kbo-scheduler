@@ -33,8 +33,9 @@ final class ResultStore {
         return dir.resolve(id + ".json");
     }
 
+    /** 「-v2」: 올스타 휴식기 이동을 세지 않게 바뀐 뒤의 숫자로 다시 그린다(그 전 {@code <id>.png}는 쓰지 않는다). */
     Path pngPath(String id) {
-        return dir.resolve(id + ".png");
+        return dir.resolve(id + "-v2.png");
     }
 
     boolean exists(String id) {

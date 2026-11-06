@@ -756,6 +756,8 @@ public final class BaseballSolutionInitializer {
                 }
                 double c = 0.0d;
                 if (random != null) {
+                    // Only a candidate order: the all-star leg stays in it (skipping it found no more feasible starts with
+                    // many pinned series, and lost one PinnedScratchTest case). evaluateFull drops that leg exactly.
                     if (previous >= 0) {
                         c += weightedCost[previous * roundTotal + r];
                     }
@@ -955,6 +957,9 @@ public final class BaseballSolutionInitializer {
             Arrays.fill(moves, 0L);
             Arrays.fill(holiday, 0L);
             for (int slot = 1; slot < slotCount; slot++) {
+                if (problem.afterBreak[slot]) {
+                    continue;
+                }
                 int base = (full[slot - 1] * roundTotal + full[slot]) * TEAM_COUNT;
                 for (int team = 0; team < TEAM_COUNT; team++) {
                     long leg = legs[base + team];
@@ -1076,6 +1081,8 @@ public final class BaseballSolutionInitializer {
         private final long[][] distance;
         private final int[] holidayBySlot;
         private final int[] holidaySlots;
+        /** The leg from slot - 1 into this slot is not counted ({@link ScoreFormulas#isLongBreak}, the all-star break). */
+        private final boolean[] afterBreak;
 
         private Problem(Team[] teamByIndex, boolean[] jamsil, Anchor[] anchors, Calendar[] bySlot, int openingSlot,
                 int fourSlot, int[][] baseRemaining, Round openingRound, Round fourRound, int roundCount) {
@@ -1130,6 +1137,10 @@ public final class BaseballSolutionInitializer {
                 for (int to = 0; to < TEAM_COUNT; to++) {
                     distance[from][to] = teamByIndex[from].getDistanceTenthsTo(to);
                 }
+            }
+            afterBreak = new boolean[slotCount];
+            for (int slot = 1; slot < slotCount; slot++) {
+                afterBreak[slot] = ScoreFormulas.isLongBreak(bySlot[slot - 1], bySlot[slot]);
             }
             holidayBySlot = new int[slotCount];
             int holidayCount = 0;

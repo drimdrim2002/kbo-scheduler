@@ -4,15 +4,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.optaplanner.core.api.score.buildin.bendablelong.BendableLongScore;
 import org.optaplanner.examples.baseball.app.BaseballApp;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
 import org.optaplanner.examples.baseball.domain.Calendar;
+import org.optaplanner.examples.baseball.domain.Match;
+import org.optaplanner.examples.baseball.domain.Team;
 import org.optaplanner.examples.baseball.score.ScoreFormulas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +36,8 @@ final class Showcase {
     private final JSONObject problem;
     private final JSONObject real;
     private volatile String defaultStatus = "MISSING";
+    /** id + createdAt → {@link #recount} 결과. 저장된 결과는 바뀌지 않으니 한 번만 센다. */
+    private final Map<String, JSONObject> recounted = new ConcurrentHashMap<>();
 
     Showcase(JobManager jobs, ResultStore store, ServerLimits limits, Path inputFile) {
         this.jobs = jobs;
@@ -117,7 +124,7 @@ final class Showcase {
     /** GET /api/v1/results/{id}: 저장된 결과 + 실제 일정 요약. */
     Optional<JSONObject> result(String id) {
         return store.load(id).map(r -> {
-            JSONObject out = (JSONObject) r.clone();
+            JSONObject out = (JSONObject) recount(id, r).clone();
             if (out.get("real") == null) {
                 out.put("real", Json.obj("totalKm", real.get("totalKm"), "spreadKm", real.get("spreadKm"),
                         "weekendHomeMin", real.get("weekendHomeMin"), "weekendHomeMax", real.get("weekendHomeMax")));
@@ -126,9 +133,109 @@ final class Showcase {
         });
     }
 
+    /**
+     * 올스타 휴식기(경기 없는 날 {@link ScoreFormulas#LONG_BREAK_REST_DAYS}일 이상) 사이 이동을 세지 않게 바뀌기 전에 저장된
+     * 결과의 지표를, 저장된 일정(plan)은 그대로 두고 지금 채점기로 다시 센다. 2025 입력으로 만든 결과인지는 저장된 지표가
+     * 「지금 지표 + 휴식기 이동」과 구단마다 같은지로 본다(스튜디오에서 거리·연전을 고친 결과는 건드리지 않는다).
+     * 점수는 문제 설정을 아는 기본 결과만 다시 센다(보여주는 문은 결과 점수를 보여 주지 않는다).
+     */
+    JSONObject recount(String id, JSONObject stored) {
+        String key = id + "|" + stored.get("createdAt");
+        return recounted.computeIfAbsent(key, k -> {
+            try {
+                return recountNow(problem, id, stored);
+            } catch (RuntimeException e) {
+                LOG.warn("result {} not recounted", id, e);
+                return stored;
+            }
+        });
+    }
+
+    static JSONObject recountNow(JSONObject problem, String id, JSONObject stored) {
+        JSONArray plan = Json.array(stored.get("plan"));
+        JSONObject old = Json.object(stored.get("metrics"));
+        if (plan == null || old == null || Json.array(old.get("teams")) == null) {
+            return stored;
+        }
+        BaseballSolution solution = ProblemCodec.toSolution(problem);
+        if (!ProblemCodec.applyPlan(solution, problem, plan)) {
+            return stored;
+        }
+        JSONObject fresh = Metrics.of(solution);
+        Map<String, Long> breakLeg = breakLegTenths(solution);
+        Map<String, JSONObject> freshByName = new HashMap<>();
+        for (Object o : Json.array(fresh.get("teams"))) {
+            JSONObject row = Json.object(o);
+            freshByName.put(Json.asString(row.get("name"), ""), row);
+        }
+        JSONArray oldTeams = Json.array(old.get("teams"));
+        if (oldTeams.size() != freshByName.size()) {
+            return stored;
+        }
+        boolean same = true;
+        for (Object o : oldTeams) {
+            JSONObject was = Json.object(o);
+            String name = Json.asString(was.get("name"), "");
+            JSONObject now = freshByName.get(name);
+            if (now == null || !breakLeg.containsKey(name)) {
+                return stored;
+            }
+            long leg = breakLeg.get(name);
+            long nowTenths = Math.round(Json.asDouble(now.get("distanceKm"), -1) * 10);
+            long wasTenths = Math.round(Json.asDouble(was.get("distanceKm"), -1) * 10);
+            long nowMoves = Json.asLong(now.get("moves"), -1);
+            long wasMoves = Json.asLong(was.get("moves"), -2);
+            boolean otherSame = Json.asLong(now.get("holidayWeight"), -1) == Json.asLong(was.get("holidayWeight"), -2)
+                    && Json.asLong(now.get("weekendHome"), -1) == Json.asLong(was.get("weekendHome"), -2);
+            if (!otherSame) {
+                return stored;
+            }
+            if (nowTenths == wasTenths && nowMoves == wasMoves) {
+                continue;
+            }
+            same = false;
+            if (wasTenths != nowTenths + leg || wasMoves != nowMoves + (leg > 0 ? 1 : 0)) {
+                return stored;
+            }
+        }
+        if (same) {
+            return stored;
+        }
+        JSONObject out = (JSONObject) stored.clone();
+        out.put("metrics", fresh);
+        if (DEFAULT_ID.equals(id)) {
+            BendableLongScore score = ScoreFormulas.evaluate(solution.getTeamList(), solution.getCalendarList(),
+                    solution.getMatchList(), solution.getSettings());
+            out.put("score", Json.score(score));
+            out.put("scoreString", score.toString());
+        }
+        LOG.info("result {} recounted without the all-star leg: {} km → {} km", id, old.get("totalKm"), fresh.get("totalKm"));
+        return out;
+    }
+
+    /** 구단 이름 → 이제 세지 않는 휴식기 이동 거리(0.1km). 휴식기를 건너는 이동이 없으면 0. */
+    private static Map<String, Long> breakLegTenths(BaseballSolution solution) {
+        Map<String, Long> out = new HashMap<>();
+        for (Team team : solution.getTeamList()) {
+            List<Match> route = solution.getMatchList().stream()
+                    .filter(m -> ScoreFormulas.isRegular(m) && (m.getHome() == team || m.getAway() == team))
+                    .sorted(Comparator.comparingInt((Match m) -> m.getCalendar().getSlotIndex()).thenComparingLong(Match::getId))
+                    .toList();
+            long leg = 0L;
+            for (int i = 1; i < route.size(); i++) {
+                if (ScoreFormulas.isLongBreak(route.get(i - 1).getCalendar(), route.get(i).getCalendar())) {
+                    leg += route.get(i - 1).getHome().getDistanceTenthsTo(route.get(i).getHome().getIndex());
+                }
+            }
+            out.put(team.getName(), leg);
+        }
+        return out;
+    }
+
     /** GET /api/v1/compare: 실제 vs 기본 결과. 기본 결과가 아직 없으면 empty. */
     Optional<JSONObject> compare() {
-        return store.load(DEFAULT_ID).map(def -> {
+        return store.load(DEFAULT_ID).map(stored -> {
+            JSONObject def = recount(DEFAULT_ID, stored);
             JSONObject engine = (JSONObject) Json.object(def.get("metrics")).clone();
             engine.put("label", "매치봇 결과");
             engine.put("id", DEFAULT_ID);

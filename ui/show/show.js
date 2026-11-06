@@ -176,8 +176,8 @@
   // 소개·비교 쪽이 같은 질문·답을 쓴다(한 곳). 개념 셋이 먼저, 그다음 자주 받는 질문. {DIST}는 쪽마다 거리표 주소로 바뀐다.
   // 숫자는 data-n으로 채운다(그리기가 bind보다 먼저라 fetch 뒤 값으로 덮인다). 정의는 ScoreFormulas.TeamRouteAccumulator와 같다
   SHOW.QA = [
-    ['이동 일수가 뭐예요?', '구단이 다른 구장으로 옮겨 간 날의 수예요. 시리즈를 치른 구장을 날짜 순서대로 이어서, 구장이 바뀔 때마다 하루로 세요. 홈에서 원정, 원정에서 다른 원정, 원정에서 홈 모두 같아요. 두산과 LG는 잠실을 같이 써서 서로 오가도 세지 않아요. 2025년 1차 일정에서는 구단마다 <span data-n="real.moves">32~38</span>일이었어요.'],
-    ['이동거리는 어떻게 쟀어요?', '같은 순서로 앞 구장에서 다음 구장까지의 도로 거리(카카오맵)를 더했어요. 홈에서 홈으로 이어지면 0이에요. 첫 시리즈 구장에서 세기 시작하고, 시즌 앞뒤로 연고지를 오가는 거리는 넣지 않았어요. <a class="sh-link" href="{DIST}">구장 간 거리표 →</a>'],
+    ['이동 일수가 뭐예요?', '구단이 다른 구장으로 옮겨 간 날의 수예요. 시리즈를 치른 구장을 날짜 순서대로 이어서, 구장이 바뀔 때마다 하루로 세요. 홈에서 원정, 원정에서 다른 원정, 원정에서 홈 모두 같아요. 두산과 LG는 잠실을 같이 써서 서로 오가도 세지 않아요. 올스타 휴식기 앞뒤 이동도 세지 않아요. 2025년 1차 일정에서는 구단마다 <span data-n="real.moves">31~37</span>일이었어요.'],
+    ['이동거리는 어떻게 쟀어요?', '같은 순서로 앞 구장에서 다음 구장까지의 도로 거리(카카오맵)를 더했어요. 홈에서 홈으로 이어지면 0이에요. 첫 시리즈 구장에서 세기 시작하고, 시즌 앞뒤로 연고지를 오가는 거리와 올스타 휴식기 앞뒤 이동 거리는 넣지 않았어요. <a class="sh-link" href="{DIST}">구장 간 거리표 →</a>'],
     ['주말·공휴일 홈 경기는 어떻게 셌어요?', '토·일요일과 어린이날 연휴·현충일·광복절에 홈에서 치른 경기 수예요. 비로 취소된 경기는 빼지 않은, 발표된 일정 그대로예요. 이런 날엔 평일(화~목)보다 한 경기에 관중이 <span data-n="why.fanGap">5,200</span>명쯤 더 와서 구단 수입과 바로 이어져요.'],
     ['이동이 많으면 경기에 지나요?', '그렇다고 말할 근거는 아직 찾지 못했어요. 한국은 시차가 없고, 가장 먼 이동도 버스로 5시간쯤이에요. 다만 이동이 잦으면 쉬고 훈련할 시간이 줄어요. 그래서 매치봇은 "이기게 해 준다"가 아니라 "구단이 고를 수 없는 조건을 고르게 나누자"는 쪽이에요.'],
     ['몇억 원이면 큰 차이인가요?', '2025년 10개 구단 입장 수입은 모두 2,049억 원, 구단마다 평균 200억 원쯤이라 1~2% 정도예요. 크지 않을 수 있지만, 일정만 고르게 만들면 아무 비용 없이 없앨 수 있는 차이예요.'],
@@ -969,6 +969,8 @@
       const wk = days.filter((d) => d.getDay() === 0 || d.getDay() === 6).length;
       return { i, days, hol: c.holiday || 0, tag: !c.holiday ? '' : c.holiday > wk ? '공휴일' : '주말', mon: Math.max(4, days[0].getMonth() + 1) };
     });
+    /** 앞 연전 마지막 날 다음 날부터 뒤 연전 첫날 전날까지 경기 없는 날 수 */
+    const restDays = (a, b) => Math.round((b.days[0] - a.days[a.days.length - 1]) / 864e5) - 1;
     const engSlot = new Array(inp.matches.length).fill(-1);
     (enginePlan || []).forEach((p) => { if (p && p.match >= 0 && p.match < engSlot.length && p.calendar != null) engSlot[p.match] = p.calendar; });
     function route(slotOf) {
@@ -984,7 +986,9 @@
         let km = 0, moves = 0, hol = 0;
         v.forEach((x, k) => {
           x.cal = cal[x.slot]; x.from = k ? v[k - 1].at : null;
-          x.leg = k ? (D[x.from + '|' + x.at] || 0) : 0; x.move = x.leg > 0;
+          // 앞 연전과 사이에 경기 없는 날이 3일 이상(올스타 휴식기)이면 그 이동은 세지 않는다(엔진 ScoreFormulas.LONG_BREAK_REST_DAYS)
+          x.afterBreak = k > 0 && restDays(v[k - 1].cal, x.cal) >= 3;
+          x.leg = k && !x.afterBreak ? (D[x.from + '|' + x.at] || 0) : 0; x.move = x.leg > 0;
           km += x.leg; if (x.move) moves++; if (x.home) hol += x.cal.hol;
         });
         out[t] = { series: v, km: Math.round(km * 10) / 10, moves, hol };

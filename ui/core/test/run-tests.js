@@ -535,6 +535,38 @@ test('AC-1 JS 채점기 = Java ScoreFormulas.evaluate (엔진 호환 모드, 골
   assert(withEmpty >= 1, '빈 슬롯 배정 1개 이상');
 });
 
+test('올스타 휴식기(경기 없는 날 3일 이상) 사이 이동은 거리 0·이동 횟수 0, 홈·원정 연속은 이어 셈', () => {
+  const p = project();
+  const plan = Score.planArrayFrom(p);
+  const ctx = Score.createContext(Score.buildInput(p));
+  eq(Score.LONG_BREAK_REST_DAYS, 3);
+  const ex = Score.explain(ctx, plan, p);
+  let movedTeams = 0;
+  for (const tm of ex.teamMetrics) {
+    const v = tm.visits;
+    const brk = v.filter((x) => x.afterBreak);
+    eq(brk.length, 1, tm.name + ' 휴식기 뒤 첫 연전 하나');
+    eq(K.Dates.isoDate(ctx.slotDay[brk[0].slot]), '2025-07-17', tm.name + ' 휴식기 뒤 7/17');
+    let full = 0, fullMoves = 0, breakLeg = 0;
+    for (let k = 1; k < v.length; k++) {
+      const leg = ctx.dist[v[k - 1].loc * ctx.N + v[k].loc];
+      full += leg; if (leg > 0) fullMoves++;
+      if (v[k].afterBreak) { breakLeg = leg; eq(v[k].legTenths, 0, tm.name + ' 휴식기 이동 0'); }
+    }
+    eq(tm.distanceTenths, full - breakLeg, tm.name + ' 거리');
+    eq(tm.moves, fullMoves - (breakLeg > 0 ? 1 : 0), tm.name + ' 이동 횟수');
+    if (breakLeg > 0) movedTeams++;
+  }
+  assert(movedTeams > 0, '휴식기 앞뒤 구장이 다른 구단이 있다');
+  // 연속 세기는 휴식기에서 끊지 않는다: 휴식기 앞뒤가 같은 쪽이면 run이 이어진다
+  for (const tm of ex.teamMetrics) {
+    const k = tm.visits.findIndex((x) => x.afterBreak), a = tm.visits[k - 1], b = tm.visits[k];
+    eq(b.run, a.home === b.home ? a.run + 1 : 1, tm.name + ' 휴식기 앞뒤 홈·원정 연속');
+  }
+  // 고속 경로도 같은 값
+  eq(Score.evaluate(ctx, plan, []), Score.flat(ex.score));
+});
+
 test('고속 경로 = 상세 경로 (무작위 3,000건, 두 H0-e 모드)', () => {
   const p = project();
   const r = MockSolver.rng(123);

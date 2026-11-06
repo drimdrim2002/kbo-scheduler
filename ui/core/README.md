@@ -57,7 +57,7 @@
 node core/test/run-tests.js          # 헤드리스 테스트 (AC-1~8, 10, 11 중 DOM 불필요 부분)
 ```
 
-`core/test/golden/golden-scores.json`은 Java `ScoreFormulas.evaluate`로 미리 채점해 저장한 11개 배정(initialPlan, Mock 결과 4개, 빈 슬롯·null·더미·전부 미배정·라운드로빈·어린이날 LG 홈·무작위)이다. JS 채점기의 엔진 호환 모드 결과가 Hard 2단계·Soft 5단계 모두 일치해야 한다(AC-1).
+`core/test/golden/golden-scores.json`은 Java `ScoreFormulas.evaluate`로 미리 채점해 저장한 11개 배정(initialPlan, Mock 결과 4개, 빈 슬롯·null·더미·전부 미배정·라운드로빈·어린이날 LG 홈·무작위)이다. JS 채점기의 엔진 호환 모드 결과가 Hard 2단계·Soft 5단계 모두 일치해야 한다(AC-1). 채점 규칙을 바꾸면 `mvn -q test -Dtest=GoldenScoresTest -Dgolden.write=true`로 다시 만든다(`home-designation.json`은 `HomeDesignationGoldenTest`).
 
 ## REST 계약 (향후 Java 서버, §7.3)
 
