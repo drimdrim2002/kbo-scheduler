@@ -150,6 +150,8 @@
   };
 
   MockEngineAdapter.prototype.score = function (problem, plan, mode) { return scoreLocal(problem, plan, mode || 'INITIAL'); };
+  /** 요구 사항 점검은 서버만 한다(엔진 점수와 따로 세는 서버 점검기). 서버가 없으면 그 사실을 돌려준다 — 화면이 「서버 점검을 할 수 없음」으로 정직하게 보인다 */
+  MockEngineAdapter.prototype.verify = function () { return Promise.reject(Object.assign(new Error('서버에 연결되지 않아 요구 사항을 점검할 수 없습니다.'), { offline: true })); };
 
   /**
    * RestEngineAdapter: §7.3 REST 계약 (향후 Java 서버). 일시정지는 계약에 없어 화면 갱신만 멈춘다.
@@ -218,6 +220,11 @@
       try { local = scoreLocal(problem, plan, m); } catch (e) { local = null; }
       return Object.assign({}, local || {}, r);
     });
+  };
+
+  /** POST /api/v1/verify: 서버 요구 사항 점검표(항목별 판정·기준·근거 표·날짜별 출전표). plan이 없으면 problem.plan */
+  RestEngineAdapter.prototype.verify = function (problem, plan) {
+    return this._fetch('/api/v1/verify', { problem, plan: plan || problem.plan || null });
   };
 
   function createEngine(config) {

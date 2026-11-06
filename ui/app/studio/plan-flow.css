@@ -623,3 +623,59 @@ button.tv-flow-blk.h { color: var(--text-2); }
 .tv-pc.corner { background: transparent; font-size: 10.5px; color: var(--text-3); text-align: center; }
 .tv-pc.diag { background: var(--line); }
 .tv-pc.bad { background: #FFE3DF; color: var(--bad); font-weight: 700; }
+
+/* ───── 요구 사항 점검 (verify-view.js, step 8) · 현재 결과 분석 요약 줄 ───── */
+/* 요약 줄: 지킴 = 초록 테두리, 어김 = 빨강, 점검 없음 = 회색. 밑 줄에 셈 방법과 시각 */
+.pf-vsum { padding: 8px 14px; }
+.pf-vsum.ok { border-color: var(--ok-line); background: var(--ok-bg); }
+.pf-vsum.bad { border-color: var(--bad-line); background: var(--bad-bg); }
+.pf-vsum.none { background: var(--surface-2); }
+.pf-vsum-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.pf-vsum-row > b { color: var(--navy); }
+.pf-vsum-row .grow { flex: 1; }
+.pf-vsum .xs { margin-top: 2px; }
+.pf-vic { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; flex: none; }
+.pf-vic .i { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.2; }
+.pf-vic.ok { background: var(--ok); } .pf-vic.bad { background: var(--bad); } .pf-vic.info { background: var(--text-3); } .pf-vic.none { background: var(--line-2); }
+/* 두 열: 점검표 | 아무 날 + 날짜별 출전표. 1217까지 가로 스크롤 없이 */
+.pf-vcols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.pf-vright { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* 묶음: 머리 단추(펼침·판정·제목·설명·개수) + 항목 */
+.pf-vg { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
+.pf-vg-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; background: var(--surface-2); border: 0; font: inherit; cursor: pointer; }
+.pf-vg-head > .i { width: 14px; height: 14px; stroke: var(--text-3); fill: none; stroke-width: 1.8; flex: none; }
+.pf-vg-head > b { color: var(--navy); font-size: 13.5px; }
+.pf-vg-head > .r { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
+.pf-vg.open .pf-vg-head { border-bottom: 1px solid var(--line); }
+/* 항목: 판정 · 제목(밑 줄 설명) · 정한 값(출처) · 결과(근거 단추). 어긴 항목은 왼쪽 빨간 띠 */
+.pf-vi { padding: 8px 10px; border-top: 1px solid var(--line); }
+.pf-vi:first-of-type { border-top: 0; }
+.pf-vi.fail { box-shadow: inset 3px 0 0 var(--bad); }
+.pf-vi-head { display: grid; grid-template-columns: 20px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; align-items: start; font-size: 12.5px; }
+.pf-vi-head .pf-vic { margin-top: 1px; }
+.pf-vi-t, .pf-vi-std, .pf-vi-res { display: flex; flex-direction: column; gap: 1px; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+.pf-vi-t > b { color: var(--navy); font-size: 13px; }
+.pf-vi-std > span:nth-child(2), .pf-vi-res > span:nth-child(2) { font-weight: 600; }
+.pf-vi .pf-link.xs { align-self: flex-start; margin-top: 2px; }
+.pf-vtbl { margin-top: 8px; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vt { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.pf-vt th, table.pf-vt td { text-align: left; padding: 3px 8px; white-space: nowrap; }
+table.pf-vt thead th { position: sticky; top: 0; z-index: 1; }
+.pf-vdate { font-variant-numeric: tabular-nums; }
+/* 날짜별 출전표: 옅은 칸 = 홈, 진한 칸 = 원정(모든 화면 같은 뜻) */
+.pf-vscroll { max-height: 56vh; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vgrid td.h { background: #E9EDF4; color: var(--navy); }
+table.pf-vgrid td.a { background: var(--navy); color: #fff; }
+table.pf-vgrid td.none { color: var(--text-3); }
+table.pf-vgrid th:not(:first-child), table.pf-vgrid td:not(:first-child) { text-align: center; }
+.pf-vgridsec h3 .r .home-mark, .pf-vgridsec h3 .r .away-mark { width: 22px; font-size: 10px; }
+/* 아무 날 골라 보기 */
+.pf-vday-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 14px; align-items: start; font-size: 13px; }
+.pf-vday-date { font-size: 15px; font-weight: 700; }
+.pf-vday-games { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.pf-vday-games .h { font-weight: 700; color: var(--navy); } .pf-vday-games .a { font-weight: 700; }
+.pf-vday-teams, .pf-vday-row > .xs { grid-column: 1 / -1; }
+.pf-vday-teams { display: flex; flex-wrap: wrap; gap: 4px; }
+.pf-vday-teams span { font-size: 11.5px; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok); font-weight: 700; }
+.pf-vday-teams span.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+.pf-vday .ok { color: var(--ok); font-weight: 700; } .pf-vday .bad { color: var(--bad); font-weight: 700; }

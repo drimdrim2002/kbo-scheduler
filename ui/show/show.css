@@ -788,3 +788,54 @@ html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
 /* 결정구 세 가지(how.html, 2026-11-01): 말풍선 아래 머리글 + 4·5·6번으로 가는 칩 */
 .sh-how .sh-how-k3 { margin: 20px 0 8px; }
 .sh-how .sh-how-jump { margin: 0; }
+
+/* ───── 결과 쪽 「규칙을 다 지켰을까요?」(show.js renderVerify). 한 결 규칙: 목록은 맨글 + 가는 줄, 상자는 근거 표·하루 경기에만, 파랑은 누를 수 있는 것(펼치기·단추)에만 ───── */
+.sh-verify { --ok-line: #a7d5bb; --warn-line: #edcb84; } /* 스튜디오 변수와 같은 값(보여주는 문은 studio.css를 읽지 않는다) */
+.sh-verify-sum { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 4px; font-size: var(--sh-fs-item); line-height: 1.4; }
+.sh-verify-sum b { font-weight: 800; }
+.sh-verify-sum.ok b { color: var(--ok); } .sh-verify-sum.bad b { color: var(--warn); }
+.sh-verify-how { margin: 0 0 14px; }
+.sh-verify-none { color: var(--muted); font-size: var(--sh-fs-body); }
+.sh-vic { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 800; flex: none; }
+.sh-vic.pass { background: var(--ok); } .sh-vic.fail { background: var(--warn); } .sh-vic.info { background: var(--muted); }
+/* 묶음: 맨글 + 가는 줄. summary 한 줄(판정 · 제목 · 개수), 밑 줄에 설명 */
+.sh-vgroups { border-top: 1px solid var(--line); }
+.sh-vg { border-bottom: 1px solid var(--line); }
+.sh-vg > summary { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 12px 0; cursor: pointer; list-style: none; }
+.sh-vg > summary::-webkit-details-marker { display: none; }
+.sh-vg > summary > b { font-size: var(--sh-fs-item); font-weight: 800; color: var(--accent); }
+.sh-vg > summary .sh-vg-n { font-size: var(--sh-fs-small); color: var(--muted); white-space: nowrap; }
+.sh-vg > summary .sh-vg-desc { grid-column: 2 / -1; font-size: var(--sh-fs-desc); color: var(--muted); line-height: 1.45; }
+.sh-vg[open] > summary > b::after { content: ' ▴'; font-size: .8em; } .sh-vg:not([open]) > summary > b::after { content: ' ▾'; font-size: .8em; }
+.sh-vlist { list-style: none; margin: 0 0 8px; padding: 0 0 0 4px; }
+.sh-vi { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-top: 1px dashed var(--line); }
+.sh-vi-body { display: grid; gap: 3px; min-width: 0; font-size: var(--sh-fs-desc); line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; }
+.sh-vi-body > b { font-size: var(--sh-fs-body); font-weight: 800; }
+.sh-vi-desc, .sh-vi-std, .sh-vi-res { color: var(--fg); }
+.sh-vi-desc { color: var(--muted); }
+.sh-vi-std em, .sh-vi-res em { font-style: normal; font-weight: 700; color: var(--muted); font-size: var(--sh-fs-cap); margin-right: 4px; }
+.sh-vi.fail .sh-vi-res { color: var(--warn); font-weight: 700; }
+.sh-vi-ev { margin-top: 4px; }
+.sh-vi-ev > summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: var(--sh-fs-small); list-style: none; }
+.sh-vi-ev > summary::-webkit-details-marker { display: none; }
+.sh-vi-ev > summary::before { content: '▸ '; } .sh-vi-ev[open] > summary::before { content: '▾ '; }
+/* 근거 표: 데이터라 상자. 휴대폰은 가로로 밀어 본다(쪽 전체 가로 스크롤은 안 냄) */
+.sh-scrollx { overflow-x: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; max-height: 360px; overflow-y: auto; }
+.sh-table.sh-vt { table-layout: auto; min-width: 100%; }
+.sh-table.sh-vt th, .sh-table.sh-vt td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sh-table.sh-vt th:first-child { width: auto; }
+.sh-table.sh-vt thead th { position: sticky; top: 0; }
+/* 아무 날 골라 보기: 상자 하나(하루 경기 = 데이터) */
+.sh-verify .sh-h3 { margin-top: 28px; }
+.sh-vday-date { margin: 0 0 8px; font-size: var(--sh-fs-item); }
+.sh-vday-games { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sh-vday-games li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: var(--sh-fs-body); border-top: 1px solid var(--line); padding-top: 6px; }
+.sh-vday-games li:first-child { border-top: 0; padding-top: 0; }
+.sh-vday-games .a, .sh-vday-games .h { font-weight: 800; }
+.sh-vday-games .arr { color: var(--muted); }
+.sh-vday-teams { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
+.sh-vday-teams span { font-size: var(--sh-fs-small); font-weight: 700; border-radius: 10px; padding: 1px 9px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok); }
+.sh-vday-teams span.bad { border-color: var(--warn-line); background: var(--warn-bg); color: var(--warn); }
+.sh-vday-sum { margin: 10px 0 0; font-weight: 800; font-size: var(--sh-fs-body); }
+.sh-vday-sum.ok { color: var(--ok); } .sh-vday-sum.bad { color: var(--warn); }
+.sh-vday-tools { margin-top: 10px; }

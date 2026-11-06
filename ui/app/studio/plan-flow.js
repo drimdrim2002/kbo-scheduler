@@ -732,6 +732,8 @@
     P.runOption = null;
     S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
     const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) };
+    // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
+    if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); res.planSig = P.verify.planSig(st); if (S.run && S.run.verification) P.verify.took(S.run.verification, st); }
     const v = storeRun(res, ex);
     res.vid = v ? v.id : null;
     app().store.commit('실행 결과 기록', (s) => { s.meta.result = Object.assign({}, res); }, { tags: ['meta'], undo: false });
@@ -790,10 +792,10 @@
     return s && (s.k === 'team' || cols.some((c) => c[1] === s.k)) ? s : { k: cols[0][1], dir: -1 };
   }
   const heatSortText = (s, cols) => (s.k === 'team' ? '구단 이름 ' + (s.dir > 0 ? '가나다 순' : '가나다 거꾸로') : cols.find((c) => c[1] === s.k)[0] + ' ' + (s.dir < 0 ? '많은 순' : '적은 순'));
-  /** 어긴 것만 보인다(지켰으면 아무것도 없음): 반드시 지킬 규칙 · 허용을 넘은 격차(얼마나 넘었는지) */
+  /** 어긴 것만 보인다(지켰으면 아무것도 없음): 허용을 넘은 격차(얼마나 넘었는지). 반드시 지킬 규칙은 맨 위 요구 사항 점검 줄(verify-view.js)이 맡는다 */
   function heatAlert(data, ob, ids) {
     const over = ids.filter((id) => !within(data, id, ob)).map((id) => { const g = GOALS[id]; return esc(shortName(id)) + ' ' + num(goalValue(data, id) - ob[g.tol], g.d) + g.unit + ' 넘음'; });
-    const parts = (data.feasible ? [] : ['<b>지키지 못한 규칙 ' + num(data.hardCount || 0) + '건</b>']).concat(over.length ? ['<b>허용을 넘은 격차</b> — ' + over.join(' · ')] : []);
+    const parts = over.length ? ['<b>허용을 넘은 격차</b> — ' + over.join(' · ')] : [];
     return parts.length ? '<div class="pf-note warn pf-halert">' + parts.map((p) => '<div>! ' + p + '</div>').join('') + '</div>' : '';
   }
   /** 구단별 한눈에 표: 제목(누르면 정렬) → 격차 줄(늘 맨 위, 정렬과 상관없음) → 구단 줄. 숫자 옆에 열 안 비율 막대, 열마다 가장 많은 구단과 가장 적은 구단만 진하게 */
@@ -866,6 +868,7 @@
       const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">운영 방침·실행으로 ›</button></div>' : '';
       return '<div class="stepview no-band"><div class="pf-page">' + policyCheck(data, ob) +
         saveRow(res) +
+        (P.verify ? P.verify.summary(res, data) : '') + // 요구 사항 점검 요약 줄(verify-view.js): 서버가 따로 센 판정. 「지키지 못한 규칙 N건」 경고를 대신한다
         editedNote2 + dashboard(data, ob) + '</div></div>';
     }
   };
@@ -873,7 +876,7 @@
   function saveRow(res) {
     const vid = res.vid || res.from, v = vid ? P.versions.get(YEAR_NEW, vid) : null;
     const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '';
-    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button>';
+    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button><button class="btn" data-act="go-step" data-step="8">요구 사항 점검</button>';
     let head, meta, keep = '';
     if (v && !v.builtin) {
       head = '<span class="small muted">저장한 이름</span><input value="' + esc(v.name) + '" data-in="pf-name" data-id="' + esc(v.id) + '" aria-label="결과 이름">' + (v.kept ? '<span class="pf-tag blue">남김</span>' : '');
@@ -914,7 +917,7 @@
   function storeRun(res, ex) {
     const st = app().state, data = dataOf(ex || app().derived().ex), ob = res.objective;
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {};
-    const rec = Object.assign({ id: 'v' + Date.now(), no: res.no, auto: true, option: res.option, name: res.name, year: YEAR_NEW, savedAt: res.at.slice(0, 10), ranAt: res.at, elapsedMs: res.elapsedMs || 0, objective: ob, note: res.option === 'custom' ? '순서: ' + orderText(ob) : '', engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st) }, data, {
+    const rec = Object.assign({ id: 'v' + Date.now(), no: res.no, auto: true, option: res.option, name: res.name, year: YEAR_NEW, savedAt: res.at.slice(0, 10), ranAt: res.at, elapsedMs: res.elapsedMs || 0, objective: ob, note: res.option === 'custom' ? '순서: ' + orderText(ob) : '', engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st), verification: res.verification || null }, data, {
       matches: st.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive })), plan: st.plan.map((x) => ({ match: x.match, calendar: x.calendar }))
     });
     return P.versions.put(YEAR_NEW, pruneRuns(P.versions.list(YEAR_NEW).concat([rec]), YEAR_NEW)) ? rec : null;
@@ -952,7 +955,7 @@
     const changed = inputSig(before) !== inputSig(base);
     app().commit('버전 불러오기: ' + v.name, (s) => {
       applyVersion(s, v);
-      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s) };
+      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), verification: v.verification || null, planSig: P.verify ? P.verify.planSig(s) : null };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 편성 조건도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);
     S.go({ step: 5, sel: null });
@@ -1020,8 +1023,10 @@
       const tab = P.cmpTab, tg = GOALS[tab];
       const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
       const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
+      // 요구 사항 n/n: 서버가 완성된 일정을 다시 세어 판정한 것(엔진 점수와 따로). 시험 엔진으로 낸 버전에는 없다
+      const verifyRow = P.verify ? '<tr><td><b>요구 사항</b> <span class="muted small">서버가 다시 센 판정</span></td><td>' + P.verify.cell(a.verification) + '</td><td>' + P.verify.cell(b.verification) + '</td></tr>' : '';
       return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols pf-fill" style="grid-template-columns:400px minmax(0,1fr)">' + list +
-        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>평가 기준마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>평가 기준</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' +
+        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>평가 기준마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>평가 기준</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' + verifyRow +
         ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '격차 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
         '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
         '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + shortName(id) + '</button>').join('') + '</div><h3>구단별 ' + shortName(tab) + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 수준</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
@@ -1039,7 +1044,7 @@
 
   // ───────── 단계 띠 · 하단 ─────────
   const STAGES = ['편성 조건 입력·검증', '운영 방침·실행', '현재 결과 분석', '실행 결과 비교'];
-  const stageOf = (step) => ({ 1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4 })[step] || 1;
+  const stageOf = (step) => ({ 1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 8: 3 })[step] || 1;
   P.stepper = function () {
     const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), edited = inputsEdited(st), n = P.versions.all(S.seasonYear()).length;
     const running = isRunning();
@@ -1047,7 +1052,7 @@
     const sub = {
       1: fs.allDone ? '4단계 검토함' : start ? '' : (G.mode === 'flow' ? G.fs + ' / 4 ' + fs.steps[G.fs - 1].name + ' · 검토 중' : fs.stop + ' / 4에서 멈춤'),
       2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '편성 조건이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '운영 방침 정하기' : '편성 조건 검토를 마치면',
-      3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 보기' : '한 장으로 보기') : '실행 뒤',
+      3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 보기' : S.ui.step === 8 ? '요구 사항 점검' : '한 장으로 보기') : '실행 뒤',
       4: n ? '저장한 버전 ' + n + '개' : '저장한 버전 없음'
     };
     const done = { 1: fs.allDone, 2: !!res, 3: false, 4: false };
@@ -1074,6 +1079,7 @@
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 보기') + '</b></span>';
+    if (u.step === 8) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>요구 사항 점검</b> — 서버가 완성된 일정을 날짜별 경기로 풀어 요구 사항마다 다시 셉니다. 근거를 펼쳐 직접 세어 볼 수 있습니다</span><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기' + icon('right') + '</button>';
     return null;
   };
   // 창이 노트북(1440×790)보다 크면 본문을 통째로 키운다(최대 1.25배, 높이 830마다 1배). 노트북 배치가 그대로 커져 줄 사이가 벌어지는 대신 글자·막대가 커진다

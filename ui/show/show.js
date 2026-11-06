@@ -1147,6 +1147,7 @@
       const sl = $('#studio-link');
       if (sl) sl.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + studioQuery(kb, res.seed) + '#step=2');
       thinkBox(kb, res.options || {});
+      renderVerify($('#verify-box'), res.verification);
       mark('show', 'result-ok');
       const box = $('#replay-box');
       if (box) {
@@ -1179,6 +1180,49 @@
     bindShare();
     fixStudioLinks();
   };
+  /**
+   * 결과 쪽 요구 사항 점검(간단판). 서버 점검표(res.verification: 항목별 판정·기준·근거 줄·날짜별 출전표)를 그대로 보여 준다.
+   *  요약 줄(지킨 개수 또는 어긴 항목 이름) → 점검표(묶음은 details, 어긴 묶음은 펼침, 「근거」도 details) → 아무 날 골라 보기.
+   *  한 결 규칙: 글·목록은 맨글 + 가는 줄, 상자는 데이터(근거 표·하루 경기)에만, 파랑은 누를 수 있는 것에만.
+   */
+  function renderVerify(box, v) {
+    if (!box) return;
+    if (!v || v.error) { box.innerHTML = '<p class="sh-verify-none">' + esc(v && v.error ? v.error : '이 결과는 아직 점검하지 못했어요. 새로 만든 결과에는 점검표가 함께 나와요.') + '</p>'; return; }
+    const WD = ['일', '월', '화', '수', '목', '금', '토'];
+    const fdate = (iso) => { const d = new Date(iso + 'T00:00:00'); return isNaN(d) ? iso : (d.getMonth() + 1) + '/' + d.getDate() + '(' + WD[d.getDay()] + ')'; };
+    const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    const when = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+    const word = { PASS: '지킴', FAIL: '어김', INFO: '참고' };
+    const ic = (k) => '<span class="sh-vic ' + k.toLowerCase() + '" aria-hidden="true">' + (k === 'FAIL' ? '!' : k === 'INFO' ? 'i' : '✓') + '</span>';
+    const head = v.failed
+      ? '<p class="sh-verify-sum bad">' + ic('FAIL') + '<b>요구 사항 ' + v.failed + '개 어김</b> — ' + esc((v.failedTitles || []).join(' · ')) + '</p>'
+      : '<p class="sh-verify-sum ok">' + ic('PASS') + '<b>요구 사항 ' + v.total + '개 모두 지킴</b>' + (v.info ? '<span class="sh-small"> · 참고 ' + v.info + '개(정한 값이 없어 숫자만)</span>' : '') + '</p>';
+    const sub = '<p class="sh-small sh-verify-how">서버가 완성된 일정만 다시 세어 판정했어요(엔진 점수와 따로) · ' + esc(when(v.checkedAt)) + '</p>';
+    const table = (it) => { const cols = it.columns || [], rows = it.rows || []; if (!rows.length) return '';
+      return '<div class="sh-scrollx"><table class="sh-table sh-vt"><thead><tr>' + cols.map((c) => '<th>' + esc(c.label) + '</th>').join('') + '</tr></thead><tbody>' + rows.map((r) => '<tr>' + cols.map((c) => '<td>' + (isDate(r[c.key]) ? fdate(r[c.key]) : esc(r[c.key] == null ? '' : r[c.key])) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>'; };
+    const item = (it) => '<li class="sh-vi ' + it.verdict.toLowerCase() + '">' + ic(it.verdict) + '<div class="sh-vi-body"><b>' + esc(it.title) + '</b><span class="sh-vi-desc">' + esc(it.desc) + '</span><span class="sh-vi-std"><em>정한 값</em> ' + esc(it.standard) + (it.source ? ' <span class="sh-small">(' + esc(it.source) + ')</span>' : '') + '</span><span class="sh-vi-res"><em>결과 · ' + word[it.verdict] + '</em> ' + esc(it.result) + '</span>' +
+      ((it.rows || []).length ? '<details class="sh-vi-ev"><summary>근거 ' + it.rows.length + '줄 보기</summary>' + table(it) + '</details>' : '') + '</div></li>';
+    const groups = (v.groups || []).map((g) => { const list = g.items || [], failed = list.filter((i) => i.verdict === 'FAIL').length, info = list.filter((i) => i.verdict === 'INFO').length;
+      return '<details class="sh-vg"' + (failed ? ' open' : '') + '><summary>' + ic(failed ? 'FAIL' : 'PASS') + '<b>' + esc(g.title) + '</b><span class="sh-vg-n">' + (failed ? failed + '개 어김' : (list.length - info) + '개 지킴') + (info ? ' · 참고 ' + info : '') + '</span><span class="sh-vg-desc">' + esc(g.desc) + '</span></summary><ul class="sh-vlist" role="list">' + list.map(item).join('') + '</ul></details>'; }).join('');
+    const days = (v.tables && v.tables.days) || [], teams = (v.tables && v.tables.teams) || SHOW.TEAMS;
+    let dayBox = '';
+    if (days.length) {
+      dayBox = '<h3 class="sh-h3">아무 날 골라 보기</h3><p class="sh-lead">무작위로 고른 하루예요. 경기 5개에 10구단이 한 번씩 나오는지 보세요.</p><div class="sh-card sh-vday" id="verify-day"></div><p class="sh-cta sh-vday-tools"><button class="k-btn" type="button" id="verify-day-btn">다른 날 보기</button></p>';
+    }
+    box.innerHTML = head + sub + '<div class="sh-vgroups">' + groups + '</div>' + dayBox;
+    if (days.length) {
+      const dayEl = $('#verify-day'), btn = $('#verify-day-btn');
+      let cur = -1;
+      const show = () => { let k = Math.floor(Math.random() * days.length); if (days.length > 1 && k === cur) k = (k + 1) % days.length; cur = k;
+        const d = days[k], cnt = {}; for (const g of d.games || []) { cnt[g.home] = (cnt[g.home] || 0) + 1; cnt[g.away] = (cnt[g.away] || 0) + 1; }
+        const once = teams.every((t) => cnt[t] === 1);
+        dayEl.innerHTML = '<p class="sh-vday-date"><b>' + fdate(d.date) + '</b><span class="sh-small"> ' + esc(d.weekday) + '요일 · 경기 ' + (d.games || []).length + '개</span></p><ul class="sh-vday-games" role="list">' + (d.games || []).map((g) => '<li><span class="a">' + esc(g.away) + '</span><span class="sh-small">원정</span><span class="arr">→</span><span class="h">' + esc(g.home) + '</span><span class="sh-small">홈 · ' + esc(g.stadium) + '</span></li>').join('') + '</ul>' +
+          '<p class="sh-vday-teams">' + teams.map((t) => '<span class="' + (cnt[t] === 1 ? 'ok' : 'bad') + '">' + esc(t) + ' ' + (cnt[t] || 0) + '</span>').join('') + '</p><p class="sh-vday-sum ' + (once ? 'ok' : 'bad') + '">' + (once ? teams.length + '구단 모두 한 번씩 출전했어요' : '한 번씩이 아닌 구단이 있어요') + '</p>'; };
+      show();
+      if (btn) btn.addEventListener('click', show);
+    }
+    mark('verify', v.failed ? 'fail ' + v.failed : 'ok ' + v.total);
+  }
   /**
    * 결과 쪽 생각 시간 상자: 다음 단계(3→10→30초)가 있으면 같은 조건·같은 출발점(options.seed, 출발점 seed+0..n-1)으로
    * 더 오래 다시 해 보기, 가장 긴 단계면 다른 출발점에서 다시 해 보기. 소개 쪽 tryForm prefill이 ?t=&tol=&cd=&seed=를 읽는다.
