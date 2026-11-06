@@ -508,7 +508,7 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-tbl.fill td, .tv-tbl.fill th { padding-top: 0; padding-bottom: 0; }
 .tv-strip { border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; padding: 4px 6px; margin-bottom: 12px; }
 .tv-strip svg.tv-leg { display: block; width: 100%; height: auto; }
-.tv-leg-grid { stroke: var(--line); stroke-width: 1; }
+.tv-leg-grid { stroke: #A9B1BE; stroke-width: 1; } /* 달 사이 선: 옅은 바탕 선(--line)으로는 달이 잘 갈리지 않아 진하게(사용자 요청 2026-11-06) */
 .tv-leg-axis { stroke: var(--text-3); stroke-width: 1; }
 .tv-leg-month { fill: var(--text-2); font-size: 11px; font-weight: 600; }
 .tv-leg-base { stroke: var(--line); stroke-width: 1; }
