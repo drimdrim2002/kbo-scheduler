@@ -2,7 +2,8 @@
  * 편성 스튜디오 — ③ 일정 자세히 보기 (대안 다: 달력 하나 + 위반 넘기기 띠)
  * 위: 위반 띠(건수 · ‹ n / N › · 내용 · 고치는 방법 · 목록 ▾)
  *     도구줄(달력 | 구단별 연전 표 · 월 탭 · 구단 ▾ · 보관함 N(있을 때만) · 범례 · 실행 취소 · 중간 저장)
- * 가운데: 월간 달력(연전 띠) 또는 구단별 연전 표가 화면 전체. 왼쪽·오른쪽 칸은 없다.
+ *     2027 흐름(plan-flow.js S.r3Views)은 달력 | 홈/원정 흐름 | 상대별 경기 수 — 구단별 연전 표는 홈/원정 흐름 띠에 합쳤다(2026-11-06)
+ * 가운데: 월간 달력(연전 띠) 또는 구단별 연전 표(또는 흐름 띠·상대별 경기 수)가 화면 전체. 왼쪽·오른쪽 칸은 없다.
  * 경기 칸을 누르면 옆에 「경기 창」, 위반 띠의 「고치는 방법」은 그 연전 띠 옆에 창.
  * 옮기기는 두 번 누르기: 경기 창 「옮기기…」 → 「옮기는 중」 → 놓을 수 있는 띠의 「여기로 · 위반 N↓」(또는 그 띠의 경기를 눌러 맞바꾸기).
  * 끌어 놓기는 없다(사용자 결정 2026-11-06).
@@ -157,7 +158,7 @@
   // ───────── 도구줄 ─────────
   function renderToolbar() {
     const c = D(), u = S.ui, tf = u.teamFilter;
-    const views = [['calendar', '달력', 'cal'], ['matrix', '구단별 연전 표', 'grid']];
+    const views = S.r3Views();
     let s = '<div class="toolbar r3-tools"><div class="seg" role="tablist">' + views.map((v) => '<button class="' + (u.view === v[0] ? 'on' : '') + '" data-act="r-view" data-view="' + v[0] + '" role="tab" aria-selected="' + (u.view === v[0]) + '">' + icon(v[2]) + v[1] + '</button>').join('') + '</div>';
     if (u.view === 'calendar') s += '<div class="month-tabs">' + months().map((mo) => { const n = monthViolations(mo); return '<button class="' + (u.month === mo ? 'on' : '') + '" data-act="r-month" data-month="' + mo + '">' + mo + '월' + (n ? '<span class="mv">' + icon('x') + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
     s += '<button class="btn sm' + (tf.length ? ' on' : '') + (u.menu === 'teams' ? ' on' : '') + '" data-act="teams-menu" aria-haspopup="menu" title="구단을 고르면 그 구단 경기만 진하게 보입니다">' + icon('team') + (tf.length ? esc(tf.length > 2 ? '구단 ' + tf.length : tf.join('·')) : '구단') + icon('down') + '</button>';
@@ -176,6 +177,13 @@
       if (u.teamFilter.length) items.push('<span><span class="fm h">홈</span>홈 경기</span><span><span class="fm a">원</span>원정 경기</span>');
       if (anyViol) items.push('<span><i class="lg-viol"></i>위반</span>');
       if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
+    } else if (u.view === 'flow') {
+      items.push('<span><i class="lg-home"></i>홈 연전</span><span><i class="lg-fa"></i>원정 연전</span>');
+      if (anyViol) items.push('<span><i class="lg-mviol"></i>위반</span>');
+      if (c.ex.teamMetrics.some((t) => t.runs.some((r) => r.length > 3))) items.push('<span><i class="lg-frun"></i>4연속 이상</span>');
+      if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
+    } else if (u.view === 'pairs') {
+      items.push('<span><i class="lg-pbad"></i>정해진 수와 다른 칸</span>');
     } else {
       items.push('<span><i class="lg-home"></i>홈</span><span><i class="lg-away"></i>원정</span>');
       if (anyViol) items.push('<span><i class="lg-mviol"></i>위반</span>');
@@ -189,7 +197,7 @@
     if (!mt) return '';
     const s0 = c.plan[u.moving];
     return '<div class="moveband"><span class="mb-title">' + icon('move') + '<b>옮기는 중</b>' + S.team(mt.away) + '<span class="muted">vs</span>' + S.team(mt.home) + (s0 >= 0 ? '<span class="muted">· 지금 ' + esc(c.slots[s0].label) + '</span>' : '<span class="muted">· 일정 미정</span>') + '</span>' +
-      '<span class="mb-hint">' + (u.view === 'calendar' ? '놓을 수 있는 연전 기간에 「여기로」가 켜집니다. 그 기간의 경기를 누르면 둘을 맞바꿉니다.' : '점선 칸을 누르면 그 자리의 경기와 맞바꿉니다.') + ' 월을 넘겨도 유지됩니다 · Esc 취소</span>' +
+      '<span class="mb-hint">' + (u.view === 'calendar' ? '놓을 수 있는 연전 기간에 「여기로」가 켜집니다. 그 기간의 경기를 누르면 둘을 맞바꿉니다.' : u.view === 'flow' ? '점선 테두리 막대를 누르면 그 연전과 맞바꿉니다.' : '점선 칸을 누르면 그 자리의 경기와 맞바꿉니다.') + ' 월을 넘겨도 유지됩니다 · Esc 취소</span>' +
       '<button class="btn sm" data-act="move-cancel">' + icon('x') + '취소</button></div>';
   }
 
@@ -343,6 +351,66 @@
     return s + '</tbody></table></div>';
   }
 
+  // ───────── 홈/원정 흐름 띠 · 상대별 경기 수 (2027 흐름의 보기 — 「구단별 보기」에서 옮겨 옴, 2026-11-06) ─────────
+  /** 구단마다 한 줄 띠. 홈 연전 = 진한 막대, 원정 = 옅은 막대, 달 경계선, 4연속 이상 = 빨간 밑줄. 높이는 창에 맞춘다(CSS)
+   *  구단별 연전 표가 보여 주던 것(상대·날짜·위반·고정·고른 경기·옮기는 중 맞바꾸기)은 막대의 말풍선·테두리에 담았다. 막대를 누르면 경기 창.
+   *  구단 이름을 누르면 그 구단만 진하게(달력의 구단 고르기와 같은 teamFilter) */
+  function renderFlow() {
+    const c = D(), st = app().state, u = S.ui, tf = u.teamFilter, slots = c.slots, T = c.ex.teamMetrics;
+    if (!slots.length) return '<div class="mx-wrap"><div class="empty"><b>연전 기간이 없습니다</b>연전 기간을 입력하면 홈/원정 흐름이 여기에 나옵니다.</div></div>';
+    const mv = u.moving, mvm = mv != null ? st.matches[mv] : null;
+    const vms = S._selViol ? (S._selViol.matches || []) : [];
+    const day0 = slots[0].day, dayN = slots[slots.length - 1].day + slots[slots.length - 1].consecutive, span = dayN - day0;
+    const pct = (d) => ((d - day0) / span * 100).toFixed(2) + '%';
+    const months = []; const seen = new Set();
+    for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); months.push({ d, m }); } }
+    const over = T.filter((t) => t.maxHomeRun > 3 || t.maxAwayRun > 3).length;
+    let s = '<div class="tv-flow r3-flow' + (tf.length ? ' has-sel' : '') + '" data-sk="r-flow">';
+    s += '<div class="tv-flow-head"><span class="tv-flow-name"></span><span class="tv-flow-track">' + months.map((o, i) => { const next = i + 1 < months.length ? months[i + 1].d : dayN; return '<i style="left:' + pct(o.d) + '"></i>' + (next - o.d >= 8 ? '<b style="left:' + pct(o.d) + '">' + o.m + '월</b>' : ''); }).join('') + '</span><span class="tv-flow-right">최장 연속</span></div>';
+    for (const t of T) {
+      const focus = tf.includes(t.name), dim = tf.length && !focus;
+      let row = '<div class="tv-flow-row' + (focus ? ' sel' : dim ? ' dim' : '') + '"><button class="tv-flow-name" data-act="tf" data-team="' + esc(t.name) + '" aria-pressed="' + focus + '" title="' + esc(t.name + (focus ? ' 강조 풀기' : '만 진하게 보기')) + '">' + S.team(t.name) + '</button><span class="tv-flow-track">' + months.map((o) => '<i style="left:' + pct(o.d) + '"></i>').join('');
+      for (const v of t.visits) {
+        const sl = slots[v.slot], a = sl.day, b = sl.day + sl.consecutive, m = v.match, mt = st.matches[m];
+        const flags = c.ex.matchFlags[m] || [];
+        const flash = u.flashMatches && u.flashMatches.includes(m);
+        let cls = 'tv-flow-blk ' + (v.home ? 'h' : 'a') + (flags.length ? ' viol' : '') + (u.sel === 'm:' + m ? ' sel' : '') + (vms.includes(m) ? ' vsel' : '') + (mt.pinned ? ' pinned' : '') + (flash ? ' flash' : '');
+        let title = Dates.fmtDate(a) + '~' + Dates.fmtDate(b - 1) + ' ' + (v.home ? '홈' : '원정') + ' vs ' + st.teams[v.opp].name + ' ' + sl.consecutive + '연전' + (flags.length ? ' · 위반 ' + flags.map(S.ruleName).join(', ') : '') + (mt.pinned ? ' · 고정' : '');
+        let act = 'sel-match';
+        if (mv != null) {
+          if (mv === m) { cls += ' moving'; act = 'move-cancel'; title = '옮기는 중 · 누르면 취소'; }
+          else if ((mvm.home === t.name || mvm.away === t.name) && canDrop(mv, sl.index, m)) { cls += ' swap-ok'; act = 'move-swap'; title = app().matchLabel(m) + ' · 누르면 맞바꾸기 · ' + deltaWord(app().previewDrop(mv, sl.index, m).hardDelta); }
+          else { cls += ' off'; act = ''; }
+        }
+        row += '<button class="' + cls + '"' + (act ? ' data-act="' + act + '"' : ' disabled') + ' data-m="' + m + '" data-slot="' + sl.index + '" style="left:' + pct(a) + ';width:calc(' + pct(b) + ' - ' + pct(a) + ' - 1px)" title="' + esc(title) + '"' + (sl.consecutive >= 3 ? '><span class="opp">' + esc(st.teams[v.opp].name) + '</span></button>' : '></button>');
+      }
+      for (const r of t.runs) if (r.length > 3) { const a = slots[r.slots[0]].day, last = slots[r.slots[r.slots.length - 1]], b = last.day + last.consecutive;
+        row += '<span class="tv-flow-run" style="left:' + pct(a) + ';width:calc(' + pct(b) + ' - ' + pct(a) + ' - 1px)" title="' + esc((r.home ? '홈 ' : '원정 ') + r.length + '연속') + '"></span>'; }
+      row += '</span><span class="tv-flow-right"><span class="' + (t.maxHomeRun > 3 ? 'bad' : '') + '">홈 ' + t.maxHomeRun + '</span> · <span class="' + (t.maxAwayRun > 3 ? 'bad' : '') + '">원정 ' + t.maxAwayRun + '</span></span></div>';
+      s += row;
+    }
+    s += '<div class="tv-flow-foot xs muted">' + (over ? '홈이나 원정이 4연속을 넘는 구단 ' + over + '개' : '4연속을 넘는 구단 없음') + ' · 막대에 마우스를 올리면 상대와 날짜, 누르면 경기 창 · 구단 이름을 누르면 그 구단만 진하게</div></div>';
+    return s;
+  }
+  /** 상대별 경기 수: 맨 위에 판정 한 줄, 칸은 어긋난 곳만 색. 칸 크기는 창 높이에 맞춘다(CSS) */
+  function renderPairs() {
+    const st = app().state, names = st.teams.map((t) => t.name), N = names.length;
+    const total = st.settings.initialGamesPerPair, major = st.settings.homeGamesMajor, minor = total - major;
+    const g = (h, a) => st.matches.filter((m) => m.home === h && m.away === a).reduce((x, m) => x + m.consecutive, 0);
+    const bad = []; // 맞대결 단위로 어긋난 것
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) { const x = g(names[i], names[j]), y = g(names[j], names[i]); const ok = x + y === total && Math.max(x, y) === major && Math.min(x, y) === minor; if (!ok) bad.push({ a: names[i], b: names[j], x, y }); }
+    const badCell = new Set(bad.flatMap((p) => [p.a + '|' + p.b, p.b + '|' + p.a]));
+    let s = '<div class="r3-pairs" data-sk="r-pairs">';
+    s += bad.length
+      ? '<div class="tv-verdict bad">' + icon('warn') + ' 고르지 않은 맞대결 ' + bad.length + '개 — ' + esc(bad.slice(0, 4).map((p) => p.a + '–' + p.b + ' ' + (p.x + p.y) + '경기(' + p.x + '·' + p.y + ')').join(' · ')) + (bad.length > 4 ? ' …' : '') + '</div>'
+      : '<div class="tv-verdict ok">' + icon('check') + ' 모든 맞대결이 ' + total + '경기(홈 ' + major + ' · 원정 ' + minor + ')로 고릅니다</div>';
+    s += '<div class="xs muted" style="margin-bottom:8px">가로줄이 홈 구단, 세로줄이 원정 구단. 칸은 그 홈에서 치르는 경기 수입니다.</div>';
+    s += '<div class="tv-pairs" style="--n:' + (N + 1) + '"><div class="tv-pc corner"><span>홈 ↓ · 원정 →</span></div>' + names.map((n) => '<div class="tv-pc hd">' + S.team(n) + '</div>').join('');
+    for (const h of names) { s += '<div class="tv-pc hd">' + S.team(h) + '</div>'; for (const a of names) { if (h === a) { s += '<div class="tv-pc diag"></div>'; continue; } const v = g(h, a); s += '<div class="tv-pc' + (badCell.has(h + '|' + a) ? ' bad' : '') + '" title="' + esc(h + ' 홈에서 ' + a + '와 ' + v + '경기') + '">' + v + '</div>'; } }
+    s += '</div></div>';
+    return s;
+  }
+
   // ───────── 경기 창 · 고치는 방법 창 ─────────
   function teamStrip(name, hiSlot) {
     const c = D();
@@ -388,7 +456,7 @@
     } else {
       const cands = S.candidates([m], [], 3).filter((x) => x.kind === 'swap' || x.kind === 'flip');
       s += '<div class="pop-sec"><h4>옮길 곳 추천' + (S.feature('M2') ? '<span class="r">' + (S.dev() ? 'Δ 미리보기' : '적용하면 이렇게 달라집니다') + '</span>' : '') + '</h4>' + (mt.pinned ? '<div class="small muted">고정된 경기는 옮길 수 없습니다. 고정을 풀면 옮길 곳이 나옵니다.</div>' : candList(cands)) + '</div>';
-      if (!mt.pinned) s += '<div class="pop-row"><button class="btn sm primary" data-act="move-start" data-m="' + m + '">' + icon('move') + '옮기기…</button><span class="muted small">' + (u.view === 'calendar' ? '달력에서 놓을 자리를 직접 고릅니다' : '표에서 맞바꿀 칸을 직접 고릅니다') + '</span></div>';
+      if (!mt.pinned) s += '<div class="pop-row"><button class="btn sm primary" data-act="move-start" data-m="' + m + '">' + icon('move') + '옮기기…</button><span class="muted small">' + (u.view === 'calendar' ? '달력에서 놓을 자리를 직접 고릅니다' : u.view === 'flow' ? '띠에서 맞바꿀 막대를 직접 고릅니다' : '표에서 맞바꿀 칸을 직접 고릅니다') + '</span></div>';
     }
     s += '<button class="pop-fold" data-act="pop-hv" aria-expanded="' + (u.hvOpen ? 'true' : 'false') + '">' + icon(u.hvOpen ? 'down' : 'right') + '홈/원정 흐름 보기<span class="muted small">연전 기간 ' + c.slots.length + '</span></button>';
     if (u.hvOpen) {
@@ -424,8 +492,8 @@
     const pop = root.querySelector('.pop');
     if (!pop) return;
     let a = null;
-    if (pop.dataset.anchorM != null) a = root.querySelector('.gm[data-m="' + pop.dataset.anchorM + '"], .mx-c[data-m="' + pop.dataset.anchorM + '"]');
-    else if (pop.dataset.anchorSlot != null) a = root.querySelector('.slotband[data-slot="' + pop.dataset.anchorSlot + '"], .mx-c.vsel, .mx-col[data-slot="' + pop.dataset.anchorSlot + '"]');
+    if (pop.dataset.anchorM != null) a = root.querySelector('.gm[data-m="' + pop.dataset.anchorM + '"], .mx-c[data-m="' + pop.dataset.anchorM + '"], .tv-flow-blk[data-m="' + pop.dataset.anchorM + '"]');
+    else if (pop.dataset.anchorSlot != null) a = root.querySelector('.slotband[data-slot="' + pop.dataset.anchorSlot + '"], .mx-c.vsel, .mx-col[data-slot="' + pop.dataset.anchorSlot + '"], .tv-flow-blk.vsel');
     const rr = root.getBoundingClientRect();
     const body = root.querySelector('.r3-body');
     const minTop = (body ? body.offsetTop : 0) + 6; // 위반 띠·도구줄은 가리지 않는다
@@ -456,12 +524,16 @@
   }
 
   // ───────── 단계 ─────────
+  /** 보기 탭: [id, 이름, 아이콘]. 흐름(plan-flow.js)이 2027에서 바꿔 끼운다 */
+  S.r3Views = () => [['calendar', '달력', 'cal'], ['matrix', '구단별 연전 표', 'grid']];
   S.steps[3] = {
     render() {
       const u = S.ui, st = app().state;
       S.wide = window.innerWidth >= 1800;
+      const ids = S.r3Views().map((v) => v[0]);
       if (u.view === 'slots') u.view = 'matrix'; // 예전 주소의 「연전 기간 목록」은 구단별 연전 표로
-      if (u.view !== 'calendar' && u.view !== 'matrix') u.view = 'calendar';
+      if (u.view === 'matrix' && !ids.includes('matrix') && ids.includes('flow')) u.view = 'flow'; // 2027: 구단별 연전 표는 홈/원정 흐름 띠에 합쳤다
+      if (!ids.includes(u.view)) u.view = 'calendar';
       const ms = months();
       if (!ms.includes(u.month)) u.month = ms[0];
       if (u.moving != null && !st.matches[u.moving]) u.moving = null;
@@ -471,7 +543,7 @@
       else if (u.pop === 'fix' && S._selViol) pop = popFix(S._selViol);
       else u.pop = null;
       return '<div class="stepview no-band"><div class="r3' + (u.moving != null ? ' moving' : '') + '">' + renderVBand() + renderToolbar() +
-        '<div class="r3-body">' + (u.view === 'calendar' ? renderCalendar() : renderMatrix()) + '</div>' + pop + '</div></div>';
+        '<div class="r3-body">' + (u.view === 'calendar' ? renderCalendar() : u.view === 'flow' ? renderFlow() : u.view === 'pairs' ? renderPairs() : renderMatrix()) + '</div>' + pop + '</div></div>';
     },
     after() {
       const u = S.ui;

@@ -933,9 +933,12 @@
   // 예전 화면의 번호와 평균 ± 범위는 새 흐름의 말과 다르다. 2027에서는 번호를 빼고, 평균 ± 범위는 「참고 범위」로 부른다(엔진이 맞추는 기준은 허용 차이)
   const origStep3 = S.steps[3].render;
   S.steps[3].render = function () { return origStep3().replace(/④ 공정성·배포로 넘어가세요\.?/g, '「구단별 보기」에서 한 구단씩 살펴보세요.'); };
+  // 일정 자세히 보기의 탭(2027): 달력 · 홈/원정 흐름 · 상대별 경기 수. 구단별 연전 표는 홈/원정 흐름 띠에 합쳤고(같은 내용), 리그 전체 보기 둘은 「구단별 보기」에서 여기로 옮겼다(사용자 결정 2026-11-06)
+  const origR3Views = S.r3Views;
+  S.r3Views = () => (S.seasonYear() === YEAR_NEW ? [['calendar', '달력', 'cal'], ['flow', '홈/원정 흐름', 'grid'], ['pairs', '상대별 경기 수', 'table']] : origR3Views());
   // 구단 간 비교 보기(한눈에·점수 구성·총 이동거리·이동/휴일/주말 비교)는 뺀다(사용자 결정 2026-11-06): 「현재 결과 분석」과 겹치고, 리그 평균 ± 범위라는 옛 기준이라 방침의 허용 수준과 말이 달랐다.
   // 내보내기도 대부분 시안이라 뺀다(일정표 CSV는 데이터 메뉴에 있다). 남는 것은 한 구단을 따라가는 보기와 오른쪽 구단 카드
-  const HIDDEN_VIEWS = ['metrics', 'soft', 'a1', 'a2', 'a4', 'a8', 'export']; // 누적 이동거리는 두 구단 비교(team-view.js)가, 주중 이동(참고)은 뺌(2026-11-06)
+  const HIDDEN_VIEWS = ['metrics', 'soft', 'a1', 'a2', 'a4', 'a8', 'export', 'a3', 'a5', 'a9', 'a10', 'a12']; // 누적 이동거리는 두 구단 비교(team-view.js)가, 주중 이동(참고)은 뺌(2026-11-06). 리그 전체 묶음(홈/원정 흐름·상대별 경기 수·혹서기·장거리·월별 홈)은 「일정 자세히 보기」로(2026-11-06): 화면 하나 = 질문 하나, 구단별 보기는 한 구단·두 구단만
   S.qvHidden = (id) => S.seasonYear() === YEAR_NEW && HIDDEN_VIEWS.includes(id);
   S.qvDefault = () => (S.seasonYear() === YEAR_NEW ? 'sched' : null); // 들어오면 처음 보이는 보기
   const origStep4 = S.steps[4].render;

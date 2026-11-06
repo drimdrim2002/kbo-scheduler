@@ -418,9 +418,9 @@
 
       // ── 글
       S.go({ step: 5 }); flush();
-      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3 }), 공정성: () => S.go({ step: 4, qv: 'sched', team: 'KT', team2: null }), 비교: () => S.go({ step: 4, qv: 'cmp', team: 'KT', team2: '삼성' }) };
+      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3, view: 'calendar' }), 흐름: () => S.go({ step: 3, view: 'flow' }), 상대: () => S.go({ step: 3, view: 'pairs' }), 공정성: () => S.go({ step: 4, qv: 'sched', team: 'KT', team2: null }), 비교: () => S.go({ step: 4, qv: 'cmp', team: 'KT', team2: '삼성' }) };
       for (const v of ['export', 'metrics', 'soft', 'a1', 'a2']) { S.go({ step: 4, qv: v }); flush(); ok('구단 간 비교·내보내기 보기(' + v + ')는 빼고 구단별 보기로', S.ui.qv === 'sched' && !q('[data-qv="' + v + '"]')); }
-      ok('남은 보기는 한 구단을 따라가는 것뿐', qa('[data-act="q-view"]').length >= 3 && qa('[data-act="q-view"]').every((b) => !['metrics', 'soft', 'a1', 'a2', 'export'].includes(b.dataset.qv)));
+      ok('남은 보기는 한 구단을 따라가는 것뿐(구단별 일정표·두 구단 비교)', qa('[data-act="q-view"]').length === 2 && qa('[data-act="q-view"]').every((b) => !['metrics', 'soft', 'a1', 'a2', 'export'].includes(b.dataset.qv)));
       S.ui.step = 1; S.g1.mode = 'all'; S.render(); flush();
       ok('모든 표 보기: 동작하지 않는 가져오기 단추 없음', !q('[data-act="import-xlsx"]') && !q('[data-act="import-gsheet"]') && !q('.band [data-act="export"]') && !!q('.band'));
       S.g1.mode = 'flow';
@@ -445,10 +445,19 @@
       S.go({ step: 4, qv: 'cmp', team: 'LG', team2: null }); flush();
       ok('둘째 구단 없이 비교 보기 → 하나 더 고르라는 안내', S.ui.pick2 === true && /하나 더 고르세요/.test(page()));
       S.ui.pick2 = false; S.ui.team2 = null;
-      S.go({ step: 4, qv: 'a3', team: 'KT', team2: null }); flush();
-      ok('홈/원정 흐름: 표 대신 구단마다 한 줄 띠(홈 막대·원정 막대·달 경계)', qa('.tv-flow-row').length === st().teams.length && qa('.tv-flow-blk.h').length > 100 && qa('.tv-flow-head .tv-flow-track > b').length >= 5 && !q('table.has'));
-      S.go({ step: 4, qv: 'a5', team: 'KT' }); flush();
+      // 일정 자세히 보기: 달력 · 홈/원정 흐름 · 상대별 경기 수 (리그 전체 보기 둘은 구단별 보기에서 여기로, 구단별 연전 표는 흐름 띠에 합침)
+      S.go({ step: 3, view: 'flow', sel: null, teamFilter: [] }); flush();
+      ok('홈/원정 흐름: 구단마다 한 줄 띠(홈 막대·원정 막대·달 경계) · 구단별 연전 표 탭 없음', qa('.r3 .tv-flow-row').length === st().teams.length && qa('.tv-flow-blk.h').length > 100 && qa('.tv-flow-head .tv-flow-track > b').length >= 5 && !q('[data-view="matrix"]') && !!q('[data-view="pairs"]'));
+      click('.tv-flow-row .tv-flow-name[data-team="KT"]'); flush();
+      ok('구단 이름을 누르면 그 줄 강조 = 달력의 구단 고르기', S.ui.teamFilter.join() === 'KT' && !!q('.tv-flow-row.sel') && !!q('.tv-flow.has-sel') && /KT/.test(q('[data-act="teams-menu"]').innerText));
+      click('.tv-flow-row.sel .tv-flow-blk'); flush();
+      ok('막대를 누르면 경기 창', !!q('.pop.pop-m') && !!S.ui.sel && S.ui.sel.startsWith('m:'));
+      S.go({ step: 3, view: 'matrix', sel: null, teamFilter: [] }); flush();
+      ok('옛 주소의 구단별 연전 표는 홈/원정 흐름으로', S.ui.view === 'flow');
+      S.go({ step: 3, view: 'pairs' }); flush();
       ok('상대별 경기 수: 판정 한 줄 + 칸', !!q('.tv-verdict') && qa('.tv-pairs .tv-pc').length === (st().teams.length + 1) * (st().teams.length + 1));
+      S.go({ step: 4, qv: 'a3', team: 'KT' }); flush();
+      ok('구단별 보기: 리그 전체 묶음 없음(옛 주소는 구단별 일정표로)', S.ui.qv === 'sched' && !q('[data-qv="a3"]') && !q('[data-qv="a5"]') && !/리그 전체/.test(page()));
       const menuHtml = S.menus.data();
       ok('데이터 메뉴: 동작하지 않는 항목 없음 · 실제로 받는 항목은 남음', !/tag mock|import-xlsx|import-gsheet|엑셀/.test(menuHtml) && /파일로 내려받기/.test(menuHtml) && !/가져오기/.test(menuHtml));
       const found = [];
