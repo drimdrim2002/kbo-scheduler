@@ -84,7 +84,7 @@
     const c = D(), st = app().state, out = [];
     for (let i = 1; i < t.visits.length; i++) {
       const p = t.visits[i - 1], v = t.visits[i];
-      if (v.loc === p.loc) continue;
+      if (v.loc === p.loc || v.afterBreak) continue;
       out.push({ from: st.teams[p.loc], to: st.teams[v.loc], day: c.slots[v.slot].day, km: v.legTenths / 10 });
     }
     return out;

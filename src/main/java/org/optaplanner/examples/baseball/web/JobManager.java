@@ -396,6 +396,8 @@ final class JobManager {
             key.put("pinned", pins);
         }
         key.put("options", options.toJson());
+        // 채점 방식이 바뀌면 예전에 저장한 결과를 다시 내주지 않고 새로 편성한다. 2: 올스타 휴식기 앞뒤 이동을 세지 않음
+        key.put("scoring", 2L);
         // 기본값이 바뀌어도 다른 키가 되도록, 명시된 값이 아니라 실제 적용되는 값을 넣는다
         key.put("knobs", knobsWithDefaults(problem));
         return sha256(Json.canonical(key));

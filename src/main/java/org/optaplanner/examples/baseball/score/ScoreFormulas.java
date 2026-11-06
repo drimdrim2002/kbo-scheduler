@@ -21,6 +21,12 @@ public final class ScoreFormulas {
     public static final int SOFT_LEVELS = 5;
     public static final long DUMMY_CALENDAR_ID = 9999L;
     public static final long DISTANCE_TOLERANCE_TENTHS = 3_000L;
+    /**
+     * A team's leg between two series with at least this many game-free days between them (the all-star break)
+     * counts 0 km and no move: the team does not travel straight from one to the other. The home/away streak
+     * still runs across it. Must match {@code LONG_BREAK_REST_DAYS} in {@code ui/core/score.js}.
+     */
+    public static final long LONG_BREAK_REST_DAYS = 3L;
     public static final int TEAMS_PER_DAY = 10;
     public static final int STADIUMS_PER_DAY = 5;
     public static final int SERIES_PER_DAY = 5;
@@ -118,7 +124,12 @@ public final class ScoreFormulas {
     }
 
     public record Visit(int slotIndex, long matchId, int locationTeamIndex, Team locationTeam, boolean home,
-            int holidayWeight) {
+            int holidayWeight, Calendar calendar) {
+    }
+
+    /** True when the leg from a series in {@code from} to one in {@code to} is not counted (see {@link #LONG_BREAK_REST_DAYS}). */
+    public static boolean isLongBreak(Calendar from, Calendar to) {
+        return Calendar.restDaysBetween(from, to) >= LONG_BREAK_REST_DAYS;
     }
 
     /**
@@ -441,6 +452,9 @@ public final class ScoreFormulas {
     }
 
     private static long legTenths(Visit from, Visit to) {
+        if (isLongBreak(from.calendar(), to.calendar())) {
+            return 0L;
+        }
         return from.locationTeam().getDistanceTenthsTo(to.locationTeam().getIndex());
     }
 
@@ -544,7 +558,7 @@ public final class ScoreFormulas {
             int holiday = home ? match.getCalendar().getHoliday() : 0;
             Team location = match.getHome();
             return new Visit(match.getCalendar().getSlotIndex(), matchId(match), location.getIndex(), location, home,
-                    holiday);
+                    holiday, match.getCalendar());
         }
 
         private void insert(int slot, Match match) {
@@ -637,6 +651,7 @@ public final class ScoreFormulas {
 
     private static final class VisitFold {
         private Team previousLocation;
+        private Calendar previousCalendar;
         private boolean previousHome;
         private boolean hasPrevious;
         private int run;
@@ -668,6 +683,7 @@ public final class ScoreFormulas {
 
         private void reset() {
             previousLocation = null;
+            previousCalendar = null;
             previousHome = false;
             hasPrevious = false;
             run = 0;
@@ -680,11 +696,13 @@ public final class ScoreFormulas {
         private void accept(Team traveler, Match match) {
             boolean home = sameTeam(match.getHome(), traveler);
             Team location = match.getHome();
+            Calendar calendar = match.getCalendar();
             if (!hasPrevious) {
                 hasPrevious = true;
                 run = 1;
             } else {
-                long leg = previousLocation.getDistanceTenthsTo(location.getIndex());
+                long leg = isLongBreak(previousCalendar, calendar) ? 0L
+                        : previousLocation.getDistanceTenthsTo(location.getIndex());
                 distance += leg;
                 if (leg > 0L) {
                     moves++;
@@ -706,6 +724,7 @@ public final class ScoreFormulas {
             }
             previousHome = home;
             previousLocation = location;
+            previousCalendar = calendar;
         }
     }
 

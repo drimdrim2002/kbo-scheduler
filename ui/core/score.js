@@ -18,6 +18,8 @@
   const MOVE_TOLERANCE = 2;               // Constants.TOLERANCE.TOTAL_MOVE
   const HOLIDAY_TOLERANCE = 1.5;          // Constants.TOLERANCE.HOLIDAY
   const WEEKDAY_MOVE_TOLERANCE = 1.5;     // Constants.TOLERANCE.WEEKDAY_MOVE (점수 미반영, 참고)
+  /** 두 연전 사이에 경기 없는 날이 이만큼 이상이면(올스타 휴식기) 그 사이 이동은 거리 0·이동 횟수 0. 홈·원정 연속은 이어 센다. 엔진 ScoreFormulas.LONG_BREAK_REST_DAYS와 같아야 한다 */
+  const LONG_BREAK_REST_DAYS = 3;
   const ENGINE_OBLIGATION = ['두산', '키움', '한화', 'NC', '롯데']; // Constants.HOME_OBLIGATION_CHILDREN
 
   const HARD_RULES = [
@@ -281,6 +283,11 @@
 
   function setH0eMode(ctx, mode) { ctx.h0eMode = mode; }
 
+  /** 슬롯 ps 연전 다음 날부터 슬롯 s 연전 전날까지 경기 없는 날이 LONG_BREAK_REST_DAYS 이상인가 (엔진 ScoreFormulas.isLongBreak) */
+  function isLongBreak(ctx, ps, s) {
+    return ctx.slotDay[s] - (ctx.slotDay[ps] + ctx.slotLen[ps]) >= LONG_BREAK_REST_DAYS;
+  }
+
   function popcount(x) {
     x -= (x >>> 1) & 0x55555555;
     x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
@@ -391,7 +398,7 @@
     const moveCount = ctx.moveCount, distTenths = ctx.distTenths, holidayW = ctx.holidayW;
     let streakTotal = 0;
     for (let t = 0; t < N; t++) {
-      let prevLoc = -1, prevHome = false, run = 0, d = 0, mv = 0, hol = 0;
+      let prevLoc = -1, prevSlot = -1, prevHome = false, run = 0, d = 0, mv = 0, hol = 0;
       const base = t * S;
       for (let s = 0; s < S; s++) {
         const c = cellCount[base + s];
@@ -401,24 +408,24 @@
           const isHome = home[m] === t;
           const loc = home[m];
           if (prevLoc < 0) { run = 1; } else {
-            const leg = dist[prevLoc * N + loc];
+            const leg = isLongBreak(ctx, prevSlot, s) ? 0 : dist[prevLoc * N + loc];
             d += leg; if (leg > 0) mv++;
             if (isHome === prevHome) { run++; if (run > 3) streakTotal++; } else run = 1;
           }
           if (isHome && slotHoliday[s] > 0) hol += slotHoliday[s];
-          prevHome = isHome; prevLoc = loc;
+          prevHome = isHome; prevLoc = loc; prevSlot = s;
         } else {
           for (let m = slotHead[s]; m >= 0; m = nextInSlot[m]) {
             if (home[m] !== t && away[m] !== t) continue;
             const isHome = home[m] === t;
             const loc = home[m];
             if (prevLoc < 0) { run = 1; } else {
-              const leg = dist[prevLoc * N + loc];
+              const leg = isLongBreak(ctx, prevSlot, s) ? 0 : dist[prevLoc * N + loc];
               d += leg; if (leg > 0) mv++;
               if (isHome === prevHome) { run++; if (run > 3) streakTotal++; } else run = 1;
             }
             if (isHome && slotHoliday[s] > 0) hol += slotHoliday[s];
-            prevHome = isHome; prevLoc = loc;
+            prevHome = isHome; prevLoc = loc; prevSlot = s;
           }
         }
       }
@@ -594,12 +601,13 @@
         const isHome = ctx.home[m] === t;
         const loc = ctx.home[m];
         const opp = isHome ? ctx.away[m] : ctx.home[m];
-        let leg = 0;
+        let leg = 0, afterBreak = false;
         if (prevLoc < 0) { run = 1; } else {
-          leg = ctx.dist[prevLoc * N + loc];
+          const prevSlot = visits[k - 1].slot;
+          afterBreak = isLongBreak(ctx, prevSlot, s);
+          leg = afterBreak ? 0 : ctx.dist[prevLoc * N + loc];
           d += leg; if (leg > 0) mv++;
           if (isHome === prevHome) { run++; if (run > 3) streak++; } else run = 1;
-          const prevSlot = visits[k - 1].slot;
           if (ctx.slotWeekend[prevSlot] === 0 && ctx.slotWeekend[s] === 1 && leg > 0) { weekdayMoves++; weekdayMoveTenths += leg; }
         }
         cum += leg;
@@ -612,7 +620,7 @@
         const mon = KBO.Dates.month(ctx.slotDay[s]);
         if (!isHome && (mon === 7 || mon === 8)) { summerAway += ctx.len[m]; }
         if ((mon === 7 || mon === 8) && leg > 0) summerAwayTenths += leg;
-        out.push({ slot: s, match: m, home: isHome, opp, loc, legTenths: leg, cumTenths: cum, run: run });
+        out.push({ slot: s, match: m, home: isHome, opp, loc, legTenths: leg, cumTenths: cum, run: run, afterBreak });
         prevHome = isHome; prevLoc = loc;
       }
       // FR-A10 장거리 연속 원정
@@ -715,7 +723,7 @@
   }
 
   KBO.Score = {
-    DISTANCE_TOLERANCE_TENTHS, MOVE_TOLERANCE, HOLIDAY_TOLERANCE, WEEKDAY_MOVE_TOLERANCE, ENGINE_OBLIGATION,
+    DISTANCE_TOLERANCE_TENTHS, MOVE_TOLERANCE, HOLIDAY_TOLERANCE, WEEKDAY_MOVE_TOLERANCE, LONG_BREAK_REST_DAYS, ENGINE_OBLIGATION,
     HARD_RULES, SOFT_RULES, RULE_BY_CODE,
     toTenths, planArrayFrom, planListFrom, resolveEventSlot, engineObligations, buildInput, createContext, setH0eMode,
     evaluate, explain, compare, toScore, flat, scoreString, isFeasible, scoreProject

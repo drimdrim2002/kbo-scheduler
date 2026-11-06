@@ -4,7 +4,6 @@ import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Month;
 
 public class Calendar extends AbstractPersistable implements Comparable<Calendar> {
 
@@ -18,7 +17,10 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
     private int slotIndex;
     /** 이 연전 기간에 홈이어야 하는 구단({@link Team#getIndex()} 비트). 0이면 홈 구장 지정이 없다. */
     private int homeObligationMask;
-    private boolean allStarBreakTuesday;
+    /** 시작일의 epoch day. 시작일이 없으면 {@link #NO_DAY}. 점수 계산의 쉬는 날 셈이 날마다 날짜 계산을 하지 않게 미리 둔다. */
+    private long startDay = NO_DAY;
+
+    public static final long NO_DAY = Long.MIN_VALUE;
 
     public Calendar(long id, LocalDateTime startTime, int consecutive, int weekend, int holiday) {
         super(id);
@@ -113,8 +115,15 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
         return !date.isBefore(start) && date.isBefore(start.plusDays(consecutive));
     }
 
-    public boolean isAllStarBreakTuesday() {
-        return allStarBreakTuesday;
+    /**
+     * {@code before} 연전 마지막 날의 다음 날부터 {@code after} 연전 첫날 전날까지 경기가 없는 날 수.
+     * 바로 이어지면 0, 월요일 하루 쉬면 1. 어느 쪽이든 시작일이 없거나 순서가 거꾸로면 0.
+     */
+    public static long restDaysBetween(Calendar before, Calendar after) {
+        if (before == null || after == null || before.startDay == NO_DAY || after.startDay == NO_DAY) {
+            return 0L;
+        }
+        return Math.max(0L, after.startDay - (before.startDay + before.consecutive));
     }
 
     public int getSlotIndex() {
@@ -128,9 +137,7 @@ public class Calendar extends AbstractPersistable implements Comparable<Calendar
     private void refreshPreprocessingFlags() {
         dummy = id != null && id == 9999L;
         slotIndex = (dummy || id == null) ? -1 : id.intValue();
-        allStarBreakTuesday = startTime != null
-                && startTime.getMonth() == Month.JULY
-                && startTime.getDayOfMonth() == 2;
+        startDay = startTime == null ? NO_DAY : startTime.toLocalDate().toEpochDay();
     }
 
     @Override

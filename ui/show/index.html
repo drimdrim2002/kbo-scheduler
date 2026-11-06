@@ -5,10 +5,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>매치봇 — KBO 144경기 일정을 다시 만든다면?</title>
-<meta name="description" content="2025 KBO 일정을 같은 규칙으로 매치봇이 다시 만들었어요. 총 이동거리는 13% 줄고, 구단별 이동거리 차이는 60% 줄었어요. 만드는 과정도 직접 볼 수 있어요.">
+<meta name="description" content="2025 KBO 일정을 같은 규칙으로 매치봇이 다시 만들었어요. 총 이동거리는 13% 줄고, 구단별 이동거리 차이는 55% 줄었어요. 만드는 과정도 직접 볼 수 있어요.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="KBO 144경기 일정, 매치봇이 다시 만든다면?">
-<meta property="og:description" content="같은 규칙으로 다시 만든 일정이에요. 총 이동거리 13% 감소, 구단별 이동거리 차이 60% 감소. 만드는 과정을 재생해 보세요.">
+<meta property="og:description" content="같은 규칙으로 다시 만든 일정이에요. 총 이동거리 13% 감소, 구단별 이동거리 차이 55% 감소. 만드는 과정을 재생해 보세요.">
 <meta property="og:image" content="https://schedulelab.kr/og/default.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>
@@ -103,7 +103,7 @@
     <!-- 기준 세 가지(2026-10-25 확정, 이동 일수 → 이동거리 → 주말·공휴일): 이전 아이콘 카드 + 가장 적은~많은 구단 막대(가운데 눈금 = 구단 평균, 실제라 주황) -->
     <div class="sh-why sh-why3">
       <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="13" rx="3"/><path d="M4 11h16M9 4v7M15 4v7"/><circle cx="8" cy="19.5" r="1.5"/><circle cx="16" cy="19.5" r="1.5"/></svg></i><div><b>이동 일수</b><span>가까워도 옮길 때마다 짐을 싸고 숙소를 바꿔요.</span><div class="sh-why-bar" data-bar="moves" data-unit="일" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.movesGap">6</span>일</b><br><span class="sh-nw">짐 싸고 숙소 바꾸기 <span data-n="why.movesGap">6</span>번 더</span></span></div></div>
-      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></i><div><b>이동거리</b><span>시리즈가 끝나면 다음 구장까지 버스로 옮겨요.</span><div class="sh-why-bar" data-bar="distanceKm" data-unit="km" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.kmGap">1,373</span>km</b><br><span class="sh-nw">버스로 약 <span data-n="why.kmGapHours">17</span>시간</span></span></div></div>
+      <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></i><div><b>이동거리</b><span>시리즈가 끝나면 다음 구장까지 버스로 옮겨요.</span><div class="sh-why-bar" data-bar="distanceKm" data-unit="km" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.kmGap">1,603</span>km</b><br><span class="sh-nw">버스로 약 <span data-n="why.kmGapHours">20</span>시간</span></span></div></div>
       <div class="sh-why-i"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="13" y="13" width="4" height="4" rx="1"/></svg></i><div><b>주말·공휴일 홈 경기</b><span>토·일엔 평일보다 한 경기에 관중이 <span data-n="why.fanGap">5,200</span>명쯤 더 와요.</span><div class="sh-why-bar" data-bar="holidayWeight" data-unit="경기" role="img"></div><span class="sh-why-sub">가장 큰 차이 <b class="sh-why-gap"><span data-n="why.holGap">6</span>경기</b><br><span class="sh-nw">관중 <span data-n="why.fans">약 3.1만</span> 명</span> · <span class="sh-nw">입장 수입 <span data-n="why.won">2억~4</span>억 원</span></span></div></div>
     </div>
     <details class="sh-why-how"><summary>가정은 이렇게 해봤어요</summary><p>2025년 1차 일정(3/22~8/31) 기준이에요. 버스 시간은 시속 80km로 셌어요. 관중은 KBO 2024 요일별 평균(토·일 17,722명, 화~목 12,558명)이고 금요일은 빼서 적게 잡았어요. 입장료는 2025 입장 수입 2,049억 원 ÷ 관중 1,231만 명 = 1인당 약 1만 6천 원이에요. 홈 구단 몫은 72%(원정 28%, 1993년에 정한 비율, 2015년 보도 기준)이고, 주말·공휴일 홈 경기가 적은 만큼 주말 원정에서 받는 몫을 빼면 아래쪽 값이에요.</p></details>
@@ -202,7 +202,7 @@
   <section class="sh-sec" id="replay" aria-labelledby="replay-h">
     <h2 class="sh-h2" id="replay-h">매치봇은 이렇게 고쳐 나가요</h2>
     <div class="sh-say"><svg class="sh-say-bot" aria-hidden="true"><use href="#mb-bot-think"/></svg><p class="sh-lead sh-say-msg">저는 일단 일정을 대충 맞춰 봐요. 그리고 나름의 기술로 카드 몇 장을 바꿔 보면서 이동거리를 줄여 봐요. 이렇게 찾아낸 개선만 모아서 40초로 보여 드릴게요.</p></div>
-    <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 구단의 총 이동거리예요. 내려갈수록 좋아요. 카드 1장은 시리즈(3연전) 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 방금 바뀐 내용을 설명해요.<span> 위의 칩 네 개는 매치봇이 차례로 맞추는 목표예요. '이동 일수'는 구단이 다른 구장으로 옮겨 간 날의 수예요(2025 실제 <span data-n="real.moves">32~38</span>일).</span></p>
+    <p class="sh-lead sh-rp-how"><b>읽는 법</b> 곡선은 10개 구단의 총 이동거리예요. 내려갈수록 좋아요. 카드 1장은 시리즈(3연전) 하나, 색은 홈 구단이고, 방금 옮긴 카드는 파란 테두리가 생겨요. 상자 맨 아래 글이 방금 바뀐 내용을 설명해요.<span> 위의 칩 네 개는 매치봇이 차례로 맞추는 목표예요. '이동 일수'는 구단이 다른 구장으로 옮겨 간 날의 수예요(2025 실제 <span data-n="real.moves">31~37</span>일).</span></p>
     <div class="sh-replay" id="replay-box"><div class="sh-replay-host"><div class="sh-replay-msg">화면에 들어오면 탐색 과정을 불러와요.</div></div></div>
     <!-- 어떻게 하는 건가요(2026-10-25 사용자: 「매치봇은 이렇게 고쳐 나가요」의 하위 단계로) -->
     <h2 class="sh-story-h" id="how">어떻게 하는 건가요?</h2>
