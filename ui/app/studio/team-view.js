@@ -89,6 +89,17 @@
     }
     return out;
   }
+  /** 가로축 글자 한 줄: 앞에 넣은 것이 이긴다. 겹치거나 칸 밖으로 나가면 뒤에 넣은 것을 뺀다(글자 폭은 11px 글꼴 어림: 한글 11 · 숫자 6.3) */
+  function axisRow(lo, hi) {
+    const used = [];
+    const wOf = (t) => [...t].reduce((n, ch) => n + (/[가-힣]/.test(ch) ? 11 : ch === ' ' ? 3.5 : 6.3), 0);
+    return (x, y, text, cls, anchor) => {
+      const w = wOf(text), x1 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x, x2 = x1 + w;
+      if (x1 < lo || x2 > hi || used.some(([a, b]) => x1 < b + 8 && x2 > a - 8)) return '';
+      used.push([x1, x2]);
+      return '<text class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y + '"' + (anchor && anchor !== 'start' ? ' text-anchor="' + anchor + '"' : '') + '>' + esc(text) + '</text>';
+    };
+  }
   /** 이동 구간 띠: 가로 = 시즌 날짜, 막대 하나 = 이동 한 번, 높이 = 그 구간 거리. 위 첫 구단, 아래 둘째 구단(거울). 장거리 연속 원정은 빨간 점선 상자 */
   function legStrip(A, B, W, H) {
     const c = D(), st = app().state, slots = c.slots;
@@ -99,11 +110,23 @@
     const max = Math.max(1, ...legs.flat().map((l) => l.km));
     const bw = Math.max(5, Math.min(10, (W - padL - padR) / 60));
     let s = '<svg class="tv-leg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(A.name + '·' + B.name + ' 이동 구간 거리') + '">';
-    // 달 경계
+    // 가로축(기본 + 휴식기 띠): 달 경계 선 · 달 이름은 그 달 가운데 · 월요일(휴식 요일)마다 작은 눈금 · 맨 앞 개막일과 맨 끝 날짜 · 휴식기는 회색 빗금 띠
+    const row = axisRow(4, W - 2), yb = H - 7, bot = H - padB, md = (d) => Dates.fmtShort(d);
+    const vline = (xx, cls, y1, y2) => '<line class="' + cls + '" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + y1 + '" y2="' + y2 + '"/>';
     const starts = []; const seen = new Set();
     for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); starts.push({ d, m }); } }
-    starts.forEach((o, i) => { const xx = x(o.d), next = i + 1 < starts.length ? x(starts[i + 1].d) : W - padR;
-      s += '<line class="tv-leg-grid" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + padT + '" y2="' + (H - padB) + '"/>' + (next - xx > 28 ? '<text class="tv-leg-month" x="' + (xx + 3).toFixed(1) + '" y="' + (H - 7) + '">' + o.m + '월</text>' : ''); });
+    const band = (i) => [Math.max(x(starts[i].d), padL), i + 1 < starts.length ? x(starts[i + 1].d) : W - padR];
+    s += '<line class="tv-leg-base" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + bot + '" y2="' + bot + '"/>';
+    // 휴식기(올스타 휴식기 등): 회색 빗금 띠, 이름은 띠 위. 편성 조건의 휴식기를 그대로 읽는다
+    const top = axisRow(padL - 2, W - 2);
+    s += '<defs><pattern id="tvHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="tv-leg-hatch"/></pattern></defs>';
+    for (const bk of (st.settings || {}).blackouts || []) { const a = Math.max(Dates.dayNum(bk.start), day0), b = Math.min(Dates.dayNum(bk.end || bk.start) + 1, dayN); if (!(b > a)) continue;
+      const x1 = x(a), x2 = x(b), name = bk.label || '휴식기';
+      s += '<rect class="tv-leg-break" x="' + x1.toFixed(1) + '" y="' + padT + '" width="' + (x2 - x1).toFixed(1) + '" height="' + (bot - padT) + '" fill="url(#tvHatch)"><title>' + esc(name + ' ' + Dates.fmtDate(a) + '~' + Dates.fmtDate(b - 1)) + '</title></rect>' + top((x1 + x2) / 2, 14, name, 'tv-leg-note', 'middle'); }
+    starts.forEach((o) => { s += vline(x(o.d), 'tv-leg-grid', padT, bot); });
+    for (let d = day0; d < dayN; d++) if (Dates.weekday(d) === 1) s += vline(x(d), 'tv-leg-wk', bot, bot + 4);
+    s += row(x(day0), yb, '개막 ' + md(day0), 'tv-leg-date', 'start') + row(x(dayN), yb, md(dayN - 1) + '까지', 'tv-leg-date', 'end');
+    starts.forEach((o, i) => { const [a, b] = band(i); s += row((a + b) / 2, yb, o.m + '월', 'tv-leg-month', 'middle'); });
     s += '<line class="tv-leg-axis" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + mid + '" y2="' + mid + '"/>';
     // 눈금(최대 거리)
     s += '<text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid - half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text><text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid + half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text>';
@@ -142,7 +165,7 @@
     // 가운데 칸 너비·높이를 창에서 셈해 띠 40%, 아래 줄 나머지. 창 크기가 바뀌면 다시 그린다(아래 resize)
     const listW = S.wide ? 260 : 232, mainW = Math.max(600, window.innerWidth - listW - 26), bodyH = Math.max(420, window.innerHeight - 226); // 위 틀·아래 줄(178) + 칸 안쪽 여백(24) + 요약 줄(24)
     const stripH = Math.round(bodyH * 0.4), lowerH = Math.max(220, bodyH - stripH - 92); // 92 = 소제목 둘·띠 테두리·사이 간격
-    s += '<div class="tv-sub">이동 구간 거리 <span class="muted">· 빨간 점선 상자 = 장거리 연속 원정</span></div><div class="tv-strip">' + legStrip(A, B, mainW, stripH) + '</div>';
+    s += '<div class="tv-sub">이동 구간 거리 <span class="muted">· 빨간 점선 상자 = 장거리 연속 원정 · 회색 빗금 = 휴식기</span></div><div class="tv-strip">' + legStrip(A, B, mainW, stripH) + '</div>';
     const cw = Math.round((mainW - 14) / 2 - 8), ch = lowerH; // 그래프와 표가 같은 높이
     const table = '<div class="tv-tblbox" style="height:' + lowerH + 'px">' + cmpTable(A, B, 'wide fill') + '</div>';
     if (LAYOUT === 'table') {
