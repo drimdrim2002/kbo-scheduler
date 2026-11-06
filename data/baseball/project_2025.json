@@ -1,0 +1,3641 @@
+{
+ "meta": {
+  "schemaVersion": 1,
+  "season": 2025,
+  "name": "2025 정규시즌 1차안"
+ },
+ "teams": [
+  {
+   "index": 0,
+   "name": "SSG",
+   "stadium": "문학경기장",
+   "latitude": 37.4351300329305,
+   "longitude": 126.690903589028,
+   "color": "#CE0E2D"
+  },
+  {
+   "index": 1,
+   "name": "두산",
+   "stadium": "잠실종합운동장",
+   "latitude": 37.5121939926003,
+   "longitude": 127.072036416245,
+   "color": "#131230"
+  },
+  {
+   "index": 2,
+   "name": "LG",
+   "stadium": "잠실종합운동장",
+   "latitude": 37.5121939926003,
+   "longitude": 127.072036416245,
+   "color": "#C30452"
+  },
+  {
+   "index": 3,
+   "name": "KT",
+   "stadium": "수원KT위즈파크",
+   "latitude": 37.2998406250231,
+   "longitude": 127.009700685327,
+   "color": "#1F1F1F"
+  },
+  {
+   "index": 4,
+   "name": "키움",
+   "stadium": "고척돔야구장",
+   "latitude": 37.4982926351745,
+   "longitude": 126.867136931358,
+   "color": "#820024"
+  },
+  {
+   "index": 5,
+   "name": "한화",
+   "stadium": "한화이글스파크",
+   "latitude": 36.3171790770845,
+   "longitude": 127.429154900655,
+   "color": "#E8590C"
+  },
+  {
+   "index": 6,
+   "name": "삼성",
+   "stadium": "대구삼성라이언즈파크",
+   "latitude": 35.8413267013148,
+   "longitude": 128.681099646757,
+   "color": "#074CA1"
+  },
+  {
+   "index": 7,
+   "name": "KIA",
+   "stadium": "광주챔피언스필드",
+   "latitude": 35.1681165695629,
+   "longitude": 126.889145403371,
+   "color": "#B8001F"
+  },
+  {
+   "index": 8,
+   "name": "NC",
+   "stadium": "창원NC파크",
+   "latitude": 35.2225640968556,
+   "longitude": 128.582270481598,
+   "color": "#315288"
+  },
+  {
+   "index": 9,
+   "name": "롯데",
+   "stadium": "사직야구장",
+   "latitude": 35.1941017214452,
+   "longitude": 129.061647044818,
+   "color": "#041E42"
+  }
+ ],
+ "distanceMatrix": [
+  {
+   "from": "SSG",
+   "to": "SSG",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "두산",
+   "distance": 46.2,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "LG",
+   "distance": 46.2,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "KT",
+   "distance": 43.2,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "키움",
+   "distance": 24.9,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "한화",
+   "distance": 182.8,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "삼성",
+   "distance": 314.1,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "KIA",
+   "distance": 312.4,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "NC",
+   "distance": 367.4,
+   "estimated": false
+  },
+  {
+   "from": "SSG",
+   "to": "롯데",
+   "distance": 405.8,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "SSG",
+   "distance": 46.2,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "두산",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "LG",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "KT",
+   "distance": 31.4,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "키움",
+   "distance": 31.1,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "한화",
+   "distance": 163.7,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "삼성",
+   "distance": 290,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "KIA",
+   "distance": 291.7,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "NC",
+   "distance": 343.4,
+   "estimated": false
+  },
+  {
+   "from": "두산",
+   "to": "롯데",
+   "distance": 388.9,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "SSG",
+   "distance": 46.2,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "두산",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "LG",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "KT",
+   "distance": 31.4,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "키움",
+   "distance": 31.1,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "한화",
+   "distance": 163.7,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "삼성",
+   "distance": 290,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "KIA",
+   "distance": 291.7,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "NC",
+   "distance": 343.4,
+   "estimated": false
+  },
+  {
+   "from": "LG",
+   "to": "롯데",
+   "distance": 388.9,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "SSG",
+   "distance": 43.2,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "두산",
+   "distance": 31.4,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "LG",
+   "distance": 31.4,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "KT",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "키움",
+   "distance": 39.2,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "한화",
+   "distance": 143.3,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "삼성",
+   "distance": 276.2,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "KIA",
+   "distance": 273.3,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "NC",
+   "distance": 329.4,
+   "estimated": false
+  },
+  {
+   "from": "KT",
+   "to": "롯데",
+   "distance": 375,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "SSG",
+   "distance": 24.9,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "두산",
+   "distance": 31.1,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "LG",
+   "distance": 31.1,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "KT",
+   "distance": 39.2,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "키움",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "한화",
+   "distance": 173.4,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "삼성",
+   "distance": 308.2,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "KIA",
+   "distance": 311.7,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "NC",
+   "distance": 361.6,
+   "estimated": false
+  },
+  {
+   "from": "키움",
+   "to": "롯데",
+   "distance": 407.2,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "SSG",
+   "distance": 176.7,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "두산",
+   "distance": 163.7,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "LG",
+   "distance": 163.7,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "KT",
+   "distance": 143.3,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "키움",
+   "distance": 173.4,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "한화",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "삼성",
+   "distance": 161.8,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "KIA",
+   "distance": 175.6,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "NC",
+   "distance": 215.2,
+   "estimated": false
+  },
+  {
+   "from": "한화",
+   "to": "롯데",
+   "distance": 262,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "SSG",
+   "distance": 314.1,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "두산",
+   "distance": 290,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "LG",
+   "distance": 290,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "KT",
+   "distance": 276.2,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "키움",
+   "distance": 308.2,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "한화",
+   "distance": 161.8,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "삼성",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "KIA",
+   "distance": 210.8,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "NC",
+   "distance": 90.5,
+   "estimated": false
+  },
+  {
+   "from": "삼성",
+   "to": "롯데",
+   "distance": 95.8,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "SSG",
+   "distance": 312.4,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "두산",
+   "distance": 291.7,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "LG",
+   "distance": 291.7,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "KT",
+   "distance": 273.3,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "키움",
+   "distance": 311.7,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "한화",
+   "distance": 175.6,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "삼성",
+   "distance": 210.8,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "KIA",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "NC",
+   "distance": 205.3,
+   "estimated": false
+  },
+  {
+   "from": "KIA",
+   "to": "롯데",
+   "distance": 254.6,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "SSG",
+   "distance": 367.4,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "두산",
+   "distance": 343.4,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "LG",
+   "distance": 343.4,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "KT",
+   "distance": 329.4,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "키움",
+   "distance": 361.6,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "한화",
+   "distance": 215.2,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "삼성",
+   "distance": 90.5,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "KIA",
+   "distance": 205.3,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "NC",
+   "distance": 0,
+   "estimated": false
+  },
+  {
+   "from": "NC",
+   "to": "롯데",
+   "distance": 56.9,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "SSG",
+   "distance": 405.8,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "두산",
+   "distance": 388.9,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "LG",
+   "distance": 388.9,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "KT",
+   "distance": 375,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "키움",
+   "distance": 407.2,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "한화",
+   "distance": 262,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "삼성",
+   "distance": 95.8,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "KIA",
+   "distance": 254.6,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "NC",
+   "distance": 56.9,
+   "estimated": false
+  },
+  {
+   "from": "롯데",
+   "to": "롯데",
+   "distance": 0,
+   "estimated": false
+  }
+ ],
+ "settings": {
+  "seasonStart": "2025-03-22",
+  "initialEnd": "2025-08-31",
+  "seasonEnd": "2025-10-31",
+  "restWeekdays": [
+   1
+  ],
+  "restExceptions": [
+   "2025-05-05"
+  ],
+  "blackouts": [
+   {
+    "start": "2025-05-08",
+    "end": "2025-05-08",
+    "label": "어린이날 3연전 뒤 휴식"
+   },
+   {
+    "start": "2025-07-11",
+    "end": "2025-07-16",
+    "label": "올스타 브레이크"
+   }
+  ],
+  "holidays": [
+   {
+    "date": "2025-05-05",
+    "name": "어린이날·부처님오신날",
+    "weight": 3
+   },
+   {
+    "date": "2025-05-06",
+    "name": "대체공휴일",
+    "weight": 2
+   },
+   {
+    "date": "2025-06-06",
+    "name": "현충일",
+    "weight": 2
+   },
+   {
+    "date": "2025-08-15",
+    "name": "광복절",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-03",
+    "name": "개천절",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-05",
+    "name": "추석 연휴",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-06",
+    "name": "추석",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-07",
+    "name": "추석 연휴",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-08",
+    "name": "추석 대체공휴일",
+    "weight": 2
+   },
+   {
+    "date": "2025-10-09",
+    "name": "한글날",
+    "weight": 2
+   }
+  ],
+  "allStarStart": "2025-07-11",
+  "gamesPerPair": 16,
+  "initialGamesPerPair": 15,
+  "homeGamesMajor": 9,
+  "remainingHomeRule": "FEWER_HOME",
+  "roadFactor": 1.25,
+  "h0eMode": "STADIUM",
+  "obligationTeams": [
+   "두산",
+   "키움",
+   "한화",
+   "NC",
+   "롯데"
+  ],
+  "distanceToleranceKm": 300,
+  "holidayTolerance": 1,
+  "moveTolerance": 2,
+  "seriesMinLength": 3,
+  "allStarDays": 6,
+  "fourGameHome": "same",
+  "referenceDate": "",
+  "longTripKm": 600,
+  "solver": {
+   "timeLimitSec": 10,
+   "unimprovedSec": 5,
+   "seed": 42,
+   "init": "KEEP"
+  }
+ },
+ "events": [
+  {
+   "id": "ev-opening",
+   "type": "OPENING",
+   "name": "개막전",
+   "slot": 0,
+   "date": "2025-03-22",
+   "mode": "STADIUM",
+   "teams": [
+    "SSG",
+    "LG",
+    "KT",
+    "삼성",
+    "KIA"
+   ],
+   "stadiums": [
+    "문학경기장",
+    "잠실종합운동장",
+    "수원KT위즈파크",
+    "대구삼성라이언즈파크",
+    "광주챔피언스필드"
+   ]
+  },
+  {
+   "id": "ev-children",
+   "type": "CHILDREN",
+   "name": "어린이날",
+   "slot": 13,
+   "date": "2025-05-05",
+   "mode": "STADIUM",
+   "teams": [
+    "두산",
+    "키움",
+    "한화",
+    "NC",
+    "롯데"
+   ],
+   "stadiums": [
+    "잠실종합운동장",
+    "고척돔야구장",
+    "한화이글스파크",
+    "창원NC파크",
+    "사직야구장"
+   ]
+  }
+ ],
+ "calendar": [
+  {
+   "index": 0,
+   "datetime": "2025-03-22 00:00:00",
+   "consecutive": 2,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 1,
+   "datetime": "2025-03-25 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 2,
+   "datetime": "2025-03-28 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 3,
+   "datetime": "2025-04-01 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 4,
+   "datetime": "2025-04-04 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 5,
+   "datetime": "2025-04-08 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 6,
+   "datetime": "2025-04-11 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 7,
+   "datetime": "2025-04-15 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 8,
+   "datetime": "2025-04-18 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 9,
+   "datetime": "2025-04-22 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 10,
+   "datetime": "2025-04-25 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 11,
+   "datetime": "2025-04-29 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 12,
+   "datetime": "2025-05-02 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 13,
+   "datetime": "2025-05-05 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 5
+  },
+  {
+   "index": 14,
+   "datetime": "2025-05-09 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 15,
+   "datetime": "2025-05-13 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 16,
+   "datetime": "2025-05-16 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 17,
+   "datetime": "2025-05-20 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 18,
+   "datetime": "2025-05-23 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 19,
+   "datetime": "2025-05-27 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 20,
+   "datetime": "2025-05-30 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 21,
+   "datetime": "2025-06-03 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 22,
+   "datetime": "2025-06-06 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 4
+  },
+  {
+   "index": 23,
+   "datetime": "2025-06-10 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 24,
+   "datetime": "2025-06-13 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 25,
+   "datetime": "2025-06-17 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 26,
+   "datetime": "2025-06-20 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 27,
+   "datetime": "2025-06-24 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 28,
+   "datetime": "2025-06-27 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 29,
+   "datetime": "2025-07-01 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 30,
+   "datetime": "2025-07-04 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 31,
+   "datetime": "2025-07-08 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 32,
+   "datetime": "2025-07-17 00:00:00",
+   "consecutive": 4,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 33,
+   "datetime": "2025-07-22 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 34,
+   "datetime": "2025-07-25 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 35,
+   "datetime": "2025-07-29 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 36,
+   "datetime": "2025-08-01 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 37,
+   "datetime": "2025-08-05 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 38,
+   "datetime": "2025-08-08 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 39,
+   "datetime": "2025-08-12 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 40,
+   "datetime": "2025-08-15 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 4
+  },
+  {
+   "index": 41,
+   "datetime": "2025-08-19 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 42,
+   "datetime": "2025-08-22 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  },
+  {
+   "index": 43,
+   "datetime": "2025-08-26 00:00:00",
+   "consecutive": 3,
+   "weekend": 0,
+   "holiday": 0
+  },
+  {
+   "index": 44,
+   "datetime": "2025-08-29 00:00:00",
+   "consecutive": 3,
+   "weekend": 1,
+   "holiday": 2
+  }
+ ],
+ "matches": [
+  {
+   "index": 0,
+   "home": "LG",
+   "away": "롯데",
+   "consecutive": 2,
+   "pinned": true,
+   "eventId": "ev-opening"
+  },
+  {
+   "index": 1,
+   "home": "SSG",
+   "away": "두산",
+   "consecutive": 2,
+   "pinned": true,
+   "eventId": "ev-opening"
+  },
+  {
+   "index": 2,
+   "home": "KT",
+   "away": "한화",
+   "consecutive": 2,
+   "pinned": true,
+   "eventId": "ev-opening"
+  },
+  {
+   "index": 3,
+   "home": "삼성",
+   "away": "키움",
+   "consecutive": 2,
+   "pinned": true,
+   "eventId": "ev-opening"
+  },
+  {
+   "index": 4,
+   "home": "KIA",
+   "away": "NC",
+   "consecutive": 2,
+   "pinned": true,
+   "eventId": "ev-opening"
+  },
+  {
+   "index": 5,
+   "home": "LG",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 6,
+   "home": "SSG",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 7,
+   "home": "KT",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 8,
+   "home": "삼성",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 9,
+   "home": "KIA",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 10,
+   "home": "두산",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 11,
+   "home": "키움",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 12,
+   "home": "한화",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 13,
+   "home": "롯데",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 14,
+   "home": "NC",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 15,
+   "home": "두산",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 16,
+   "home": "KT",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 17,
+   "home": "한화",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 18,
+   "home": "KIA",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 19,
+   "home": "NC",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 20,
+   "home": "LG",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 21,
+   "home": "키움",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 22,
+   "home": "SSG",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 23,
+   "home": "삼성",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 24,
+   "home": "롯데",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 25,
+   "home": "두산",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 26,
+   "home": "키움",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 27,
+   "home": "KT",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 28,
+   "home": "삼성",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 29,
+   "home": "롯데",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 30,
+   "home": "LG",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 31,
+   "home": "KT",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 32,
+   "home": "한화",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 33,
+   "home": "KIA",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 34,
+   "home": "NC",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 35,
+   "home": "LG",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 36,
+   "home": "SSG",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 37,
+   "home": "KIA",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 38,
+   "home": "롯데",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 39,
+   "home": "NC",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 40,
+   "home": "두산",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 41,
+   "home": "키움",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 42,
+   "home": "SSG",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 43,
+   "home": "한화",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 44,
+   "home": "삼성",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 45,
+   "home": "LG",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 46,
+   "home": "키움",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 47,
+   "home": "KT",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 48,
+   "home": "삼성",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 49,
+   "home": "롯데",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 50,
+   "home": "두산",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 51,
+   "home": "SSG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 52,
+   "home": "한화",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 53,
+   "home": "KIA",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 54,
+   "home": "NC",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 55,
+   "home": "두산",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 56,
+   "home": "키움",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 57,
+   "home": "SSG",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 58,
+   "home": "한화",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 59,
+   "home": "NC",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 60,
+   "home": "LG",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 61,
+   "home": "KT",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 62,
+   "home": "삼성",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 63,
+   "home": "KIA",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 64,
+   "home": "롯데",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 65,
+   "home": "두산",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 66,
+   "home": "키움",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 67,
+   "home": "한화",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 68,
+   "home": "롯데",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 69,
+   "home": "NC",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 70,
+   "home": "두산",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 71,
+   "home": "키움",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 72,
+   "home": "SSG",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 73,
+   "home": "KT",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 74,
+   "home": "삼성",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 75,
+   "home": "LG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 76,
+   "home": "SSG",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 77,
+   "home": "한화",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 78,
+   "home": "삼성",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 79,
+   "home": "KIA",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 80,
+   "home": "LG",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 81,
+   "home": "한화",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 82,
+   "home": "KIA",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 83,
+   "home": "롯데",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 84,
+   "home": "NC",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 85,
+   "home": "두산",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 86,
+   "home": "키움",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 87,
+   "home": "KT",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 88,
+   "home": "롯데",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 89,
+   "home": "NC",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 90,
+   "home": "두산",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 91,
+   "home": "키움",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 92,
+   "home": "SSG",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 93,
+   "home": "한화",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 94,
+   "home": "삼성",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 95,
+   "home": "LG",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 96,
+   "home": "SSG",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 97,
+   "home": "KT",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 98,
+   "home": "삼성",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 99,
+   "home": "KIA",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 100,
+   "home": "LG",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 101,
+   "home": "키움",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 102,
+   "home": "KT",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 103,
+   "home": "롯데",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 104,
+   "home": "NC",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 105,
+   "home": "두산",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 106,
+   "home": "SSG",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 107,
+   "home": "한화",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 108,
+   "home": "롯데",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 109,
+   "home": "NC",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 110,
+   "home": "두산",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 111,
+   "home": "키움",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 112,
+   "home": "KT",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 113,
+   "home": "삼성",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 114,
+   "home": "KIA",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 115,
+   "home": "LG",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 116,
+   "home": "키움",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 117,
+   "home": "KT",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 118,
+   "home": "한화",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 119,
+   "home": "KIA",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 120,
+   "home": "두산",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 121,
+   "home": "SSG",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 122,
+   "home": "한화",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 123,
+   "home": "삼성",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 124,
+   "home": "NC",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 125,
+   "home": "LG",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 126,
+   "home": "키움",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 127,
+   "home": "삼성",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 128,
+   "home": "KIA",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 129,
+   "home": "롯데",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 130,
+   "home": "LG",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 131,
+   "home": "SSG",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 132,
+   "home": "KT",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 133,
+   "home": "한화",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 134,
+   "home": "롯데",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 135,
+   "home": "두산",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 136,
+   "home": "키움",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 137,
+   "home": "KT",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 138,
+   "home": "삼성",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 139,
+   "home": "NC",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 140,
+   "home": "LG",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 141,
+   "home": "키움",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 142,
+   "home": "SSG",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 143,
+   "home": "롯데",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 144,
+   "home": "NC",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 145,
+   "home": "두산",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 146,
+   "home": "KT",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 147,
+   "home": "한화",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 148,
+   "home": "KIA",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 149,
+   "home": "롯데",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 150,
+   "home": "두산",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 151,
+   "home": "키움",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 152,
+   "home": "삼성",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 153,
+   "home": "KIA",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 154,
+   "home": "NC",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 155,
+   "home": "LG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 156,
+   "home": "SSG",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 157,
+   "home": "한화",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 158,
+   "home": "롯데",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 159,
+   "home": "NC",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 160,
+   "home": "LG",
+   "away": "롯데",
+   "consecutive": 4,
+   "pinned": false
+  },
+  {
+   "index": 161,
+   "home": "SSG",
+   "away": "두산",
+   "consecutive": 4,
+   "pinned": false
+  },
+  {
+   "index": 162,
+   "home": "KT",
+   "away": "한화",
+   "consecutive": 4,
+   "pinned": false
+  },
+  {
+   "index": 163,
+   "home": "삼성",
+   "away": "키움",
+   "consecutive": 4,
+   "pinned": false
+  },
+  {
+   "index": 164,
+   "home": "KIA",
+   "away": "NC",
+   "consecutive": 4,
+   "pinned": false
+  },
+  {
+   "index": 165,
+   "home": "두산",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 166,
+   "home": "키움",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 167,
+   "home": "삼성",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 168,
+   "home": "KIA",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 169,
+   "home": "NC",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 170,
+   "home": "두산",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 171,
+   "home": "KT",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 172,
+   "home": "한화",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 173,
+   "home": "롯데",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 174,
+   "home": "NC",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 175,
+   "home": "LG",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 176,
+   "home": "SSG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 177,
+   "home": "한화",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 178,
+   "home": "KIA",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 179,
+   "home": "롯데",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 180,
+   "home": "두산",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 181,
+   "home": "키움",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 182,
+   "home": "KT",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 183,
+   "home": "삼성",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 184,
+   "home": "KIA",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 185,
+   "home": "LG",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 186,
+   "home": "SSG",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 187,
+   "home": "한화",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 188,
+   "home": "롯데",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 189,
+   "home": "NC",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 190,
+   "home": "LG",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 191,
+   "home": "키움",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 192,
+   "home": "KT",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 193,
+   "home": "KIA",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 194,
+   "home": "롯데",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 195,
+   "home": "두산",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 196,
+   "home": "SSG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 197,
+   "home": "KT",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 198,
+   "home": "한화",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 199,
+   "home": "삼성",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 200,
+   "home": "두산",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 201,
+   "home": "키움",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 202,
+   "home": "SSG",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 203,
+   "home": "롯데",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 204,
+   "home": "NC",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 205,
+   "home": "LG",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 206,
+   "home": "KT",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 207,
+   "home": "한화",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 208,
+   "home": "삼성",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 209,
+   "home": "KIA",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 210,
+   "home": "두산",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 211,
+   "home": "한화",
+   "away": "SSG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 212,
+   "home": "삼성",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 213,
+   "home": "KIA",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 214,
+   "home": "NC",
+   "away": "롯데",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 215,
+   "home": "두산",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 216,
+   "home": "키움",
+   "away": "한화",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 217,
+   "home": "SSG",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 218,
+   "home": "롯데",
+   "away": "KT",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 219,
+   "home": "NC",
+   "away": "LG",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 220,
+   "home": "LG",
+   "away": "키움",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 221,
+   "home": "SSG",
+   "away": "NC",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 222,
+   "home": "KT",
+   "away": "KIA",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 223,
+   "home": "한화",
+   "away": "삼성",
+   "consecutive": 3,
+   "pinned": false
+  },
+  {
+   "index": 224,
+   "home": "롯데",
+   "away": "두산",
+   "consecutive": 3,
+   "pinned": false
+  }
+ ],
+ "plan": [
+  {
+   "match": 0,
+   "calendar": 0
+  },
+  {
+   "match": 1,
+   "calendar": 0
+  },
+  {
+   "match": 2,
+   "calendar": 0
+  },
+  {
+   "match": 3,
+   "calendar": 0
+  },
+  {
+   "match": 4,
+   "calendar": 0
+  },
+  {
+   "match": 5,
+   "calendar": 1
+  },
+  {
+   "match": 6,
+   "calendar": 1
+  },
+  {
+   "match": 7,
+   "calendar": 1
+  },
+  {
+   "match": 8,
+   "calendar": 1
+  },
+  {
+   "match": 9,
+   "calendar": 1
+  },
+  {
+   "match": 10,
+   "calendar": 2
+  },
+  {
+   "match": 11,
+   "calendar": 2
+  },
+  {
+   "match": 12,
+   "calendar": 2
+  },
+  {
+   "match": 13,
+   "calendar": 2
+  },
+  {
+   "match": 14,
+   "calendar": 2
+  },
+  {
+   "match": 15,
+   "calendar": 3
+  },
+  {
+   "match": 16,
+   "calendar": 3
+  },
+  {
+   "match": 17,
+   "calendar": 3
+  },
+  {
+   "match": 18,
+   "calendar": 3
+  },
+  {
+   "match": 19,
+   "calendar": 3
+  },
+  {
+   "match": 20,
+   "calendar": 4
+  },
+  {
+   "match": 21,
+   "calendar": 4
+  },
+  {
+   "match": 22,
+   "calendar": 4
+  },
+  {
+   "match": 23,
+   "calendar": 4
+  },
+  {
+   "match": 24,
+   "calendar": 4
+  },
+  {
+   "match": 25,
+   "calendar": 5
+  },
+  {
+   "match": 26,
+   "calendar": 5
+  },
+  {
+   "match": 27,
+   "calendar": 5
+  },
+  {
+   "match": 28,
+   "calendar": 5
+  },
+  {
+   "match": 29,
+   "calendar": 5
+  },
+  {
+   "match": 30,
+   "calendar": 6
+  },
+  {
+   "match": 31,
+   "calendar": 6
+  },
+  {
+   "match": 32,
+   "calendar": 6
+  },
+  {
+   "match": 33,
+   "calendar": 6
+  },
+  {
+   "match": 34,
+   "calendar": 6
+  },
+  {
+   "match": 35,
+   "calendar": 7
+  },
+  {
+   "match": 36,
+   "calendar": 7
+  },
+  {
+   "match": 37,
+   "calendar": 7
+  },
+  {
+   "match": 38,
+   "calendar": 7
+  },
+  {
+   "match": 39,
+   "calendar": 7
+  },
+  {
+   "match": 40,
+   "calendar": 8
+  },
+  {
+   "match": 41,
+   "calendar": 8
+  },
+  {
+   "match": 42,
+   "calendar": 8
+  },
+  {
+   "match": 43,
+   "calendar": 8
+  },
+  {
+   "match": 44,
+   "calendar": 8
+  },
+  {
+   "match": 45,
+   "calendar": 9
+  },
+  {
+   "match": 46,
+   "calendar": 9
+  },
+  {
+   "match": 47,
+   "calendar": 9
+  },
+  {
+   "match": 48,
+   "calendar": 9
+  },
+  {
+   "match": 49,
+   "calendar": 9
+  },
+  {
+   "match": 50,
+   "calendar": 10
+  },
+  {
+   "match": 51,
+   "calendar": 10
+  },
+  {
+   "match": 52,
+   "calendar": 10
+  },
+  {
+   "match": 53,
+   "calendar": 10
+  },
+  {
+   "match": 54,
+   "calendar": 10
+  },
+  {
+   "match": 55,
+   "calendar": 11
+  },
+  {
+   "match": 56,
+   "calendar": 11
+  },
+  {
+   "match": 57,
+   "calendar": 11
+  },
+  {
+   "match": 58,
+   "calendar": 11
+  },
+  {
+   "match": 59,
+   "calendar": 11
+  },
+  {
+   "match": 60,
+   "calendar": 12
+  },
+  {
+   "match": 61,
+   "calendar": 12
+  },
+  {
+   "match": 62,
+   "calendar": 12
+  },
+  {
+   "match": 63,
+   "calendar": 12
+  },
+  {
+   "match": 64,
+   "calendar": 12
+  },
+  {
+   "match": 65,
+   "calendar": 13
+  },
+  {
+   "match": 66,
+   "calendar": 13
+  },
+  {
+   "match": 67,
+   "calendar": 13
+  },
+  {
+   "match": 68,
+   "calendar": 13
+  },
+  {
+   "match": 69,
+   "calendar": 13
+  },
+  {
+   "match": 70,
+   "calendar": 14
+  },
+  {
+   "match": 71,
+   "calendar": 14
+  },
+  {
+   "match": 72,
+   "calendar": 14
+  },
+  {
+   "match": 73,
+   "calendar": 14
+  },
+  {
+   "match": 74,
+   "calendar": 14
+  },
+  {
+   "match": 75,
+   "calendar": 15
+  },
+  {
+   "match": 76,
+   "calendar": 15
+  },
+  {
+   "match": 77,
+   "calendar": 15
+  },
+  {
+   "match": 78,
+   "calendar": 15
+  },
+  {
+   "match": 79,
+   "calendar": 15
+  },
+  {
+   "match": 80,
+   "calendar": 16
+  },
+  {
+   "match": 81,
+   "calendar": 16
+  },
+  {
+   "match": 82,
+   "calendar": 16
+  },
+  {
+   "match": 83,
+   "calendar": 16
+  },
+  {
+   "match": 84,
+   "calendar": 16
+  },
+  {
+   "match": 85,
+   "calendar": 17
+  },
+  {
+   "match": 86,
+   "calendar": 17
+  },
+  {
+   "match": 87,
+   "calendar": 17
+  },
+  {
+   "match": 88,
+   "calendar": 17
+  },
+  {
+   "match": 89,
+   "calendar": 17
+  },
+  {
+   "match": 90,
+   "calendar": 18
+  },
+  {
+   "match": 91,
+   "calendar": 18
+  },
+  {
+   "match": 92,
+   "calendar": 18
+  },
+  {
+   "match": 93,
+   "calendar": 18
+  },
+  {
+   "match": 94,
+   "calendar": 18
+  },
+  {
+   "match": 95,
+   "calendar": 19
+  },
+  {
+   "match": 96,
+   "calendar": 19
+  },
+  {
+   "match": 97,
+   "calendar": 19
+  },
+  {
+   "match": 98,
+   "calendar": 19
+  },
+  {
+   "match": 99,
+   "calendar": 19
+  },
+  {
+   "match": 100,
+   "calendar": 20
+  },
+  {
+   "match": 101,
+   "calendar": 20
+  },
+  {
+   "match": 102,
+   "calendar": 20
+  },
+  {
+   "match": 103,
+   "calendar": 20
+  },
+  {
+   "match": 104,
+   "calendar": 20
+  },
+  {
+   "match": 105,
+   "calendar": 21
+  },
+  {
+   "match": 106,
+   "calendar": 21
+  },
+  {
+   "match": 107,
+   "calendar": 21
+  },
+  {
+   "match": 108,
+   "calendar": 21
+  },
+  {
+   "match": 109,
+   "calendar": 21
+  },
+  {
+   "match": 110,
+   "calendar": 22
+  },
+  {
+   "match": 111,
+   "calendar": 22
+  },
+  {
+   "match": 112,
+   "calendar": 22
+  },
+  {
+   "match": 113,
+   "calendar": 22
+  },
+  {
+   "match": 114,
+   "calendar": 22
+  },
+  {
+   "match": 115,
+   "calendar": 23
+  },
+  {
+   "match": 116,
+   "calendar": 23
+  },
+  {
+   "match": 117,
+   "calendar": 23
+  },
+  {
+   "match": 118,
+   "calendar": 23
+  },
+  {
+   "match": 119,
+   "calendar": 23
+  },
+  {
+   "match": 120,
+   "calendar": 24
+  },
+  {
+   "match": 121,
+   "calendar": 24
+  },
+  {
+   "match": 122,
+   "calendar": 24
+  },
+  {
+   "match": 123,
+   "calendar": 24
+  },
+  {
+   "match": 124,
+   "calendar": 24
+  },
+  {
+   "match": 125,
+   "calendar": 25
+  },
+  {
+   "match": 126,
+   "calendar": 25
+  },
+  {
+   "match": 127,
+   "calendar": 25
+  },
+  {
+   "match": 128,
+   "calendar": 25
+  },
+  {
+   "match": 129,
+   "calendar": 25
+  },
+  {
+   "match": 130,
+   "calendar": 26
+  },
+  {
+   "match": 131,
+   "calendar": 26
+  },
+  {
+   "match": 132,
+   "calendar": 26
+  },
+  {
+   "match": 133,
+   "calendar": 26
+  },
+  {
+   "match": 134,
+   "calendar": 26
+  },
+  {
+   "match": 135,
+   "calendar": 27
+  },
+  {
+   "match": 136,
+   "calendar": 27
+  },
+  {
+   "match": 137,
+   "calendar": 27
+  },
+  {
+   "match": 138,
+   "calendar": 27
+  },
+  {
+   "match": 139,
+   "calendar": 27
+  },
+  {
+   "match": 140,
+   "calendar": 28
+  },
+  {
+   "match": 141,
+   "calendar": 28
+  },
+  {
+   "match": 142,
+   "calendar": 28
+  },
+  {
+   "match": 143,
+   "calendar": 28
+  },
+  {
+   "match": 144,
+   "calendar": 28
+  },
+  {
+   "match": 145,
+   "calendar": 29
+  },
+  {
+   "match": 146,
+   "calendar": 29
+  },
+  {
+   "match": 147,
+   "calendar": 29
+  },
+  {
+   "match": 148,
+   "calendar": 29
+  },
+  {
+   "match": 149,
+   "calendar": 29
+  },
+  {
+   "match": 150,
+   "calendar": 30
+  },
+  {
+   "match": 151,
+   "calendar": 30
+  },
+  {
+   "match": 152,
+   "calendar": 30
+  },
+  {
+   "match": 153,
+   "calendar": 30
+  },
+  {
+   "match": 154,
+   "calendar": 30
+  },
+  {
+   "match": 155,
+   "calendar": 31
+  },
+  {
+   "match": 156,
+   "calendar": 31
+  },
+  {
+   "match": 157,
+   "calendar": 31
+  },
+  {
+   "match": 158,
+   "calendar": 31
+  },
+  {
+   "match": 159,
+   "calendar": 31
+  },
+  {
+   "match": 160,
+   "calendar": 32
+  },
+  {
+   "match": 161,
+   "calendar": 32
+  },
+  {
+   "match": 162,
+   "calendar": 32
+  },
+  {
+   "match": 163,
+   "calendar": 32
+  },
+  {
+   "match": 164,
+   "calendar": 32
+  },
+  {
+   "match": 165,
+   "calendar": 33
+  },
+  {
+   "match": 166,
+   "calendar": 33
+  },
+  {
+   "match": 167,
+   "calendar": 33
+  },
+  {
+   "match": 168,
+   "calendar": 33
+  },
+  {
+   "match": 169,
+   "calendar": 33
+  },
+  {
+   "match": 170,
+   "calendar": 34
+  },
+  {
+   "match": 171,
+   "calendar": 34
+  },
+  {
+   "match": 172,
+   "calendar": 34
+  },
+  {
+   "match": 173,
+   "calendar": 34
+  },
+  {
+   "match": 174,
+   "calendar": 34
+  },
+  {
+   "match": 175,
+   "calendar": 35
+  },
+  {
+   "match": 176,
+   "calendar": 35
+  },
+  {
+   "match": 177,
+   "calendar": 35
+  },
+  {
+   "match": 178,
+   "calendar": 35
+  },
+  {
+   "match": 179,
+   "calendar": 35
+  },
+  {
+   "match": 180,
+   "calendar": 36
+  },
+  {
+   "match": 181,
+   "calendar": 36
+  },
+  {
+   "match": 182,
+   "calendar": 36
+  },
+  {
+   "match": 183,
+   "calendar": 36
+  },
+  {
+   "match": 184,
+   "calendar": 36
+  },
+  {
+   "match": 185,
+   "calendar": 37
+  },
+  {
+   "match": 186,
+   "calendar": 37
+  },
+  {
+   "match": 187,
+   "calendar": 37
+  },
+  {
+   "match": 188,
+   "calendar": 37
+  },
+  {
+   "match": 189,
+   "calendar": 37
+  },
+  {
+   "match": 190,
+   "calendar": 38
+  },
+  {
+   "match": 191,
+   "calendar": 38
+  },
+  {
+   "match": 192,
+   "calendar": 38
+  },
+  {
+   "match": 193,
+   "calendar": 38
+  },
+  {
+   "match": 194,
+   "calendar": 38
+  },
+  {
+   "match": 195,
+   "calendar": 39
+  },
+  {
+   "match": 196,
+   "calendar": 39
+  },
+  {
+   "match": 197,
+   "calendar": 39
+  },
+  {
+   "match": 198,
+   "calendar": 39
+  },
+  {
+   "match": 199,
+   "calendar": 39
+  },
+  {
+   "match": 200,
+   "calendar": 40
+  },
+  {
+   "match": 201,
+   "calendar": 40
+  },
+  {
+   "match": 202,
+   "calendar": 40
+  },
+  {
+   "match": 203,
+   "calendar": 40
+  },
+  {
+   "match": 204,
+   "calendar": 40
+  },
+  {
+   "match": 205,
+   "calendar": 41
+  },
+  {
+   "match": 206,
+   "calendar": 41
+  },
+  {
+   "match": 207,
+   "calendar": 41
+  },
+  {
+   "match": 208,
+   "calendar": 41
+  },
+  {
+   "match": 209,
+   "calendar": 41
+  },
+  {
+   "match": 210,
+   "calendar": 42
+  },
+  {
+   "match": 211,
+   "calendar": 42
+  },
+  {
+   "match": 212,
+   "calendar": 42
+  },
+  {
+   "match": 213,
+   "calendar": 42
+  },
+  {
+   "match": 214,
+   "calendar": 42
+  },
+  {
+   "match": 215,
+   "calendar": 43
+  },
+  {
+   "match": 216,
+   "calendar": 43
+  },
+  {
+   "match": 217,
+   "calendar": 43
+  },
+  {
+   "match": 218,
+   "calendar": 43
+  },
+  {
+   "match": 219,
+   "calendar": 43
+  },
+  {
+   "match": 220,
+   "calendar": 44
+  },
+  {
+   "match": 221,
+   "calendar": 44
+  },
+  {
+   "match": 222,
+   "calendar": 44
+  },
+  {
+   "match": 223,
+   "calendar": 44
+  },
+  {
+   "match": 224,
+   "calendar": 44
+  }
+ ]
+}

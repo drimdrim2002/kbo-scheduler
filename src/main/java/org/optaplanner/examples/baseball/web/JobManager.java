@@ -263,6 +263,8 @@ final class JobManager {
                 payload.put("knobs", knobsWithDefaults(job.problem));
                 payload.put("title", titleOf(job.problem, result.bestSeed()));
                 payload.put("metrics", Metrics.of(result.best()));
+                // 요구 사항 점검: 엔진 점수와 따로, 완성된 일정을 날짜별 경기로 풀어 다시 센다. 어겨도 결과는 그대로 내고 표시만 한다
+                payload.put("verification", verify(job.problem, Json.array(payload.get("plan"))));
                 JSONObject forCache = (JSONObject) payload.clone();
                 forCache.remove("jobId");
                 synchronized (this) {
@@ -331,6 +333,16 @@ final class JobManager {
             payload.put("trace", Json.parse(trace.toJson()));
         }
         return payload;
+    }
+
+    /** 요구 사항 점검({@link RequirementChecker}). 점검기 자체가 실패하면 결과를 막지 않고 그 사실만 싣는다. */
+    static JSONObject verify(JSONObject problem, JSONArray plan) {
+        try {
+            return RequirementChecker.check(problem, plan);
+        } catch (RuntimeException e) {
+            LOG.warn("requirement check failed", e);
+            return Json.obj("error", "요구 사항 점검을 하지 못했습니다: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+        }
     }
 
     /** 공유 링크 id: 캐시 키 앞 12자리. */
