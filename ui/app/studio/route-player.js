@@ -202,7 +202,7 @@
       '<input type="range" class="rt-range" id="rtRange" min="0" max="' + Math.max(0, legs.length - 1) + '" step="0.05" value="' + (u.routePos || 0).toFixed(2) + '" data-live="rt-range" aria-label="시즌 위치 (구간)">' +
       '<span class="rt-pos mono" id="rtPos">' + (l ? esc(fmt.short(l.day)) + ' · ' + (k + 1) + '/' + legs.length : '-') + '</span></div>';
     main += '<div class="rt-stage"><div class="rt-mapcol"><div class="rt-map" id="rtMap">' + baseMap(name) + '</div>' +
-      '<div class="rt-tl-wrap"><div class="rt-tl-head small"><b>시즌 흐름</b><span class="muted">한 칸이 한 시리즈 · 진한 칸 홈 · 흰 칸 원정 · 빨간 ✕ 취소</span></div><div class="rt-tl" id="rtTl">' + timelineHtml(legs) + '</div></div></div>' +
+      '<div class="rt-tl-wrap"><div class="rt-tl-head small"><b>시즌 흐름</b><span class="muted">한 칸이 한 시리즈 · 옅은 칸 홈 · 진한 칸 원정 · 빨간 ✕ 취소</span></div><div class="rt-tl" id="rtTl">' + timelineHtml(legs) + '</div></div></div>' +
       '<div class="rt-logcol"><div class="rt-log-head"><b>이동 기록</b><span class="muted small">최근 순 · km</span></div><div class="rt-log-cols"><span>#</span><span>기간</span><span></span><span>상대·구장</span><span>이동</span><span>누적</span></div><div class="rt-log" id="rtLog">' + logHtml(legs) + '</div></div></div>';
     return { list, main: S.paneHead(name + ' 이동 경로', '이동선이 차례로 그려지고 현재 위치 표시가 움직입니다. 막대를 끌거나 아래 칸을 눌러 원하는 날짜로 갑니다.') + main, insp: '<div id="rtInfo">' + infoHtml(legs) + '</div>', title: '현재 구간' };
   };

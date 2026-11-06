@@ -558,8 +558,9 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-flow-track > i { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line-2); }
 .tv-flow-head .tv-flow-track > b { position: absolute; top: 2px; margin-left: 4px; font-size: 11px; color: var(--text-3); font-weight: 700; }
 .tv-flow-blk { position: absolute; border-radius: 2px; }
-.tv-flow-blk.h { top: 18%; bottom: 18%; background: var(--navy); }
-.tv-flow-blk.a { top: 46%; bottom: 18%; background: #D9DFE9; }
+/* 홈 = 낮고 옅은 막대(집이라 편하게), 원정 = 높고 진한 막대 */
+.tv-flow-blk.h { top: 50%; bottom: 18%; background: #D9DFE9; }
+.tv-flow-blk.a { top: 18%; bottom: 18%; background: var(--navy); }
 .tv-flow-run { position: absolute; bottom: 8%; height: 3px; background: var(--bad); border-radius: 2px; }
 .tv-flow-right .bad { color: var(--bad); font-weight: 700; }
 .tv-flow-row { cursor: default; }
@@ -569,22 +570,43 @@ button.tv-flow-name:hover { color: var(--blue); }
 button.tv-flow-name[aria-pressed="true"] { color: var(--blue); }
 /* 막대 = 경기(연전 하나). 구단별 연전 표가 보여 주던 위반·고정·고른 경기·옮기는 중을 테두리로 */
 button.tv-flow-blk { border: 0; padding: 0 2px; margin: 0; cursor: pointer; overflow: hidden; white-space: nowrap; font: inherit; color: #fff; text-align: left; display: flex; align-items: center; }
-button.tv-flow-blk.a { color: var(--text-2); }
+button.tv-flow-blk.h { color: var(--text-2); }
 .tv-flow-blk .opp { font-size: 9.5px; font-weight: 700; line-height: 1; }
 @media (max-width: 1799px) { .tv-flow-blk .opp { display: none; } }
 .tv-flow-blk:hover:not(.off) { box-shadow: inset 0 0 0 2px var(--blue); z-index: 2; }
 .tv-flow-blk.viol { box-shadow: inset 0 0 0 2px var(--bad); }
-.tv-flow-blk.viol.a { background: #FFD9D4; }
+.tv-flow-blk.viol.a { background: #FFD9D4; color: var(--bad); }
 .tv-flow-blk.sel { box-shadow: 0 0 0 2.5px var(--blue); z-index: 3; }
 .tv-flow-blk.vsel { box-shadow: 0 0 0 2.5px var(--bad); z-index: 3; }
 .tv-flow-blk.pinned::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: #fff; }
-.tv-flow-blk.pinned.a::after { background: var(--text-2); }
+.tv-flow-blk.pinned.h::after, .tv-flow-blk.pinned.viol.a::after { background: var(--text-2); }
 .tv-flow-blk.moving { background: var(--blue) !important; color: #fff; }
 .tv-flow-blk.swap-ok { outline: 2px dashed var(--blue); outline-offset: 1px; z-index: 2; }
 .tv-flow-blk.off { opacity: .3; cursor: default; }
 .tv-flow-blk.flash { animation: flash2 1.4s ease-out 1; }
 .tv-flow-foot { flex: none; padding: 6px 0 8px; }
-.legend i.lg-fa { background: #D9DFE9; }
+.legend i.lg-fa { background: var(--navy); }
+/* 이동 거리 선(step-result.js flowGraph). g-leg·g-cum = 줄 위쪽 띠에 선, 막대는 아래쪽으로. g-over = 막대 위에 겹친 선 */
+.tv-flow-g { position: absolute; left: 0; right: 0; pointer-events: none; }
+.tv-flow-g svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tv-flow-g polyline { fill: none; stroke: #5B6B85; stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.tv-flow-g polygon { fill: #E6ECF5; }
+.tv-flow-g i { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #5B6B85; pointer-events: auto; }
+.r3-flow.g-leg .tv-flow-g, .r3-flow.g-cum .tv-flow-g { top: 8%; height: 34%; border-bottom: 1px solid var(--line); }
+.r3-flow.g-leg .tv-flow-blk.h, .r3-flow.g-cum .tv-flow-blk.h { top: 70%; bottom: 12%; }
+.r3-flow.g-leg .tv-flow-blk.a, .r3-flow.g-cum .tv-flow-blk.a { top: 50%; bottom: 12%; }
+.r3-flow.g-leg .tv-flow-run, .r3-flow.g-cum .tv-flow-run { bottom: 3%; }
+.r3-flow.g-over .tv-flow-g { top: 10%; height: 74%; z-index: 4; }
+.r3-flow.g-over .tv-flow-g polyline { stroke: #E07B00; stroke-width: 2; }
+.r3-flow.g-over .tv-flow-g polyline.halo { stroke: #fff; stroke-width: 4.5; }
+.tv-flow-right .tv-flow-km { display: block; color: var(--text); font-size: var(--fs-s); }
+.r3-flow.g-cum .tv-flow-row .tv-flow-right { flex-direction: column; align-items: flex-end; justify-content: center; line-height: 1.25; }
+/* 쌓인 거리는 오름이 완만해서 띠를 조금 더 높게 */
+.r3-flow.g-cum .tv-flow-g { top: 5%; height: 42%; }
+.r3-flow.g-cum .tv-flow-blk.h { top: 72%; }
+.r3-flow.g-cum .tv-flow-blk.a { top: 54%; }
+.legend i.lg-fg { background: none; width: 16px; border-radius: 0; border-top: 2px solid #5B6B85; height: 0; align-self: center; }
+.legend i.lg-fg.over { border-top-color: #E07B00; }
 .legend i.lg-frun { background: #fff; width: 18px; border-bottom: 3px solid var(--bad); border-radius: 0; }
 .legend i.lg-pbad { background: #FFE3DF; box-shadow: inset 0 0 0 1px var(--bad); }
 /* 상대별 경기 수(step-result.js renderPairs): 가운데 칸 안에서 스크롤, 칸은 창 높이에 맞춘 정사각 */

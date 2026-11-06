@@ -246,7 +246,7 @@
   }
   function a3() {
     const c = D(), T = tms(), u = S.ui;
-    let s = S.paneHead('홈/원정 흐름', '구단별 연전 기간 순서. 진한 칸은 홈, 옅은 칸은 원정. 빨간 테두리와 숫자는 홈(원정) 4연속 이상' + (S.dev() ? '(H0-f)' : '') + '.', '<span class="legend"><span><i style="background:var(--navy)"></i>홈</span><span><i style="background:#D9DFE9"></i>원정</span><span><i style="box-shadow:inset 0 0 0 2px var(--bad)"></i>4연속 이상</span></span>');
+    let s = S.paneHead('홈/원정 흐름', '구단별 연전 기간 순서. 옅은 칸은 홈, 진한 칸은 원정. 빨간 테두리와 숫자는 홈(원정) 4연속 이상' + (S.dev() ? '(H0-f)' : '') + '.', '<span class="legend"><span><i style="background:#D9DFE9"></i>홈</span><span><i style="background:var(--navy)"></i>원정</span><span><i style="box-shadow:inset 0 0 0 2px var(--bad)"></i>4연속 이상</span></span>');
     s += '<div class="pane-body pad" data-sk="q-chart"><table class="has"><colgroup><col style="width:72px">' + c.slots.map(() => '<col>').join('') + '<col style="width:64px"></colgroup><thead><tr><td></td>' + c.slots.map((sl, i) => '<td>' + (i % 4 === 0 ? Dates.fmtShort(sl.day) : '') + '</td>').join('') + '<td></td></tr></thead><tbody>';
     for (const t of T) {
       const bySlot = new Map(t.visits.map((v) => [v.slot, v]));
