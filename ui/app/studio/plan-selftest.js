@@ -435,7 +435,7 @@
       click('[data-act="tv-pick2"]'); flush();
       ok('구단 카드: 「다른 구단과 비교」 → 고르는 상태', S.ui.pick2 === true && !!q('.tf.picking'));
       click('.tf button[data-team="삼성"]'); flush();
-      ok('둘째 구단을 고르면 두 구단 비교: 지도 위 두 경로 + 누적 이동거리 두 선 + 항목 표', S.ui.qv === 'cmp' && S.ui.team === 'KT' && S.ui.team2 === '삼성' && !!q('.tv-map svg.kmap') && qa('.tv-svg .kmap-line').length > 10 && qa('.tv-chart polyline.kc-series').length === 2 && qa('.tv-tbl').length >= 1);
+      ok('둘째 구단을 고르면 두 구단 비교: 이동 구간 띠(두 구단 막대) + 항목 표 · 지도 없음', S.ui.qv === 'cmp' && S.ui.team === 'KT' && S.ui.team2 === '삼성' && !!q('.tv-strip svg.tv-leg') && qa('.tv-leg rect.tv-bar').length > 20 && qa('.tv-tbl').length >= 1 && !q('svg.kmap'));
       click('[data-act="tv-swap"]'); flush();
       ok('자리 바꾸기', S.ui.team === '삼성' && S.ui.team2 === 'KT');
       click('.tf button[data-team="LG"]'); flush();

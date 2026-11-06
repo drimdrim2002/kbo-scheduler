@@ -498,9 +498,17 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tv-sub { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: .6px; margin-bottom: 6px; }
 .tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .tv-grid .chart-box { margin: 0; }
-.tv-map svg.kmap { max-height: 460px; max-width: none !important; width: 100%; }
-.tv-svg .kmap-line { opacity: .75; }
-.tv-svg .kmap-line:hover { opacity: 1; stroke-width: 3.5; }
+.tv-strip { border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; padding: 4px 6px; margin-bottom: 12px; }
+.tv-strip svg.tv-leg { display: block; width: 100%; height: auto; }
+.tv-leg-grid { stroke: var(--line); stroke-width: 1; }
+.tv-leg-axis { stroke: var(--text-3); stroke-width: 1; }
+.tv-leg-month { fill: var(--text-3); font-size: 11px; }
+.tv-leg-tick { fill: var(--text-3); font-size: 10px; font-variant-numeric: tabular-nums; }
+.tv-leg-team { font-size: 12px; font-weight: 700; }
+.tv-leg-trip { fill: none; stroke: var(--bad); stroke-width: 1; stroke-dasharray: 4 3; }
+.tv-bar { opacity: .9; }
+.tv-bar:hover { opacity: 1; stroke: var(--text); stroke-width: 1; }
+.tv-grid .tv-tbl.wide { max-width: none; }
 .tv-tbl { border-collapse: collapse; font-size: var(--fs); }
 .tv-tbl.wide { width: 100%; max-width: 760px; }
 .tv-tbl.card { width: 100%; font-size: var(--fs-s); }
@@ -518,8 +526,6 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .tf button .tag2 { font-size: var(--fs-xs); color: var(--blue); font-weight: 700; }
 .workspace.tv-noinsp { grid-template-columns: var(--list-w) minmax(0, 1fr) 0; }
 .workspace.tv-noinsp .pane.insp { display: none; }
-/* 지도는 viewBox(520)보다 작게 그려지므로 글자를 키워 둔다. 카드 표는 셀 안에서 줄을 바꾸되 낱말은 자르지 않는다 */
-.tv-svg .kmap-label { font-size: 14px; }
-.tv-svg .kmap-sub { font-size: 11px; }
+/* 카드 표는 셀 안에서 줄을 바꾸되 낱말은 자르지 않는다 */
 .tv-tbl.card td { white-space: normal; word-break: keep-all; }
 .tv-tbl.card td:first-child { white-space: nowrap; }

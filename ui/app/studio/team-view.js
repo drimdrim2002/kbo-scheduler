@@ -1,7 +1,8 @@
 /*
  * 2027 흐름 — 「구단별 보기」 (④ 화면을 한 구단 · 두 구단 비교 · 리그 전체(임시)로 다시 나눔)
  *   한 구단: 구단별 일정표 + 오른쪽 구단 카드 (step-quality.js 그대로)
- *   두 구단 비교(qv=cmp): 둘째 구단(team2)을 고르면 가운데에 지도 위 두 경로 + 누적 이동거리 두 선, 오른쪽에 항목별 비교
+ *   두 구단 비교(qv=cmp): 둘째 구단(team2)을 고르면 이동 구간 띠(위 첫 구단·아래 둘째 구단, 막대 = 이동 한 번) + 누적 이동거리 + 항목별 비교
+ *   지도는 뺐다(사용자 결정 2026-11-06): 열 구장 중 다섯이 수도권에 몰려 선이 겹치고, 두 구단의 차이는 「어디」가 아니라 「언제 얼마나 멀리」에 있다
  *   리그 전체: 홈/원정 흐름 · 상대별 경기 수 표 — 「일정 자세히 보기」로 옮길 때까지 여기 둔다
  * 화면 하나는 질문 하나(사용자 결정 2026-11-06): 가운데가 한 구단이면 오른쪽도 그 구단, 둘이면 둘.
  * LAYOUT: 'card' = 비교 항목을 오른쪽 카드에(표준 가) / 'table' = 오른쪽 칸 없이 지도 아래 표에(옵션 나)
@@ -10,9 +11,10 @@
   'use strict';
   const S = window.Studio;
   const { KBO, esc, icon, fmt } = S;
-  const { Dates, MapKit } = KBO;
+  const { Dates } = KBO;
   const YEAR_NEW = 2027;
   const LAYOUT = 'table';
+  const SHOW_CUM = true; // 누적 이동거리 선을 띠 아래에 같이 둘지(옵션에서는 끈다)
   const is27 = () => S.seasonYear() === YEAR_NEW;
   const app = () => S.app;
   const D = () => S.app.derived();
@@ -90,12 +92,34 @@
     }
     return out;
   }
-  function map(A, B) {
-    const st = app().state, both = [A, B];
-    const markers = st.teams.map((t, i) => { const k = both.findIndex((x) => x.team === i); return { id: 'tv' + i, lat: Number(t.latitude), lon: Number(t.longitude), label: t.name, color: k >= 0 ? t.color : '#8E97A6', size: k >= 0 ? 7 : 4.5, ring: k >= 0, ringColor: '#0A1E3C', sub: k >= 0 ? '홈' : '' }; });
-    const lines = [];
-    both.forEach((t, k) => { for (const l of legsOf(t)) lines.push({ from: { lat: Number(l.from.latitude), lon: Number(l.from.longitude) }, to: { lat: Number(l.to.latitude), lon: Number(l.to.longitude) }, color: st.teams[t.team].color, width: 2, curve: k === 0 ? 0.18 : -0.18, dash: k === 1 ? '6 3' : null, title: t.name + ' ' + Dates.fmtShort(l.day) + ' ' + l.from.name + ' → ' + l.to.name + ' ' + fmt.km(l.km) + 'km' }); });
-    return MapKit.render({ width: 520, markers, lines, grid: false, spread: 8, title: A.name + '·' + B.name + ' 시즌 이동 경로', extraClass: 'rt-svg tv-svg' }).svg;
+  /** 이동 구간 띠: 가로 = 시즌 날짜, 막대 하나 = 이동 한 번, 높이 = 그 구간 거리. 위 첫 구단, 아래 둘째 구단(거울). 장거리 연속 원정은 빨간 점선 상자 */
+  function legStrip(A, B, W, H) {
+    const c = D(), st = app().state, slots = c.slots;
+    const day0 = slots[0].day, dayN = slots[slots.length - 1].day + slots[slots.length - 1].consecutive;
+    const padL = 64, padR = 16, padT = 26, padB = 22, mid = padT + (H - padT - padB) / 2, half = (H - padT - padB) / 2 - 6;
+    const x = (d) => padL + (d - day0) / (dayN - day0) * (W - padL - padR);
+    const legs = [legsOf(A), legsOf(B)];
+    const max = Math.max(1, ...legs.flat().map((l) => l.km));
+    const bw = Math.max(5, Math.min(10, (W - padL - padR) / 60));
+    let s = '<svg class="tv-leg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(A.name + '·' + B.name + ' 이동 구간 거리') + '">';
+    // 달 경계
+    const starts = []; const seen = new Set();
+    for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); starts.push({ d, m }); } }
+    starts.forEach((o, i) => { const xx = x(o.d), next = i + 1 < starts.length ? x(starts[i + 1].d) : W - padR;
+      s += '<line class="tv-leg-grid" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + padT + '" y2="' + (H - padB) + '"/>' + (next - xx > 28 ? '<text class="tv-leg-month" x="' + (xx + 3).toFixed(1) + '" y="' + (H - 7) + '">' + o.m + '월</text>' : ''); });
+    s += '<line class="tv-leg-axis" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + mid + '" y2="' + mid + '"/>';
+    // 눈금(최대 거리)
+    s += '<text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid - half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text><text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid + half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text>';
+    [A, B].forEach((t, k) => {
+      const color = st.teams[t.team].color, up = k === 0;
+      s += '<text class="tv-leg-team" x="' + (padL - 6) + '" y="' + (up ? mid - 8 : mid + 16) + '" text-anchor="end" fill="' + esc(color) + '">' + esc(t.name) + '</text>';
+      // 장거리 연속 원정 상자
+      for (const lt of t.longTrips) { const a = slots[lt.slots[0]], b = slots[lt.slots[lt.slots.length - 1]]; const x1 = x(a.day) - bw, x2 = x(b.day + b.consecutive);
+        s += '<rect class="tv-leg-trip" x="' + x1.toFixed(1) + '" y="' + (up ? mid - half - 4 : mid + 2).toFixed(1) + '" width="' + (x2 - x1).toFixed(1) + '" height="' + (half + 2).toFixed(1) + '" rx="3"><title>' + esc(t.name + ' 장거리 연속 원정 ' + Dates.fmtDate(a.day) + '부터 ' + lt.series + '시리즈 · ' + fmt.km(lt.tenths / 10) + 'km') + '</title></rect>'; }
+      for (const l of legs[k]) { const h = Math.max(2, l.km / max * half), xx = x(l.day) - bw / 2;
+        s += '<rect class="tv-bar" x="' + xx.toFixed(1) + '" y="' + (up ? mid - h : mid + 1).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5" fill="' + esc(color) + '"><title>' + esc(t.name + ' ' + Dates.fmtDate(l.day) + ' ' + l.from.name + ' → ' + l.to.name + ' ' + fmt.km(l.km) + 'km') + '</title></rect>'; }
+    });
+    return s + '</svg>';
   }
   function cumChart(A, B, w, h) {
     const c = D(), st = app().state;
@@ -114,12 +138,18 @@
     }
     const { A, B } = p;
     const right = '<button class="btn sm" data-act="tv-swap" title="두 구단 자리 바꾸기">' + icon('swap') + '자리 바꾸기</button><button class="btn sm" data-act="tv-cmp-off">' + icon('x') + '비교 끝내기</button>';
-    let s = S.paneHead('두 구단 비교', '지도의 선은 구장 사이를 곧게 이은 것이고, 거리 숫자는 도로 거리입니다. 선 위에 마우스를 올리면 그 구간이 나옵니다.', right);
+    let s = S.paneHead('두 구단 비교', '막대 하나가 이동 한 번, 높이가 그 구간 거리입니다. 위가 첫 구단, 아래가 둘째 구단. 막대에 마우스를 올리면 그 구간이 나옵니다.', right);
     s += '<div class="pane-body pad" data-sk="tv-cmp">';
     s += '<div class="tv-sum">' + head2(A, B) + '<span class="tv-k">총 이동 <b>' + fmt.km(A.distanceKm) + '</b> / <b>' + fmt.km(B.distanceKm) + '</b> km</span><span class="tv-k">이동 <b>' + A.moves + '</b> / <b>' + B.moves + '</b> 회</span><span class="tv-k diff">차이 ' + fmt.km(Math.abs(A.distanceKm - B.distanceKm)) + 'km · ' + Math.abs(A.moves - B.moves) + '회</span></div>';
-    const cw = S.wide ? 560 : 440, ch = S.wide ? 440 : 380;
-    s += '<div class="tv-grid"><div class="tv-map"><div class="tv-sub">시즌 이동 경로</div>' + map(A, B) + '</div><div class="tv-chart"><div class="tv-sub">누적 이동거리</div><div class="chart-box">' + cumChart(A, B, cw, ch) + '</div></div></div>';
-    if (LAYOUT === 'table') s += '<div class="tv-sub" style="margin-top:12px">항목별 비교</div>' + cmpTable(A, B, 'wide') + '<div class="tv-strips"><div><span class="tv-t">' + S.team(A.name) + '</span>' + strip(A) + '</div><div><span class="tv-t">' + S.team(B.name) + '</span>' + strip(B) + '</div><div class="xs muted">진한 칸 홈 · 옅은 칸 원정 · 빨간 테두리 4연속 이상</div></div>';
+    const sw = S.wide ? 1180 : 900, sh = S.tall ? 220 : 190;
+    s += '<div class="tv-sub">이동 구간 거리 <span class="muted">· 빨간 점선 상자 = 장거리 연속 원정</span></div><div class="tv-strip">' + legStrip(A, B, sw, sh) + '</div>';
+    const cw = S.wide ? 560 : 440, ch = S.wide ? 300 : 270;
+    const table = cmpTable(A, B, 'wide') + '<div class="tv-strips"><div><span class="tv-t">' + S.team(A.name) + '</span>' + strip(A) + '</div><div><span class="tv-t">' + S.team(B.name) + '</span>' + strip(B) + '</div><div class="xs muted">진한 칸 홈 · 옅은 칸 원정 · 빨간 테두리 4연속 이상</div></div>';
+    if (LAYOUT === 'table') {
+      s += SHOW_CUM
+        ? '<div class="tv-grid"><div class="tv-chart"><div class="tv-sub">누적 이동거리</div><div class="chart-box">' + cumChart(A, B, cw, ch) + '</div></div><div><div class="tv-sub">항목별 비교</div>' + table + '</div></div>'
+        : '<div class="tv-sub" style="margin-top:12px">항목별 비교</div>' + table;
+    } else if (SHOW_CUM) s += '<div class="tv-sub" style="margin-top:12px">누적 이동거리</div><div class="chart-box">' + cumChart(A, B, cw, ch) + '</div>';
     return s + '</div>';
   }
 
