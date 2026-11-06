@@ -89,6 +89,17 @@
     }
     return out;
   }
+  /** 가로축 글자 한 줄: 앞에 넣은 것이 이긴다. 겹치거나 칸 밖으로 나가면 뒤에 넣은 것을 뺀다(글자 폭은 11px 글꼴 어림: 한글 11 · 숫자 6.3) */
+  function axisRow(lo, hi) {
+    const used = [];
+    const wOf = (t) => [...t].reduce((n, ch) => n + (/[가-힣]/.test(ch) ? 11 : ch === ' ' ? 3.5 : 6.3), 0);
+    return (x, y, text, cls, anchor) => {
+      const w = wOf(text), x1 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x, x2 = x1 + w;
+      if (x1 < lo || x2 > hi || used.some(([a, b]) => x1 < b + 8 && x2 > a - 8)) return '';
+      used.push([x1, x2]);
+      return '<text class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y + '"' + (anchor && anchor !== 'start' ? ' text-anchor="' + anchor + '"' : '') + '>' + esc(text) + '</text>';
+    };
+  }
   /** 이동 구간 띠: 가로 = 시즌 날짜, 막대 하나 = 이동 한 번, 높이 = 그 구간 거리. 위 첫 구단, 아래 둘째 구단(거울). 장거리 연속 원정은 빨간 점선 상자 */
   function legStrip(A, B, W, H) {
     const c = D(), st = app().state, slots = c.slots;
@@ -99,11 +110,17 @@
     const max = Math.max(1, ...legs.flat().map((l) => l.km));
     const bw = Math.max(5, Math.min(10, (W - padL - padR) / 60));
     let s = '<svg class="tv-leg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(A.name + '·' + B.name + ' 이동 구간 거리') + '">';
-    // 달 경계
+    // 가로축(기본): 달 경계 선 · 달 이름은 그 달 가운데 · 월요일(휴식 요일)마다 작은 눈금 · 맨 앞 개막일과 맨 끝 날짜
+    const row = axisRow(4, W - 2), yb = H - 7, bot = H - padB, md = (d) => Dates.fmtShort(d);
+    const vline = (xx, cls, y1, y2) => '<line class="' + cls + '" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + y1 + '" y2="' + y2 + '"/>';
     const starts = []; const seen = new Set();
     for (let d = day0; d < dayN; d++) { const m = Dates.month(d); if (!seen.has(m)) { seen.add(m); starts.push({ d, m }); } }
-    starts.forEach((o, i) => { const xx = x(o.d), next = i + 1 < starts.length ? x(starts[i + 1].d) : W - padR;
-      s += '<line class="tv-leg-grid" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + padT + '" y2="' + (H - padB) + '"/>' + (next - xx > 28 ? '<text class="tv-leg-month" x="' + (xx + 3).toFixed(1) + '" y="' + (H - 7) + '">' + o.m + '월</text>' : ''); });
+    const band = (i) => [Math.max(x(starts[i].d), padL), i + 1 < starts.length ? x(starts[i + 1].d) : W - padR];
+    s += '<line class="tv-leg-base" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + bot + '" y2="' + bot + '"/>';
+    starts.forEach((o) => { s += vline(x(o.d), 'tv-leg-grid', padT, bot); });
+    for (let d = day0; d < dayN; d++) if (Dates.weekday(d) === 1) s += vline(x(d), 'tv-leg-wk', bot, bot + 4);
+    s += row(x(day0), yb, '개막 ' + md(day0), 'tv-leg-date', 'start') + row(x(dayN), yb, md(dayN - 1) + '까지', 'tv-leg-date', 'end');
+    starts.forEach((o, i) => { const [a, b] = band(i); s += row((a + b) / 2, yb, o.m + '월', 'tv-leg-month', 'middle'); });
     s += '<line class="tv-leg-axis" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + mid + '" y2="' + mid + '"/>';
     // 눈금(최대 거리)
     s += '<text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid - half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text><text class="tv-leg-tick" x="' + (padL - 6) + '" y="' + (mid + half + 4) + '" text-anchor="end">' + fmt.int(max) + 'km</text>';
