@@ -386,7 +386,7 @@
         const sl = slots[v.slot], a = sl.day, b = sl.day + sl.consecutive, m = v.match, mt = st.matches[m];
         // 이 연전을 하러 오기까지 옮긴 거리. 시즌 첫 연전은 홈 구장에서 출발
         const leg = k > 0 ? v.legTenths / 10 : v.home ? 0 : km.get(t.name, st.teams[v.loc].name);
-        const legWord = leg ? (k > 0 ? (v.home ? '집으로 ' : '앞 구장에서 ') : '홈 구장에서 ') + Math.round(leg) + 'km 이동' : '이동 없음';
+        const legWord = v.afterBreak ? '휴식기 뒤라 이동 세지 않음' : leg ? (k > 0 ? (v.home ? '집으로 ' : '앞 구장에서 ') : '홈 구장에서 ') + Math.round(leg) + 'km 이동' : '이동 없음';
         pts.push({ x: (a + b) / 2, v: G === 'cum' ? v.cumTenths / 10 : leg, tip: Dates.fmtDate(a) + ' ' + (v.home ? '홈' : '원정') + ' · ' + (G === 'cum' ? '여기까지 ' + Math.round(v.cumTenths / 10).toLocaleString() + 'km' : legWord) });
         const flags = c.ex.matchFlags[m] || [];
         const flash = u.flashMatches && u.flashMatches.includes(m);
