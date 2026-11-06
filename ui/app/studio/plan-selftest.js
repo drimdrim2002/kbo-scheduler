@@ -418,9 +418,9 @@
 
       // ── 글
       S.go({ step: 5 }); flush();
-      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3 }), 공정성: () => S.go({ step: 4, qv: 'metrics' }) };
-      S.go({ step: 4, qv: 'export' }); flush();
-      ok('내보내기 화면은 빼고 공정성으로', S.ui.qv === 'metrics' && !q('[data-qv="export"]'));
+      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3 }), 공정성: () => S.go({ step: 4, qv: 'sched', team: 'KT', team2: null }), 비교: () => S.go({ step: 4, qv: 'cmp', team: 'KT', team2: '삼성' }) };
+      for (const v of ['export', 'metrics', 'soft', 'a1', 'a2']) { S.go({ step: 4, qv: v }); flush(); ok('구단 간 비교·내보내기 보기(' + v + ')는 빼고 구단별 보기로', S.ui.qv === 'sched' && !q('[data-qv="' + v + '"]')); }
+      ok('남은 보기는 한 구단을 따라가는 것뿐', qa('[data-act="q-view"]').length >= 3 && qa('[data-act="q-view"]').every((b) => !['metrics', 'soft', 'a1', 'a2', 'export'].includes(b.dataset.qv)));
       S.ui.step = 1; S.g1.mode = 'all'; S.render(); flush();
       ok('모든 표 보기: 동작하지 않는 가져오기 단추 없음', !q('[data-act="import-xlsx"]') && !q('[data-act="import-gsheet"]') && !q('.band [data-act="export"]') && !!q('.band'));
       S.g1.mode = 'flow';
@@ -430,6 +430,25 @@
       ok('일정 달력: 달 단추가 잘리지 않음', mt.scrollWidth <= mt.clientWidth + 1);
       S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
       ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
+      // 구단별 보기: 한 구단 → 둘째 구단 고르기 → 두 구단 비교(team-view.js)
+      S.go({ step: 4, qv: 'sched', team: 'KT', team2: null, pick2: false }); flush();
+      click('[data-act="tv-pick2"]'); flush();
+      ok('구단 카드: 「다른 구단과 비교」 → 고르는 상태', S.ui.pick2 === true && !!q('.tf.picking'));
+      click('.tf button[data-team="삼성"]'); flush();
+      ok('둘째 구단을 고르면 두 구단 비교: 이동 구간 띠(두 구단 막대) + 항목 표 · 지도 없음', S.ui.qv === 'cmp' && S.ui.team === 'KT' && S.ui.team2 === '삼성' && !!q('.tv-strip svg.tv-leg') && qa('.tv-leg rect.tv-bar').length > 20 && qa('.tv-tbl').length >= 1 && !q('svg.kmap'));
+      click('[data-act="tv-swap"]'); flush();
+      ok('자리 바꾸기', S.ui.team === '삼성' && S.ui.team2 === 'KT');
+      click('.tf button[data-team="LG"]'); flush();
+      ok('비교 중 셋째 구단을 누르면 둘째 구단이 바뀜', S.ui.team === '삼성' && S.ui.team2 === 'LG');
+      click('[data-act="tv-cmp-off"]'); flush();
+      ok('비교 끝내기 → 한 구단 일정표', S.ui.qv === 'sched' && !S.ui.team2 && /2027 정규시즌/.test(page()));
+      S.go({ step: 4, qv: 'cmp', team: 'LG', team2: null }); flush();
+      ok('둘째 구단 없이 비교 보기 → 하나 더 고르라는 안내', S.ui.pick2 === true && /하나 더 고르세요/.test(page()));
+      S.ui.pick2 = false; S.ui.team2 = null;
+      S.go({ step: 4, qv: 'a3', team: 'KT', team2: null }); flush();
+      ok('홈/원정 흐름: 표 대신 구단마다 한 줄 띠(홈 막대·원정 막대·달 경계)', qa('.tv-flow-row').length === st().teams.length && qa('.tv-flow-blk.h').length > 100 && qa('.tv-flow-head .tv-flow-track > b').length >= 5 && !q('table.has'));
+      S.go({ step: 4, qv: 'a5', team: 'KT' }); flush();
+      ok('상대별 경기 수: 판정 한 줄 + 칸', !!q('.tv-verdict') && qa('.tv-pairs .tv-pc').length === (st().teams.length + 1) * (st().teams.length + 1));
       const menuHtml = S.menus.data();
       ok('데이터 메뉴: 동작하지 않는 항목 없음 · 실제로 받는 항목은 남음', !/tag mock|import-xlsx|import-gsheet|엑셀/.test(menuHtml) && /파일로 내려받기/.test(menuHtml) && !/가져오기/.test(menuHtml));
       const found = [];

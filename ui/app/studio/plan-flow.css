@@ -486,3 +486,76 @@ body.pf .ck-page > .ck-card { display: block; flex: none; width: auto; max-width
 .ck-page > .ck-cal { margin-top: 0; }
 /* 2단계 「달력 고치기」(끌어서 묶음 만들기)는 칸을 지금까지 크기(20px)로. 이때만 넘치면 스크롤 */
 .stepview.fl .pf-cal.live { --cal-row: clamp(20px, 2.2vh, 30px); }
+
+/* ───────── 2027 「구단별 보기」 두 구단 비교 (team-view.js) ───────── */
+.tv-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; margin-bottom: 10px; font-size: var(--fs); }
+.tv-sum .tv-k b { font-variant-numeric: tabular-nums; }
+.tv-sum .diff { margin-left: auto; color: var(--text-3); }
+.tv-two { display: inline-flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tv-t { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.tv-t i.ln { width: 22px; height: 0; border-top: 3px solid var(--text-2); display: inline-block; }
+.tv-t i.ln.dash { border-top-style: dashed; }
+.tv-sub { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: .6px; margin-bottom: 6px; }
+.tv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.tv-grid .chart-box { margin: 0; }
+.tv-strip { border: 1px solid var(--line); border-radius: var(--r); background: #FBFCFE; padding: 4px 6px; margin-bottom: 12px; }
+.tv-strip svg.tv-leg { display: block; width: 100%; height: auto; }
+.tv-leg-grid { stroke: var(--line); stroke-width: 1; }
+.tv-leg-axis { stroke: var(--text-3); stroke-width: 1; }
+.tv-leg-month { fill: var(--text-3); font-size: 11px; }
+.tv-leg-tick { fill: var(--text-3); font-size: 10px; font-variant-numeric: tabular-nums; }
+.tv-leg-team { font-size: 12px; font-weight: 700; }
+.tv-leg-trip { fill: none; stroke: var(--bad); stroke-width: 1; stroke-dasharray: 4 3; }
+.tv-bar { opacity: .9; }
+.tv-bar:hover { opacity: 1; stroke: var(--text); stroke-width: 1; }
+.tv-grid .tv-tbl.wide { max-width: none; }
+.tv-tbl { border-collapse: collapse; font-size: var(--fs); }
+.tv-tbl.wide { width: 100%; max-width: 760px; }
+.tv-tbl.card { width: 100%; font-size: var(--fs-s); }
+.tv-tbl th, .tv-tbl td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tv-tbl.card th, .tv-tbl.card td { padding: 4px 4px; }
+.tv-tbl th { font-weight: 600; color: var(--text-2); }
+.tv-tbl th:first-child, .tv-tbl td:first-child { text-align: left; color: var(--text-3); font-size: var(--fs-s); white-space: normal; }
+.tv-tbl td.lo { font-weight: 700; color: var(--text); }
+.tv-tbl.card th:last-child, .tv-tbl.card td:last-child { display: none; }
+.tv-strips { display: grid; gap: 6px; margin-top: 8px; }
+.tv-strips > div > .tv-t { font-size: var(--fs-s); margin-bottom: 3px; }
+.tv-pick, .label.tv-pick { color: var(--blue); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tf.picking button:not(.on) { border-color: var(--blue); }
+.tf button.on2 { border-color: var(--blue); border-style: dashed; font-weight: 700; }
+.tf button .tag2 { font-size: var(--fs-xs); color: var(--blue); font-weight: 700; }
+.workspace.tv-noinsp { grid-template-columns: var(--list-w) minmax(0, 1fr) 0; }
+.workspace.tv-noinsp .pane.insp { display: none; }
+/* 카드 표는 셀 안에서 줄을 바꾸되 낱말은 자르지 않는다 */
+.tv-tbl.card td { white-space: normal; word-break: keep-all; }
+.tv-tbl.card td:first-child { white-space: nowrap; }
+
+/* 리그 전체: 홈/원정 흐름 띠 — 높이는 창에 맞춘다(노트북 768에서도 큰 화면에서도 줄이 고르게) */
+.tv-flow { display: flex; flex-direction: column; height: calc(100vh - 262px); min-height: 300px; padding: 8px 12px 0; }
+.tv-flow-head, .tv-flow-row { display: flex; align-items: stretch; gap: 10px; min-height: 0; }
+.tv-flow-head { flex: none; height: 22px; }
+.tv-flow-row { flex: 1 1 0; border-top: 1px solid var(--line); cursor: pointer; }
+.tv-flow-row:hover { background: var(--hover); }
+.tv-flow-row.sel { background: var(--sel); }
+.tv-flow.has-sel .tv-flow-row:not(.sel) .tv-flow-blk { opacity: .55; }
+.tv-flow-name { flex: none; width: 64px; display: flex; align-items: center; font-weight: 700; font-size: var(--fs-s); }
+.tv-flow-right { flex: none; width: 96px; display: flex; align-items: center; justify-content: flex-end; font-size: var(--fs-s); color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tv-flow-head .tv-flow-right { font-weight: 700; color: var(--text-3); font-size: 10.5px; }
+.tv-flow-track { flex: 1 1 auto; position: relative; min-width: 0; }
+.tv-flow-track > i { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line-2); }
+.tv-flow-head .tv-flow-track > b { position: absolute; top: 2px; margin-left: 4px; font-size: 11px; color: var(--text-3); font-weight: 700; }
+.tv-flow-blk { position: absolute; border-radius: 2px; }
+.tv-flow-blk.h { top: 18%; bottom: 18%; background: var(--navy); }
+.tv-flow-blk.a { top: 46%; bottom: 18%; background: #D9DFE9; }
+.tv-flow-run { position: absolute; bottom: 8%; height: 3px; background: var(--bad); border-radius: 2px; }
+.tv-flow-right .bad { color: var(--bad); font-weight: 700; }
+/* 상대별 경기 수: 판정 한 줄 + 정사각 칸, 창 높이에 맞춤 */
+.tv-verdict { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--r); font-weight: 700; margin-bottom: 12px; }
+.tv-verdict.ok { background: var(--good-weak, #EAF6EE); color: var(--good, #1E7A3C); }
+.tv-verdict.bad { background: #FFF4F2; color: var(--bad); }
+.tv-pairs { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); grid-auto-rows: 1fr; width: min(100%, calc(100vh - 330px)); min-width: 420px; aspect-ratio: 1; gap: 2px; margin: 0 auto; }
+.tv-pc { display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--surface-2); font-size: var(--fs); font-variant-numeric: tabular-nums; min-width: 0; }
+.tv-pc.hd { background: transparent; font-weight: 700; font-size: var(--fs-s); }
+.tv-pc.corner { background: transparent; font-size: 10.5px; color: var(--text-3); text-align: center; }
+.tv-pc.diag { background: var(--line); }
+.tv-pc.bad { background: #FFE3DF; color: var(--bad); font-weight: 700; }

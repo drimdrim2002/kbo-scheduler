@@ -4,7 +4,7 @@
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
  *   2 운영 방침: 읽는 순서대로 네 띠 — 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나) → 추천 순서 카드(이동 격차 줄이기 우선·주말·공휴일 격차 줄이기 우선·직접 정하기) + 오른쪽 「지금 순위」 칸(고른 순서 1~4, 직접 정하기면 화살표) → 목표마다 허용 수준(가장 많은·적은 구단 격차, 전체 폭) → settings.objective로 서버에 보낸다. 실행 시간·실행 단추는 아래 줄에만. 값 형식은 그대로.
- *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 공정성」으로 들어간다.
+ *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 보기」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
  *  ?classic=1(또는 자가 점검)이면 읽지 않아 예전 화면 그대로다.
@@ -838,7 +838,7 @@
   function saveRow(res) {
     const vid = res.vid || res.from, v = vid ? P.versions.get(YEAR_NEW, vid) : null;
     const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '';
-    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 공정성</button>';
+    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button>';
     let head, meta, keep = '';
     if (v && !v.builtin) {
       head = '<span class="small muted">저장한 이름</span><input value="' + esc(v.name) + '" data-in="pf-name" data-id="' + esc(v.id) + '" aria-label="결과 이름">' + (v.kept ? '<span class="pf-tag blue">남김</span>' : '');
@@ -932,12 +932,16 @@
   };
   // 예전 화면의 번호와 평균 ± 범위는 새 흐름의 말과 다르다. 2027에서는 번호를 빼고, 평균 ± 범위는 「참고 범위」로 부른다(엔진이 맞추는 기준은 허용 차이)
   const origStep3 = S.steps[3].render;
-  S.steps[3].render = function () { return origStep3().replace(/④ 공정성·배포로 넘어가세요\.?/g, '「구단별 공정성」에서 구단 사이 균형을 보세요.'); };
+  S.steps[3].render = function () { return origStep3().replace(/④ 공정성·배포로 넘어가세요\.?/g, '「구단별 보기」에서 한 구단씩 살펴보세요.'); };
+  // 구단 간 비교 보기(한눈에·점수 구성·총 이동거리·이동/휴일/주말 비교)는 뺀다(사용자 결정 2026-11-06): 「현재 결과 분석」과 겹치고, 리그 평균 ± 범위라는 옛 기준이라 방침의 허용 수준과 말이 달랐다.
+  // 내보내기도 대부분 시안이라 뺀다(일정표 CSV는 데이터 메뉴에 있다). 남는 것은 한 구단을 따라가는 보기와 오른쪽 구단 카드
+  const HIDDEN_VIEWS = ['metrics', 'soft', 'a1', 'a2', 'a4', 'a8', 'export']; // 누적 이동거리는 두 구단 비교(team-view.js)가, 주중 이동(참고)은 뺌(2026-11-06)
+  S.qvHidden = (id) => S.seasonYear() === YEAR_NEW && HIDDEN_VIEWS.includes(id);
+  S.qvDefault = () => (S.seasonYear() === YEAR_NEW ? 'sched' : null); // 들어오면 처음 보이는 보기
   const origStep4 = S.steps[4].render;
   S.steps[4].render = function () {
-    if (S.ui.qv === 'export') S.ui.qv = 'metrics'; // 내보내기 화면은 대부분 시안이라 뺀다. 일정표 CSV는 데이터 메뉴에 있다
-    const html = origStep4().replace(/③ 달력에서/g, '달력에서').replace(/허용 범위/g, '참고 범위').replace(/<button class="li[^"]*" data-act="q-view" data-qv="export"[\s\S]*?<\/button>/, '');
-    return '<div class="pf-note" style="margin:8px 12px 0">이 화면의 범위는 리그 평균을 기준으로 한 참고값입니다. 엔진이 맞추는 기준은 「현재 결과 분석」의 허용 수준입니다.</div>' + html;
+    if (HIDDEN_VIEWS.includes(S.ui.qv)) S.ui.qv = S.qvDefault(); // 옛 주소·단추로 들어와도 숨긴 보기는 열지 않는다
+    return origStep4().replace(/③ 달력에서/g, '달력에서').replace(/허용 범위/g, '참고 범위');
   };
 
   // ───────── 4 실행 결과 비교 ─────────
@@ -1005,7 +1009,7 @@
     const sub = {
       1: fs.allDone ? '4단계 검토함' : start ? '' : (G.mode === 'flow' ? G.fs + ' / 4 ' + fs.steps[G.fs - 1].name + ' · 검토 중' : fs.stop + ' / 4에서 멈춤'),
       2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '편성 조건이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '운영 방침 정하기' : '편성 조건 검토를 마치면',
-      3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 공정성' : '한 장으로 보기') : '실행 뒤',
+      3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 보기' : '한 장으로 보기') : '실행 뒤',
       4: n ? '저장한 버전 ' + n + '개' : '저장한 버전 없음'
     };
     const done = { 1: fs.allDone, 2: !!res, 3: false, 4: false };
@@ -1031,7 +1035,7 @@
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
-    if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 공정성') + '</b></span>';
+    if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 보기') + '</b></span>';
     return null;
   };
   // 창이 노트북(1440×790)보다 크면 본문을 통째로 키운다(최대 1.25배, 높이 830마다 1배). 노트북 배치가 그대로 커져 줄 사이가 벌어지는 대신 글자·막대가 커진다
