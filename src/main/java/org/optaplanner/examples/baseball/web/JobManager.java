@@ -37,6 +37,12 @@ final class JobManager {
     static final long RETRY_ABANDON_MS = 1_000;
     /** 끝난 작업은 이만큼 들고 있다가 잊는다(결과는 캐시·ResultStore에 남는다). */
     static final long KEEP_FINISHED_MS = 10 * 60_000;
+    /**
+     * 예열 편성: 시드당 계산 3만 번(서버에서 약 5초), 시간은 60초까지. 서버가 켜진 뒤 첫 편성은 Java 예열과 엔진 규칙 구조
+     * 만들기 때문에 첫 일정 만들기가 5초가 아니라 9~25초 걸려(서버 실측 2026-11-08) 고른 시간에 걸리고 같은 결과를 못 냈다.
+     */
+    static final StopRule WARM_UP_STOP = new StopRule(30_000, 0, 60);
+    static final long WARM_UP_SEED = 900_000;
 
     private final ServerLimits limits;
     private final Executor runner;
@@ -174,6 +180,40 @@ final class JobManager {
         runner.execute(this::runNext);
         return job;
     }
+
+    /**
+     * 서버가 켜질 때 한 번, 결과를 남기지 않는 짧은 편성으로 첫 실행의 느림을 미리 치른다. 작업과 같은 runner에서 돌므로
+     * 그동안 들어온 편성은 예열이 끝난 뒤(대기 줄에서 기다렸다가) 데워진 상태로 돈다. 실패해도 서버는 그대로 쓴다.
+     */
+    void warmUp(JSONObject problem) {
+        runner.execute(() -> {
+            long start = System.currentTimeMillis();
+            try {
+                long[] seeds = new long[limits.defaultSeeds()];
+                for (int i = 0; i < seeds.length; i++) {
+                    seeds[i] = WARM_UP_SEED + i;
+                }
+                MultiStartSolver.Result r = new MultiStartSolver().run(seed -> {
+                    BaseballSolution solution = ProblemCodec.toSolution(problem);
+                    BaseballSolutionInitializer.initialize(solution, seed);
+                    return solution;
+                }, seeds, WARM_UP_STOP, NO_SINK);
+                LOG.info("warm-up done in {}ms ({} seeds, {})", System.currentTimeMillis() - start, seeds.length, r.reason());
+            } catch (Exception e) {
+                LOG.warn("warm-up failed after {}ms", System.currentTimeMillis() - start, e);
+            }
+        });
+    }
+
+    private static final MultiStartSolver.Sink NO_SINK = new MultiStartSolver.Sink() {
+        @Override
+        public void seedBest(long seed, BendableLongScore score, long elapsedMs) {
+        }
+
+        @Override
+        public void best(BaseballSolution solution, long seed, BendableLongScore score, long elapsedMs, int improvementCount) {
+        }
+    };
 
     void stop(SolveJob job) {
         job.stopRequested = true;

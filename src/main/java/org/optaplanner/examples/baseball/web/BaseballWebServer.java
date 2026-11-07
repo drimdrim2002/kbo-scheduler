@@ -130,6 +130,7 @@ public final class BaseballWebServer {
                 Math.max(seeds, base.maxSeeds()), base.maxJobsPerIp(), base.cacheSize(), base.maxBodyBytes());
         BaseballWebServer app = new BaseballWebServer(limits, Files.isDirectory(ui) ? ui : null, data, input);
         app.start(port);
+        app.jobs.warmUp(app.showcase.problem()); // 첫 편성이 느리지 않게. 기본 결과 편성도 이 뒤에 선다
         app.showcase.ensureDefault();
         LOG.info("{} {} listening on http://localhost:{} (ui={}, seeds={}, maxSeconds={}, roadDistance={})", NAME, VERSION, port,
                 app.uiRoot, limits.defaultSeeds(), limits.maxSeconds(), app.road.available() ? "on" : "off(KAKAO_REST_KEY 없음)");
