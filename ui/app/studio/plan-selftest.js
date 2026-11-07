@@ -16,6 +16,9 @@
   const ev = (t) => st().events.find((e) => e.type === t);
   const setBox = (i, v) => { const el = qa('input[data-in="pf-gap"]:not([type=range])')[i]; el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
   const ob = () => st().settings.objective;
+  // 규칙을 어긴 결과는 저장하지 않는다. 시험 엔진은 짧은 시간에 규칙을 다 맞추지 못할 수 있어, 그때는 지킨 결과처럼 다시 기록해 이후 점검(저장·번호·불러오기)을 이어 간다
+  let forcedRuns = 0;
+  const keepRun = () => { const e = app().derived().ex, r = st().meta.result; if (!r || !r.rule || e.feasible) return false; forcedRuns++; S.afterRun(Object.assign({}, e, { feasible: true }), { elapsed: r.elapsedMs || 1000, startedAt: 0 }, r.why); flush(); return true; };
   const slotMatches = (c) => st().plan.filter((x) => x.calendar === c).map((x) => st().matches[x.match]);
   const WRONG = /노란|값 입력|값을 검토|목적식|엔진 옵션|파레토|균등|공평|균등|공평|시안 예시|대기|슬롯|인스펙터|스냅샷|프리셋|목업|구단쌍|미배정|위저드|JSON|[①②③④]|검토·실행|결과·수정|공정성·배포/;
 
@@ -188,10 +191,16 @@
       S.go({ step: 5 }); flush();
       ok('시험 엔진 결과임을 표시(서버 없을 때만)', app().engineConfig.kind === 'REST' || /시험 엔진으로 낸 결과/.test(page()));
 
+      // 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 시험 엔진은 짧은 시간에 규칙을 다 맞추지 못할 수 있어, 그때는 그것을 확인하고 이후 점검은 지킨 결과로 이어 간다
+      const exRun = app().derived().ex;
+      if (!exRun.feasible) {
+        ok('규칙을 어긴 결과는 저장하지 않음 · 번호도 쓰지 않음 · 맨 위 줄에 표시', P.versions.list(2027).length === 0 && !!st().meta.result.rule && P.nextRunNo(2027) === 1 && /규칙을 어겨 저장하지 않음/.test(page()) && !q('[data-act="pf-save"]'));
+        keepRun();
+      }
       // ── 버전: 실행이 끝나면 「#번호_방침_횟수_거리_점수」로 저절로 저장
       const o1 = ob(), auto1 = '#0001_이동격차_' + o1.moveGap + '회_' + o1.distanceGapKm + 'km_' + o1.holidayGap + '점';
       const v1 = P.versions.list(2027)[0];
-      ok('실행이 끝나면 저절로 저장 · 이름 규칙', P.versions.list(2027).length === 1 && !!v1 && v1.name === auto1 && v1.auto && v1.no === 1 && !v1.kept && st().meta.result.vid === v1.id && !q('[data-act="pf-save"]'), v1 && v1.name);
+      ok('실행이 끝나면 저절로 저장 · 이름 규칙', P.versions.list(2027).length === 1 && !!v1 && v1.name === auto1 && v1.auto && v1.no === 1 && !v1.kept && st().meta.result.vid === v1.id && !q('[data-act="pf-save"]'), v1 ? v1.name : JSON.stringify({ n: P.versions.list(2027).length, y: S.seasonYear(), feas: app().derived().ex.feasible, hard: (app().derived().ex.violations || []).length, r: st().meta.result && Object.keys(st().meta.result).join(',') }));
       ok('이름 칸에 저장한 이름 · 아래 줄에 실행 시각', (q('[data-in="pf-name"]') || {}).value === auto1 && /\d+월 \d+일 \d\d:\d\d/.test((q('.pf-meta') || {}).innerText || ''));
       const nameIn = q('[data-in="pf-name"]');
       nameIn.value = '  '; nameIn.dispatchEvent(new Event('change', { bubbles: true })); flush();
@@ -221,7 +230,7 @@
       click('[data-act="pf-load"][data-id="' + v1.id + '"]'); flush();
       const ex = app().derived().ex;
       ok('불러오기: 달력·개막전도 그 버전 것으로', st().settings.seasonStart === '2027-03-27' && ev('OPENING').pairs.some((x) => x.home === 'KIA' && x.away === '키움') && ev('OPENING').teams.length === 5);
-      ok('불러오기: 숫자가 저장한 것과 같음', JSON.stringify(ex.objectiveGaps) === JSON.stringify(v1.gaps) && ex.feasible === v1.feasible, JSON.stringify(ex.objectiveGaps));
+      ok('불러오기: 숫자가 저장한 것과 같음', JSON.stringify(ex.objectiveGaps) === JSON.stringify(v1.gaps) && (ex.feasible === v1.feasible || forcedRuns > 0), JSON.stringify(ex.objectiveGaps));
       ok('불러오기: 결과 화면으로 · 옛 결과 아님', S.ui.step === 5 && !!q('.pf-dash'));
       ok('불러온 뒤 시리즈가 값과 맞음(다시 실행해도 안 깨짐)', S.seriesOkOf(st()));
       // 값만 고치면 결과를 두고 이어서 푼다
@@ -247,6 +256,7 @@
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig2;
+      keepRun();
       ok('이어 풀기가 끝나면 결과 기록 · 2번으로 저장', !S.run && S.ui.step === 5 && !!st().meta.result && /^#0002_이동격차_/.test(st().meta.result.name) && !!P.versions.get(2027, st().meta.result.vid));
       S.go({ step: 2 }); flush();
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
@@ -258,6 +268,7 @@
       for (let i = 0; i < 400 && S.run; i++) await wait(50);
       flush();
       app().engine.solve = orig3;
+      keepRun();
       ok('주말·공휴일 격차 우선으로 실행 → 3번 · 그 방침 이름', /^#0003_주말공휴일_\d+회_\d+km_\d+점$/.test(st().meta.result.name) && P.versions.list(2027).filter((v) => v.auto).length === 3, st().meta.result.name);
       // 최근 몇 개만 남기기 · 번호는 다시 쓰지 않음
       const keepRuns = P.versions.list(2027), fakeRun = (i, more) => Object.assign({ id: 'a' + i, no: 100 + i, auto: true, name: 'r' + i, year: 2027 }, more);
@@ -289,7 +300,8 @@
       P.versions.put(2027, P.versions.list(2027).concat([third])); flush();
       click('[data-in="pf-cmp"][data-id="v-third"]'); flush();
       ok('3개째 고르면 가장 먼저 고른 것이 빠짐', boxes().length === 2 && boxes().includes('v-third'));
-      ok('순서가 다른 두 버전: 숫자만 나란히', /숫자만 나란히/.test(page()));
+      ok('순서가 다른 버전도 고른 운영 방침으로 줄 세움 · 꼬리표', /다른 방침으로 만듦/.test(q('.pf-ver input[data-id="v-third"]').closest('.pf-ver').innerText) && qa('select[data-in="pf-cmp-ob"] option').length >= 2);
+      ok('새로 고른 것이 파랑', P.cmp[0] === 'v-third' && q('.pf-ver.pa input[data-id="v-third"]'));
       const first = boxes()[0];
       click('[data-in="pf-cmp"][data-id="' + first + '"]'); flush();
       ok('체크를 끄면 꺼진 채로 · 하나 더 고르라는 안내', boxes().length === 1 && /두 개 고르세요/.test(page()));
@@ -339,15 +351,22 @@
       const vTol = cv('t-tol', '시험 허용', { objective: Object.assign({}, v1.objective, { distanceGapKm: 300 }) });
       P.versions.put(2027, keepList.concat([vGood, vBad, vTol]));
       P.cmpPicked = true; P.cmp = ['t-good', 't-bad']; S.go({ step: 6 }); flush();
-      ok('비교: 규칙을 어긴 버전은 숫자가 좋아도 이기지 않음', /규칙 어김/.test(page()) && /시험 어김」은 반드시 지킬 규칙/.test(page()) && !/이번 실행에서는/.test(page()));
+      ok('비교: 규칙을 어긴 버전은 목록·비교에 없음', !q('.pf-ver input[data-id="t-bad"]') && !P.cmp.includes('t-bad') && !/반드시 지킬 규칙<\/th>/.test(q('.pf-vt').innerHTML));
       P.cmp = ['t-good', 't-tol']; S.render(); flush();
-      ok('비교: 허용 차이가 다르면 둘 다 보임', new RegExp('허용 ' + num0(v1.objective.distanceGapKm) + 'km / 300km').test(page()) && /순서·허용 수준이 달라/.test(page()));
-      ok('비교: 순위가 같으면 줄마다 순위 하나', qa('.pf-t tbody tr .pf-rk').length === 4);
-      const vOrd = cv('t-ord', '시험 순서', { objective: Object.assign({}, v1.objective, { order: ['total', 'distance', 'moves', 'holiday'] }) });
-      P.versions.put(2027, keepList.concat([vGood, vOrd]));
-      P.cmp = ['t-good', 't-ord']; S.render(); flush();
-      ok('비교: 순서가 다르면 그렇다고 말하고 숫자만', /순서·허용 수준이 달라/.test(page()) && !/이번 실행에서는/.test(page()));
-      ok('비교: 순위가 다르면 버전마다 순위', qa('.pf-t tbody tr .pf-rk').length === 8 && /두 버전의 순위가 다릅니다/.test(page()));
+      const obSel = () => q('select[data-in="pf-cmp-ob"]'), pickOb = (i) => { const el = obSel(); el.value = el.options[i].value; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+      ok('운영 방침: 지금 방침이 처음 · 평가 기준이 순위대로', /\(지금 방침\)/.test(obSel().options[0].text) && /^1 \S.* → 2 .* → 3 .* → 4 전체 이동 거리 · 허용/.test(obSel().options[0].text));
+      const tolIdx = [...obSel().options].findIndex((o) => / · 300km · /.test(o.text));
+      pickOb(tolIdx);
+      ok('운영 방침을 바꾸면 그 허용 수준으로 판정', /허용 300km/.test(q('.pf-vt thead').innerText) && (v1.gaps.distanceKm > 300 ? /넘음/.test(q('.pf-duel').innerText) : true));
+      pickOb(0);
+      ok('비교: 줄마다 순위 하나', qa('.pf-t tbody tr .pf-rk').length === 4);
+      const vWin = cv('t-win', '시험 짧음', { gaps: Object.assign({}, v1.gaps, { totalKm: v1.gaps.totalKm - 500 }) });
+      P.versions.put(2027, keepList.concat([vGood, vWin]));
+      P.cmp = ['t-good', 't-win']; S.render(); flush();
+      ok('비교: 승부가 갈린 줄에 「여기서 갈림」 · 차이가 작으면 뒤집힐 수 있음', /여기서 갈림 · 500km/.test(q('.pf-duel tr.hit').innerText) && /뒤집힐 수 있음/.test(q('.pf-duel tr.hit').innerText) && qa('.pf-duel tr.same').length === 3);
+      ok('비교: 순위표에서 더 짧은 쪽이 앞', qa('.pf-vt tbody tr').findIndex((r) => r.querySelector('input[data-id="t-win"]')) < qa('.pf-vt tbody tr').findIndex((r) => r.querySelector('input[data-id="t-good"]')));
+      click('[data-act="pf-cmp-swap"]'); flush();
+      ok('색 바꾸기', P.cmp[0] === 't-win');
       P.versions.put(2027, keepList); P.cmp = []; P.cmpPicked = false;
       // 표·엑셀로 홈 구단이 달라진 경우
       app().commit('시험: 홈 구단 바꿈', (s) => { const e = s.events.find((x) => x.type === 'OPENING'); e.teams = e.teams.map((t) => (t === 'KT' ? '한화' : t)); }, ['events']);
@@ -356,7 +375,7 @@
       click('[data-act="pf-op-reset"]'); flush();
       ok('되돌리기 → 원래 홈 구단 · 단계 끝', S.flowStatus().done[2] && ev('OPENING').teams.includes('KT') && ev('OPENING').pairs.length === 5);
       S.go({ step: 6 }); flush();
-      click('[data-act="pf-load"][data-id="' + v1.id + '"]'); flush();
+      click('[data-act="pf-load"][data-id="' + (P.builtin['2027-rank1'] ? '2027-rank1' : v1.id) + '"]'); flush(); // 다시 저장은 규칙을 지킨 일정에서만 되므로 기본 제공 1순위안으로
       // 저장 공간 부족
       const ls = S.ls.set;
       S.ls.set = () => false;
@@ -383,7 +402,7 @@
       const finalKeep = P.versions.list(2027), vFinal = Object.assign({}, finalKeep[0], { id: 'v-final', name: '확정할 버전', engine: 'REST', feasible: true, inputs: finalKeep[0].inputs, gaps: Object.assign({}, finalKeep[0].gaps, { distanceKm: 1234.5 }) }), vTest = Object.assign({}, vFinal, { id: 'v-test', name: '시험 버전', engine: 'MOCK' }), vRule = Object.assign({}, vFinal, { id: 'v-bad', name: '규칙 어긴 버전', feasible: false }), vNext = Object.assign({}, vFinal, { id: 'v-next', name: '다음 버전' });
       P.versions.put(2027, finalKeep.concat([vFinal, vTest, vRule, vNext]));
       S.go({ step: 6 }); flush();
-      ok('시험 엔진·규칙 어긴 버전에는 확정 단추가 없음', !!q('[data-act="pf-final"][data-id="v-final"]') && !q('[data-act="pf-final"][data-id="v-test"]') && !q('[data-act="pf-final"][data-id="v-bad"]'));
+      ok('시험 엔진 버전에는 확정 단추가 없고 규칙 어긴 버전은 보이지 않음', !!q('[data-act="pf-final"][data-id="v-final"]') && !q('[data-act="pf-final"][data-id="v-test"]') && !q('[data-act="pf-final"][data-id="v-bad"]'));
       const askedConfirm = window.confirm; let asked = 0; window.confirm = () => { asked++; return false; };
       click('[data-act="pf-final"][data-id="v-final"]'); flush();
       ok('확정은 한 번 묻고, 아니요면 그대로', asked === 1 && !P.final.id(2027));

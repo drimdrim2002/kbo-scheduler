@@ -5,7 +5,7 @@
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
  *   2 운영 방침: 읽는 순서대로 네 띠 — 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나) → 추천 순서 카드(이동 격차 줄이기 우선·주말·공휴일 격차 줄이기 우선·직접 정하기) + 오른쪽 「지금 순위」 칸(고른 순서 1~4, 직접 정하기면 화살표) → 목표마다 허용 수준(가장 많은·적은 구단 격차, 전체 폭) → settings.objective로 서버에 보낸다. 실행 시간·실행 단추는 아래 줄에만. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 보기」으로 들어간다.
- *   4 실행 결과 비교: 저장한 버전 둘을 평가 기준마다 비교. 저장한 버전이 있으면 언제든 들어간다.
+ *   4 실행 결과 비교: 저장한 버전을 고른 운영 방침의 순위대로 한 표에 세우고, 고른 둘을 평가 기준마다 비교한다. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
  *  ?classic=1(또는 자가 점검)이면 읽지 않아 예전 화면 그대로다.
  *  버전 저장: 기본 제공 ui/data/plans/*.json + 사용자가 저장한 것은 이 브라우저(P.versions). 온라인 저장소로 옮길 때 P.versions만 바꾼다.
@@ -728,8 +728,18 @@
   S.afterRun = function (ex, run, why) {
     if (S.seasonYear() !== YEAR_NEW) return false;
     // 실행마다 번호를 붙여 바로 저장한다. 방침은 실행을 누른 때의 것(P.runOption), 없으면 지금 순서로 본다
-    const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = P.runOption || optionOf(ob), no = nextNo(YEAR_NEW);
+    const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = P.runOption || optionOf(ob);
     P.runOption = null;
+    // 반드시 지킬 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 결과는 화면에 남겨 무엇을 어겼는지 보게 하고, 번호도 쓰지 않는다
+    if (!ex.feasible) {
+      const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, option, rule: true, vid: null };
+      if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 어긴 결과도 서버 점검표는 붙여 무엇을 어겼는지 보게 한다
+      app().store.commit('실행 결과 기록', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
+      S.toast('실행이 끝났지만 반드시 지킬 규칙을 지키지 못해 저장하지 않았습니다.', 'warn', 6000);
+      S.go({ step: 5, sel: null });
+      return true;
+    }
+    const no = nextNo(YEAR_NEW);
     S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
     const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) };
     // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
@@ -740,7 +750,7 @@
     if (v) pickNew(v);
     const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
     if (!v) noRoom();
-    else S.toast((instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').') + ' 「' + v.name + '」(으)로 저장했습니다.', ex.feasible ? 'ok' : 'warn', instant ? 6000 : 5000);
+    else S.toast((instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').') + ' 「' + v.name + '」(으)로 저장했습니다.', 'ok', instant ? 6000 : 5000);
     S.go({ step: 5, sel: null });
     return true;
   };
@@ -888,6 +898,10 @@
     } else if (vid) {
       head = '<b class="pf-nm">' + esc(res.name || '') + '</b><span class="small muted">지운 결과</span>';
       meta = [whenText({ ranAt: res.at })];
+    } else if (res.rule) {
+      head = '<span class="pf-tag over">규칙을 어겨 저장하지 않음</span>';
+      meta = [whenText({ ranAt: res.at }), res.elapsedMs ? '실행 ' + fmt.time(res.elapsedMs) : ''];
+      keep = '반드시 지킬 규칙을 모두 지킨 결과만 저장합니다. 편성 조건을 확인하고 다시 실행해 보세요';
     } else {
       head = (res.name ? '<b class="pf-nm">' + esc(res.name) + '</b>' : '') + '<span class="pf-tag over">저장하지 못함</span><button class="btn primary" data-act="pf-save">다시 저장</button>';
       meta = [whenText({ ranAt: res.at }), res.elapsedMs ? '실행 ' + fmt.time(res.elapsedMs) : ''];
@@ -906,10 +920,11 @@
   function optionOf(ob) { const hit = ORDERS.find((o) => o.order.join() === ob.order.join()); return !P.customOrder && hit ? hit.id : 'custom'; }
   const runName = (no, option, ob) => '#' + String(no).padStart(4, '0') + '_' + (OPTION_LABEL[option] || '직접정하기') + '_' + Math.round(ob.moveGap) + '회_' + Math.round(ob.distanceGapKm) + 'km_' + Math.round(ob.holidayGap) + '점';
   function nextNo(y) { const used = P.versions.list(y).reduce((m, v) => Math.max(m, v.no | 0), 0); return Math.max(Number(S.ls.get(noKey(y))) || 0, used) + 1; }
-  /** 이름을 바꾸지 않은 자동 저장 결과는 최근 AUTO_KEEP개만. 확정한 버전·이름을 바꾼 것·예전에 손으로 저장한 것은 그대로 */
+  /** 이름을 바꾸지 않은 자동 저장 결과는 최근 AUTO_KEEP개만(규칙을 어긴 예전 결과는 지움). 확정한 버전·이름을 바꾼 것·예전에 손으로 저장한 것은 그대로 */
   function pruneRuns(list, y) {
     const fin = P.final.id(y), auto = list.filter((v) => v.auto && !v.kept && v.id !== fin);
-    const drop = new Set(auto.slice(0, Math.max(0, auto.length - AUTO_KEEP)));
+    const bad = auto.filter((v) => v.feasible === false), good = auto.filter((v) => v.feasible !== false);
+    const drop = new Set(bad.concat(good.slice(0, Math.max(0, good.length - AUTO_KEEP))));
     return list.filter((v) => !drop.has(v));
   }
   const orderText = (ob) => ob.order.map((i) => shortName(i)).join(' → ');
@@ -922,8 +937,8 @@
     });
     return P.versions.put(YEAR_NEW, pruneRuns(P.versions.list(YEAR_NEW).concat([rec]), YEAR_NEW)) ? rec : null;
   }
-  /** 방금 저장한 결과를 비교에 넣는다(예전 「버전으로 저장」과 같이) */
-  function pickNew(v) { const base = P.versions.all(YEAR_NEW).find((x) => x.id !== v.id); P.cmp = base ? [base.id, v.id] : [v.id]; P.cmpPicked = false; }
+  /** 방금 저장한 결과를 비교에 넣는다(파랑). 회색은 비교 화면이 지금 방침의 1위로 채운다 */
+  function pickNew(v) { P.cmp = [v.id]; P.cmpPicked = false; }
   /** 이름 바꾸기: 바뀌었을 때만 남길 결과로. 빈 이름이면 그대로 */
   function renameVersion(y, id, name) {
     const list = P.versions.list(y), v = list.find((x) => x.id === id), n = String(name || '').trim();
@@ -933,7 +948,7 @@
     return true;
   }
   /** 「11월 3일 14:05」. 시각이 없는 예전 버전은 저장한 날만 */
-  const whenText = (v) => { if (!v.ranAt) return v.savedAt || ''; const d = new Date(v.ranAt), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+  const whenText = (v) => { if (!v.ranAt) { const m = /^\d{4}-(\d\d)-(\d\d)$/.exec(v.savedAt || ''); return m ? +m[1] + '월 ' + +m[2] + '일' : v.savedAt || ''; } const d = new Date(v.ranAt), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
   Object.assign(P, { pruneRuns, nextRunNo: nextNo, runName, AUTO_KEEP });
   /** 버전의 값과 일정을 프로젝트에 넣는다. 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로 */
   function applyVersion(s, v) {
@@ -986,6 +1001,9 @@
   };
 
   // ───────── 4 실행 결과 비교 ─────────
+  // 위: 저장한 버전 모두를 고른 운영 방침의 순위대로 한 표에(사용자 결정 2026-11-07 안 A). 아래: 고른 두 버전을 평가 기준마다, 승부가 갈린 줄에 「여기서 갈림」.
+  // 운영 방침은 지금 방침이 기본이고, 저장한 버전에 쓰인 다른 방침으로도 줄 세울 수 있다. 다른 방침으로 만든 버전도 고른 방침으로 따진다.
+  // 반드시 지킬 규칙을 어긴 결과는 저장하지 않고, 예전에 저장된 것도 보이지 않는다.
   /** 순위대로 비교: 허용 안이면 같다고 보고 다음 순위로. 처음으로 갈리는 평가 기준과 이긴 쪽 */
   function decide(a, b, ob) {
     for (const id of ob.order) {
@@ -996,42 +1014,72 @@
     }
     return null;
   }
+  const usable = (v) => v.feasible !== false;
+  const shownVersions = (y) => P.versions.all(y).filter(usable);
+  const obKey = (ob) => JSON.stringify([ob.order, ob.moveGap, ob.distanceGapKm, ob.holidayGap]);
+  /** 고를 수 있는 운영 방침: 지금 방침 + 저장한 버전에 쓰인 방침(같은 것은 하나로) */
+  function cmpPolicies(list) {
+    const out = [objective()];
+    for (const v of list) if (v.objective && !out.some((o) => obKey(o) === obKey(v.objective))) out.push(v.objective);
+    return out;
+  }
+  const cmpPolicyText = (ob) => ob.order.map((id, i) => (i + 1) + ' ' + shortName(id)).join(' → ') + ' · 허용 ' + num(ob.moveGap) + '회 · ' + num(ob.distanceGapKm) + 'km · ' + num(ob.holidayGap) + '점';
+  const CLOSE_KM = 3000; // 전체 이동 거리가 이보다 덜 차이 나면 다시 실행해 뒤집힐 수 있다고 알린다(같은 조건에서도 수천 km씩 달라짐)
+  const newestOf = (list) => list.filter((v) => !v.builtin && v.ranAt).sort((p, q) => (p.ranAt < q.ranAt ? 1 : -1))[0] || null;
   S.steps[6] = {
     render() {
-      const y = S.seasonYear(), all = P.versions.all(y);
+      const y = S.seasonYear(), all = shownVersions(y);
       if (all.length < 1) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전이 없습니다</h3><p class="pf-d">실행할 때마다 결과가 여기에 저절로 쌓입니다.</p></div></div></div>';
+      const pols = cmpPolicies(all), ob = pols.find((o) => obKey(o) === P.cmpPolicy) || pols[0], cur = obKey(pols[0]);
+      const ranked = all.slice().sort((a, b) => { const d = decide(a, b, ob); return d ? (d.winner === a ? -1 : 1) : 0; });
+      const place = new Map(ranked.map((v, i) => [v.id, i + 1])), fin = y === YEAR_NEW ? P.final.id(y) : null, newest = newestOf(all);
+      // 비교할 둘: [파랑, 회색]. 고른 적이 없으면 방금 실행한 것과 1위(방금 것이 1위면 2위)
       P.cmp = P.cmp.filter((id) => all.some((v) => v.id === id));
-      if (!P.cmpPicked) for (const v of all) if (P.cmp.length < 2 && !P.cmp.includes(v.id)) P.cmp.push(v.id);
-      const ver = (v) => { const on = P.cmp.includes(v.id), isFinal = y === YEAR_NEW && P.final.id(y) === v.id;
-        return '<div class="pf-ver' + (on ? ' on' : '') + '"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"><div><b>' + esc(v.name).replace(/_/g, '_<wbr>') + '</b>' + (isFinal ? ' <span class="pf-tag ok">확정</span>' : '') + (v.feasible === false ? ' <span class="pf-tag over">규칙 어김</span>' : '') + (v.engine && v.engine !== 'REST' ? ' <span class="pf-tag est">시험 엔진</span>' : '') + (v.kept ? ' <span class="pf-tag blue">남김</span>' : '') + (v.note ? '<small>' + esc(v.note) + '</small>' : '') + '<div class="w">' + esc(whenText(v)) + (v.elapsedMs ? ' · 실행 ' + fmt.time(v.elapsedMs) : '') + (v.attempts ? ' · 시도 ' + v.attempts + '번' : '') + (v.builtin ? ' · 기본 제공' : '') + '</div>' +
-          '<div class="small" style="margin-top:4px">' + Object.keys(GOALS).map((id) => shortName(id) + ' <b style="font-size:12px">' + goalShow(v, id) + GOALS[id].unit + '</b>').join(' · ') + '</div></div>' +
-          '<div class="acts">' + (isFinal ? '<button class="btn sm" data-act="pf-final-off">확정 취소</button>' : y === YEAR_NEW && canFinal(v) ? '<button class="btn sm primary" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '') + (y === YEAR_NEW ? '<button class="btn sm" data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button class="btn sm" data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' + (v.builtin ? '' : '<button class="btn sm" data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="btn sm" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>')) + '</div></div>'; };
-      const list = '<div class="pf-sec pf-vers"><h3>저장한 버전<span class="r"><b>' + P.cmp.length + '개</b> 선택</span></h3><p class="pf-d">두 개를 골라 비교하고, 쓸 일정을 확정합니다. 새로 실행한 것부터 보이고, 이름을 바꾸지 않은 결과는 최근 ' + AUTO_KEEP + '개만 남습니다.</p>' + all.filter((v) => v.builtin).concat(all.filter((v) => !v.builtin).reverse()).map(ver).join('') + // 기본 제공은 맨 위, 나머지는 새것부터
-        '<div style="margin-top:10px;display:flex;gap:6px;align-items:center"><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button><span class="xs muted">저장한 버전은 이 브라우저에 있습니다(나중에 온라인으로 옮김).</span></div></div>';
+      if (!P.cmpPicked) {
+        if (!P.cmp.length) P.cmp.push((newest || ranked[0]).id);
+        const other = ranked.find((v) => !P.cmp.includes(v.id));
+        if (P.cmp.length < 2 && other) P.cmp.push(other.id);
+      }
+      const goalHead = ob.order.map((id, i) => '<th><span class="pf-rk">' + (i + 1) + '</span> ' + esc(shortName(id)) + '<small>' + (GOALS[id].tol ? '격차 · 허용 ' + num(ob[GOALS[id].tol]) + GOALS[id].unit : '10구단 합') + '</small></th>').join('');
+      const tolTag2 = (v, id) => (GOALS[id].tol ? ' ' + (within(v, id, ob) ? '<span class="pf-tag ok">안</span>' : '<span class="pf-tag over">넘음</span>') : '');
+      const row = (v) => {
+        const k = place.get(v.id), isFinal = fin === v.id, pa = P.cmp[0] === v.id, pb = P.cmp[1] === v.id, own = !v.builtin;
+        const tags = (isFinal ? '<span class="pf-tag ok">확정</span>' : '') + (newest && newest.id === v.id ? '<span class="pf-tag blue">새로</span>' : '') + (v.kept ? '<span class="pf-tag got">남김</span>' : '') + (v.builtin ? '<span class="pf-tag got">기본 제공</span>' : '') +
+          (v.engine && v.engine !== 'REST' ? '<span class="pf-tag est">시험 엔진</span>' : '') + (obKey(v.objective) !== obKey(ob) ? '<span class="pf-tag est" title="만들 때 방침: ' + esc(cmpPolicyText(v.objective)) + '">다른 방침으로 만듦</span>' : '');
+        const conf = y !== YEAR_NEW ? '' : isFinal ? '<button class="btn sm cf" data-act="pf-final-off">확정 취소</button>' : canFinal(v) ? '<button class="btn sm cf' + (k === 1 ? ' primary' : '') + '" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '';
+        const menu = '<details class="pf-vm"><summary class="btn sm" aria-label="더 보기">⋯</summary><div class="pf-vm-list">' + (y === YEAR_NEW ? '<button data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' +
+          (own ? '<button data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="del" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>') : '') + '</div></details>';
+        return '<tr class="pf-ver' + (pa ? ' pa' : '') + (pb ? ' pb' : '') + (k === 1 ? ' first' : '') + (isFinal ? ' fin' : '') + '"><td class="c"><input type="checkbox" data-in="pf-cmp" data-id="' + esc(v.id) + '"' + (pa || pb ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"></td>' +
+          '<td class="k' + (k === 1 ? ' one' : '') + '">' + k + '</td><td class="nm" title="' + esc(v.name + (v.note ? ' · ' + v.note : '')) + '"><div><b>' + esc(v.name) + '</b>' + tags + '</div></td><td class="w">' + esc(whenText(v)) + (v.elapsedMs ? ' · ' + fmt.time(v.elapsedMs) : '') + '</td>' +
+          ob.order.map((id) => '<td>' + goalShow(v, id) + GOALS[id].unit + tolTag2(v, id) + '</td>').join('') + '<td class="acts">' + conf + menu + '</td></tr>';
+      };
+      const d12 = ranked.length > 1 ? decide(ranked[0], ranked[1], ob) : null;
+      const close = d12 && d12.id === 'total' && d12.diff < CLOSE_KM ? '<div class="pf-close"><span class="pf-tag est">차이 작음</span> 1위와 2위는 전체 이동 거리 ' + num(d12.diff) + 'km 차이입니다. 같은 조건으로 다시 실행해도 이만큼은 달라질 수 있습니다.</div>' : '';
+      const policyBar = '<span class="pf-cmp-ob"><label for="pf-cmp-ob">운영 방침</label><select id="pf-cmp-ob" data-in="pf-cmp-ob" title="' + (pols.length > 1 ? '저장한 버전에 쓰인 방침 ' + pols.length + '가지 중에서 고릅니다' : '지금 방침') + '">' + pols.map((o) => '<option value="' + esc(obKey(o)) + '"' + (obKey(o) === obKey(ob) ? ' selected' : '') + '>' + esc(cmpPolicyText(o)) + (obKey(o) === cur ? ' (지금 방침)' : '') + '</option>').join('') + '</select></span>';
+      const list = '<div class="pf-sec pf-vtab"><h3>저장한 버전' + policyBar + '<span class="r"><span><b>' + P.cmp.length + '개</b> 선택 · 새로 고른 것이 파랑</span><button class="btn sm" data-act="pf-import">' + icon('upload') + '받은 버전 올리기</button></span></h3>' +
+        '<p class="pf-d">고른 운영 방침의 순위대로 줄을 세웁니다. 앞 순위가 허용 수준 안이면 같다고 보고 다음 순위로 넘어가며, 다른 방침으로 만든 버전도 같은 방침으로 따집니다. 두 개를 골라 비교하고 쓸 일정을 확정합니다.</p>' +
+        '<table class="pf-vt"><colgroup><col style="width:44px"><col style="width:42px"><col><col style="width:150px">' + ob.order.map(() => '<col style="width:114px">').join('') + '<col style="width:124px"></colgroup>' +
+        '<thead><tr><th class="c">비교<small>&nbsp;</small></th><th class="k">순위<small>&nbsp;</small></th><th class="l">이름<small>이름을 바꾸지 않은 결과는 최근 ' + AUTO_KEEP + '개만 남음</small></th><th class="l">실행<small>&nbsp;</small></th>' + goalHead + '<th></th></tr></thead><tbody>' + ranked.map(row).join('') + '</tbody></table>' + close + '</div>';
       const [a, b] = P.cmp.map((id) => all.find((v) => v.id === id));
-      if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-note">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '비교할 버전을 두 개 고르세요.') + '</div></div></div>';
-      const ob = a.objective;
-      const sameOb = JSON.stringify(a.objective) === JSON.stringify(b.objective);
-      // 순위가 같으면 줄 이름에 한 번, 다르면 버전마다 보인다
-      const sameOrder = a.objective.order.join() === b.objective.order.join();
-      const rank = (v, id) => '<span class="pf-rk">' + (v.objective.order.indexOf(id) + 1) + '순위</span>';
-      const cell = (me, other, id) => { const g = GOALS[id], v = goalValue(me, id), w = goalValue(other, id), obm = me.objective; const inT = within(me, id, obm); return '<td class="' + (v < w ? 'good' : '') + '">' + (sameOrder ? '' : rank(me, id) + ' ') + goalShow(me, id) + g.unit + (g.tol ? ' <span class="pf-tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
-      const d = decide(a, b, ob);
-      const aBad = a.feasible === false, bBad = b.feasible === false;
-      // 반드시 지킬 규칙을 어긴 일정은 숫자가 좋아도 쓸 수 없으므로 순위로 따지지 않는다
-      const verdict = aBad && bBad ? '두 버전 모두 반드시 지킬 규칙을 지키지 못해 순위대로 따지지 않고 숫자만 나란히 둡니다.' : aBad || bBad ? '<b>「' + esc((aBad ? a : b).name) + '」은 반드시 지킬 규칙을 지키지 못해 쓸 수 없습니다.</b> 순위대로 따지지 않고 숫자만 나란히 둡니다.' : !sameOb ? '두 버전의 순서·허용 수준이 달라 순위대로 따지지 않고 숫자만 나란히 둡니다.' : d ? '<b>순위대로 따지면</b> — ' + (ob.order.indexOf(d.id) ? '앞 순위는 두 버전 모두 허용 수준 안이라 같다고 봅니다. ' : '') + esc(GOALS[d.id].name) + '에서 <b>이번 실행에서는 「' + esc(d.winner.name) + '」이 ' + num(d.diff, GOALS[d.id].d) + GOALS[d.id].unit + ' ' + (GOALS[d.id].tol ? '작았습니다' : '짧았습니다') + '</b>.' : '<b>순위대로 따지면</b> — 모든 평가 기준이 같습니다.';
-      const tab = P.cmpTab, tg = GOALS[tab];
-      const tolText = (g) => num(a.objective[g.tol]) + g.unit + (a.objective[g.tol] === b.objective[g.tol] ? '' : ' / ' + num(b.objective[g.tol]) + g.unit); // 다르면 둘 다
-      const ruleCell = (v) => '<td>' + (v.feasible === false ? '<span class="pf-tag over">어김</span>' : '<span class="pf-tag ok">모두 지킴</span>') + '</td>';
+      if (!b) return '<div class="stepview no-band"><div class="pf-page">' + list + '<div class="pf-sec"><h3>고른 두 버전</h3><p class="pf-d" style="margin:4px 0 0">' + (all.length < 2 ? '비교하려면 버전이 두 개 있어야 합니다.' : '위 표에서 비교할 버전을 두 개 고르세요.') + '</p></div></div></div>';
+      const d = decide(a, b, ob), at = d ? ob.order.indexOf(d.id) : -1;
+      const cell = (me, other, id) => '<td class="' + (goalValue(me, id) < goalValue(other, id) ? 'good' : '') + '">' + goalShow(me, id) + GOALS[id].unit + tolTag2(me, id) + '</td>';
+      const mark = (id, i) => (i === at ? ' <span class="pf-tag blue">여기서 갈림 · ' + num(d.diff, GOALS[id].d) + GOALS[id].unit + '</span>' + (id === 'total' && d.diff < CLOSE_KM ? '<span class="flip">다시 실행하면 뒤집힐 수 있음</span>' : '') : i < at ? ' <span class="sp">같다고 봄</span>' : '');
       // 요구 사항 n/n: 서버가 완성된 일정을 다시 세어 판정한 것(엔진 점수와 따로). 시험 엔진으로 낸 버전에는 없다
-      const verifyRow = P.verify ? '<tr><td><b>요구 사항</b> <span class="muted small">서버가 다시 센 판정</span></td><td>' + P.verify.cell(a.verification) + '</td><td>' + P.verify.cell(b.verification) + '</td></tr>' : '';
-      return '<div class="stepview no-band"><div class="pf-page"><div class="pf-cols pf-fill" style="grid-template-columns:400px minmax(0,1fr)">' + list +
-        '<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div class="pf-sec"><h3>평가 기준마다 비교</h3><p class="pf-d">' + (sameOrder ? '순위 순' : '두 버전의 순위가 다릅니다') + ' · 초록 = 더 작음</p><table class="pf-t"><thead><tr><th>평가 기준</th><th>' + esc(a.name) + '</th><th>' + esc(b.name) + '</th></tr></thead><tbody><tr><td><b>반드시 지킬 규칙</b></td>' + ruleCell(a) + ruleCell(b) + '</tr>' + verifyRow +
-        ob.order.map((id) => '<tr><td>' + (sameOrder ? rank(a, id) + ' ' : '') + '<b>' + GOALS[id].name + '</b> <span class="muted small">' + (GOALS[id].tol ? '격차 · 허용 ' + tolText(GOALS[id]) : '10구단 합') + '</span></td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
-        '</tbody></table><div class="pf-note blue">' + verdict + '</div><div class="small muted" style="margin-top:6px">같은 조건으로 다시 실행해도 전체 이동 거리가 수천 km씩 달라질 수 있습니다. 이 정도 차이는 두 버전을 각각 다시 실행해 확인하세요.</div></div>' +
-        '<div class="pf-sec"><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">' + shortName(id) + '</button>').join('') + '</div><h3>구단별 ' + shortName(tab) + '</h3><p class="pf-d">회색 ' + esc(b.name) + ' · 파랑 ' + esc(a.name) + ' · 초록 띠 = 파랑의 가장 적은 구단 + 허용 수준</p>' + bars(a, tg.metric, ob[tg.tol], tg.d, b) + '</div></div></div></div></div>';
+      const verifyRow = P.verify ? '<tr class="vr"><td>요구 사항 <span class="sp">서버가 다시 센 판정</span></td><td>' + P.verify.cell(a.verification) + '</td><td>' + P.verify.cell(b.verification) + '</td></tr>' : '';
+      const tab = P.cmpTab, tg = GOALS[tab], sw = (c) => '<i class="pf-sw ' + c + '"></i>';
+      const duel = '<div class="pf-sec pf-duel pf-fill"><div class="pf-duel-h"><h3>고른 두 버전</h3><span class="who">' + sw('a') + '<span>' + esc(a.name) + '</span></span><span class="muted">와</span><span class="who">' + sw('b') + '<span>' + esc(b.name) + '</span></span><button class="btn sm" data-act="pf-cmp-swap">⇄ 색 바꾸기</button></div>' +
+        '<div class="pf-duel-b"><div><table class="pf-t"><thead><tr><th>평가 기준</th><th title="' + esc(a.name) + '">' + sw('a') + ' 파랑</th><th title="' + esc(b.name) + '">' + sw('b') + ' 회색</th></tr></thead><tbody>' +
+        verifyRow +
+        ob.order.map((id, i) => '<tr class="' + (i === at ? 'hit' : i < at ? 'same' : '') + '"><td><span class="pf-rk">' + (i + 1) + '</span> ' + esc(shortName(id)) + mark(id, i) + '</td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
+        '</tbody></table>' + (d ? '' : '<div class="small muted" style="margin-top:6px">모든 평가 기준이 같습니다.</div>') + '</div>' +
+        '<div><div class="pf-tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="pf-cmp-tab" data-v="' + id + '">구단별 ' + esc(shortName(id)) + '</button>').join('') + '</div>' +
+        bars(a, tg.metric, ob[tg.tol], tg.d, b).replace('부터 · 숫자는 파랑 / 회색', '부터 · 숫자는 파랑 / 회색 · 초록 띠 = 파랑의 가장 적은 구단 + 허용 수준') + '</div></div></div>';
+      return '<div class="stepview no-band"><div class="pf-page">' + list + duel + '</div></div>';
     }
   };
+  // 버전 줄의 「⋯」: 바깥을 누르면 닫는다(다시 그리지 않고 열린 것만 닫음)
+  document.addEventListener('click', (e) => { document.querySelectorAll('details.pf-vm[open]').forEach((m) => { if (!m.contains(e.target)) m.open = false; }); });
 
   // ───────── 확정 일정 보기 ─────────
   S.steps[7] = {
@@ -1046,7 +1094,7 @@
   const STAGES = ['편성 조건 입력·검증', '운영 방침·실행', '현재 결과 분석', '실행 결과 비교'];
   const stageOf = (step) => ({ 1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 8: 3 })[step] || 1;
   P.stepper = function () {
-    const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), edited = inputsEdited(st), n = P.versions.all(S.seasonYear()).length;
+    const st = app().state, cur = stageOf(S.ui.step), fs = S.flowStatus(), res = freshResult(st), stale = resultStale(st), edited = inputsEdited(st), n = shownVersions(S.seasonYear()).length;
     const running = isRunning();
     const start = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
     const sub = {
@@ -1077,7 +1125,7 @@
     if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (!running && inputsEdited(app().state) ? ' · 지금 결과에서 이어서' : '') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
-    if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전 두 개를 골라 평가 기준마다 비교합니다</span>';
+    if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전을 순위대로 보고, 두 개를 골라 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 보기') + '</b></span>';
     if (u.step === 8) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>요구 사항 점검</b> — 서버가 완성된 일정을 날짜별 경기로 풀어 요구 사항마다 다시 셉니다. 근거를 펼쳐 직접 세어 볼 수 있습니다</span><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기' + icon('right') + '</button>';
     return null;
@@ -1236,7 +1284,8 @@
     },
     'pf-save': () => { // 자동 저장이 저장 공간 때문에 실패했을 때 같은 번호로 다시
       const r0 = app().state.meta.result;
-      if (!r0 || r0.vid || r0.from) return;
+      if (!r0 || r0.vid || r0.from || r0.rule) return;
+      if (!app().derived().ex.feasible) { S.toast('반드시 지킬 규칙을 지키지 못한 결과는 저장하지 않습니다.', 'warn'); return; }
       const res = Object.assign({}, r0);
       if (!res.no) { const ob = res.objective || objective(); res.objective = ob; res.no = nextNo(YEAR_NEW); res.option = optionOf(ob); res.name = runName(res.no, res.option, ob); S.ls.set(noKey(YEAR_NEW), String(res.no)); } // 번호가 없는 예전 결과
       const v = storeRun(res);
@@ -1248,6 +1297,7 @@
     },
     'pf-25': (el) => { P.view25 = el.dataset.v; S.render(); },
     'pf-cmp-tab': (el) => { P.cmpTab = el.dataset.v; S.render(); },
+    'pf-cmp-swap': () => { P.cmp.reverse(); P.cmpPicked = true; S.render(); },
     'pf-goal': (el) => { P.dashGoal = el.dataset.v; S.render(); },
     'pf-hsort': (el) => { // 같은 제목을 다시 누르면 거꾸로. 처음 누르면 숫자는 많은 순, 구단은 가나다 순
       const k = el.dataset.v, th = el.closest('th'), now = th.getAttribute('aria-sort'); // 지금 기준인 열에만 aria-sort가 있다
@@ -1285,6 +1335,7 @@
           const y = S.seasonYear(), st = app().state, err = P.checkVersion(v, y, st.teams.map((x) => x.name));
           if (err) { S.toast('올리지 못했습니다 — ' + err, 'bad', 6000); return; }
           const differ = P.rescoreVersion(v);
+          if (v.feasible === false) { S.toast('올리지 못했습니다 — 반드시 지킬 규칙을 지키지 못한 일정입니다.', 'bad', 6000); return; }
           const list = P.versions.list(y);
           v.id = 'v' + Date.now(); v.year = y; v.name = String(v.name || '받은 버전').trim() || '받은 버전'; delete v.builtin; delete v.auto; delete v.no; delete v.kept; list.push(v); // 받은 버전은 번호를 세지 않고 지우지도 않는다
           if (!P.versions.put(y, list)) { noRoom(); return; }
@@ -1317,11 +1368,12 @@
     if (!Number.isInteger(v) || v < TIME_MIN || v > TIME_MAX) { el.classList.add('err'); S.toast(TIME_MIN + '~' + TIME_MAX + '분 사이의 정수를 적어 주세요.', 'bad'); return; }
     P.timeSec = v * 60; S.render();
   };
+  S.inputs['pf-cmp-ob'] = (el) => { P.cmpPolicy = el.value; S.render(); };
   S.inputs['pf-name'] = (el) => { if (!String(el.value).trim()) { S.render(); return; } if (renameVersion(YEAR_NEW, el.dataset.id, el.value)) { S.toast('이름을 바꿨습니다. 이 결과는 지우지 않고 남깁니다.', 'ok'); S.render(); } };
   S.inputs['pf-cmp'] = (el) => {
     const id = el.dataset.id;
     P.cmpPicked = true;
-    if (el.checked) { P.cmp.push(id); if (P.cmp.length > 2) P.cmp.shift(); } else P.cmp = P.cmp.filter((x) => x !== id);
+    if (el.checked) P.cmp = [id].concat(P.cmp.filter((x) => x !== id)).slice(0, 2); else P.cmp = P.cmp.filter((x) => x !== id);
     S.render();
   };
   // 실행 중 새로고침·창 닫기: 서버 실행을 멈춘다(그대로 두면 다음 실행이 「이미 실행 중」으로 막힌다)
