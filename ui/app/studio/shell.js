@@ -149,8 +149,8 @@
   /** 실행 중에 브라우저 뒤로/앞으로를 누른 때(base.js S.onHistory): 그 자리에 머물지, 멈추고 갈지 */
   S.modals.runLeave = function () {
     return '<div class="modal narrow" role="dialog" aria-label="실행 중" style="width:480px;max-width:94vw"><div class="modal-head"><h3>계획을 실행하는 중입니다</h3></div><div class="modal-body" style="display:block;padding:14px">' +
-      '<p style="margin:0 0 6px">실행이 끝날 때까지 이 화면에 그대로 있습니다.</p>' +
-      '<p class="muted" style="margin:0 0 12px">다른 화면으로 가려면 실행을 멈춰야 합니다. 멈추면 지금까지 찾은 가장 좋은 결과를 저장하고 이동합니다.</p>' +
+      '<p style="margin:0 0 6px">실행을 멈추고 이동하거나, 계속 실행하며 이 화면에 머뭅니다.</p>' +
+      '<p class="muted" style="margin:0 0 12px">단계 띠로 다른 화면에 가도 실행은 계속됩니다. 멈추면 지금까지 찾은 가장 좋은 결과를 저장하고 이동합니다.</p>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="close-modal">계속 실행</button><button class="btn primary" data-act="run-leave-go">실행 멈추고 이동</button></div></div></div>';
   };
   function renderOverlay() {

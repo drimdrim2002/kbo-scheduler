@@ -308,8 +308,8 @@
     const st = app().state, c = D();
     const name = S.ui.team || st.teams[0].name;
     const t = tms().find((x) => x.name === name);
-    let s = S.paneHead('구단별 일정표', '구단 운영팀 배포용. 인쇄하면 이 미리보기 모양으로 나옵니다.', '<button class="btn sm" data-act="print">' + icon('print') + '인쇄</button>' + (S.feature('D4') ? '<button class="btn sm" data-act="export" data-kind="csv">' + icon('table') + 'CSV</button>' : ''));
-    s += '<div class="pane-body paper-bg" data-sk="q-sched"><div class="paper"><h2>' + S.team(name) + ' ' + S.seasonYear() + ' 정규시즌 1차 편성 일정</h2><div class="meta">' + esc(st.meta.name) + ' · 홈 ' + t.homeSeries + '시리즈(' + t.homeGames + '경기) · 원정 ' + t.awaySeries + '시리즈(' + t.awayGames + '경기) · 총 이동 ' + fmt.km(t.distanceKm) + 'km</div>';
+    let s = S.paneHead('구단별 일정표', '구단 운영팀 배포용. 인쇄하면 이 미리보기 모양으로 나옵니다.', '<button class="btn sm" data-act="print">' + icon('print') + '인쇄</button>' + (S.dev() && S.feature('D4') ? '<button class="btn sm" data-act="export" data-kind="csv">' + icon('table') + 'CSV</button>' : ''));
+    s += '<div class="pane-body paper-bg" data-sk="q-sched"><div class="paper"><h2>' + S.team(name) + ' ' + S.seasonYear() + ' 정규시즌 1차 편성 일정</h2><div class="meta">' + esc(S.resultTitle ? S.resultTitle() : st.meta.name) + ' · 홈 ' + t.homeSeries + '시리즈(' + t.homeGames + '경기) · 원정 ' + t.awaySeries + '시리즈(' + t.awayGames + '경기) · 총 이동 ' + fmt.km(t.distanceKm) + 'km</div>';
     s += '<table><thead><tr><th>#</th><th>기간</th><th>연전 수</th><th>구분</th><th>상대</th><th>구장</th><th style="text-align:right">이동(km)</th></tr></thead><tbody>' +
       t.visits.map((v, i) => { const sl = c.slots[v.slot]; const opp = st.teams[v.opp]; const stad = st.teams[v.loc].stadium; return '<tr><td class="mono">' + (i + 1) + '</td><td>' + esc(Dates.fmtDate(sl.day) + ' ~ ' + Dates.fmtDate(sl.days[sl.days.length - 1])) + '</td><td>' + sl.consecutive + '</td><td>' + (v.home ? '<span class="home-mark" style="width:auto;padding:0 4px">홈</span>' : '<span class="away-mark" style="width:auto;padding:0 4px">원정</span>') + '</td><td>' + S.team(opp.name) + '</td><td>' + esc(stad) + '</td><td style="text-align:right" class="mono">' + (v.legTenths ? fmt.km(v.legTenths / 10) : '-') + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
     return s;
@@ -323,7 +323,7 @@
       card('file', '빈 엑셀 양식', '제목 줄과 항목 설명이 담긴 안내 시트, 예시 한 줄. 2025 실제 일정 예시 파일 포함.', 'export', 'template', true) +
       (S.dev() ? card('bolt', '엔진 JSON', 'input_2025.json 형식(teams, distanceMatrix, calendar, matches, initialPlan). Java 엔진 입력용.', 'export', 'engine') +
         card('db', '프로젝트 JSON', '입력·배정·스냅샷·경기 기록·기능 켜기·끄기(meta.features) 전체.', 'export', 'project') : '') +
-      (S.feature('D4') ? card('table', '일정표 (CSV)', '날짜, 원정, 홈, 구장, 상태. 구단을 고르면 그 구단만 받습니다.', 'export', 'csv', false, '<p class="small">대상: ' + esc(S.ui.team || '전체 구단') + '</p>') : '') +
+      (S.dev() && S.feature('D4') ? card('table', '일정표 (CSV)', '날짜, 원정, 홈, 구장, 상태. 구단을 고르면 그 구단만 받습니다.', 'export', 'csv', false, '<p class="small">대상: ' + esc(S.ui.team || '전체 구단') + '</p>') : '') +
       '</div>' + (function () {
         const st = app().state;
         const N = S.SHEET_NAMES;

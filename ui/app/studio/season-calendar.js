@@ -354,7 +354,7 @@
     return box('sc-homes' + (hs.total && hs.done === hs.total ? '' : ' blue') + (C.focus === 'events' ? ' flash' : ''), '<span class="no">2</span>홈 구장 지정 <span class="r"><b>' + hs.done + ' / ' + hs.total + '</b></span>',
       (hs.rows.length ? hs.rows.map((r) => row(r.date, r.name, r.ev, r.done)).join('') : '<div class="sc-note">개막일을 고르면 개막전·어린이날이 여기에 나옵니다.</div>') +
       extra.map((e) => row(e.date, e.name, e, S.homeComplete(e))).join('') +
-      '<div class="sc-note">달력에서 날을 누르면 오른쪽에서 그 날 홈 경기 구단 ' + half() + '곳을 고릅니다. 개막전은 대진까지 고정할 수도 있습니다.</div>');
+      '<div class="sc-note">달력에서 날을 누르면 오른쪽에서 그 날 홈 경기 구단을 고릅니다(' + half() + '곳까지). 개막전은 대진까지 고정할 수도 있습니다.</div>');
   }
   function leftStep3() {
     return '<div class="fl-kick">3 / 4단계</div><h2 class="sc-h2">주요 이벤트 일정</h2>' +
@@ -738,7 +738,7 @@
     const fix = e && e.fix === 'pairs' ? 'pairs' : 'home';
     let s = head;
     if (e) s += '<div class="sc-seg sc-fix" role="radiogroup" aria-label="지정 방식"><button class="' + (fix === 'pairs' ? 'on' : '') + '" data-act="cal-home-fix" data-fix="pairs" role="radio" aria-checked="' + (fix === 'pairs') + '">대진까지 고정</button><button class="' + (fix === 'home' ? 'on' : '') + '" data-act="cal-home-fix" data-fix="home" role="radio" aria-checked="' + (fix === 'home') + '">홈 구장만 지정</button></div>';
-    s += '<div class="sc-note">' + (fix === 'pairs' ? '이 날 홈 구단 ' + half() + '곳과 상대까지 정합니다. 자동 편성은 그 시리즈를 고정합니다.' : '이 날 홈 경기를 해야 하는 구단 ' + half() + '곳을 고릅니다. 상대는 자동 편성이 정합니다.') + '</div>';
+    s += '<div class="sc-note">' + (fix === 'pairs' ? '이 날 홈 구단 ' + half() + '곳과 상대까지 정합니다. 자동 편성은 그 시리즈를 고정합니다.' : '이 날 홈 경기를 해야 하는 구단을 고릅니다(' + half() + '곳까지). 상대는 자동 편성이 정합니다.') + '</div>';
     if (on) {
       s += '<div class="sc-home-teams" role="group" aria-label="홈 경기 구단">' + st.teams.map((t) => {
         const sel = picked.includes(t.name);
@@ -755,7 +755,7 @@
           return '<label class="sc-pair">' + S.team(h) + '<span class="muted">홈 · 상대</span><select class="input xs" data-in="cal-pair" data-home="' + esc(h) + '" aria-label="' + esc(h + ' 홈 상대') + '"><option value="">고르기</option>' + opts + '</select></label>';
         }).join('') + '</div>';
       }
-      if (e && !S.homeComplete(e)) s += '<div class="sc-warn">' + icon('info') + '<span>' + (picked.length < half() ? (half() - picked.length) + '곳 더 고릅니다' : '대진의 상대를 모두 고릅니다') + (e.type === 'CHILDREN' ? ' — 어린이날은 ' + half() + '곳을 모두 골라야 합니다' : '') + '.</span></div>';
+      if (e && !S.homeComplete(e)) s += '<div class="sc-warn">' + icon('info') + '<span>' + (picked.length < half() ? (half() - picked.length) + '곳 더 고를 수 있습니다' : '대진의 상대를 모두 고릅니다') + (e.type === 'CHILDREN' ? ' — 어린이날은 ' + half() + '곳을 모두 골라야 합니다' : '') + '.</span></div>';
     }
     if (ms.length) s += '<div class="sc-warn">' + icon('warn') + '<span>예전 방식 「대진 지정」 ' + ms.length + '경기가 이 날에 있습니다(' + esc(ms.map((x) => x.away + '–' + x.home).slice(0, 3).join(', ')) + (ms.length > 3 ? ' …' : '') + '). <button class="lnk" data-act="cal-ev-convert">홈 구장 지정(대진까지 고정)으로 바꾸기</button></span></div>';
     return s;

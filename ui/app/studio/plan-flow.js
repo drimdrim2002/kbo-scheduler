@@ -305,7 +305,7 @@
     opening: { why: '3월 넷째 토요일에 2연전으로 엽니다(2024 · 2025 · 2026 모두 같음).' },
     initialEnd: { why: '개막부터 경기일을 세어 135일이 되는 첫 일요일입니다. 남은 경기는 그 뒤에 따로 짭니다.' },
     allStar: { why: '7월 둘째주 토요일을 올스타전으로 잡았고, 그 주 금요일부터 다음주 수요일까지를 올스타전 휴식기로 잡았습니다. 휴식기 바로 뒤 목~일은 4연전으로 묶으며, 휴식기를 수정하면 함께 옮겨집니다.' },
-    openingHome: { why: '2026 상위 5팀이 홈(두산은 LG와 구장이 겹쳐 원정, SSG가 이어받음). 대진은 2025 개막 대진을 다시 쓴 1순위 예측입니다.' },
+    openingHome: { why: '2026 상위 5팀이 홈(두산은 LG와 구장이 겹쳐 원정, SSG가 이어받음). 상대는 공식 발표 전이라 시범 운영을 위한 예상값입니다.' },
     childrenHome: { why: '어린이날 홈은 해마다 번갈아 가집니다(홀수 해 = 이 5구단).' },
     homeTotals: { why: '남는 홈 경기는 해마다 번갈아 가집니다(2027 = 홀수 해).' }
   };
@@ -322,7 +322,7 @@
       '<div class="pf-sec"><h3>개막일</h3><p class="pf-d">세 해 모두 3월 넷째 토요일입니다.</p><table class="pf-t"><thead><tr><th>시즌</th><th>개막일</th></tr></thead><tbody>' + tr(['2024', '3월 23일(토)']) + tr(['2025', '3월 22일(토)']) + tr(['2026', '3월 28일(토)']) + tr(['<b>2027 예상</b>', '<b>3월 27일(토)</b>']) + '</tbody></table></div>' +
       '<div class="pf-sec" style="margin-top:10px"><h3>홈 구단 ' + conf('높음') + '</h3><p class="pf-d">전년도 상위 5팀이 홈. 2025 개막전에도 두산이 원정, SSG가 홈을 맡았습니다.</p><table class="pf-t"><thead><tr><th>2026 순위</th><th>구단</th><th>개막전</th></tr></thead><tbody>' +
       [['1', 'KT', '홈'], ['2', '삼성', '홈'], ['3', 'KIA', '홈'], ['4', 'LG', '홈'], ['5', '두산', '원정 — LG와 구장이 겹침'], ['6', 'SSG', '홈 — 두산 자리를 이어받음']].map(tr).join('') + '</tbody></table></div>' +
-      '<div class="pf-sec" style="margin-top:10px"><h3>대진 ' + conf('낮음~중간') + '</h3><p class="pf-d">1순위 예측: 2025 개막 대진을 다시 씁니다. KBO가 상대 배정 기준을 공개한 적이 없어 패턴으로 추정했습니다.</p><table class="pf-t"><thead><tr><th>구장</th><th>홈 (순위)</th><th>원정 (순위)</th><th>신뢰도</th><th>근거</th></tr></thead><tbody>' +
+      '<div class="pf-sec" style="margin-top:10px"><h3>대진 ' + conf('낮음~중간') + '</h3><p class="pf-d">시범 운영을 위한 예상값: 2025 개막 대진을 다시 씁니다. KBO가 상대 배정 기준을 공개한 적이 없어 패턴으로 추정했습니다.</p><table class="pf-t"><thead><tr><th>구장</th><th>홈 (순위)</th><th>원정 (순위)</th><th>신뢰도</th><th>근거</th></tr></thead><tbody>' +
       [['수원', 'KT (1)', '한화 (9)', '중간', '1위-9위 매칭 2년 연속 · 2025와 같음'], ['대구', '삼성 (2)', '키움 (10)', '중간', '2위-10위 매칭 2년 연속 · 2025와 같음'], ['광주', 'KIA (3)', 'NC (8)', '낮음', '2025와 같음'], ['서울', 'LG (4)', '롯데 (7)', '낮음', '2025와 같음'], ['인천', 'SSG (6)', '두산 (5)', '낮음', '2025와 같음']].map((r) => tr([r[0], r[1], r[2], conf(r[3]), r[4]])).join('') + '</tbody></table>' +
       '<div class="pf-note"><b>1순위로 둔 이유</b> — 2027 홈 5팀이 2025 홈 5팀과 같아 이동 동선 검토가 끝난 편성입니다. 2년 간격으로 같은 대진이 반복된 선례(NC-두산 2024 · 2026)도 있습니다.<br><b>2순위 예측</b> — 삼성-NC · KIA-롯데 · LG-키움 (KT-한화, SSG-두산은 같음).</div>' +
       '<div class="small muted" style="margin-top:6px">출처: KBO 보도자료(2026 일정 발표), 뉴스서울(2024 · 2025 일정 발표), 위키트리(2026 최종 순위), 스포츠경향(올림픽 주경기장 이전)</div></div></div></div>';
@@ -573,7 +573,7 @@
   const TOUR = {
     1: { a: '.fl-ask', title: '한 단계씩 검토', text: () => '편성 조건은 미리 채워 두었지만 확정되지 않은 추정값이 섞여 있습니다. 단계마다 설명을 읽고, 맞으면 「수락」, 다르면 「수정」을 누르세요. 먼저 구단 정보입니다. LG·두산 구장은 올림픽 주경기장으로 고쳐 두었습니다. 그 밖에 달라진 것이 없으면 「없어요」.' },
     2: { a: '.pf-rv.cur', title: '추정값 확인', text: () => '「추정」 표시는 확정 전 값입니다. 맞으면 「수락」, KBO 계획과 다르면 「수정」으로 달력에서 바꾸세요. 경기일과 연전 묶음은 바로 다시 계산됩니다.' },
-    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 대진은 예측이라 신뢰도가 낮습니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「수정」을 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
+    3: { a: '.pf-rv.cur', title: '개막전 홈 확인', text: () => '홈 구단은 2026 최종 순위로 정해져 바꾸지 않습니다. 상대는 공식 발표 전이라 시범 운영을 위한 예상값입니다. KBO 발표(보통 12월 중순)와 상대가 다르면 「수정」을 누르세요. 후반기 첫 4연전도 따라 바뀝니다.' },
     4: { a: '.footer .btn.primary', title: '다음은 운영 방침', text: () => '네 목표를 모두 최고로 만들 수는 없습니다. 무엇을 먼저 지키고 목표마다 어디까지 봐줄지 정한 뒤 실행합니다. 기본값 그대로 실행해도 됩니다.' }
   };
   const tourKey = (n) => S.KEY + 'tour:plan' + n;
@@ -765,7 +765,7 @@
     if (v) pickNew(v);
     const instant = Date.now() - run.startedAt < 3000 && why !== '사용자 중지'; // 서버가 같은 조건의 결과를 저장해 두었다가 바로 돌려준 경우(걸린 시간은 그때 실행한 값으로 온다)
     if (!v) noRoom();
-    else S.toast((instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤' }[why] || why) + ').') + ' 「' + v.name + '」(으)로 저장했습니다.', 'ok', instant ? 6000 : 5000);
+    else S.toast((instant ? '같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.' : '실행이 끝났습니다(' + ({ '최대 실행 시간': '고른 최대 시간까지 실행', '개선 없음': '더 나아지지 않아 먼저 끝남', '사용자 중지': '직접 멈춤', '정한 만큼 탐색': '정한 만큼 찾아봄', STEP_LIMIT: '정한 만큼 찾아봄' }[why] || why) + ').') + ' 「' + v.name + '」(으)로 저장했습니다.', 'ok', instant ? 6000 : 5000);
     S.go({ step: 5, sel: null });
     return true;
   };
@@ -966,6 +966,8 @@
   const whenText = (v) => { if (!v.ranAt) { const m = /^\d{4}-(\d\d)-(\d\d)$/.exec(v.savedAt || ''); return m ? +m[1] + '월 ' + +m[2] + '일' : v.savedAt || ''; } const d = new Date(v.ranAt), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
   Object.assign(P, { pruneRuns, nextRunNo: nextNo, runName, AUTO_KEEP });
   // 결과 고치기(plan-edit.js)가 같은 저장·채점을 쓴다
+  /** 구단별 일정표 머리 줄의 이름: 지금 보는 결과(실행 저장 이름 또는 불러온 버전 이름). 결과가 없으면 계획 이름(step-quality.js) */
+  S.resultTitle = function () { const st = app().state, res = st.meta.result; if (S.seasonYear() !== YEAR_NEW || !res) return st.meta.name; const v = (res.vid || res.from) ? P.versions.get(YEAR_NEW, res.vid || res.from) : null; return (v && v.name) || res.name || st.meta.name; };
   Object.assign(P, { dataOf, storeRun, applyVersion, optionOf, pickNew, noKey, noRoom, freshResult, goalValue, within, YEAR_NEW });
   /** 버전의 값과 일정을 프로젝트에 넣는다. 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로 */
   function applyVersion(s, v) {

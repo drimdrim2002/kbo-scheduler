@@ -479,7 +479,7 @@
     s += '<dl class="props pop-props">' +
       '<dt>홈</dt><dd>' + S.team(mt.home) + '<span class="home-mark">홈</span>' + (mt.home === '두산' || mt.home === 'LG' ? '<span class="tag shared">같이 쓰는 구장</span>' : '') + '</dd>' +
       '<dt>원정</dt><dd>' + S.team(mt.away) + '<span class="away-mark">원</span></dd>' +
-      (sl ? '<dt>연전 기간</dt><dd>' + esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : ' <span class="tag ref">주중</span>') + (sl.holiday ? ' <span class="tag ref">휴일 등급 ' + sl.holiday + '</span>' : '') + '</dd>' : '') +
+      (sl ? '<dt>연전 기간</dt><dd>' + esc(sl.label) + (sl.weekend ? ' <span class="tag ref">주말</span>' : ' <span class="tag ref">주중</span>') + (sl.holiday ? ' <span class="tag ref">가중치 ' + sl.holiday + '점</span>' : '') + '</dd>' : '') +
       (ev ? '<dt>특별 경기</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
       '<dt>위반</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '" title="이 위반으로">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '없음')) + '</dd>' +
       '</dl>';
