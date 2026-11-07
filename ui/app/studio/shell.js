@@ -76,7 +76,7 @@
     else if (r && r.status === 'PAUSED') eng = '<span class="eng pause"><span class="dot"></span><b>일시정지</b> ' + S.fmt.time(r.elapsed) + '</span><span class="lock-pill">' + icon('lock') + '입력 잠김</span>';
     else eng = '<span class="eng"><span class="dot"></span>' + (S.dev() ? '엔진 <b>대기</b> · ' + (app.engineConfig.kind === 'REST' ? 'REST' : 'Mock') : '자동 편성 <b>대기</b>') + '</span>';
     return '' +
-      '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">일정 편성</span>' + yearChip() + '<span class="brand-sub">편성 스튜디오</span></div>' +
+      '<div class="brand"><span class="brand-mark" aria-hidden="true">KBO</span><span class="brand-name">일정 편성</span>' + yearChip() + '<span class="brand-sub">매치봇 스튜디오</span></div>' +
       '<span class="tb-sep"></span>' +
       '<div class="tb-group">' + badge +
         (S.dev()
@@ -174,7 +174,7 @@
         '<button role="menuitem" data-act="export" data-kind="xlsx">' + icon('download') + '엑셀로 받기' + S.mock() + '</button>' +
         '<button role="menuitem" data-act="export" data-kind="template">' + icon('file') + '빈 엑셀 양식 받기' + S.mock() + '</button>' +
         (S.dev() ? '<button role="menuitem" data-act="export" data-kind="engine">' + icon('bolt') + '엔진 JSON (input 형식)</button>' : '') +
-        (S.feature('D4') ? '<button role="menuitem" data-act="export" data-kind="csv">' + icon('table') + '일정표 CSV</button>' : '') +
+        (S.dev() && S.feature('D4') ? '<button role="menuitem" data-act="export" data-kind="csv">' + icon('table') + '일정표 CSV</button>' : '') +
         '<div class="msep"></div><div class="mh">시즌 데이터 · ' + S.seasonYear() + ' 시즌</div>' +
         '<button role="menuitem" data-act="repo-export">' + icon('download') + '파일로 내려받기(.json)</button>' +
         '<button role="menuitem" data-act="repo-import">' + icon('upload') + '파일 올리기(.json)…</button>' +
@@ -238,7 +238,7 @@
     if (u.ops && S.ops.after) S.ops.after();
     if (S.guideAfter) S.guideAfter();
     S.writeHash();
-    document.title = '편성 스튜디오 — KBO 일정 편성 · ' + S.seasonYear() + ' 시즌';
+    document.title = '매치봇 스튜디오 — KBO 일정 편성 · ' + S.seasonYear() + ' 시즌';
     S.checkScroll();
   };
   S._after = [];
@@ -323,7 +323,7 @@
     S.selftestMode = q.get('selftest') === '1';
     if (q.get('fresh') === '1') { S.ls.del(S.KEY + 'features'); }
     S.loadFeatures();
-    const app = S.app = new KBO.App({ appId: 'wizard-final', appName: '편성 스튜디오' });
+    const app = S.app = new KBO.App({ appId: 'wizard-final', appName: '매치봇 스튜디오' });
     app.store.autosaveMs = -1;
     app.store.initial = S.seedProject;
     app.store.reset();

@@ -22,7 +22,6 @@
   const { CalendarGen, Dates, Xlsx } = KBO;
   const app = () => S.app;
   const PASS = 'PASS', FAIL = 'FAIL', INFO = 'INFO';
-  const METHOD = '서버가 완성된 일정만 다시 세어 판정했습니다(엔진 점수와 따로)';
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
   const V = P.verify = { data: null, at: null, sig: null, loading: false, error: null, offline: false, open: {}, gopen: {} };
 
@@ -50,11 +49,11 @@
     // 점검 화면에서 지금 일정으로 서버에 다시 물어 받은 점검표(지문이 같음)가 있으면 그것이 가장 새것이다. 없으면 실행 때 받은 것
     const st = app().state, v = V.matches(V.data, st) ? V.data : res && res.verification;
     let cls, head, note;
-    if (!v || v.error) { cls = 'none'; head = '요구 사항 점검 없음'; note = v && v.error ? v.error : res && res.engine && res.engine !== 'REST' ? '서버에 연결되지 않아 시험 엔진으로 낸 결과입니다. 서버 엔진으로 실행하면 서버가 요구 사항을 다시 셉니다.' : '이 결과에는 서버 점검표가 없습니다. 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; }
+    if (!v || v.error) { cls = 'none'; head = '요구 사항 점검 없음'; note = v && v.error ? v.error : res && res.engine && res.engine !== 'REST' ? '서버에 연결되지 않아 시험용 자동 편성으로 낸 결과입니다. 편성 서버로 실행하면 서버가 요구 사항을 다시 셉니다.' : '이 결과에는 서버 점검표가 없습니다. 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; }
     else if (!V.matches(v, st)) { cls = 'stale'; head = STALE; note = '실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다(' + when(v.checkedAt) + '에 센 것). 점검표에서 지금 일정을 서버에 다시 물을 수 있습니다.'; } // 지문이 다르면 지킨 개수를 내걸지 않는다
-    else if (v.failed) { cls = 'bad'; head = '요구 사항 ' + v.failed + '개 어김 — ' + (v.failedTitles || []).join(' · '); note = METHOD + ' · ' + when(v.checkedAt); }
-    else { cls = 'ok'; head = '요구 사항 ' + v.total + '개 모두 지킴' + (v.info ? ' · 참고 ' + v.info + '개' : ''); note = METHOD + ' · ' + when(v.checkedAt); }
-    return '<div class="pf-sec pf-vsum ' + cls + '"><div class="pf-vsum-row">' + (cls === 'none' ? '<span class="pf-vic none">' + icon('todo') + '</span>' : cls === 'stale' ? '<span class="pf-vic warn">' + icon('warn') + '</span>' : verdictIcon(cls === 'bad' ? FAIL : PASS)) + '<b>' + esc(head) + '</b><button class="pf-link" data-act="go-step" data-step="8">점검표 보기 ›</button></div><div class="xs muted">' + esc(note) + '</div></div>';
+    else if (v.failed) { cls = 'bad'; head = '요구 사항 ' + v.failed + '개 어김 — ' + (v.failedTitles || []).join(' · '); note = ''; }
+    else { cls = 'ok'; head = '요구 사항 ' + v.total + '개 모두 지킴' + (v.info ? ' · 참고 ' + v.info + '개' : ''); note = ''; }
+    return '<div class="pf-sec pf-vsum ' + cls + '"><div class="pf-vsum-row">' + (cls === 'none' ? '<span class="pf-vic none">' + icon('todo') + '</span>' : cls === 'stale' ? '<span class="pf-vic warn">' + icon('warn') + '</span>' : verdictIcon(cls === 'bad' ? FAIL : PASS)) + '<b>' + esc(head) + '</b><button class="pf-link" data-act="go-step" data-step="8">점검표 보기 ›</button></div>' + (note ? '<div class="xs muted">' + esc(note) + '</div>' : '') + '</div>';
   };
   /** 실행 결과 비교 표의 「요구 사항」 칸. 버전의 일정(matches·plan·그때 달력)과 점검표의 지문이 같을 때만 개수를 적는다 */
   V.cell = function (ver) {
@@ -276,7 +275,7 @@
   S.steps[8] = {
     render() {
       const st = app().state, res = st.meta.result, v = V.data, stale = !!(v && !V.matches(v, st)); // 지문이 다르면 = 다른 일정의 점검표
-      const status = V.loading ? '<span class="pf-tag blue">지금 일정을 서버가 다시 세는 중…</span>' : V.error ? '<span class="pf-tag over">점검 못 함</span> <span class="small">' + esc(V.error) + '</span>' : V.offline ? '<span class="pf-tag est">서버 점검을 할 수 없음</span> <span class="small muted">서버에 연결되지 않았습니다' + (v ? ' · 아래는 ' + when(V.at) + '에 받아 둔 점검표' : '') + '</span>' : v ? '<span class="small muted">' + METHOD + ' · ' + when(V.at) + '</span>' : '';
+      const status = V.loading ? '<span class="pf-tag blue">지금 일정을 서버가 다시 세는 중…</span>' : V.error ? '<span class="pf-tag over">점검 못 함</span> <span class="small">' + esc(V.error) + '</span>' : V.offline ? '<span class="pf-tag est">서버 점검을 할 수 없음</span> <span class="small muted">서버에 연결되지 않았습니다' + (v ? ' · 아래는 ' + when(V.at) + '에 받아 둔 점검표' : '') + '</span>' : '';
       const tools = '<span class="grow"></span>' + (fromRest() ? '<button class="btn sm" data-act="vf-again"' + (V.loading ? ' disabled' : '') + '>' + icon('redo') + '지금 일정 다시 점검</button>' : '') + (v && v.tables && !stale ? '<button class="btn sm" data-act="vf-xlsx">' + icon('download') + '엑셀로 받기</button>' : '');
       let head;
       if (!v) head = '<div class="pf-sec pf-vsum none"><div class="pf-vsum-row"><span class="pf-vic none">' + icon('todo') + '</span><b>' + (V.loading ? '점검표를 받는 중' : '점검표가 없습니다') + '</b>' + tools + '</div><div class="xs">' + status + '</div></div>';
@@ -290,7 +289,7 @@
       } else if (v) {
         main = '<div class="pf-sec pf-vlist' + (stale ? ' pf-vstale' : '') + '"><h3>점검표' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고</span></h3><p class="pf-d">이 점검표에는 연전 원자료가 없어 항목만 보입니다(서버에 연결되면 기간마다 볼 수 있습니다). 묶음을 누르면 항목이, 「근거」를 누르면 서버가 일정에서 뽑은 줄이 보입니다.</p>' + (v.groups || []).map(groupHtml).join('') + '</div>';
       } else {
-        main = '<div class="pf-sec pf-vlist"><h3>점검표</h3><p class="pf-d">' + (V.offline ? '서버에 연결되면 지금 일정을 다시 셉니다. 서버 엔진으로 실행한 결과에는 실행이 끝날 때 받은 점검표가 함께 남습니다.' : V.error ? '서버가 점검표를 주지 못했습니다.' : '잠시만 기다려 주세요.') + '</p>' + (!res ? '<p class="pf-d">아직 실행한 결과가 없습니다.</p>' : '') + '</div>';
+        main = '<div class="pf-sec pf-vlist"><h3>점검표</h3><p class="pf-d">' + (V.offline ? '서버에 연결되면 지금 일정을 다시 셉니다. 편성 서버로 실행한 결과에는 실행이 끝날 때 받은 점검표가 함께 남습니다.' : V.error ? '서버가 점검표를 주지 못했습니다.' : '잠시만 기다려 주세요.') + '</p>' + (!res ? '<p class="pf-d">아직 실행한 결과가 없습니다.</p>' : '') + '</div>';
       }
       return '<div class="stepview no-band"><div class="pf-page pf-vf' + (V.team ? ' hl' : '') + '">' + head + main + '</div></div>';
     },

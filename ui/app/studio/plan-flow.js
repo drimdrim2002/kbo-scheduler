@@ -397,17 +397,17 @@
     const card = (id, k) => { const g = GOALS[id];
       return '<div class="pf-tile win"><span class="pf-rk">' + (k + 1) + '순위</span><div class="k">' + g.name + '<small>' + (g.tol ? '가장 많은·적은 구단 격차' : '10구단 합') + '</small></div>' +
         '<div class="v"><span class="old">KBO ' + goalShow(kbo, id) + g.unit + ' →</span>' + goalShow(ours, id) + '<small>' + g.unit + '</small></div><div class="d">▼ ' + pct(id) + '% ' + (g.tol ? '줄임' : '짧음 (' + num(goalValue(kbo, id) - goalValue(ours, id)) + 'km)') + '</div>' +
-        '<div class="s">' + (g.tol ? '허용 ' + num(ob[g.tol]) + g.unit + ' — KBO ' + (within(kbo, id, ob) ? '안' : '<b style="color:var(--bad)">넘음</b>') + ' · 이 엔진 ' + (within(ours, id, ob) ? '<b style="color:var(--ok)">안</b>' : '넘음') : '짧을수록 좋음') + '</div></div>'; };
+        '<div class="s">' + (g.tol ? '허용 ' + num(ob[g.tol]) + g.unit + ' — KBO ' + (within(kbo, id, ob) ? '안' : '<b style="color:var(--bad)">넘음</b>') + ' · 자동 편성 ' + (within(ours, id, ob) ? '<b style="color:var(--ok)">안</b>' : '넘음') : '짧을수록 좋음') + '</div></div>'; };
     const allBetter = ids.every((id) => goalValue(ours, id) <= goalValue(kbo, id));
     const names = Object.keys(ours.teams);
     const worse = [];
-    if (Math.min(...vals(ours, 'away')) > Math.min(...vals(kbo, 'away'))) worse.push('가장 긴 연속 원정은 KBO가 ' + rangeText(kbo, 'away') + ', 이 엔진은 ' + rangeText(ours, 'away') + '(규칙 한도 안)');
+    if (Math.min(...vals(ours, 'away')) > Math.min(...vals(kbo, 'away'))) worse.push('가장 긴 연속 원정은 KBO가 ' + rangeText(kbo, 'away') + ', 자동 편성은 ' + rangeText(ours, 'away') + '(규칙 한도 안)');
     return '<div class="pf-page">' +
       '<div class="pf-hero"><div class="big">−' + pct('total') + '<small>%</small></div><div><h2>' + (allBetter ? '평가 기준 4개 모두 KBO보다 나음' : 'KBO 실제와 비교') + '</h2><p>같은 2025 조건에서 비교 · 전체 이동 거리 ' + goalShow(kbo, 'total') + 'km → ' + goalShow(ours, 'total') + 'km · 구단 간 이동 거리 차이 ' + goalShow(kbo, 'distance') + 'km → ' + goalShow(ours, 'distance') + 'km · 꼭 지킬 규칙 모두 지킴</p></div><div class="r"><span class="pf-tag got">저장된 결과 · ' + esc(ours.savedAt) + ' 실행</span></div></div>' +
       '<div class="pf-tiles">' + ids.map(card).join('') + '</div>' +
       '<div class="pf-cols pf-fill" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 이 엔진 · 초록 띠 = 이 엔진에서 가장 적은 구단 + 허용 수준</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
-      '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 이 엔진</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈(점)</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
+      '<div class="pf-sec"><h3>구단별 이동 거리</h3><p class="pf-d">회색 KBO 실제 · 파랑 자동 편성 · 초록 띠 = 자동 편성에서 가장 적은 구단 + 허용 수준</p>' + bars(ours, 'km', ob.distanceGapKm, 1, kbo) + '</div>' +
+      '<div class="pf-sec"><h3>구단별 표</h3><p class="pf-d">KBO 실제 → 자동 편성</p><table class="pf-t"><thead><tr><th>구단</th><th>이동 횟수</th><th>주말·공휴일 홈(점)</th><th>주말 홈 시리즈</th><th>가장 긴 연속 원정</th></tr></thead><tbody>' +
       names.map((t) => { const a = kbo.teams[t], b = ours.teams[t]; return '<tr><td><b>' + esc(t) + '</b></td><td>' + a.moves + ' → <b>' + b.moves + '</b></td><td>' + a.hol + ' → <b>' + b.hol + '</b></td><td>' + a.wk + ' → ' + b.wk + '</td><td>' + a.away + ' → ' + b.away + '</td></tr>'; }).join('') +
       '</tbody></table>' + (worse.length ? '<div class="pf-note warn"><b>KBO가 나은 점</b> — ' + esc(worse.join(' · ')) + '</div>' : '') + '</div></div></div>';
   }
@@ -497,11 +497,11 @@
     const rows = [
       { key: 'openingHome', t: '개막 2연전 홈', tag: 'est', inl: true, v: fmt.short(op.date || s.seasonStart), v2: homeCards(op), more: more('pf-basis'), ...BASIS.openingHome, warn: homesOk ? '' : '<div class="pf-note warn">홈 구단이 전년도 순위와 다릅니다(' + esc(OPENING_HOMES().join(' · ')) + '). 되돌려야 다음으로 갈 수 있습니다. <button class="pf-link" data-act="pf-op-reset">전년도 순위대로 되돌리기 ›</button></div>' },
       { key: 'childrenHome', t: '어린이날 홈', tag: 'est', inl: true, v: fmt.short(ch.date || '2027-05-05'), v2: homeCards(ch), ...BASIS.childrenHome, more: more('pf-basis-children') },
-      { t: '공휴일·가중치', tag: 'got', tagText: '공휴일 달력', inl: true, v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: (s.seasonStart.startsWith('2027') ? '정부 공휴일 달력 기준입니다(8/16 광복절 대체공휴일은 뺐습니다). ' : '정부 공휴일 달력 그대로입니다. ') + '휴일 가중치는 별도로 설정할 수 있습니다. (예 토요일 1점, 공휴일 2점, 어린이날 3점 등)' },
+      { t: '공휴일·가중치', tag: 'got', tagText: '공휴일 달력', inl: true, v: '1차 편성 기간 ' + hol.length + '일 · 2차 편성 기간 ' + hol2.length + '일', v2: '1차: ' + holLine(hol) + (hol2.length ? '<br>2차: ' + holLine(hol2) : ''), why: (s.seasonStart.startsWith('2027') ? '정부 공휴일 달력 기준입니다(8/16 광복절 대체공휴일은 뺐습니다). ' : '정부 공휴일 달력 그대로입니다. ') + '가중치는 공휴일·가중치 표에서 바꿀 수 있습니다(주말 하루 1점은 고정 · 기본 공휴일 2점 · 어린이날 3점).' },
     ].filter(Boolean);
     const sum = KEYS[3].filter((k) => review()[k]).length;
     return '<div class="pf-page">' +
-      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 엔진이 정합니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
+      '<div class="pf-sec"><h3>주요 일정<span class="r"><b>' + sum + ' / ' + KEYS[3].length + '</b> 수락</span></h3><p class="pf-d">정한 날에 홈 경기를 할 구단을 지정합니다. 나머지 날의 홈·원정은 자동 편성이 정합니다.</p><div class="pf-rv2">' + rows.map((r) => rv(r, r.key === cur)).join('') + '</div></div>' +
       '<div class="pf-sec pf-fill"><h3>시즌 달력</h3><p class="pf-d">공휴일과 홈 구장을 지정한 날이 시즌 어디쯤인지 봅니다.</p>' + S.seasonStripView(true) + '</div></div>';
   }
   // 1 구단 정보: 2단계와 같은 흰 구역 셋(위 = 질문 줄, 아래 왼쪽 = 구단 표, 오른쪽 = 구장 간 거리표). step-data.js가 표·거리표를 만들어 넘긴다
@@ -700,7 +700,7 @@
       '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p>' +
       ['moves', 'distance', 'holiday'].map((id) => slider(id, ob, f)).join('') +
       // 실행에 관한 알림만 이 칸 끝에. 실행 칸은 없앴다(2026-11-04: 방침 요약·시간은 아래 줄에 있어 되풀이였다). 실행 시간 입력은 아래 줄 단추 옆
-      (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진을 씁니다">시험 엔진 — 결과가 좋지 않습니다</span></div>') +
+      (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저의 시험용 자동 편성을 씁니다">시험용 자동 편성 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div>';
   }
@@ -741,12 +741,13 @@
     if (S.seasonYear() !== YEAR_NEW) return false;
     // 실행마다 번호를 붙여 바로 저장한다. 방침은 실행을 누른 때의 것(P.runOption), 없으면 지금 순서로 본다
     const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = P.runOption || optionOf(ob);
+    const ver = (app().run && app().run.verification) || (run && run.verification) || null; // 서버 점검표는 app().run에 온다(S.run은 실행 끝 처리에서 먼저 비워진다)
     P.runOption = null;
     // 반드시 지킬 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 결과는 화면에 남겨 무엇을 어겼는지 보게 하고, 번호도 쓰지 않는다
     if (!ex.feasible) {
       P.runTag = null; P.runNote = null;
       const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), homeSig: homeSig(st), engine: app().engineConfig.kind, option, rule: true, vid: null };
-      if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 어긴 결과도 서버 점검표는 붙여 무엇을 어겼는지 보게 한다
+      if (P.verify) { res.verification = P.verify.slim(ver); if (ver) P.verify.took(ver); } // 어긴 결과도 서버 점검표는 붙여 무엇을 어겼는지 보게 한다
       app().store.commit('실행 결과 기록', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
       S.toast('실행이 끝났지만 반드시 지킬 규칙을 지키지 못해 저장하지 않았습니다.', 'warn', 6000);
       S.go({ step: 5, sel: null });
@@ -757,7 +758,7 @@
     const tag = P.runTag || null, note = P.runNote || ''; P.runTag = null; P.runNote = null; // 결과 고치기에서 낸 실행이면 이름 끝에 붙이고 메모를 남긴다(plan-edit.js)
     const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), homeSig: homeSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) + (tag ? '_' + tag : ''), note };
     // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
-    if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 점검표에 적힌 지문(planSig)으로 지금 일정의 것인지 가린다
+    if (P.verify) { res.verification = P.verify.slim(ver); if (ver) P.verify.took(ver); } // 점검표에 적힌 지문(planSig)으로 지금 일정의 것인지 가린다
     const v = storeRun(res, ex);
     res.vid = v ? v.id : null;
     app().store.commit('실행 결과 기록', (s) => { s.meta.result = Object.assign({}, res); }, { tags: ['meta'], undo: false });
@@ -899,7 +900,7 @@
   /** 3 현재 결과 분석 맨 위 줄: 실행이 끝날 때 저장한 이름(바꿀 수 있음)과 옆에 작은 글 두 줄(실행 시각·걸린 시간·직접 정한 순서 / 남기는지). 줄 높이는 예전 저장 줄과 같다 */
   function saveRow(res) {
     const vid = res.vid || res.from, v = vid ? P.versions.get(YEAR_NEW, vid) : null;
-    const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '';
+    const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저의 시험용 자동 편성으로 냈습니다">시험용 자동 편성으로 낸 결과</span>' : '';
     const go = '<button class="btn" data-act="go-step" data-step="8">요구 사항 점검</button><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button>';
     let head, meta, keep = '';
     if (v && !v.builtin) {
@@ -1062,7 +1063,7 @@
       const row = (v) => {
         const k = place.get(v.id), isFinal = fin === v.id, pa = P.cmp[0] === v.id, pb = P.cmp[1] === v.id, own = !v.builtin;
         const tags = (isFinal ? '<span class="pf-tag ok">확정</span>' : '') + (newest && newest.id === v.id ? '<span class="pf-tag blue">새로</span>' : '') + (v.kept ? '<span class="pf-tag got">남김</span>' : '') + (v.builtin ? '<span class="pf-tag got">기본 제공</span>' : '') +
-          (v.engine && v.engine !== 'REST' ? '<span class="pf-tag est">시험 엔진</span>' : '') + (obKey(v.objective) !== obKey(ob) ? '<span class="pf-tag est" title="만들 때 방침: ' + esc(cmpPolicyText(v.objective)) + '">다른 방침으로 만듦</span>' : '');
+          (v.engine && v.engine !== 'REST' ? '<span class="pf-tag est">시험용 자동 편성</span>' : '') + (obKey(v.objective) !== obKey(ob) ? '<span class="pf-tag est" title="만들 때 방침: ' + esc(cmpPolicyText(v.objective)) + '">다른 방침으로 만듦</span>' : '');
         const conf = y !== YEAR_NEW ? '' : isFinal ? '<button class="btn sm cf" data-act="pf-final-off">확정 취소</button>' : canFinal(v) ? '<button class="btn sm cf' + (k === 1 ? ' primary' : '') + '" data-act="pf-final" data-id="' + esc(v.id) + '">확정</button>' : '';
         const menu = '<details class="pf-vm"><summary class="btn sm" aria-label="더 보기">⋯</summary><div class="pf-vm-list">' + (y === YEAR_NEW ? '<button data-act="pf-load" data-id="' + esc(v.id) + '">불러오기</button>' : '') + '<button data-act="pf-export" data-id="' + esc(v.id) + '">내려받기</button>' +
           (own ? '<button data-act="pf-rename" data-id="' + esc(v.id) + '">이름 바꾸기</button>' + (isFinal ? '' : '<button class="del" data-act="pf-del" data-id="' + esc(v.id) + '">지우기</button>') : '') + '</div></details>';
@@ -1083,7 +1084,7 @@
       const cell = (me, other, id) => '<td class="' + (goalValue(me, id) < goalValue(other, id) ? 'good' : '') + '">' + goalShow(me, id) + GOALS[id].unit + tolTag2(me, id) + '</td>';
       const mark = (id, i) => (i === at ? ' <span class="pf-tag blue">여기서 갈림 · ' + num(d.diff, GOALS[id].d) + GOALS[id].unit + '</span>' + (id === 'total' && d.diff < CLOSE_KM ? '<span class="flip">다시 실행하면 뒤집힐 수 있음</span>' : '') : i < at ? ' <span class="sp">같다고 봄</span>' : '');
       // 요구 사항 n/n: 서버가 완성된 일정을 다시 세어 판정한 것(엔진 점수와 따로). 시험 엔진으로 낸 버전에는 없다
-      const verifyRow = P.verify ? '<tr class="vr"><td>요구 사항 <span class="sp">서버가 다시 센 판정</span></td><td>' + P.verify.cell(a.verification) + '</td><td>' + P.verify.cell(b.verification) + '</td></tr>' : '';
+      const verifyRow = P.verify ? '<tr class="vr"><td>요구 사항 <span class="sp">서버가 다시 센 판정</span></td><td>' + P.verify.cell(a) + '</td><td>' + P.verify.cell(b) + '</td></tr>' : '';
       const tab = P.cmpTab, tg = GOALS[tab], sw = (c) => '<i class="pf-sw ' + c + '"></i>';
       const duel = '<div class="pf-sec pf-duel pf-fill"><div class="pf-duel-h"><h3>고른 두 버전</h3><span class="who">' + sw('a') + '<span>' + esc(a.name) + '</span></span><span class="muted">와</span><span class="who">' + sw('b') + '<span>' + esc(b.name) + '</span></span><button class="btn sm" data-act="pf-cmp-swap">⇄ 색 바꾸기</button></div>' +
         '<div class="pf-duel-b"><div><table class="pf-t"><thead><tr><th>평가 기준</th><th title="' + esc(a.name) + '">' + sw('a') + ' 파랑</th><th title="' + esc(b.name) + '">' + sw('b') + ' 회색</th></tr></thead><tbody>' +
@@ -1126,7 +1127,7 @@
   };
   P.footer = function () {
     const u = S.ui, y = S.seasonYear();
-    if (u.step === 5 && y === YEAR_VIEW) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 이 엔진의 일정을 비교합니다</span>' + (!P.builtin['2025-best'] ? '' : P.view25 === 'dash' ? '<button class="btn primary" data-act="pf-25" data-v="compare">KBO와 비교로 돌아가기</button>' : '<button class="btn primary" data-act="pf-25" data-v="dash">평가 기준별 자세히 보기' + icon('right') + '</button>');
+    if (u.step === 5 && y === YEAR_VIEW) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 자동 편성의 일정을 비교합니다</span>' + (!P.builtin['2025-best'] ? '' : P.view25 === 'dash' ? '<button class="btn primary" data-act="pf-25" data-v="compare">KBO와 비교로 돌아가기</button>' : '<button class="btn primary" data-act="pf-25" data-v="dash">평가 기준별 자세히 보기' + icon('right') + '</button>');
     if (u.step === 1) {
       if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — ' + esc(S.homeCopy.footer) + '</span>';
       if (G.mode === 'all') return '<button class="btn" data-act="g1-cal">' + icon('left') + '단계별로 돌아가기</button><span class="hint"><b>모든 표 보기</b> — 표에서 직접 고칩니다. 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>';

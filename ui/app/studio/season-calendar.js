@@ -341,7 +341,7 @@
         : '<div class="sc-note">아직 없습니다. <button class="lnk" data-act="fill-holidays">' + y + '년 법정 공휴일 채우기</button></div>') +
       (others ? '<div class="sc-note"><button class="lnk" data-act="cal-hol-all">' + (C.holAll ? '1차 편성 기간 공휴일만 보기' : '1차 편성 기간 밖(시즌 앞·재편성 기간) 공휴일 ' + others + '일 더 보기') + '</button></div>' : '') +
       '<div class="sc-note">가중치 = 홈 경기 공정성에서 이 날의 가치(주말 하루 1). 「월 경기」는 휴식 요일에 든 공휴일에 경기를 할지(켜면 그 주 목요일 휴식) — 켜고 끌 때만 「묶음에 반영할까요?」를 묻습니다.</div>' +
-      '<div class="sc-kbo">' + S.stat('warn', '기본값(공휴일 2 · 어린이날 3)은 KBO 확인 필요') + '</div>');
+      '');
   }
   function homesBox() {
     const st = app().state, hs = S.homeStateOf(st), dnr = new Set(hs.rows.map((r) => r.date));
@@ -964,7 +964,7 @@
     wIn().value = '1'; wIn().dispatchEvent(new Event('change', { bubbles: true })); flush();
     const w1 = w5();
     undoN(1);
-    ok('공휴일 표: 어린이날 가중치 3(KBO 확인 필요 표시) → 1이면 5/5 묶음 값 5 → 3 · 실행 취소', w0 === 5 && w1 === 3 && w5() === 5 && /KBO 확인 필요/.test(q('.sc-hols').textContent) && wIn().value === '3', w0 + '→' + w1);
+    ok('공휴일 표: 어린이날 가중치 3 → 1이면 5/5 묶음 값 5 → 3 · 실행 취소', w0 === 5 && w1 === 3 && w5() === 5 && wIn().value === '3', w0 + '→' + w1);
     const u7 = app().store.undoStack.length;
     wIn().value = '2.5'; wIn().dispatchEvent(new Event('change', { bubbles: true })); flush();
     ok('공휴일 표: 가중치는 0~10 정수만(2.5는 거부 — 엔진의 휴일 값이 정수)', app().store.undoStack.length === u7 && w5() === 5 && Number.isInteger(bAt('2025-05-05').holiday));
