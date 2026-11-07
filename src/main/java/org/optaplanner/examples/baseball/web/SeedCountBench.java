@@ -101,7 +101,7 @@ public final class SeedCountBench {
         double[] load = waitForQuiet();
         log("round-start " + kind + " g=" + group + part + " seeds=" + seeds[0] + ".." + seeds[seeds.length - 1]
                 + String.format(Locale.ROOT, " load1=%.2f othersCpu=%.0f waited=%.0fs", load[0], load[1], load[2]));
-        MultiStartSolver.Result r = new MultiStartSolver().run(this::problemFor, seeds, sec, unimprovedSec, NO_SINK);
+        MultiStartSolver.Result r = new MultiStartSolver().run(this::problemFor, seeds, StopRule.fromSeconds(sec, unimprovedSec), NO_SINK);
         double[] after = loadNow();
         log("round-end " + kind + " g=" + group + part + " best=" + r.bestScore() + " elapsedMs=" + r.elapsedMs() + " reason=" + r.reason());
         if (!"warmup".equals(kind)) {

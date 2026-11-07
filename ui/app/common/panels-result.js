@@ -174,7 +174,7 @@
       h += '<div class="k-toolbar">' +
         (mine ? (st === 'PAUSED' ? '<button class="k-btn k-btn-primary" data-act="resume">▶ 계속</button>' : '<button class="k-btn" data-act="pause">⏸ 일시정지</button>') + '<button class="k-btn k-btn-danger" data-act="stop">■ 중지</button>'
           : '<button class="k-btn k-btn-primary k-btn-lg" data-act="run"' + (running ? ' disabled' : '') + '>▶ ' + (mode === 'RESCHEDULE' ? '재편성 실행' : (o.runLabel || '엔진 실행')) + '</button>') +
-        '<span class="k-chip k-chip-' + (st === 'RUNNING' ? 'info' : st === 'DONE' ? 'ok' : st === 'ERROR' ? 'bad' : 'warn') + '">' + statusText + (run && run.reason && st !== 'RUNNING' ? ' · ' + esc({ TIME_LIMIT: '시간 제한', UNIMPROVED: '개선 없음', STOPPED: '중지됨' }[run.reason] || run.reason) : '') + '</span>' +
+        '<span class="k-chip k-chip-' + (st === 'RUNNING' ? 'info' : st === 'DONE' ? 'ok' : st === 'ERROR' ? 'bad' : 'warn') + '">' + statusText + (run && run.reason && st !== 'RUNNING' ? ' · ' + esc({ CALC_LIMIT: '정한 만큼 탐색', TIME_LIMIT: '시간 제한', UNIMPROVED: '개선 없음', STOPPED: '중지됨' }[run.reason] || run.reason) : '') + '</span>' +
         (run && run.transport ? '<span class="k-muted k-small">' + (run.transport === 'worker' ? 'Web Worker' : '메인 스레드 time-slicing') + '</span>' : '') + '</div>';
       if (run) {
         const hist = run.history.map((x) => x.score[0] + x.score[1]);

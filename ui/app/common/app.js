@@ -728,7 +728,7 @@
       run.status = 'DONE'; run.reason = p.reason;
       if (p.trace) run.trace = p.trace; // 서버 엔진의 탐색 트레이스(§4.2 재생용)
       if (p.verification) run.verification = p.verification; // 서버 요구 사항 점검표(엔진 점수와 따로 센 것). 시험 엔진에는 없다
-      const why = { TIME_LIMIT: '최대 실행 시간 도달', UNIMPROVED: '개선 없음 종료', STOPPED: '사용자 중지' }[p.reason] || p.reason;
+      const why = { CALC_LIMIT: '정한 만큼 탐색 완료', TIME_LIMIT: '최대 실행 시간 도달', UNIMPROVED: '개선 없음 종료', STOPPED: '사용자 중지' }[p.reason] || p.reason;
       if (!o.quiet) UI.toast('자동 편성 끝 (' + why + ') — ' + (window.Studio && window.Studio.dev() ? Score.scoreString(p.score) : Score.isFeasible(p.score) ? '필수 규칙 모두 지킴' : '필수 규칙 위반 남음'), Score.isFeasible(p.score) ? 'ok' : 'warn', 5000);
       this.emitUI(['run']);
     });

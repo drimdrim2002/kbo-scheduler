@@ -362,7 +362,7 @@
     clearInterval(timer);
     const r = S.run;
     if (!r) return;
-    const why = { TIME_LIMIT: '최대 실행 시간', UNIMPROVED: '개선 없음', STOPPED: '사용자 중지', ERROR: '오류' }[reason] || reason;
+    const why = { CALC_LIMIT: '정한 만큼 탐색', TIME_LIMIT: '최대 실행 시간', UNIMPROVED: '개선 없음', STOPPED: '사용자 중지', ERROR: '오류' }[reason] || reason;
     const ar = app().run;
     S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()), engine: r.engine, seeds: r.seeds, trace: (ar && ar.trace) || null };
     S.run = null;

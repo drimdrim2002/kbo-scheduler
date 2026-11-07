@@ -37,6 +37,12 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * GET  /api/v1/info                      서버 정보·한도·큐 길이
  * POST /api/v1/solve                     { problem, options, mode } → { jobId, status }
+ *                                        options: { timeLimitSec, unimprovedSec, seed, seeds, init, stepLimit?, unimprovedSteps? }.
+ *                                        options: calcLimit?·unimprovedSteps?를 주면 초에서 바꾼 값 대신 쓴다.
+ *                                        엔진은 점수 계산 수(초 × 25,000), 고른 시간, 개선 없음(unimprovedSec × 40 step,
+ *                                        계산 수 75%를 넘긴 뒤에만) 중 먼저 닿는 것에서 멈춘다(StopRule).
+ *                                        done.reason: CALC_LIMIT | UNIMPROVED | TIME_LIMIT(고른 시간, 재현 보장 없음) | STOPPED,
+ *                                        done.seedResults[]에 시드마다 steps·calcCount·reason
  * GET  /api/v1/solve/{jobId}             상태·마지막 best·done
  * GET  /api/v1/solve/{jobId}/events      SSE: queued | status | seed-best | best | done | error
  * POST /api/v1/solve/{jobId}/stop        조기 종료

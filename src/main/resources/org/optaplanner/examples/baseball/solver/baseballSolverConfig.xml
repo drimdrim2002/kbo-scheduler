@@ -22,9 +22,12 @@
   </scoreDirectorFactory>
 
   <!-- Optimization algorithms configuration -->
+  <!-- Time limit (the server's 300-second maximum). The run normally ends earlier on the score-calculation count of the
+       local search phase below, so the same seed always gives the same result however fast the machine is. A run that
+       ends on this time limit is not reproducible. The web server and the bench tools replace both limits in code
+       (BenchSupport.withWorkLimits). -->
   <termination>
-    <minutesSpentLimit>10</minutesSpentLimit>
-    <unimprovedSecondsSpentLimit>300</unimprovedSecondsSpentLimit>
+    <secondsSpentLimit>300</secondsSpentLimit>
   </termination>
 
   <!-- Power tweaked optimization algorithms configuration -->
@@ -33,11 +36,16 @@
   <!--  </constructionHeuristic>-->
   <localSearch>
 
+    <!-- Work done, not time: 7,500,000 score calculations = 300 seconds at 25,000 per second
+         (BenchSupport.CALCS_PER_SECOND). The phase may also end after 6000 steps with no better score, but only once it
+         has done 5,625,000 calculations (75%, BenchSupport.MIN_WORK_PERCENT). -->
     <termination>
-      <stepCountLimit>100000</stepCountLimit>
-      <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
-      <!--      <unimprovedStepCountLimit>100</unimprovedStepCountLimit>-->
-      <!--      <unimprovedStepCountLimit>1000</unimprovedStepCountLimit>-->
+      <scoreCalculationCountLimit>7500000</scoreCalculationCountLimit>
+      <termination>
+        <terminationCompositionStyle>AND</terminationCompositionStyle>
+        <unimprovedStepCountLimit>6000</unimprovedStepCountLimit>
+        <scoreCalculationCountLimit>5625000</scoreCalculationCountLimit>
+      </termination>
     </termination>
     <unionMoveSelector>
       <!-- Full rounds only. Sub-pillars of 1..4 series break the five-game matching and are not scored. -->

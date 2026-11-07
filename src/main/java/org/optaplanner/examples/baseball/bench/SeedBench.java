@@ -34,6 +34,9 @@ import org.optaplanner.examples.baseball.domain.BaseballSolution;
  * </pre>
  *
  * Every run re-reads the input and re-initializes it with the run's seed, so runs never share state.
+ * {@code secondsPerRun} is a work budget, not a wall-clock limit: each run does {@code secondsPerRun * 25,000} score
+ * calculations ({@link BenchSupport#CALCS_PER_SECOND}), so the same command gives the same numbers on any machine. Time is
+ * still measured and reported, and a run stops early only if it hits the safety cap ({@link BenchSupport#capSeconds}).
  * Results are appended to {@code <outDir>/bench-<mode>.md} as Markdown tables plus one line per run
  * in {@code <outDir>/runs.tsv}.
  */
@@ -95,7 +98,7 @@ public final class SeedBench {
     public RunResult run(String experiment, String variant, long seed, String moveThreads,
             Integer lateAcceptanceSize, Integer acceptedCountLimit) {
         BaseballSolution problem = BenchSupport.initializedProblem(seed);
-        SolverConfig config = BenchSupport.solverConfig(seed, seconds, moveThreads, lateAcceptanceSize,
+        SolverConfig config = BenchSupport.workSolverConfig(seed, seconds, moveThreads, lateAcceptanceSize,
                 acceptedCountLimit);
         SolverFactory<BaseballSolution> factory = SolverFactory.create(config);
         BendableLongScore initialScore = initialScore(factory, problem);
@@ -129,7 +132,7 @@ public final class SeedBench {
             results.add(run("A", "prod", seed, "4", null, null));
         }
         StringBuilder md = new StringBuilder();
-        md.append("## 실험 A: 시드 0~19, 단일 실행, moveThreadCount 4, ").append(seconds).append("초\n\n");
+        md.append("## 실험 A: 시드 0~19, 단일 실행, moveThreadCount 4, ").append(seconds).append("초 분량(").append(seconds * BenchSupport.CALCS_PER_SECOND / 1000).append("천 번 계산)\n\n");
         md.append(runTable(results));
         md.append('\n').append(summary("A(단일, 4스레드)", results)).append('\n');
         write("bench-A.md", md.toString());
@@ -162,7 +165,7 @@ public final class SeedBench {
         }
         StringBuilder md = new StringBuilder();
         md.append("## 실험 B: 멀티스타트, 묶음 5개 × 시드 4개, 각 moveThreadCount NONE, ")
-                .append(seconds).append("초 병렬\n\n");
+                .append(seconds).append("초 분량(").append(seconds * BenchSupport.CALCS_PER_SECOND / 1000).append("천 번 계산) 병렬\n\n");
         List<RunResult> singles = new ArrayList<>();
         List<RunResult> bests = new ArrayList<>();
         md.append("| 묶음 | 시드 | 시드별 최종 점수 | 묶음 최고(선택) | 갇힌 시드 수 |\n|---|---|---|---|---|\n");
@@ -203,7 +206,7 @@ public final class SeedBench {
     public List<List<RunResult>> experimentC() throws IOException {
         List<List<RunResult>> all = new ArrayList<>();
         StringBuilder md = new StringBuilder();
-        md.append("## 실험 C: 갇힘 완화 설정 비교, 시드 0~9, moveThreadCount 4, ").append(seconds).append("초\n\n");
+        md.append("## 실험 C: 갇힘 완화 설정 비교, 시드 0~9, moveThreadCount 4, ").append(seconds).append("초 분량(").append(seconds * BenchSupport.CALCS_PER_SECOND / 1000).append("천 번 계산)\n\n");
         for (Variant variant : VARIANTS) {
             List<RunResult> results = new ArrayList<>();
             for (long seed = 0; seed < 10; seed++) {
@@ -228,7 +231,7 @@ public final class SeedBench {
     public SolveTrace trace() throws IOException {
         long seed = 0L;
         BaseballSolution problem = BenchSupport.initializedProblem(seed);
-        SolverConfig config = BenchSupport.solverConfig(seed, seconds, "4", null, null);
+        SolverConfig config = BenchSupport.workSolverConfig(seed, seconds, "4", null, null);
         SolverFactory<BaseballSolution> factory = SolverFactory.create(config);
         BendableLongScore initialScore = initialScore(factory, problem);
         Solver<BaseballSolution> solver = factory.buildSolver();

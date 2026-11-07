@@ -254,7 +254,7 @@ final class JobManager {
                 }
             };
             MultiStartSolver.Result result = solver.run(seed -> problemFor(job, seed), job.options.seedList(),
-                    job.options.timeLimitSec(), job.options.unimprovedSec(), sink);
+                    job.options.stop(), sink);
             JSONObject payload = donePayload(job, result);
             if (!"STOPPED".equals(result.reason())) {
                 String id = resultId(job.cacheKey);
@@ -283,8 +283,10 @@ final class JobManager {
                 }
             }
             job.done(payload, "STOPPED".equals(result.reason()));
-            LOG.info("job {} {} {} in {}ms (seeds={}, {}s)", job.id, result.reason(), result.bestScore(),
-                    System.currentTimeMillis() - start, job.options.seeds(), job.options.timeLimitSec());
+            LOG.info("job {} {} {} in {}ms (seeds={}, calcLimit={}, unimprovedSteps={}, time={}s, per seed calcs/steps/ms={})",
+                    job.id, result.reason(), result.bestScore(), System.currentTimeMillis() - start, job.options.seeds(),
+                    job.options.stop().calcLimit(), job.options.stop().unimprovedSteps(), job.options.stop().timeSec(),
+                    result.seeds().stream().map(s -> s.calcCount() + "/" + s.steps() + "/" + s.elapsedMs()).toList());
         } catch (Exception e) {
             LOG.error("job {} failed", job.id, e);
             job.error(e.getMessage() == null ? e.toString() : e.getMessage());
@@ -322,7 +324,8 @@ final class JobManager {
         for (MultiStartSolver.SeedResult s : result.seeds()) {
             seeds.add(Json.obj("seed", s.seed(), "score", Json.score(s.score()), "scoreString", s.score().toString(),
                     "initialScore", Json.score(s.initialScore()), "elapsedMs", s.elapsedMs(),
-                    "lastImprovementMs", s.lastImprovementMs(), "improvementCount", (long) s.improvementCount()));
+                    "lastImprovementMs", s.lastImprovementMs(), "improvementCount", (long) s.improvementCount(),
+                    "steps", s.steps(), "calcCount", s.calcCount(), "reason", s.reason()));
         }
         SolveTrace trace = result.bestTrace();
         JSONObject payload = Json.obj("jobId", job.id, "reason", result.reason(), "plan", ProblemCodec.planJson(result.best()),
