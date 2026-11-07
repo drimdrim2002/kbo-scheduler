@@ -332,8 +332,29 @@
   S.isVirtual = (v) => S.virtualSigs.has(S.vsig(v));
 
   // ───────── 라우터 (hash) ─────────
-  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'team2', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume'];
+  const ROUTE_KEYS = ['step', 'tab', 'sel', 'month', 'view', 'qv', 'team', 'team2', 'ops', 'date', 'unit', 'modal', 'drawer', 'demo', 'insp', 'teams', 'set', 'dev', 'devopen', 'leg', 'speed', 'mt', 'g', 'gs', 'open', 'day', 'slot', 'tour', 'year', 'fs', 'pick', 'resume', 'ce'];
   S.ROUTE_KEYS = ROUTE_KEYS;
+  /** 실행 중(일시정지 포함)인가 */
+  S.running = () => !!(S.run && (S.run.status === 'RUNNING' || S.run.status === 'PAUSED'));
+
+  // ───────── 방문 기록: 화면(단계)이 바뀔 때만 한 칸 쌓는다 → 브라우저 뒤로/앞으로 = 이전/다음 단계 ─────────
+  /** 주소 값으로 본 「어느 화면인가」: 연도 · 단계 · ① 검토 단계(fs) · 달력 수정(ce) · 처음 화면 · 운영 화면. 고른 경기·월·창·서랍은 넣지 않는다(같은 칸 안에서 바뀜) */
+  S.pageKey = function (o) {
+    const g = (k) => (o[k] == null ? '' : String(o[k]));
+    let k;
+    if (o.ops) k = 'ops:' + g('ops');
+    else if ((g('step') || '1') !== '1') k = 's' + g('step');
+    else if (o.pick) k = 'pick';
+    else if (o.resume) k = 'resume';
+    else if (o.fs) k = 'fs' + g('fs') + (o.ce ? 'e' : '');
+    else if (o.tab) k = 'all';
+    else k = 'home';
+    return g('year') + '|' + k;
+  };
+  const histState = () => { try { return history.state; } catch (e) { return null; } };
+  // idx = 지금 칸의 번호(새로고침해도 기록에 남은 번호를 이어 쓴다) · ready = 시작이 끝났나(그 전에는 쌓지 않음)
+  // replace = 이번 그리기는 쌓지 않음(뒤로/앞으로로 온 때) · pushedNow = 한 번의 조작에서 이미 한 칸 쌓음(중간 화면이 따로 쌓이지 않게)
+  S.hist = { idx: (histState() && histState().kboIdx) | 0, ready: false, replace: false, pushedNow: false, reverting: false, pendingTo: null };
   S.parseHash = function () {
     const h = (location.hash || '').replace(/^#/, '');
     const o = {};
@@ -359,11 +380,56 @@
     }
     if (S.flowYearChosen && S.flowYearChosen()) o.year = S.seasonYear();
     if (S.dev()) o.dev = 1;
-    if (u.modal) o.modal = u.modal;
+    if (u.modal && u.modal !== 'runLeave') o.modal = u.modal; // 실행 중 묻는 창은 주소에 남기지 않는다
     if (u.drawer) { o.drawer = u.drawer; }
     if (u.inspOff) o.insp = '0';
     const str = S.lastHash = Object.keys(o).map((k) => k + '=' + encodeURIComponent(o[k])).join('&');
-    try { history.replaceState(null, '', location.pathname + location.search + '#' + str); } catch (e) { /* file:// 일부 환경 */ }
+    const H = S.hist, url = location.pathname + location.search + '#' + str;
+    if (H.reverting) return; // 실행 중 뒤로/앞으로를 되돌리는 동안에는 주소를 건드리지 않는다(아직 다른 칸에 있다)
+    const push = H.ready && !H.replace && !H.pushedNow && S.pageKey(o) !== S.pageKey(S.parseHash());
+    try {
+      if (push) {
+        history.pushState({ kboIdx: H.idx + 1 }, '', url); H.idx += 1;
+        H.pushedNow = true; setTimeout(() => { H.pushedNow = false; }, 0);
+      } else history.replaceState({ kboIdx: H.idx }, '', url);
+    } catch (e) { /* file:// 일부 환경 */ }
+  };
+  /**
+   * 브라우저 뒤로/앞으로(주소를 고쳐 쓴 때도): 그 칸의 화면을 연다.
+   * 실행 중이면 그 자리에 머물고(기록도 제자리로 되돌림), 「실행 멈추고 이동」을 고르면 멈춘 뒤 그 칸으로 간다.
+   */
+  S.onHistory = function (state) {
+    const H = S.hist, to = state && state.kboIdx != null ? state.kboIdx | 0 : null;
+    if (H.reverting) { if (to === H.idx) { H.reverting = false; S.askStopRun(H.pendingTo); } return; } // 제자리로 돌아온 뒤에 묻는다
+    if (S.running() && to !== H.idx) {
+      H.reverting = true; H.pendingTo = to;
+      history.go(to == null ? -1 : H.idx - to);
+      setTimeout(() => { if (H.reverting) { H.reverting = false; S.render(); } }, 1500); // 돌아오지 못한 때의 안전장치
+      return;
+    }
+    if (to == null) H.idx += 1; // 주소를 직접 고쳐 쓴 새 칸
+    else H.idx = to;
+    H.replace = true;
+    try { S.applyRoute(S.parseHash()); S.render(); } finally { H.replace = false; }
+  };
+  /** 실행 중에 뒤로/앞으로: 머물지, 멈추고 그 칸으로 갈지 묻는 창(shell.js의 runLeave). to = 가려던 칸 번호(null이면 멈추기만) */
+  S.askStopRun = function (to) {
+    S.hist.pendingTo = to;
+    S.go({ modal: 'runLeave' });
+  };
+  /** 「실행 멈추고 이동」: 멈춘 결과가 저장되고 결과 화면이 그려진 뒤 그 칸으로 간다(결과 화면 칸이 하나 쌓여도 칸 번호로 가므로 그대로 간다) */
+  S.stopRunAndGo = function () {
+    const H = S.hist, to = H.pendingTo;
+    H.pendingTo = null;
+    const goTarget = () => { if (to != null && to !== H.idx) history.go(to - H.idx); };
+    S.go({ modal: null });
+    if (!S.running()) { goTarget(); return; } // 묻는 사이에 끝났다
+    S.actions['run-stop']();
+    const t0 = Date.now(), iv = setInterval(() => {
+      if (S.run && Date.now() - t0 < 15000) return;
+      clearInterval(iv);
+      if (!S.run) setTimeout(goTarget, 0);
+    }, 100);
   };
   S.applyRoute = function (o) {
     const u = S.ui;
