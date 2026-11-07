@@ -169,7 +169,7 @@
     const snap = Object.assign({
       id: 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       name: name || ('중간 저장 ' + (s.snapshots.length + 1)), createdAt: new Date().toISOString(),
-      plan: clone(s.plan), pins: s.matches.map((m) => !!m.pinned), reschedulePlan: clone((s.reschedule && s.reschedule.plan) || []),
+      plan: clone(s.plan), pins: s.matches.map((m) => !!m.pinned),
       matchCount: s.matches.length, slotCount: s.calendar.length
     }, extra || {});
     this.commit('중간 저장', (st) => { st.snapshots.push(snap); }, { undo: false, tags: ['snapshots'] });
@@ -183,7 +183,6 @@
     this.commit('중간 저장 되돌리기: ' + snap.name, (st) => {
       st.plan = clone(snap.plan);
       if (snap.pins) st.matches.forEach((m, i) => { m.pinned = !!snap.pins[i]; });
-      if (snap.reschedulePlan && st.reschedule) st.reschedule.plan = clone(snap.reschedulePlan);
     }, { tags: ['plan', 'pins'] });
     return { ok: true };
   };
@@ -226,18 +225,35 @@
 
   /** FR-D4 CSV (날짜, 원정, 홈, 구장, 상태). 엑셀 호환을 위해 BOM을 붙인다. */
   function exportCSV(project, filterTeam) {
-    const games = KBO.Reschedule.computeGames(project);
+    const games = KBO.SeasonGames.computeGames(project);
     const esc = (v) => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const rows = [['날짜', '요일', '원정', '홈', '구장', '상태', '취소 사유', '구분', '더블헤더']];
     for (const g of games) {
       if (filterTeam && g.home !== filterTeam && g.away !== filterTeam) continue;
       rows.push([g.date, KBO.Dates.WEEKDAY_KO[KBO.Dates.weekday(g.day)], g.away, g.home, g.stadium,
-        KBO.Reschedule.STATUS[g.status] || g.status, g.reason ? KBO.Reschedule.REASONS[g.reason] || g.reason : '', g.source === 'RESCHEDULE' ? '재편성' : '1차 편성', g.dh ? '더블헤더' : '']);
+        KBO.SeasonGames.STATUS[g.status] || g.status, g.reason ? KBO.SeasonGames.REASONS[g.reason] || g.reason : '', '1차 편성', '']);
     }
     return '﻿' + rows.map((r) => r.map(esc).join(',')).join('\r\n') + '\r\n';
   }
 
   // ───── 검증·정규화 ─────
+
+  /**
+   * 재편성 값 정리(설계 docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md §5.6). 옛 묶음 방식(units · plan[{ unit, start, dh }] · allowMonday ·
+   * allowDoubleHeader · blackouts · maxDoubleHeaderPerTeam)이 있으면 기간(start·end)만 남기고 나머지는 새 기본값으로 둔다.
+   */
+  function normalizeReschedule(rs, def) {
+    const r = rs && typeof rs === 'object' ? rs : {};
+    const old = Array.isArray(r.units) || (Array.isArray(r.plan) && r.plan.some((x) => x && x.unit != null)) || 'allowMonday' in r || 'maxDoubleHeaderPerTeam' in r || 'blackouts' in r || 'allowDoubleHeader' in r;
+    const keep = old ? { start: r.start, end: r.end } : r;
+    const out = Object.assign(clone(def), {});
+    for (const k of Object.keys(def)) if (keep[k] !== undefined) out[k] = clone(keep[k]);
+    if (!Array.isArray(out.games)) out.games = [];
+    if (!Array.isArray(out.plan)) out.plan = [];
+    out.games = out.games.filter((g) => g && g.status === 'CANCELLED' && (g.match != null || g.game != null));
+    out.plan = out.plan.filter((x) => x && x.game != null && x.date);
+    return out;
+  }
 
   function normalize(p) {
     const preset = KBO.Preset;
@@ -248,7 +264,9 @@
     project.events = project.events || [];
     project.games = project.games || [];
     project.snapshots = project.snapshots || [];
-    project.reschedule = Object.assign(clone(preset.DEFAULT_RESCHEDULE), project.reschedule || {});
+    project.reschedule = normalizeReschedule(project.reschedule, preset.DEFAULT_RESCHEDULE);
+    // 옛 묶음 방식 재편성 경기의 기록(U:<묶음>|날짜|차례)은 날짜 단위로 바꿀 수 없어 지운다. 1차 편성 경기 기록(match)은 그대로
+    project.games = project.games.filter((g) => g && g.unit == null);
     project.teams = (project.teams || []).map((t, i) => Object.assign({ color: (preset.TEAM_COLORS[t.name] || '#555555') }, t, { index: i }));
     project.distanceMatrix = (project.distanceMatrix || []).map((d) => Object.assign({ from: d.from, to: d.to, distance: Number(d.distance), estimated: !!d.estimated }, d.source === 'ROAD' ? { source: 'ROAD' } : {}));
     // 공휴일 가중치: 예전 저장 데이터(weight 없음)는 2로 읽는다. 연전 기간의 주말·휴일 가중치는 공휴일 표에서 다시 매긴다

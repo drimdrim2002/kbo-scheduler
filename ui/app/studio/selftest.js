@@ -123,15 +123,11 @@
     const first = document.querySelector('[data-act="snap-restore"][data-id="s-engine-1"]'); first.click(); flush();
     ok('스냅샷 복원 (슬롯 교환 전 → H1 해소)', hard() === 1, 'hard ' + hard());
     S.app.undo(); flush();
-    // 11. 시즌 운영: 날짜 일괄 취소, 재편성
+    // 11. 시즌 운영: 날짜 일괄 취소(재편성은 계획 흐름 화면에서 점검한다 — plan-selftest)
     click('[data-act="open-ops"]'); flush();
     const date = S.ui.opsDate;
     click('[data-act="o-bulk"][data-status="CANCELLED"]'); flush();
     ok('경기 일괄 취소 기록', S.app.games().filter((g) => g.date === date).every((g) => g.status === 'CANCELLED'), date);
-    click('[data-act="ops-tab"][data-tab="reschedule"]'); flush();
-    click('[data-act="rs-run"]'); await wait(1500); flush();
-    const rex = S.app.rescheduleExplain();
-    ok('재편성 결과', !!rex && rex.units.every((u) => u.days.length > 0), rex ? rex.units.length + '묶음 · RH ' + rex.violations.length : '없음');
     click('[data-act="close-ops"]'); flush();
     // 12. 설정: 기능 끄기 → DOM에서 사라짐, localStorage 저장
     click('.step[data-step="3"]'); flush();
@@ -320,7 +316,7 @@
       for (const t of ['season', 'holidays', 'restex', 'blackouts', 'slots', 'series', 'events', 'teams']) S.go({ step: 1, tab: t, cell: null, edit: null });
       S.go({ step: 2 }); S.go({ step: 3, view: 'calendar' }); S.go({ step: 3, view: 'matrix' });
       for (const q of ['metrics', 'soft', 'a1', 'a2', 'a3', 'a4', 'a5', 'sched', 'export']) S.go({ step: 4, qv: q, team: 'KT' });
-      S.go({ ops: 'games' }); S.go({ ops: 'reschedule' }); S.go({ ops: null, step: 1, tab: 'slots' });
+      S.go({ ops: 'games' }); S.go({ ops: null, step: 1, tab: 'slots' });
       ok('빈 상태: ①~④·시즌 운영 모든 화면 콘솔 오류 0', window.__studioErrors.length === e1, String(window.__studioErrors.slice(e1).join(' | ')).slice(0, 120));
       ok('빈 상태: 단계 ② 사전 점검 「진행 불가」(연전 기간·시리즈 없음)', S.app.preflight().counts.block >= 2 && document.querySelector('.step[data-step="2"] .st').classList.contains('block'));
       // 빈 표: 첫 줄 추가 (줄을 고르지 않아도 됨)
@@ -398,8 +394,6 @@
     for (const q of ['metrics', 'soft', 'a1', 'a2', 'a3', 'a4', 'a5', 'a8', 'a9', 'a10', 'a12', 'sched', 'export']) at({ step: 4, qv: q, team: 'KT' }, '④ ' + q);
     for (const lv of ['S0', 'S1', 'S2', 'S3', 'S4']) at({ step: 4, qv: 'soft', softLevel: lv }, '④ soft ' + lv);
     at({ ops: 'games' }, '시즌 운영 경기 기록');
-    at({ ops: 'reschedule', opsUnit: null }, '시즌 운영 재편성');
-    const un = (S.app.state.reschedule.units || [])[0]; if (un) at({ ops: 'reschedule', opsUnit: un.id }, '재편성 묶음');
     at({ ops: 'route', team: 'KIA', routePos: 20.5 }, '시즌 운영 이동 경로');
     for (const t of ['features', 'scoring', 'data']) at({ ops: null, step: 1, tab: 'slots' }, '설정 ' + t, () => { S.ui.drawer = 'settings'; S.ui.setTab = t; });
     // 빈 상태(처음부터 입력하기) 화면들

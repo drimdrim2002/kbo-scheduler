@@ -9,7 +9,7 @@
   const UI = KBO.UI;
   const P = UI.panels || (UI.panels = {});
   const { esc, fmt, on } = UI;
-  const { Dates, Score, Reschedule } = KBO;
+  const { Dates, Score, SeasonGames } = KBO;
 
   const RULE_ICON = { 'H0-a': '👥', 'H0-b': '🏟', 'H0-c': '#', 'H0-d': '↔', 'H0-e': '🏠', 'H0-f': '⟳', H1: '⇉' };
   P.RULE_ICON = RULE_ICON;
@@ -125,7 +125,7 @@
     if (status === 'CANCELLED') cls.push('k-cancelled');
     if (status === 'PLAYED') cls.push('k-played');
     if (o.compact) cls.push('k-sc-compact');
-    const title = x.away + ' @ ' + x.home + ' · ' + (home.stadium || '') + ' · ' + x.consecutive + '연전' + (x.pinned ? ' · 고정' : '') + (flags.length ? ' · 위반: ' + flags.map((cd) => cd + ' ' + Score.RULE_BY_CODE[cd].label).join(', ') : '') + (g ? ' · ' + Reschedule.STATUS[status] + (g.reason ? '(' + Reschedule.REASONS[g.reason] + ')' : '') : '');
+    const title = x.away + ' @ ' + x.home + ' · ' + (home.stadium || '') + ' · ' + x.consecutive + '연전' + (x.pinned ? ' · 고정' : '') + (flags.length ? ' · 위반: ' + flags.map((cd) => cd + ' ' + Score.RULE_BY_CODE[cd].label).join(', ') : '') + (g ? ' · ' + SeasonGames.STATUS[status] + (g.reason ? '(' + SeasonGames.REASONS[g.reason] + ')' : '') : '');
     return '<span class="' + cls.join(' ') + '" data-match="' + m + '" draggable="' + (!x.pinned && !app.isRunning()) + '" tabindex="0" role="button" aria-label="' + esc(title) + '" title="' + esc(title) + '">' + rel +
       (flags.length ? '<span class="k-viol-ic" aria-hidden="true">⚠</span>' : '') + (x.pinned ? '<span aria-hidden="true">📌</span>' : '') +
       '<span class="k-t" style="--tc:' + esc(away.color || '#666') + '">' + esc(x.away) + '</span><span class="k-at">@</span><span class="k-t k-t-home" style="--tc:' + esc(home.color || '#666') + '">' + esc(x.home) + '</span>' +
@@ -244,9 +244,9 @@
     const o = opts || {};
     const open = new Set(o.open || []);
     const render = () => {
-      const ex = o.reschedule ? app.rescheduleExplain() : app.derived().ex;
+      const ex = app.derived().ex;
       if (!ex) { el.innerHTML = '<p class="k-muted">재편성 결과가 없습니다.</p>'; return; }
-      const rules = o.reschedule ? Reschedule.HARD_RULES : Score.HARD_RULES;
+      const rules = Score.HARD_RULES;
       let h = '<div class="k-viols">';
       for (const r of rules) {
         const b = ex.byCode[r.code];
@@ -259,7 +259,7 @@
     };
     el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.code) { if (d.open) open.add(d.dataset.code); else open.delete(d.dataset.code); } }, true);
     on(el, 'click', '[data-vid]', (e, b) => {
-      const ex = o.reschedule ? app.rescheduleExplain() : app.derived().ex;
+      const ex = app.derived().ex;
       const v = ex.violations.find((x) => x.id === b.dataset.vid);
       if (!v) return;
       app.focus({ slot: v.slot, match: v.matches && v.matches[0], matches: v.matches, date: v.date, units: v.units, code: v.code, team: v.teams && v.teams[0] });
@@ -345,7 +345,7 @@
           } else {
             const ht = c.teamByName.get(g.home) || {}, at = c.teamByName.get(g.away) || {};
             const sel = app.ui.selectedUnit === g.unit;
-            h += '<span class="k-sc k-sc-re' + (g.status === 'CANCELLED' ? ' k-cancelled' : g.status === 'PLAYED' ? ' k-played' : '') + (sel ? ' k-selected' : '') + (focus && focus.units && focus.units.includes(g.unit) ? ' k-focus' : '') + '" data-unit="' + esc(g.unit) + '" tabindex="0" role="button" title="' + esc('재편성 · ' + g.away + ' @ ' + g.home + (g.dh ? ' · 더블헤더' : '') + ' · ' + Reschedule.STATUS[g.status]) + '"><span class="k-re-tag">재</span>' + (g.dh ? '<span class="k-dh">DH</span>' : '') + '<span class="k-t" style="--tc:' + esc(at.color || '#666') + '">' + esc(g.away) + '</span><span class="k-at">@</span><span class="k-t k-t-home" style="--tc:' + esc(ht.color || '#666') + '">' + esc(g.home) + '</span>' + (g.status === 'CANCELLED' ? '<span class="k-st">☂</span>' : g.status === 'PLAYED' ? '<span class="k-st">✔</span>' : '') + '</span>';
+            h += '<span class="k-sc k-sc-re' + (g.status === 'CANCELLED' ? ' k-cancelled' : g.status === 'PLAYED' ? ' k-played' : '') + (sel ? ' k-selected' : '') + (focus && focus.units && focus.units.includes(g.unit) ? ' k-focus' : '') + '" data-unit="' + esc(g.unit) + '" tabindex="0" role="button" title="' + esc('재편성 · ' + g.away + ' @ ' + g.home + (g.dh ? ' · 더블헤더' : '') + ' · ' + SeasonGames.STATUS[g.status]) + '"><span class="k-re-tag">재</span>' + (g.dh ? '<span class="k-dh">DH</span>' : '') + '<span class="k-t" style="--tc:' + esc(at.color || '#666') + '">' + esc(g.away) + '</span><span class="k-at">@</span><span class="k-t k-t-home" style="--tc:' + esc(ht.color || '#666') + '">' + esc(g.home) + '</span>' + (g.status === 'CANCELLED' ? '<span class="k-st">☂</span>' : g.status === 'PLAYED' ? '<span class="k-st">✔</span>' : '') + '</span>';
           }
         });
         if (dayGames.length > maxC) h += '<span class="k-more">+' + (dayGames.length - maxC) + '</span>';
@@ -396,7 +396,7 @@
     const games = app.games().filter((g) => g.match === m);
     const body = '<p>' + P.chip(app, m) + ' · ' + esc((c.teamByName.get(x.home) || {}).stadium || '') + ' · ' + x.consecutive + '연전 · ' + (s >= 0 ? esc(c.slots[s].label) : '미배정') + '</p>' +
       (flags.length ? '<h4>위반</h4><ul>' + flags.map((v) => '<li>' + (RULE_ICON[v.code] || '⚠') + ' <b>' + v.code + ' ' + esc(v.label) + '</b> — ' + esc(v.message) + '</li>').join('') + '</ul>' : '<p>' + UI.stateChip('ok', '이 시리즈 관련 Hard 위반 없음') + '</p>') +
-      (games.length ? '<h4>경기</h4><ul class="k-plain">' + games.map((g) => '<li>' + fmt.date(g.date) + ' — ' + Reschedule.STATUS[g.status] + (g.reason ? ' (' + Reschedule.REASONS[g.reason] + ')' : '') + '</li>').join('') + '</ul>' : '');
+      (games.length ? '<h4>경기</h4><ul class="k-plain">' + games.map((g) => '<li>' + fmt.date(g.date) + ' — ' + SeasonGames.STATUS[g.status] + (g.reason ? ' (' + SeasonGames.REASONS[g.reason] + ')' : '') + '</li>').join('') + '</ul>' : '');
     return UI.dialog({
       title: x.away + ' @ ' + x.home, body,
       actions: [{ label: '닫기', value: null }, { label: x.pinned ? '📌 고정 해제' : '📌 고정', value: 'pin' }, { label: '⌨ 이동할 슬롯 선택', value: 'select' }, { label: '미배정 풀로', value: 'pool' }]

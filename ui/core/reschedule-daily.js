@@ -5,7 +5,7 @@
  *  - 배정기(initialize·search)는 서버보다 약한 간단한 배정이다. 배정 결과는 서버와 달라도 되고, 고칠 곳 확인은 서버만 한다.
  *  - 입력: 1차 편성 프로젝트 + reschedule { start, end, lastDayToleranceDays, maxConsecutiveDays, maxDoubleHeadersPerTeam,
  *    order, targets[], plan[] }, games[](취소 기록). 결과: 서버 /api/v1/solve mode=RESCHEDULE의 done과 같은 모양.
- * 지금 화면은 아직 옛 묶음 방식(reschedule.js)을 쓴다. 새 결과 화면을 만들 때 이 모듈로 옮긴다.
+ * 스튜디오 재편성 화면(app/studio/reschedule-parts.js)이 쓴다. 배정 대상(targets)은 season-games.js의 buildTargets가 만든다.
  */
 (function (root, factory) {
   const KBO = root.KBO || (root.KBO = {});

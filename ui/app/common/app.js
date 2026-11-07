@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   const KBO = window.KBO;
-  const { Score, CalendarGen, Reschedule, Store, Engine, MapKit, Dates } = KBO;
+  const { Score, CalendarGen, SeasonGames, Store, Engine, MapKit, Dates } = KBO;
   const UI = KBO.UI;
 
   const LS = Store.safeStorage((() => { try { return window.localStorage; } catch (e) { return null; } })());
@@ -76,16 +76,11 @@
     c.bySlot = c.slots.map(() => []);
     c.pool = [];
     for (let m = 0; m < st.matches.length; m++) { const s = c.plan[m]; if (s >= 0) c.bySlot[s].push(m); else c.pool.push(m); }
-    c._games = null; c._targets = null; c._rex = null; c._eventCheck = null; c._preflight = null;
+    c._games = null; c._targets = null; c._eventCheck = null; c._preflight = null;
     return c;
   };
-  App.prototype.games = function () { const c = this.derived(); if (!c._games) c._games = Reschedule.computeGames(this.state); return c._games; };
-  App.prototype.targets = function () { const c = this.derived(); if (!c._targets) c._targets = Reschedule.computeTargets(this.state, this.games()); return c._targets; };
-  App.prototype.rescheduleExplain = function () {
-    const c = this.derived();
-    if (!c._rex) c._rex = (this.state.reschedule.units || []).length ? Reschedule.explain(this.state) : null;
-    return c._rex;
-  };
+  App.prototype.games = function () { const c = this.derived(); if (!c._games) c._games = SeasonGames.computeGames(this.state); return c._games; };
+  App.prototype.targets = function () { const c = this.derived(); if (!c._targets) c._targets = SeasonGames.computeTargets(this.state, this.games()); return c._targets; };
   App.prototype.team = function (name) { return this.derived().teamByName.get(name); };
   App.prototype.teamAt = function (i) { return this.state.teams[i]; };
   App.prototype.matchLabel = function (m) { const x = this.state.matches[m]; return x ? x.away + ' vs ' + x.home : '?'; };
@@ -199,7 +194,7 @@
         for (const d of s.distanceMatrix) { if (d.from === oldName) d.from = n; if (d.to === oldName) d.to = n; }
         for (const e of s.events) { if (e.home === oldName) e.home = n; if (e.away === oldName) e.away = n; }
         s.settings.obligationTeams = (s.settings.obligationTeams || []).map((x) => (x === oldName ? n : x));
-        for (const u of s.reschedule.units || []) { if (u.home === oldName) u.home = n; if (u.away === oldName) u.away = n; }
+        s.reschedule.result = null; // 결과의 경기 이름에 구단 이름이 들어 있다
       }
       if (locationChanged) this._reestimate(s, [t.name]);
     }, ['teams', 'distance']);
@@ -231,7 +226,7 @@
       s.events = s.events.filter((e) => e.home !== name && e.away !== name);
       s.settings.obligationTeams = (s.settings.obligationTeams || []).filter((x) => x !== name);
       // 시리즈 인덱스가 바뀌므로 시리즈·배정·경기 기록을 비운다(시리즈 재생성 필요)
-      s.matches = []; s.plan = []; s.games = []; s.reschedule.units = []; s.reschedule.plan = [];
+      s.matches = []; s.plan = []; s.games = [];
     }, ['teams', 'distance', 'matches', 'plan', 'events', 'games']);
   };
   /** 편성 서버가 도로거리를 계산해 주는지 묻는다(/api/v1/info 의 roadDistance). file:// 이나 정적 서버면 꺼짐 */
@@ -446,7 +441,7 @@
     const ok = this.commit('시리즈 자동 생성 (' + g.matches.length + '개)', (s) => {
       s.matches = g.matches.map((m) => Object.assign({ pinned: false }, m));
       s.plan = g.plan.map((c, m) => ({ match: m, calendar: c }));
-      s.games = []; s.reschedule.units = []; s.reschedule.plan = [];
+      s.games = [];
     }, ['matches', 'plan', 'games']);
     if (ok) { this.applyEvents({ silent: true, label: '특별 경기 대진 고정' }); if (g.warnings.length) UI.toast(g.warnings[0], 'warn'); }
     return ok;
@@ -710,15 +705,14 @@
   App.prototype.solve = function (opts) {
     const o = opts || {};
     if (this.isRunning()) return false;
-    const mode = o.mode || 'INITIAL';
+    const mode = 'INITIAL'; // 재편성은 solveReschedule(고른 1차 편성 버전으로 만든 문제)
     const st = this.state;
-    if (mode === 'INITIAL') {
-      const pf = this.preflight();
-      if (!pf.ok && !o.force) { UI.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); this.nav('review'); return false; }
-      this.applyEvents({ silent: true, label: '자동 편성 전 특별 경기 고정' });
-    } else if (!(st.reschedule.units || []).length) { UI.toast('재편성 대상 묶음이 없습니다. 먼저 대상을 계산하세요.', 'warn'); return false; }
+    if (this.rsRun && (this.rsRun.status === 'RUNNING' || this.rsRun.status === 'STARTING')) { UI.toast('재편성을 실행하는 중입니다. 끝난 뒤에 실행해 주세요.', 'warn'); return false; }
+    const pf = this.preflight();
+    if (!pf.ok && !o.force) { UI.toast('사전 점검에 진행 불가 항목이 있어 실행할 수 없습니다.', 'bad'); this.nav('review'); return false; }
+    this.applyEvents({ silent: true, label: '자동 편성 전 특별 경기 고정' });
     const solverOpts = Object.assign({}, st.settings.solver, o, { mode });
-    this.store.checkpoint(mode === 'INITIAL' ? '자동 편성' : '재편성 실행');
+    this.store.checkpoint('자동 편성');
     const handle = this.engine.solve(this.state, solverOpts);
     const run = this.run = { mode, status: 'STARTING', handle, history: [], startedAt: Date.now(), elapsedMs: 0, improvements: 0, iterations: 0, transport: null, reason: null, score: null, engineLabel: this.engine.label };
     handle.on('status', (s) => { run.status = s; run.transport = handle.transport || run.transport; this.emitUI(['run']); });
@@ -743,10 +737,7 @@
     const flat = Score.flat(p.score);
     run.history.push({ t: p.elapsedMs, score: flat });
     if (run.history.length > 400) run.history.splice(1, 1);
-    this.store.commit(run.mode === 'INITIAL' ? '자동 편성 결과' : '재편성 결과', (s) => {
-      if (run.mode === 'INITIAL') s.plan = p.plan.map((x) => ({ match: x.match, calendar: x.calendar }));
-      else s.reschedule.plan = p.plan;
-    }, { undo: false, tags: run.mode === 'INITIAL' ? ['plan', 'live'] : ['reschedule', 'live'] });
+    this.store.commit('자동 편성 결과', (s) => { s.plan = p.plan.map((x) => ({ match: x.match, calendar: x.calendar })); }, { undo: false, tags: ['plan', 'live'] });
   };
   App.prototype.pause = function () { if (this.run) this.run.handle.pause(); };
   App.prototype.resume = function () { if (this.run) this.run.handle.resume(); };
@@ -757,12 +748,12 @@
 
   // ───────────── 경기 기록·재편성 (FR-P) ─────────────
   App.prototype.setGameStatus = function (game, status, reason) {
-    return this.commit('경기 기록: ' + Dates.fmtDate(game.date) + ' ' + game.away + ' vs ' + game.home, (s) => { Reschedule.setGameStatus(s, game, status, reason); }, ['games']);
+    return this.commit('경기 기록: ' + Dates.fmtDate(game.date) + ' ' + game.away + ' vs ' + game.home, (s) => { SeasonGames.setGameStatus(s, game, status, reason); }, ['games']);
   };
   App.prototype.setDayStatus = function (date, status, reason) {
     const list = this.games().filter((g) => g.date === date);
     if (!list.length) return false;
-    return this.commit('일괄 기록: ' + Dates.fmtDate(date) + ' ' + list.length + '경기', (s) => { for (const g of list) Reschedule.setGameStatus(s, g, status, reason); }, ['games']);
+    return this.commit('일괄 기록: ' + Dates.fmtDate(date) + ' ' + list.length + '경기', (s) => { for (const g of list) SeasonGames.setGameStatus(s, g, status, reason); }, ['games']);
   };
   App.prototype.referenceDate = function () {
     const r = this.state.settings.referenceDate;
@@ -773,30 +764,41 @@
     const ref = this.referenceDate();
     return this.games().filter((g) => g.status === 'SCHEDULED' && g.date < ref);
   };
-  App.prototype.buildRescheduleUnits = function () {
-    const t = this.targets();
-    const units = Reschedule.buildUnits(t);
-    return this.commit('재편성 대상 확정 (' + units.reduce((s, u) => s + u.games, 0) + '경기)', (s) => {
-      const keep = new Map((s.reschedule.plan || []).map((p) => [p.unit, p]));
-      const prevUnits = new Map((s.reschedule.units || []).map((u) => [u.id, u]));
-      s.reschedule.units = units;
-      s.reschedule.plan = units.map((u) => { const p = keep.get(u.id); const pu = prevUnits.get(u.id); return p && pu && pu.games === u.games ? p : { unit: u.id, start: null, dh: false }; });
-    }, ['reschedule']);
+  App.prototype.updateReschedule = function (patch, label) {
+    return this.commit(label || '재편성 조건 변경', (s) => { Object.assign(s.reschedule, patch); }, ['reschedule']);
   };
-  App.prototype.updateReschedule = function (patch) {
-    return this.commit('재편성 옵션 변경', (s) => { Object.assign(s.reschedule, patch); }, ['reschedule']);
+  /**
+   * 날짜 단위 재편성 실행(설계 docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md §5). problem = 고른 1차 편성 버전 + 취소 기록 + reschedule(targets 포함).
+   * 1차 편성 실행(this.run)과 따로 둔다: 결과는 reschedule.plan(발표해서 고정할 일정)이 아니라 reschedule.result에 넣는다.
+   * meta: { version } — 결과에 함께 적어 어느 버전으로 낸 결과인지 남긴다
+   */
+  App.prototype.solveReschedule = function (problem, opts, meta) {
+    const o = opts || {};
+    if (this.isRunning() || (this.rsRun && (this.rsRun.status === 'RUNNING' || this.rsRun.status === 'STARTING'))) return false;
+    const handle = this.engine.solve(problem, Object.assign({ timeLimitSec: 10, unimprovedSec: 3, seed: 42 }, o, { mode: 'RESCHEDULE' }));
+    const run = this.rsRun = { mode: 'RESCHEDULE', status: 'STARTING', handle, startedAt: Date.now(), elapsedMs: 0, improvements: 0, best: null, error: null, engineKind: this.engine.kind };
+    const self = this;
+    const live = () => { if (self.rsRun === run) self.emitUI(['run', 'reschedule']); };
+    handle.on('status', (s) => { run.status = s; live(); });
+    handle.on('queued', (q) => { run.queue = q; live(); });
+    handle.on('best', (p) => { run.best = p; run.elapsedMs = p.elapsedMs || run.elapsedMs; run.improvements = p.improvementCount || run.improvements; live(); });
+    handle.on('done', (p) => {
+      run.status = 'DONE';
+      if (self.rsRun !== run) return;
+      const result = Object.assign({ at: new Date().toISOString() }, p, meta || {}); // meta: 고른 버전·그때 조건 지문(sig)·배정 대상(targets)
+      delete result.explanation;
+      self.commit('재편성 결과', (s) => { s.reschedule.result = result; }, ['reschedule']);
+      if (!o.quiet) {
+        const n = (p.unplaced || []).length, bad = (p.violations || []).length;
+        UI.toast('재편성 끝 — ' + (bad ? '꼭 지킬 규칙을 어긴 경기 ' + bad + '곳' : n ? '넣지 못한 경기 ' + n + '경기' : '모든 경기를 넣었습니다'), n || bad ? 'warn' : 'ok', 5000);
+      }
+      live();
+    });
+    handle.on('error', (e) => { run.status = 'ERROR'; run.error = e.message; if (!o.quiet) UI.toast('재편성을 하지 못했습니다: ' + e.message, 'bad', 8000); live(); });
+    live();
+    return true;
   };
-  App.prototype.moveUnit = function (unitId, start, dh) {
-    return this.commit('재편성 묶음 이동: ' + unitId, (s) => {
-      let p = s.reschedule.plan.find((x) => x.unit === unitId);
-      if (!p) { p = { unit: unitId, start: null, dh: false }; s.reschedule.plan.push(p); }
-      p.start = start || null;
-      if (dh != null) p.dh = !!dh;
-    }, ['reschedule']);
-  };
-  App.prototype.clearReschedulePlan = function () {
-    return this.commit('재편성 배치 비우기', (s) => { s.reschedule.plan = (s.reschedule.units || []).map((u) => ({ unit: u.id, start: null, dh: false })); }, ['reschedule']);
-  };
+  App.prototype.stopReschedule = function () { if (this.rsRun) this.rsRun.handle.stop(); };
 
   // ───────────── 스냅샷 (FR-M7, Q4) ─────────────
   App.prototype.saveSnapshot = function (name) {

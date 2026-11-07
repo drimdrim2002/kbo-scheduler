@@ -11,7 +11,7 @@
     ui: {
       step: 1, tab: 'slots', sel: null, inspOff: false, month: null, view: 'calendar', teamFilter: [],
       qv: 'metrics', team: null, sort: { key: 'distanceKm', dir: -1 }, softLevel: 'S2',
-      ops: null, opsDate: null, opsUnit: null, modal: null, drawer: null, setTab: 'features',
+      ops: null, opsDate: null, modal: null, drawer: null, setTab: 'features',
       edit: null, newRows: [], flash: null, imp: null, lastImport: null, exported: false, preflightSel: null
     },
     run: null
@@ -42,6 +42,7 @@
     left: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
     right: '<path d="M6 3.5L10.5 8 6 12.5"/>',
     down: '<path d="M3.5 6l4.5 4.5L12.5 6"/>',
+    up: '<path d="M3.5 10l4.5-4.5 4.5 4.5"/>',
     play: '<path d="M5 3.2v9.6L12.6 8z" fill="currentColor" stroke="none"/>',
     pause: '<path d="M5.2 3.5v9M10.8 3.5v9"/>',
     stop: '<rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor" stroke="none"/>',
@@ -239,7 +240,7 @@
     }
     p.settings.referenceDate = S.REF_DATE;
     // 경기 기록: 기준일 이전 경기는 완료, 일부 취소, 7/8~7/9는 미입력
-    const games = KBO.Reschedule.computeGames(p);
+    const games = KBO.SeasonGames.computeGames(p);
     const cancelLeft = {};
     for (const c of S.CANCELLED) cancelLeft[c.date] = { n: c.n, reason: c.reason };
     p.games = [];
@@ -252,7 +253,7 @@
     // 시드 전 배정을 스냅샷 하나로 남긴다(복원 시연용)
     const tmp = JSON.parse(JSON.stringify(p)); tmp.plan = origPlan;
     const sc = Score.scoreProject(tmp).score;
-    p.snapshots = [{ id: 's-engine-1', name: '자동 편성 1차 결과 — 연전 맞바꾸기 전', createdAt: '2025-01-14T09:12:00.000Z', plan: origPlan, pins: p.matches.map((m) => !!m.pinned), reschedulePlan: [], matchCount: p.matches.length, slotCount: p.calendar.length, score: Score.scoreString(sc), feasible: Score.isFeasible(sc), h0eMode: 'STADIUM' }];
+    p.snapshots = [{ id: 's-engine-1', name: '자동 편성 1차 결과 — 연전 맞바꾸기 전', createdAt: '2025-01-14T09:12:00.000Z', plan: origPlan, pins: p.matches.map((m) => !!m.pinned), matchCount: p.matches.length, slotCount: p.calendar.length, score: Score.scoreString(sc), feasible: Score.isFeasible(sc), h0eMode: 'STADIUM' }];
     return p;
   };
 
@@ -367,7 +368,6 @@
     if (u.ops) {
       o.ops = u.ops;
       if (u.ops === 'games' && u.opsDate) o.date = u.opsDate;
-      if (u.ops === 'reschedule' && u.opsUnit) o.unit = u.opsUnit;
       if (u.ops === 'route') { if (u.team) o.team = u.team; if (u.routePos) o.leg = Math.round(u.routePos * 10) / 10; if (u.routeSpeed && u.routeSpeed !== 1) o.speed = u.routeSpeed; }
     }
     else {
@@ -376,6 +376,7 @@
       if (u.step === 3) { o.month = u.month; if (u.view !== 'calendar') o.view = u.view; if (u.teamFilter.length) o.teams = u.teamFilter.join(','); }
       if (u.step === 4) { o.qv = u.qv; if (u.team) o.team = u.team; if (u.team2) o.team2 = u.team2; if (u.qv === 'metrics' && u.mtOpen) o.mt = 1; }
       if (u.step === 2 && u.devOpen && S.dev()) o.devopen = 1;
+      if (S.stepHash && S.stepHash[u.step]) S.stepHash[u.step].write(o); // 화면마다 따로 쓰는 주소 값(재편성 rv·rd·rt)
       if (u.sel) o.sel = u.sel;
     }
     if (S.flowYearChosen && S.flowYearChosen()) o.year = S.seasonYear();
@@ -436,16 +437,17 @@
     // year=: 그 시즌을 연다(주소를 고쳐 쓴 때). 시작할 때는 S.start가 먼저 연다
     if (o.year && S.booted && S.switchYear && +o.year !== S.seasonYear() && +o.year > 2000) S.switchYear(+o.year, { boot: true, quiet: true, to: 'stay' });
     if (o.ops) {
-      u.ops = ['games', 'reschedule', 'route'].includes(o.ops) ? o.ops : 'games';
+      u.ops = ['games', 'route'].includes(o.ops) ? o.ops : 'games'; // 재편성은 계획 흐름의 「재편성」 화면(step=9)으로 옮겼다
       if (u.ops === 'route' && !S.feature('A6')) u.ops = 'games';
-      u.opsDate = o.date || u.opsDate; u.opsUnit = o.unit || null;
+      u.opsDate = o.date || u.opsDate;
       if (o.leg != null) u.routePos = Math.max(0, parseFloat(o.leg) || 0);
       if (o.speed) u.routeSpeed = [1, 2, 4].includes(+o.speed) ? +o.speed : 1;
     } else u.ops = null;
     if (o.dev === '1') S.devOverride = true; else if (o.dev === '0') S.devOverride = false;
     u.devOpen = o.devopen === '1';
     u.mtOpen = o.mt === '1'; // ④ 지표 비교표 띠 펼침 (opt-2 채택)
-    if (o.step) u.step = Math.max(1, Math.min(S.planFlow ? 8 : 4, parseInt(o.step, 10) || 1)); // 8 = 요구 사항 점검(verify-view.js)
+    if (o.step) u.step = Math.max(1, Math.min(S.planFlow ? 9 : 4, parseInt(o.step, 10) || 1)); // 8 = 요구 사항 점검(verify-view.js), 9 = 재편성(reschedule-view.js)
+    if (S.stepHash) for (const k of Object.keys(S.stepHash)) S.stepHash[k].read(o);
     if (o.tab) u.tab = o.tab;
     if (o.month) u.month = parseInt(o.month, 10) || u.month;
     if (o.view) u.view = o.view;

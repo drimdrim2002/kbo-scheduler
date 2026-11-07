@@ -7,11 +7,13 @@
 const fs = require('fs');
 const path = require('path');
 const core = path.resolve(__dirname, '..');
-for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'reschedule-daily', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
+for (const f of ['calendar-gen', 'preset-2025', 'score', 'season-games', 'reschedule-daily', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
 const K = globalThis.KBO;
-const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel, Xlsx } = K;
+const { Score, CalendarGen, Preset, SeasonGames, MockSolver, Store, Engine, Chart, MapKit, ReplayModel, Xlsx } = K;
 
 let passed = 0, failed = 0;
+const rdGolden0 = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'reschedule-golden.json'), 'utf8'));
+const rdBase0 = () => JSON.parse(fs.readFileSync(path.resolve(core, '..', '..', 'data', 'baseball', 'project_2025.json'), 'utf8'));
 const queue = [];
 function test(name, fn) { queue.push({ name, fn }); }
 function assert(cond, msg) { if (!cond) throw new Error(msg || '단언 실패'); }
@@ -453,12 +455,12 @@ test('시리즈 생성: 2025 데이터 — homeTotals가 없으면 예전 방식
 
 test('미편성 경기 홈: homeTotals대로(1차 편성 69/66 → 미편성 홈 4/5, 홈 바꿈 68/67 → 5/4, 뒤집은 66/69 → 7/2) · 비운 방식은 3~6 · 취소가 있어도 전체 홈 수 유지', () => {
   const check = (p, want) => {
-    const t = Reschedule.computeTargets(p);
+    const t = SeasonGames.computeTargets(p);
     assert(t.homeTotals && t.homeTotals.ok, t.homeTotals && t.homeTotals.message);
     eq(t.totals.remaining, 45);
     const rem = {}; for (const n of t.needs) rem[n.home] = (rem[n.home] || 0) + n.remaining;
     for (const tm of p.teams) eq(rem[tm.name] || 0, want(tm.name), tm.name + ' 미편성 홈');
-    const home = {}; for (const g of Reschedule.computeGames(p).filter((x) => x.source === 'INITIAL')) home[g.home] = (home[g.home] || 0) + 1;
+    const home = {}; for (const g of SeasonGames.computeGames(p).filter((x) => x.source === 'INITIAL')) home[g.home] = (home[g.home] || 0) + 1;
     for (const tm of p.teams) eq(home[tm.name] + (rem[tm.name] || 0), p.settings.homeTotals.moreTeams.includes(tm.name) ? 73 : 71, tm.name + ' 전체 홈');
     return t;
   };
@@ -471,12 +473,13 @@ test('미편성 경기 홈: homeTotals대로(1차 편성 69/66 → 미편성 홈
   const want = { 한화: 6, 롯데: 6, 두산: 6, SSG: 5, KT: 5, NC: 4, 키움: 4, LG: 3, 삼성: 3, KIA: 3 };
   check(b, (n) => want[n]);
   // 취소 경기는 원래 홈으로 다시 편성되므로 미편성 홈 수는 그대로
-  const games = Reschedule.computeGames(d);
-  for (const g of [games[10], games[300]]) Reschedule.setGameStatus(d, g, 'CANCELLED', 'RAIN');
-  const t = check(d, (n) => (MORE_2027.includes(n) ? 4 : 5));
-  eq(Reschedule.buildUnits(t).reduce((s, u) => s + u.games, 0), 47);
+  const games = SeasonGames.computeGames(d);
+  for (const g of [games[10], games[300]]) SeasonGames.setGameStatus(d, g, 'CANCELLED', 'RAIN');
+  check(d, (n) => (MORE_2027.includes(n) ? 4 : 5));
+  const bt = SeasonGames.buildTargets(d);
+  eq([bt.ok, bt.targets.length, bt.cancelled, bt.remaining], [true, 47, 2, 45]);
   // homeTotals가 없으면(2025) 예전 규칙 그대로
-  eq(Reschedule.computeTargets(project()).homeTotals, null);
+  eq(SeasonGames.computeTargets(project()).homeTotals, null);
 });
 
 test('저장소 정규화: 예전 저장 데이터에 새 필드 기본값(playOnRest·seriesMinLength·allStarDays·그 해 올스타 시작일), homeTotals 모양 맞춤·검증', () => {
@@ -667,41 +670,57 @@ test('AC-6 수정 후 실행 취소하면 이전 점수로 정확히 복귀 (Sto
   assert(n >= 50, '실행 취소 ' + n + '단계');
 });
 
-test('AC-8 취소 3경기 기록 → 재편성 대상 48경기, 월요일 미허용이면 월요일 0건', async () => {
+test('AC-8 취소 3경기 기록 → 배정 대상 48경기(취소 3 + 잔여 45) → 브라우저 재편성 결과: 규칙 위반 0, 모두 기간 안', async () => {
   const p = project();
-  const games = Reschedule.computeGames(p);
-  const pick = [games[30], games[400], games[650]];
-  for (const g of pick) Reschedule.setGameStatus(p, g, 'CANCELLED', 'RAIN');
-  const t = Reschedule.computeTargets(p);
-  eq(t.totals.remaining, 45, '잔여 45'); eq(t.totals.cancelled, 3, '취소 3');
-  p.reschedule.units = Reschedule.buildUnits(t);
-  eq(p.reschedule.units.reduce((s, u) => s + u.games, 0), 48, '재편성 대상 48경기');
-  p.reschedule.allowMonday = false;
-  p.reschedule.plan = [];
+  const games = SeasonGames.computeGames(p);
+  for (const g of [games[30], games[400], games[650]]) SeasonGames.setGameStatus(p, g, 'CANCELLED', 'RAIN');
+  const bt = SeasonGames.buildTargets(p);
+  eq([bt.ok, bt.cancelled, bt.remaining, bt.targets.length], [true, 3, 45, 48]);
+  assert(bt.targets.filter((x) => x.source === 'CANCELLED').every((x) => /^M:\d+\|\d{4}-\d\d-\d\d$/.test(x.id) && x.reason === 'RAIN'), '취소 경기 id');
+  p.reschedule = Object.assign({}, p.reschedule, { start: '2025-09-01', end: '2025-09-28', targets: bt.targets, plan: [] });
   const engine = new Engine.MockEngineAdapter({ useWorker: false });
-  const done = await new Promise((resolve) => engine.solve(p, { mode: 'RESCHEDULE', timeLimitSec: 2, unimprovedSec: 1, seed: 3, init: 'SCRATCH' }).on('done', resolve));
-  p.reschedule.plan = done.plan;
-  const ex = Reschedule.explain(p);
-  const rg = Reschedule.computeGames(p).filter((g) => g.source === 'RESCHEDULE');
-  const unassigned = ex.violations.filter((v) => v.code === 'RH-5');
-  eq(rg.length + unassigned.reduce((s, v) => s + v.amount, 0), 48, '배정 + 미배정 = 48');
-  for (const v of unassigned) assert(v.message.includes('—'), '미배정 사유');
-  eq(rg.filter((g) => K.Dates.weekday(g.day) === 1).length, 0, '월요일 배정 0건');
-  assert(rg.every((g) => g.date >= '2025-09-01' && g.date <= '2025-10-31'), '9~10월');
-  console.log('    재편성 점수 ' + Score.scoreString(ex.score) + ', 배정 ' + rg.length + '경기');
+  const done = await new Promise((resolve, reject) => { const h = engine.solve(p, { mode: 'RESCHEDULE', timeLimitSec: 1, unimprovedSec: 1, seed: 3 }); h.on('done', resolve); h.on('error', (e) => reject(new Error(e.message))); });
+  eq(done.violations, []);
+  eq(done.plan.length, 48);
+  assert(done.plan.every((x) => x.date == null || (x.date >= '2025-09-01' && x.date <= '2025-09-28')), '기간 안');
+  console.log('    재편성 점수 ' + done.scoreString + ', 못 넣은 경기 ' + done.unplaced.length);
 });
 
-test('재편성 고속 경로 = 설명 경로 (무작위 배치)', () => {
-  const p = project();
-  const t = Reschedule.computeTargets(p);
-  p.reschedule.units = Reschedule.buildUnits(t);
-  const r = MockSolver.rng(77);
-  for (let k = 0; k < 200; k++) {
-    p.reschedule.allowMonday = r() < 0.5;
-    p.reschedule.plan = p.reschedule.units.map((u) => ({ unit: u.id, start: r() < 0.1 ? null : K.Dates.addDays('2025-09-01', r.int(58)), dh: r() < 0.2 }));
-    const ex = Reschedule.explain(p);
-    assert(!ex.score.mismatch, '불일치 #' + k + ' ' + JSON.stringify(ex.score));
+test('재편성 배정 대상: 화면이 만든 대상(취소 표시 + 잔여 + 홈 나누기)이 golden 문제의 대상과 같다(id·홈·원정·사유)', () => {
+  const g = rdGolden0(), base = rdBase0();
+  for (const pr of g.problems) {
+    const p = JSON.parse(JSON.stringify(base));
+    p.games = JSON.parse(JSON.stringify(pr.games));
+    if (pr.settings) p.settings = JSON.parse(JSON.stringify(pr.settings));
+    const key = (x) => JSON.stringify([x.id, x.home, x.away, x.source, x.match == null ? null : x.match, x.date || null, x.reason || null]);
+    const got = SeasonGames.buildTargets(p).targets.map(key).sort(), want = pr.reschedule.targets.map(key).sort();
+    eq(got, want, pr.name);
   }
+});
+
+test('재편성 배정 대상: 홈 73/71로 나눌 수 없으면 ok=false와 구단별 차이(그때는 실행하지 않는다)', () => {
+  const d = P27.buildProject();
+  d.settings.homeTotals = JSON.parse(JSON.stringify(d.settings.homeTotals));
+  d.settings.homeTotals.more.total = 74;
+  const bt = SeasonGames.buildTargets(d);
+  eq(bt.ok, false);
+  assert(/홈 74경기 구단/.test(bt.message), bt.message);
+  d.settings.homeTotals.more.total = 73;
+  eq(SeasonGames.buildTargets(d).ok, true);
+});
+
+test('재편성 저장값 옮기기: 옛 묶음 방식(units·plan·U: 기록)은 기간만 남기고 지움, 1차 편성 취소 기록은 그대로', () => {
+  const old = project();
+  old.reschedule = { start: '2025-09-02', end: '2025-10-20', allowMonday: false, allowDoubleHeader: true, maxDoubleHeaderPerTeam: 3, blackouts: ['2025-09-10'], units: [{ id: 'LG-KIA-1', home: 'LG', away: 'KIA', games: 2, sources: [] }], plan: [{ unit: 'LG-KIA-1', start: '2025-09-05', dh: true }] };
+  old.games = [{ match: 3, date: '2025-04-01', status: 'CANCELLED', reason: 'RAIN' }, { unit: 'LG-KIA-1', date: '2025-09-05', seq: 0, status: 'PLAYED' }];
+  const n = Store.normalize(old);
+  eq(n.reschedule, Object.assign(JSON.parse(JSON.stringify(Preset.DEFAULT_RESCHEDULE)), { start: '2025-09-02', end: '2025-10-20' }));
+  eq(n.games, [{ match: 3, date: '2025-04-01', status: 'CANCELLED', reason: 'RAIN' }]);
+  eq(n.reschedule.maxDoubleHeadersPerTeam, 2);
+  // 새 모양은 그대로
+  const cur = project();
+  cur.reschedule = Object.assign(JSON.parse(JSON.stringify(Preset.DEFAULT_RESCHEDULE)), { version: 'v1', games: [{ match: 1, date: '2025-04-02', status: 'CANCELLED', reason: 'HEAT' }], maxConsecutiveDays: 5 });
+  eq(Store.normalize(cur).reschedule, cur.reschedule);
 });
 
 test('AC-11 프로젝트 내보내기 → 가져오기 동일 상태, 엔진 JSON 재가져오기 점수 동일', () => {
@@ -709,7 +728,7 @@ test('AC-11 프로젝트 내보내기 → 가져오기 동일 상태, 엔진 JSO
   const storage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, v), removeItem: (k) => mem.delete(k) };
   const st = new Store.Store({ storageKey: 'kbo-opus:test', storage, initial: project, autosaveMs: -1 });
   st.commit('이동', (s) => { s.plan[3].calendar = 9; s.matches[7].pinned = true; });
-  Reschedule.setGameStatus(st.state, Reschedule.computeGames(st.state)[5], 'CANCELLED', 'HEAT');
+  SeasonGames.setGameStatus(st.state, SeasonGames.computeGames(st.state)[5], 'CANCELLED', 'HEAT');
   st.addSnapshot('테스트');
   st.save();
   const st2 = new Store.Store({ storageKey: 'kbo-opus:test', storage, initial: project, autosaveMs: -1 });

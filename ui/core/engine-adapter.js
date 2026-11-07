@@ -30,15 +30,14 @@
   SolveHandle.prototype.resume = function () { if (this._controls && this.status === 'PAUSED') { this._controls.resume(); this._setStatus('RUNNING'); } };
   SolveHandle.prototype.stop = function () { if (this._controls && (this.status === 'RUNNING' || this.status === 'PAUSED' || this.status === 'STARTING')) this._controls.stop(); };
 
-  /** 엔진 입력을 Mock 탐색기 문제로 바꾼다 */
-  /** 날짜 단위 재편성 요청인가(reschedule.targets가 있다). 없으면 옛 묶음 방식(reschedule.js) */
+  /** 날짜 단위 재편성 요청인가. 재편성은 이 방식 하나다(reschedule.targets를 화면이 만들어 보낸다) */
   function isDaily(problem, mode) {
-    return mode === 'RESCHEDULE' && !!(problem && problem.reschedule && Array.isArray(problem.reschedule.targets) && KBO.RescheduleDaily);
+    return mode === 'RESCHEDULE';
   }
 
+  /** 엔진 입력을 Mock 탐색기 문제로 바꾼다 */
   function toSolverProblem(problem, mode) {
     if (isDaily(problem, mode)) return { mode: 'RESCHEDULE_DAILY', input: { project: problem } };
-    if (mode === 'RESCHEDULE') return { mode, input: KBO.Reschedule.buildInput(problem) };
     const input = KBO.Score.buildInput(problem);
     input.plan = Array.from(KBO.Score.planArrayFrom(problem));
     return { mode: 'INITIAL', input };
@@ -47,11 +46,6 @@
   function scoreLocal(problem, plan, mode) {
     if (isDaily(problem, mode)) return KBO.RescheduleDaily.score(problem, plan || problem.reschedule.plan || []);
     const p = Object.assign({}, problem);
-    if (mode === 'RESCHEDULE') {
-      if (plan) p.reschedule = Object.assign({}, problem.reschedule, { plan });
-      const ex = KBO.Reschedule.explain(p);
-      return { score: ex.score, violations: ex.violations, teamMetrics: ex.teamMetrics, scoreString: KBO.Score.scoreString(ex.score) };
-    }
     if (plan) p.plan = plan;
     const ex = KBO.Score.scoreProject(p);
     return { score: ex.score, violations: ex.violations, teamMetrics: ex.teamMetrics.map((t) => { const c = Object.assign({}, t); delete c.visits; delete c.runs; return c; }), scoreString: KBO.Score.scoreString(ex.score) };
@@ -60,7 +54,7 @@
   /** Worker 소스: 코어 팩토리 함수 문자열을 이어 붙인다(file://에서도 fetch 없이 동작) */
   function workerSource() {
     const f = KBO.__factories;
-    const parts = ['calendar', 'score', 'reschedule', 'rescheduleDaily', 'mockSolver'].map((n) => {
+    const parts = ['calendar', 'score', 'rescheduleDaily', 'mockSolver'].map((n) => {
       if (!f[n]) throw new Error('코어 모듈 누락: ' + n);
       return '(' + f[n].toString() + ')(self.KBO);';
     });
