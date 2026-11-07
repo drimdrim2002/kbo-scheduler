@@ -65,14 +65,18 @@ class ReproducibleSolveTest {
                 "at least one seed should stop on no improvement between 75% and 100%");
     }
 
-    /** 계산 수를 다 못 채워도 고른 시간이 지나면 멈춘다(OR). */
+    /** 계산 수를 다 못 채워도 고른 시간이 지나면 멈춘다(OR). 고른 시간은 첫 일정을 만드는 시간까지 포함한다. */
     @Test
-    void timeLimitStillEndsTheRun() throws Exception {
+    void timeLimitStillEndsTheRunAndIncludesSetup() throws Exception {
+        solve(new long[] {7L}, new StopRule(1_000, 0, 60)); // 예열: 처음 한 번은 준비가 느리다
         long start = System.currentTimeMillis();
-        MultiStartSolver.Result r = solve(new long[] {7L}, new StopRule(1_000_000_000L, 0, 2));
+        MultiStartSolver.Result r = solve(new long[] {7L, 8L}, new StopRule(1_000_000_000L, 0, 4));
         long ms = System.currentTimeMillis() - start;
         assertEquals("TIME_LIMIT", r.reason());
-        assertTrue(ms < 10_000, "took " + ms + "ms");
+        assertTrue(ms < 4_000 + 1_000, "took " + ms + "ms for a 4-second run");
+        for (MultiStartSolver.SeedResult s : r.seeds()) {
+            assertTrue(s.elapsedMs() < 4_000, "seed " + s.seed() + " searched " + s.elapsedMs() + "ms");
+        }
     }
 
     /** 서버 요청 길(JobManager → 문제 변환 → 초기해 또는 보낸 일정에서 이어 풀기)로도 같은 일정이 나온다. 서로 저장소를 나누지 않는 두 관리자로 돌린다. */
@@ -100,7 +104,10 @@ class ReproducibleSolveTest {
     @Test
     void secondsBecomeCalculations() {
         StopRule twoMinutes = StopRule.fromSeconds(120, 60L);
-        assertEquals(120 * BenchSupport.CALCS_PER_SECOND, twoMinutes.calcLimit());
+        assertEquals((120 - StopRule.SETUP_ESTIMATE_SEC) * BenchSupport.CALCS_PER_SECOND, twoMinutes.calcLimit());
+        assertEquals(5 * BenchSupport.CALCS_PER_SECOND, StopRule.fromSeconds(10, null).calcLimit());
+        assertEquals(2 * BenchSupport.CALCS_PER_SECOND, StopRule.fromSeconds(4, null).calcLimit());
+        assertEquals(1 * BenchSupport.CALCS_PER_SECOND, StopRule.fromSeconds(1, null).calcLimit());
         assertEquals(60 * BenchSupport.STEPS_PER_SECOND, twoMinutes.unimprovedSteps());
         assertEquals(120, twoMinutes.timeSec());
     }

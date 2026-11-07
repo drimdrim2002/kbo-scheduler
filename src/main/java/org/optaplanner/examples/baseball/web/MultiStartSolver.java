@@ -12,6 +12,7 @@ import org.optaplanner.core.api.solver.SolutionManager;
 import org.optaplanner.core.api.solver.Solver;
 import org.optaplanner.core.api.solver.SolverFactory;
 import org.optaplanner.core.config.solver.SolverConfig;
+import org.optaplanner.core.config.solver.termination.TerminationConfig;
 import org.optaplanner.core.impl.phase.event.PhaseLifecycleListenerAdapter;
 import org.optaplanner.core.impl.phase.scope.AbstractPhaseScope;
 import org.optaplanner.core.impl.phase.scope.AbstractStepScope;
@@ -48,12 +49,16 @@ final class MultiStartSolver {
             List<SeedResult> seeds, String reason, long elapsedMs) {
     }
 
+    /** 첫 일정을 만드는 데 고른 시간을 다 써도 탐색은 이만큼 한다(아주 짧은 시간을 골랐을 때만 고른 시간을 조금 넘긴다). */
+    static final long MIN_SEARCH_MS = 1_000L;
+
     private final List<Solver<BaseballSolution>> solvers = new ArrayList<>();
     private volatile boolean stopRequested;
 
     /**
      * @param problemForSeed 시드마다 새 문제 인스턴스를 만든다(솔버가 해를 바꾸므로 공유하면 안 된다).
-     * @param stop step 기준 종료와 안전장치 시간
+     * @param stop 계산 수·고른 시간·개선 없음. 고른 시간은 이 호출이 시작된 때부터 센다: 시드마다 첫 일정을 만드는 시간까지
+     *        포함하고, 탐색은 남은 시간만 쓴다(사용자 결정 2026-11-08)
      */
     Result run(LongFunction<BaseballSolution> problemForSeed, long[] seeds, StopRule stop, Sink sink)
             throws InterruptedException {
@@ -136,8 +141,11 @@ final class MultiStartSolver {
     private SeedRun runOne(long seed, LongFunction<BaseballSolution> problemForSeed, StopRule stop,
             Sink sink, Object lock, BendableLongScore[] globalBest, long start) {
         BaseballSolution problem = problemForSeed.apply(seed);
+        // 첫 일정을 만드는 데 쓴 시간을 뺀 나머지가 탐색 시간. 이미 다 썼어도 탐색은 MIN_SEARCH_MS만큼은 한다
+        long searchMs = Math.max(MIN_SEARCH_MS, stop.timeSec() * 1000L - (System.currentTimeMillis() - start));
         SolverConfig config = BenchSupport.withWorkLimits(BenchSupport.solverConfig(seed, stop.timeSec(), "NONE", null, null),
                 stop.calcLimit(), stop.unimprovedStepsOrNull());
+        config.setTerminationConfig(new TerminationConfig().withMillisecondsSpentLimit(searchMs));
         SolverFactory<BaseballSolution> factory = SolverFactory.create(config);
         BendableLongScore initialScore = (BendableLongScore) SolutionManager.create(factory).update(problem);
         SolveTrace trace = new SolveTrace(problem, seed, initialScore);
@@ -183,10 +191,10 @@ final class MultiStartSolver {
         long solveMs = System.currentTimeMillis() - t0;
         String reason = stopRequested ? "STOPPED"
                 : calcs[0] >= stop.calcLimit() ? "CALC_LIMIT"
-                : solveMs >= stop.timeSec() * 1000L - 250L ? "TIME_LIMIT" : "UNIMPROVED";
+                : solveMs >= searchMs - 250L ? "TIME_LIMIT" : "UNIMPROVED";
         if ("TIME_LIMIT".equals(reason)) {
-            LOG.warn("seed {} hit the {}s time limit after {} of {} calculations; this run is not reproducible", seed,
-                    stop.timeSec(), calcs[0], stop.calcLimit());
+            LOG.warn("seed {} hit the {}s time limit ({}ms left for search after setup) after {} of {} calculations; "
+                    + "this run is not reproducible", seed, stop.timeSec(), searchMs, calcs[0], stop.calcLimit());
         }
         BendableLongScore score = solved.getBendableLongScore();
         synchronized (lock) {
