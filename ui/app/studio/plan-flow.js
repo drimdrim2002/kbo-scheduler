@@ -876,7 +876,7 @@
   function saveRow(res) {
     const vid = res.vid || res.from, v = vid ? P.versions.get(YEAR_NEW, vid) : null;
     const test = byTestEngine(res) ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '';
-    const go = '<button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button><button class="btn" data-act="go-step" data-step="8">요구 사항 점검</button>';
+    const go = '<button class="btn" data-act="go-step" data-step="8">요구 사항 점검</button><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기</button><button class="btn" data-act="go-step" data-step="4">구단별 보기</button>';
     let head, meta, keep = '';
     if (v && !v.builtin) {
       head = '<span class="small muted">저장한 이름</span><input value="' + esc(v.name) + '" data-in="pf-name" data-id="' + esc(v.id) + '" aria-label="결과 이름">' + (v.kept ? '<span class="pf-tag blue">남김</span>' : '');
