@@ -37,10 +37,13 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * GET  /api/v1/info                      서버 정보·한도·큐 길이
  * POST /api/v1/solve                     { problem, options, mode } → { jobId, status }
+ *                                        mode: INITIAL(1차 편성, 기본) | RESCHEDULE(날짜 단위 재편성,
+ *                                        problem.reschedule { start, end, targets[], plan[] … }, docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md §5)
  * GET  /api/v1/solve/{jobId}             상태·마지막 best·done
  * GET  /api/v1/solve/{jobId}/events      SSE: queued | status | seed-best | best | done | error
  * POST /api/v1/solve/{jobId}/stop        조기 종료
  * POST /api/v1/score                     { problem, plan?, mode } → { score, scoreString }
+ *                                        (RESCHEDULE: plan = [{ game, date }] → { score, levels, metrics, violations, unplaced, … })
  * POST /api/v1/verify                    { problem, plan? } → 요구 사항 점검표 { ok, total, passed, failed, info, groups[], tables }
  *                                        (엔진 점수와 따로, 완성된 일정을 날짜별 경기로 풀어 다시 센다. RequirementChecker.
  *                                        편성 결과·저장 결과(/results/{id})에도 같은 모양이 verification으로 실린다)
@@ -263,9 +266,13 @@ public final class BaseballWebServer {
             if (problem == null) {
                 throw new IllegalArgumentException("problem이 없습니다.");
             }
-            String mode = Json.asString(body.get("mode"), "INITIAL");
-            if (!"INITIAL".equals(mode)) {
-                throw new IllegalArgumentException("이번 버전은 mode=INITIAL만 지원합니다.");
+            String mode = Json.asString(body.get("mode"), SolveOptions.INITIAL);
+            if (SolveOptions.RESCHEDULE.equals(mode)) {
+                sendJson(ex, 200, RescheduleJobs.score(problem, Json.array(body.get("plan"))));
+                return;
+            }
+            if (!SolveOptions.INITIAL.equals(mode)) {
+                throw new IllegalArgumentException("모르는 편성 방식입니다: " + mode);
             }
             BaseballSolution solution = ProblemCodec.toSolution(problem);
             boolean full = ProblemCodec.applyPlan(solution, problem, Json.array(body.get("plan")));

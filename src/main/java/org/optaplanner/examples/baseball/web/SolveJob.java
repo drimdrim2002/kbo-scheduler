@@ -32,7 +32,7 @@ final class SolveJob {
     /** 마지막으로 누가 이 작업을 지켜본 때(만든 때·SSE 연결·끊김·상태 조회). */
     private long lastSeenAt = createdAt;
     private final List<BlockingQueue<Event>> subscribers = new ArrayList<>();
-    volatile MultiStartSolver solver;
+    volatile MultiStartSolver<?> solver;
     volatile boolean stopRequested;
     /** 끝났을 때 한 번 부른다(기본 결과 저장 등). 캐시 적중이면 submit이 바로 부른다. */
     volatile java.util.function.Consumer<JSONObject> onDone;

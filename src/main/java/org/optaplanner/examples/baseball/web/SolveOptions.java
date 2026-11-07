@@ -9,11 +9,19 @@ import org.json.simple.JSONObject;
  */
 record SolveOptions(String mode, long timeLimitSec, Long unimprovedSec, long seed, int seeds, String init) {
 
+    static final String INITIAL = "INITIAL";
+    /** 날짜 단위 재편성(docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md). 기본 10초, 개선 없음 3초. */
+    static final String RESCHEDULE = "RESCHEDULE";
+    static final long RESCHEDULE_DEFAULT_SECONDS = 10;
+    static final long RESCHEDULE_DEFAULT_UNIMPROVED = 3;
+
     static SolveOptions from(JSONObject raw, ServerLimits limits) {
         JSONObject o = raw == null ? new JSONObject() : raw;
-        String mode = Json.asString(o.get("mode"), "INITIAL");
-        long time = clamp(Json.asLong(o.get("timeLimitSec"), limits.defaultSeconds()), 1, limits.maxSeconds());
-        long unimprovedRaw = Json.asLong(o.get("unimprovedSec"), 0);
+        String mode = Json.asString(o.get("mode"), INITIAL);
+        boolean reschedule = RESCHEDULE.equals(mode);
+        long time = clamp(Json.asLong(o.get("timeLimitSec"), reschedule ? RESCHEDULE_DEFAULT_SECONDS : limits.defaultSeconds()), 1,
+                limits.maxSeconds());
+        long unimprovedRaw = Json.asLong(o.get("unimprovedSec"), reschedule ? RESCHEDULE_DEFAULT_UNIMPROVED : 0);
         Long unimproved = unimprovedRaw > 0 ? Math.min(unimprovedRaw, time) : null;
         long seed = Json.asLong(o.get("seed"), 0);
         int seeds = (int) clamp(Json.asLong(o.get("seeds"), limits.defaultSeeds()), 1, limits.maxSeeds());
