@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const core = path.resolve(__dirname, '..');
-for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
+for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite', 'fix-plan']) require(path.join(core, f + '.js'));
 const K = globalThis.KBO;
 const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel, Xlsx } = K;
 
@@ -606,6 +606,7 @@ test('AC-4 어린이날 구장 기준/엔진 호환', () => {
 
 // 홈 구장 지정(연전 기간별 홈 의무 구단) — Java 골든 비교. 파일을 따로 둬 다른 시험과 겹치지 않게 한다
 require('./home-designation.test.js')(test, { assert, eq, project, K });
+require('./fix-plan.test.js')(test, { assert, eq, project, K });
 
 test('NFR-3/FR-M3 상세 재채점 100ms 이내 (225 시리즈)', () => {
   const p = project();

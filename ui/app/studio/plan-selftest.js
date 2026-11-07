@@ -447,6 +447,70 @@
       ok('일정 달력: 그 해 날짜로 그려짐(연도가 2025로 고정되지 않음)', qa('.cal-week').length >= 4 && /vs/.test(q('.cal-grid').innerText));
       const mt = q('.month-tabs');
       ok('일정 달력: 달 단추가 잘리지 않음', mt.scrollWidth <= mt.clientWidth + 1);
+      // 결과 고치기(plan-edit.js): 시즌 띠 — 누르면 그 연전 고정(경기 모두 고정), 다시 누르면 풀림 · 「고치는 방법」 추천은 없음
+      const press = (el, shift) => { el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, shiftKey: !!shift })); document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 })); flush(); };
+      ok('결과 고치기: 시즌 띠에 연전 기간 전부 + 마치기 단추 둘 · 고치는 방법 단추 없음', qa('.pe-strip .pe-c').length === st().calendar.length && !!q('[data-act="pe-run"]') && !!q('[data-act="pe-save"]') && !q('[data-act="viol-fix"]'));
+      const fixAt = 5, slotPins = () => st().plan.filter((p) => p.calendar === fixAt).map((p) => !!st().matches[p.match].pinned);
+      press(q('.pe-c[data-pe="' + fixAt + '"]'));
+      ok('결과 고치기: 누른 연전이 고정되고 그 연전 경기가 모두 고정됨 · 달력이 그 달로', (st().meta.editFix || {}).slots.join() === String(fixAt) && slotPins().every(Boolean) && !!q('.pe-c.fx[data-pe="' + fixAt + '"]') && !!q('.slotband.pe-fx'));
+      press(q('.pe-c[data-pe="' + (fixAt + 3) + '"]'), true);
+      ok('결과 고치기: Shift로 누르면 사이의 연전까지 고정', st().meta.editFix.slots.join() === [fixAt, fixAt + 1, fixAt + 2, fixAt + 3].join());
+      const conf = window.confirm; window.confirm = () => true; click('[data-act="pe-clear"]'); window.confirm = conf; flush();
+      ok('결과 고치기: 모두 풀기 → 고정 없음', !st().meta.editFix.slots.length && slotPins().every((x) => !x) && !q('.pe-c.fx'));
+      // 서버가 「고정한 채로 처음부터 짤 수 없음」(JobManager.problemFor)이라 답하면 이어서 풀기로 다시 → 그것도 안 되면 사용자 말로. 시험 엔진은 이 오류를 내지 않으므로 실행 시작만 바꿔 끼워 본다
+      {
+        const PF = S.planFlow, PE = PF.edit, startRun = S.startRun, solver0 = Object.assign({}, st().settings.solver), toasts = [], toast0 = S.toast;
+        let started = 0;
+        S.startRun = () => { started++; };
+        S.toast = (m) => toasts.push(String(m));
+        const JAVA = '고정한 3연전 시리즈 2개를 그 자리에 둔 채로는 편성을 처음부터 짤 수 없었습니다. 고정을 몇 개 풀고 다시 시도해 주세요.';
+        const arm = (init) => { S.app.updateSolverSettings({ init }); PE.pending = true; PF.runTag = '고정후새로짜기'; PF.runNote = '메모'; S.app.store.commit('점검: 실행 전', (x) => { x.meta.editRun = { before: { gaps: {}, hard: 0 }, init }; }, { tags: ['meta'], undo: false }); };
+        try {
+          arm('SCRATCH');
+          const r1 = S.onRunError(JAVA);
+          await wait(30);
+          ok('결과 고치기: 처음부터 못 짜면 이어서 풀기로 다시 보냄', r1 === true && st().settings.solver.init === 'KEEP' && started === 1 && st().meta.editRun.fallback === true && toasts.some((t) => /이어서 고칩니다/.test(t)));
+          arm('KEEP');
+          const r2 = S.onRunError(JAVA);
+          ok('결과 고치기: 이어서 풀기도 못 하면 「고정한 연전이 많아…」 · 이름 꼬리표 지움', r2 === true && st().meta.editRun.failed === true && toasts.some((t) => /고정한 연전이 많아 새로 짤 수 없습니다/.test(t)) && !toasts.some((t) => /시리즈/.test(t)) && PF.runTag == null && !PE.pending);
+          arm('SCRATCH');
+          const r3 = S.onRunError('이벤트 스트림 연결이 끊어졌습니다.');
+          ok('결과 고치기: 다른 오류는 그대로 넘기고 이름 꼬리표 지움', r3 === false && PF.runTag == null && PF.runNote == null && !PE.pending && started === 1);
+        } finally {
+          S.startRun = startRun; S.toast = toast0;
+          S.app.updateSolverSettings(solver0);
+          S.app.store.commit('점검: 정리', (x) => { delete x.meta.editRun; }, { tags: ['meta'], undo: false });
+        }
+        S.go({ step: 3, view: 'calendar', month: 4 }); flush();
+      }
+      // 홈 지정을 넣으면 운영 방침 화면의 실행도 처음부터(고정은 지킴) · 아래 줄에 「…를 지킵니다」 (사용자 결정 2026-11-07)
+      {
+        const PF = S.planFlow, startRun = S.startRun, solver0 = Object.assign({}, st().settings.solver);
+        press(q('.pe-c[data-pe="' + fixAt + '"]'));
+        click('[data-act="pe-mode"][data-v="home"]'); flush();
+        const d = S.app.derived(), des0 = window.KBO.FixPlan.designations(st()), hs = d.slots.find((x) => x.index > fixAt + 5 && x.consecutive === 3 && !des0[x.index]).index; // 어린이날처럼 이미 정한 연전은 피한다
+        const shared = new Set(st().teams.filter((t) => st().teams.filter((x) => x.stadium === t.stadium).length > 1).map((t) => t.name));
+        const team = d.bySlot[hs].map((i) => st().matches[i].away).find((t) => !shared.has(t));
+        press(q('.pe-c[data-pe="' + hs + '"]'));
+        click('.pe-tm[data-team="' + team + '"]'); flush();
+        ok('홈 지정: 띠에서 3연전 → 구단 고르기 → 홈 지정 이벤트(1단계와 같은 값)', st().events.some((e) => e.mode === 'STADIUM' && e.fix === 'home' && (e.teams || []).includes(team)) && PF.homeEdited(st()));
+        S.go({ step: 2 }); flush();
+        const foot = q('.footer').innerText, band = q('#stepper').innerText;
+        ok('운영 방침: 아래 줄 실행 단추 옆에 「고정한 연전 1개를 지킵니다」', !!q('.footer .pe-keep') && /고정한 연전 1개를 지킵니다/.test(q('.footer .pe-keep').textContent));
+        ok('운영 방침: 홈 지정이 바뀌면 「이어서」가 아니라 처음부터 다시', /처음부터 다시/.test(foot) && !/이어서/.test(foot) && /처음부터 다시 실행/.test(band) && !/이어서 실행/.test(band));
+        const editedBefore = PF.homeEdited(st()) && st().meta.result.sig !== PF.inputSig(st()); // 편성 조건이 바뀌어 예전 규칙이면 「이어서」였을 경우
+        S.startRun = () => {};
+        try { click('.footer [data-act="pf-run"]'); flush(); } finally { S.startRun = startRun; PF.runOption = null; }
+        ok('운영 방침: 홈 지정을 바꾼 뒤 실행은 처음부터(고정은 그대로 보냄)', editedBefore && st().settings.solver.init === 'SCRATCH' && st().plan.filter((p) => p.calendar === fixAt).every((p) => st().matches[p.match].pinned));
+        S.app.updateSolverSettings(solver0);
+        S.go({ step: 3, view: 'calendar' }); flush();
+        click('[data-act="pe-mode"][data-v="home"]'); flush();
+        press(q('.pe-c[data-pe="' + hs + '"]'));
+        click('.pe-tm[data-team="' + team + '"]'); flush();
+        ok('홈 지정 빼면 다시 「이어서」 대상 아님', !PF.homeEdited(st()));
+        click('[data-act="pe-mode"][data-v="fix"]'); flush();
+        const conf2 = window.confirm; window.confirm = () => true; click('[data-act="pe-clear"]'); window.confirm = conf2; flush();
+      }
       S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
       ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
       // 구단별 보기: 한 구단 → 둘째 구단 고르기 → 두 구단 비교(team-view.js)
