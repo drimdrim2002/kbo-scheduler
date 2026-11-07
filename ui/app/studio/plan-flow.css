@@ -28,7 +28,6 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-fill .pf-rw { line-height: 1.25; }
 .pf-fill .pf-sec > .pf-big3 { flex: 1 0 auto; justify-content: center; gap: clamp(8px, 2vh, 22px); }
 .pf-fill .pf-rv { flex: 1 0 auto; }
-.pf-fill > .pf-vers { contain: size; overflow: auto; }
 /* 결과 없음 같은 안내 하나뿐인 화면: 안내 칸이 창을 채우고 글은 가운데 */
 .pf-page > .pf-sec:only-child:not(.pf-fill) { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 /* 실행 중 화면 오른쪽 위 「운영 방침 설명하기」 */
@@ -336,12 +335,44 @@ table.pf-h tr.gap td.over b, table.pf-h tr.gap td.over small { color: var(--bad)
 .pf-b .tr { height: 14px; background: var(--surface-2); border-radius: 3px; position: relative; } .pf-b .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--blue); } .pf-b.g .tr i { background: #C9CFD9; }
 .pf-b .n { text-align: right; font-family: var(--mono); font-size: 11.5px; }
 
-/* 버전 */
-.pf-ver { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; }
-.pf-ver + .pf-ver { margin-top: 8px; }
-.pf-ver.on { border-color: var(--blue); background: #F7FAFF; }
-.pf-ver b { color: var(--navy); font-size: 14px; word-break: keep-all; overflow-wrap: anywhere; } .pf-ver small { display: block; color: var(--text-2); font-size: 12px; } .pf-ver .w { font-size: 11px; color: var(--text-3); }
-.pf-ver .acts { display: flex; flex-direction: column; gap: 4px; }
+/* 실행 결과 비교: 위 순위표(버전마다 한 줄, 평가 기준은 고른 운영 방침의 순위대로 열) · 아래 고른 두 버전(사용자 결정 2026-11-07 안 A) */
+.pf-cmp-ob { display: inline-flex; align-items: center; gap: 8px; margin-left: 14px; font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; min-width: 0; }
+.pf-cmp-ob select { font: inherit; font-weight: 600; color: var(--blue); background: var(--blue-weak); border: 1px solid var(--blue-line); border-radius: 6px; padding: 3px 6px; cursor: pointer; min-width: 0; max-width: 100%; }
+table.pf-vt { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.pf-vt th { font-size: 12px; font-weight: 600; color: var(--text-2); text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line-2); background: var(--surface-2); vertical-align: bottom; white-space: nowrap; }
+.pf-vt th small { display: block; font-weight: 400; color: var(--text-3); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.pf-vt th.l, .pf-vt td.nm, .pf-vt td.w { text-align: left; } .pf-vt .c, .pf-vt .k { text-align: center; }
+.pf-vt td { padding: 0 8px; height: 30px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.pf-vt td.k { font-weight: 700; font-size: 14px; } .pf-vt td.k.one { color: var(--blue); }
+.pf-vt td.nm > div { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.pf-vt td.nm b { color: var(--navy); font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; } .pf-vt td.nm .pf-tag { flex: none; }
+.pf-vt td.w { color: var(--text-3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.pf-vt input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; vertical-align: -3px; }
+.pf-vt tr.pf-ver:hover td { background: var(--hover); }
+.pf-vt tr.pa td { background: var(--sel); } .pf-vt tr.pa td:first-child { box-shadow: inset 4px 0 0 var(--blue); }
+.pf-vt tr.pb td { background: #F4F5F7; } .pf-vt tr.pb td:first-child { box-shadow: inset 4px 0 0 #8E96A4; }
+.pf-vt td.acts { overflow: visible; } .pf-vt td.acts > * { vertical-align: middle; }
+.pf-vt .cf { visibility: hidden; margin-right: 4px; } /* 확정은 1위·확정한 줄에만 늘 보이고, 나머지는 줄에 올리거나 키보드로 들어오면 */
+.pf-vt tr.first .cf, .pf-vt tr.fin .cf, .pf-vt tr:hover .cf, .pf-vt tr:focus-within .cf { visibility: visible; }
+.pf-vm { display: inline-block; position: relative; }
+.pf-vm > summary { list-style: none; letter-spacing: 1px; font-weight: 700; padding: 2px 8px; } .pf-vm > summary::-webkit-details-marker { display: none; }
+.pf-vm-list { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: #fff; border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 6px 20px rgba(10,30,60,.15); padding: 4px; min-width: 130px; text-align: left; }
+.pf-vm-list button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 6px 10px; border-radius: 5px; font: inherit; color: var(--text); cursor: pointer; }
+.pf-vm-list button:hover { background: var(--hover); } .pf-vm-list button.del { color: var(--bad); }
+.pf-close { margin-top: 8px; font-size: 12px; color: var(--warn); display: flex; gap: 8px; align-items: center; }
+.pf-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; flex: none; } .pf-sw.a { background: var(--blue); } .pf-sw.b { background: #C9CFD9; }
+.pf-duel-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex: none; }
+.pf-duel-h h3 { margin: 0; font-size: 15px; color: var(--navy); }
+.pf-duel-h .who { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; max-width: 360px; } .pf-duel-h .who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-duel-h .btn { margin-left: auto; }
+/* 큰 창: 아래 비교가 남는 높이를 받고, 왼쪽 표의 줄과 오른쪽 막대 줄이 그 높이를 나눠 가져 두 칸의 끝이 맞는다 */
+.pf-duel-b { flex: 1 0 auto; display: grid; grid-template-columns: 480px minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.pf-duel-b > div { display: flex; flex-direction: column; min-width: 0; }
+.pf-duel-b > div > table { flex: 1 0 auto; }
+.pf-duel-b > div > .pf-tb { flex: 1 0 auto; }
+.pf-duel .pf-t tr.same td { opacity: .5; }
+.pf-duel .pf-t tr.hit td { background: var(--blue-weak); }
+.pf-duel .pf-t .sp { font-size: 11.5px; color: var(--text-3); margin-left: 4px; } .pf-duel .pf-t .flip { display: block; font-size: 11.5px; color: var(--warn); margin-top: 2px; white-space: normal; }
 .pf-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .pf-tabs button { padding: 6px 14px; font: inherit; font-size: 13px; color: var(--text-2); background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }
 .pf-tabs button.on { color: var(--navy); font-weight: 700; border-bottom-color: var(--blue); }
