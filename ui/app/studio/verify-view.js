@@ -250,7 +250,7 @@
     const head = '<div class="pf-vchk-head' + (s.bad.length ? ' bad' : '') + '"><div class="t"><b>' + esc(s.away) + '</b><span class="xs muted"> 원정</span> → <b>' + esc(s.home) + '</b><span class="xs muted"> 홈 · ' + esc(s.stadium || '구장 없음') + '</span></div>' +
       '<div class="xs muted">' + range(s) + ' · ' + nOf(s) + '연전' + (s.slot >= 0 ? ' · 연전 기간 ' + (s.slot + 1) : '') + '</div>' +
       '<div class="pf-vchk-verdict">' + (s.bad.length ? verdictIcon(FAIL) + '<b>이 연전에서 ' + s.bad.length + '개 어김</b>' : verdictIcon(PASS) + '<b>이 연전은 모두 지킴</b>') + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '</div>' +
-      (s.bad.length ? '<ul class="pf-vchk-rows pf-vchk-badsum">' + items(v).filter((it) => s.bad.includes(it.id)).map((it) => '<li><b>' + esc(it.title) + '</b> — ' + stateOf(c, s, it).rows.filter((r) => r.judge && !OK_JUDGE.test(r.judge)).slice(0, 3).map((r) => rowText(it, r)).join('<br>') + '</li>').join('') + '</ul>' : '') + // 어긴 항목은 맨 위에 근거와 함께(내리지 않아도 보이게)
+      (s.bad.length ? '<ul class="pf-vchk-rows pf-vchk-badsum">' + items(v).filter((it) => s.bad.includes(it.id)).map((it) => '<li><b>' + esc(it.title) + '</b> — ' + (function (rows) { const bad = rows.filter((r) => r.judge && !OK_JUDGE.test(r.judge)); return (bad.length ? bad : rows).slice(0, 3).map((r) => rowText(it, r)).join('<br>') || '근거 표 참고'; })(stateOf(c, s, it).rows) + '</li>').join('') + '</ul>' : '') + // 어긴 항목은 맨 위에 근거와 함께(내리지 않아도 보이게)
       '<div class="xs muted" style="margin-top:6px">엔진이 낸 경기(서버가 날짜별로 푼 것)</div>' + games + '</div>';
     const groups = (v.groups || []).map((g) => {
       const rows = (g.items || []).map((it) => {
