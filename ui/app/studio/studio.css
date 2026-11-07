@@ -1283,6 +1283,9 @@ svg.mc text { font-family: var(--font); }
 .sc-htable .input:hover { border-color: var(--line-2); background: var(--surface); }
 .sc-htable .input:focus { border-color: var(--blue); background: var(--surface); }
 .sc-htable .sc-hw { text-align: right; font-weight: 700; }
+/* 줄 지우기(×): 마지막 칸이 22px라 기본 아이콘 단추(28px)는 표 밖으로 삐져나온다 — 칸에 맞는 20px 정사각으로 */
+.sc-htable td:last-child { padding: 2px 1px; }
+.sc-htable td:last-child .btn.icon { width: 20px; }
 .sc-hfoot { display: flex; gap: 8px; align-items: center; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.4; }
 .sc-hfoot .btn { flex: none; }
 .sc-kbo { margin-top: 6px; }
