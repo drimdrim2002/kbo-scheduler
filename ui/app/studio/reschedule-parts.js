@@ -476,13 +476,13 @@
     const st = rs();
     if (st.version === id) return true;
     if (!quiet && st.version && ((st.games || []).length || st.result) && !window.confirm('버전을 바꾸면 표시한 취소 경기 ' + (st.games || []).length + '개와 재편성 결과를 지웁니다. 바꿀까요?')) { S.render(); return false; }
-    const b = baseOf(v), start = Dates.isoDate(Dates.dayNum(b.last) + 1);
+    const b = baseOf(v), start = Dates.isoDate(Dates.dayNum(b.last) + 1), had = !!st.version;
     commit('재편성 버전: ' + v.name, (r, s) => {
       r.version = id; r.games = []; r.plan = []; r.result = null;
       r.start = start;
       if (!r.end || r.end < start) r.end = (s.settings.seasonEnd && s.settings.seasonEnd >= start) ? s.settings.seasonEnd : Dates.isoDate(Dates.dayNum(start) + 41);
     });
-    R.ui.date = null; R.ui.month = null;
+    if (had) { R.ui.date = null; R.ui.month = null; } // 처음 고를 때는 주소의 날짜를 그대로(st는 commit 뒤 바뀐 값일 수 있어 미리 봐 둔다)
     return true;
   };
   /** 처음 들어올 때: 확정한 버전 → 첫 버전을 저절로 고른다 */
@@ -564,8 +564,10 @@
       const v = PF() && PF().builtin['2027-rank1'];
       if (!v) { if (k < 80) setTimeout(() => go(k + 1), 50); return; }
       S.quiet = true;
+      const keepDate = R.ui.date; // 주소의 rd(점검 경로)
       try {
         R.chooseVersion(v.id, true);
+        R.ui.date = keepDate;
         const b = R.base(), late = b.games.filter((g) => g.date >= '2027-07-20');
         const keys = [];
         for (let i = 0; i < n && late.length; i++) keys.push(late.splice((i * 37 + 11) % late.length, 1)[0].key);
