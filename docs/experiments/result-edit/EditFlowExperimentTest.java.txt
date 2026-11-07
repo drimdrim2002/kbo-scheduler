@@ -1,0 +1,52 @@
+package org.optaplanner.examples.baseball.web;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.junit.jupiter.api.Test;
+
+/** 실험용(커밋하지 않음): 결과 고치기 흐름 — 연전 고정 + 홈 지정 + 손으로 놓기를 실제 엔진으로. */
+class EditFlowExperimentTest {
+    private static final Path IN = Path.of(System.getProperty("exp.in", "target/edit-exp/scenarios.json"));
+    private static final Path OUT = Path.of(System.getProperty("exp.out", "target/edit-exp/results.json"));
+
+    @Test
+    void run() throws Exception {
+        JSONArray scenarios = Json.array(Json.parse(Files.readString(IN, StandardCharsets.UTF_8)));
+        long sec = Long.getLong("exp.sec", 30L);
+        JSONArray out = new JSONArray();
+        for (Object o : scenarios) {
+            JSONObject sc = Json.object(o);
+            for (String init : new String[] {"KEEP", "SCRATCH"}) {
+                JSONObject problem = Json.object(Json.parse(Json.object(sc.get("problem")).toJSONString()));
+                List<Runnable> runner = new ArrayList<>();
+                JobManager jobs = new JobManager(ServerLimits.defaults(), null, runner::add);
+                JSONObject r = Json.obj("name", sc.get("name"), "init", init);
+                try {
+                    SolveJob job = jobs.submit(problem, SolveOptions.from(Json.obj("timeLimitSec", sec, "unimprovedSec", sec / 2,
+                            "seed", 1L, "seeds", 4L, "init", init), ServerLimits.defaults()), "198.51.100.21");
+                    runner.forEach(Runnable::run);
+                    JSONObject st = job.statusJson();
+                    JSONObject done = Json.object(st.get("done"));
+                    if (done == null) {
+                        r.put("error", String.valueOf(st));
+                    } else {
+                        r.put("scoreString", done.get("scoreString"));
+                        r.put("elapsedMs", done.get("elapsedMs"));
+                        r.put("plan", done.get("plan"));
+                        r.put("seedResults", done.get("seedResults"));
+                    }
+                } catch (RuntimeException e) {
+                    r.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
+                }
+                System.out.println("EXP " + sc.get("name") + " " + init + " -> " + r.getOrDefault("scoreString", r.get("error")));
+                out.add(r);
+                Files.writeString(OUT, out.toJSONString(), StandardCharsets.UTF_8);
+            }
+        }
+    }
+}
