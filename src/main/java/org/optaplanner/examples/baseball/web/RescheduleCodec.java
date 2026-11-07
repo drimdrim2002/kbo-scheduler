@@ -364,7 +364,7 @@ final class RescheduleCodec {
         try {
             return LocalDate.parse(s.length() >= 10 ? s.substring(0, 10) : s);
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(what + "이(가) 올바른 날짜가 아닙니다: " + s);
+            throw new IllegalArgumentException(org.optaplanner.examples.baseball.reschedule.Korean.subject(what) + " 올바른 날짜가 아닙니다: " + s);
         }
     }
 

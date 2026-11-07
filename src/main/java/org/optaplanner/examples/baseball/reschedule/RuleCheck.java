@@ -49,7 +49,7 @@ public final class RuleCheck {
                 if (!ok) {
                     String date = iso(days.get(d).getDate());
                     out.add(new Violation("DH-1", teams.get(t).getName(), date, date,
-                            teams.get(t).getName() + "이(가) " + label(days.get(d).getDate()) + "에 " + list.size()
+                            Korean.subject(teams.get(t).getName()) + " " + label(days.get(d).getDate()) + "에 " + list.size()
                                     + "경기를 합니다. 한 구단은 하루 1경기(더블헤더 날은 같은 상대와 2경기)만 합니다."));
                 }
             }
@@ -111,7 +111,7 @@ public final class RuleCheck {
                     LocalDate from = days.get(runStart).getDate().minusDays(runStart == 0 ? history.runAtStart() : 0);
                     LocalDate to = days.get(d - 1).getDate();
                     out.add(new Violation("DH-4", name, iso(from), iso(to),
-                            name + "이(가) " + label(from) + "~" + label(to) + " " + run + "일 연속 경기합니다. 연속 경기일 상한은 "
+                            Korean.subject(name) + " " + label(from) + "~" + label(to) + " " + run + "일 연속 경기합니다. 연속 경기일 상한은 "
                                     + st.getMaxConsecutiveDays() + "일입니다."));
                 }
                 run = 0;
