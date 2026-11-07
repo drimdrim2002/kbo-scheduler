@@ -787,7 +787,7 @@
   // ───────── 3 현재 결과 분석 ─────────
   // 전체 이동 거리(늘 마지막 순위)는 목표별 격차의 넷째 칸에 10구단 합으로 보인다(사용자 결정 2026-11-06, 11-04에는 뺐었다). 이동 횟수·거리는 한 칸에 함께,
   // 주말·공휴일은 따로 — 이 둘은 왼쪽에 위아래로, 오른쪽에 「구단별 한눈에」를 넓게(사용자 결정 2026-11-04).
-  // 표는 방침의 순위대로 왼쪽부터, 순위에 없는 두 열은 오른쪽 끝에 두고 열 너비를 같게 한다. 색 채움(엑셀 느낌)은 쓰지 않는다.
+  // 표는 방침의 순위대로 왼쪽부터, 열 너비를 같게 한다. 색 채움(엑셀 느낌)은 쓰지 않는다.
   const HEAT_COLS = { moves: ['이동 횟수', 'moves', 0], distance: ['이동 거리', 'km', 1], holiday: ['주말·공휴일 홈(점)', 'hol', 0] };
   const rankOf = (ob, id) => ob.order.indexOf(id) + 1;
   const tolTag = (data, id, ob) => { const ok = within(data, id, ob); return '<span class="pf-tag ' + (ok ? 'ok' : 'over') + '">' + (ok ? '안' : '넘음') + '</span>'; };
@@ -809,7 +809,7 @@
   }
   /** 왼쪽 칸에 보일 목표: 고른 것이 방침에 없으면 1순위 */
   const shownGoal = (ids) => (ids.includes(P.dashGoal) ? P.dashGoal : ids[0]);
-  /** 구단별 한눈에 정렬(사용자 결정 2026-11-05: 제목을 누르면 그 열로). P.heatSort = null(1순위 많은 순) 또는 { k: 열 값 이름(moves·km·hol·wk·away) 또는 'team', dir: -1 많은 순 · 1 적은 순 }.
+  /** 구단별 한눈에 정렬(사용자 결정 2026-11-05: 제목을 누르면 그 열로). P.heatSort = null(1순위 많은 순) 또는 { k: 열 값 이름(moves·km·hol) 또는 'team', dir: -1 많은 순 · 1 적은 순 }.
    *  열 순서가 아니라 값 이름으로 기억해 방침 순위가 바뀌어도 같은 기준이 남는다 */
   function heatSortOf(cols) {
     const s = P.heatSort;
@@ -848,7 +848,7 @@
   }
   function dashboard(data, ob, run) {
     const ids = ob.order.filter((id) => GOALS[id].tol);
-    const cols = ids.map((id) => HEAT_COLS[id].concat(id)).concat([['주말 홈 시리즈', 'wk', 0], ['가장 긴 연속 원정', 'away', 0]]);
+    const cols = ids.map((id) => HEAT_COLS[id].concat(id)); // 참고용 두 열(주말 홈 시리즈·가장 긴 연속 원정)은 뺐다(사용자 결정 2026-11-07: 목표가 아닌데 목표처럼 보였다)
     const heatSec = '<div class="pf-sec pf-heat"><h3>구단별 한눈에</h3>' + heatAlert(data, ob, ids) +
       '<p class="pf-d">제목을 누르면 그 기준으로 줄을 세웁니다 · 지금 <b>' + heatSortText(heatSortOf(cols), cols) + '</b> · 열은 방침 순위대로</p>' + heatTable(data, ob, cols) + '</div>';
     // 왼쪽 위에 목표 셋을 같은 크기 칸으로 나란히(격차·허용), 누른 칸의 구단별 막대를 아래에(처음은 1순위). 셋을 위아래로 두면 홀수라 칸이 고르지 않았다(2026-11-05 대안 다)
