@@ -1,12 +1,15 @@
 /*
- * 편성 스튜디오 — 요구 사항 점검 (현재 결과 분석의 보기 하나, S.ui.step 8) · 대안 C 「연전 따라 점검」
+ * 편성 스튜디오 — 요구 사항 점검 (현재 결과 분석의 보기 하나, S.ui.step 8) · 대안 C 「연전 기간 따라 점검」
  *  서버 점검기(RequirementChecker, POST /api/v1/verify)가 완성된 일정을 시리즈 → 연전 기간 → 날짜별 경기로 풀어 요구 사항마다 다시 센 것을 보여 준다.
  *  엔진 점수와는 따로 세므로, 점수 공식이 틀려도 여기서 잡힌다. 화면은 「검증 완료」 배지가 아니라 사람이 다시 셀 수 있는 근거(원자료)를 보여 준다.
  *   - 요약 줄(현재 결과 분석 맨 위, P.verify.summary): 지킨 개수 또는 어긴 항목 이름 + 「서버가 … 다시 세어 판정했습니다 · 시각」
- *   - 왼쪽 연전 목록: 서버가 센 일정을 연전(시리즈)마다 날짜 순으로. 구단 고르기·「어긴 연전만」·앞/다음 어긴 연전. 연전마다 ✔ 또는 「n개 어김」.
- *   - 오른쪽 이 연전의 점검표: 목록 맨 위(또는 누른) 연전의 경기(엔진 결과)와 요구 사항마다 지킴·어김·참고·해당 없음 + 그 연전에 걸리는 서버 근거 줄.
- *     목록을 내리면 오른쪽이 따라 바뀐다. 「근거 표」는 시즌 전체 줄, 날짜를 누르면 달력의 그 날로.
- *   - 아래 접힌 칸: 날짜별 출전표(시즌 전체 · 특별 경기 날만 · 휴식일만), 「아무 날 골라 보기」. 「엑셀로 받기」(출전표·근거 표)
+ *   - 시즌 합계: 시즌 전체로 세는 항목(경기일·기간·시리즈·맞대결·홈 경기 수·시즌 기간·휴식일·연속)을 서버 판정과 함께 한 상자에.
+ *   - 연전 기간 따라 점검: 한 줄 = 한 기간. 칸이 구장별로 고정이라 한 칸에 경기가 둘 들어갈 자리가 없다(겹침이 배치상 불가능).
+ *     줄에는 특별 요구(개막전·어린이날·정한 대진·예외 경기)와 어긴 것만 표로, 판정은 「✔ 지킴」 또는 「✖ n개 어김」. 줄을 누르면 날짜별 경기와 근거가 펼쳐진다.
+ *     기간 사이에는 휴식기·어긴 휴식 요일 줄만(보통 월요일은 적지 않는다). 「어긴 기간만」·모두 펼치기·다음 어긴 기간.
+ *   - 누적 띠: 표 위에 붙어, 맨 위에 보이는 기간까지의 구단별 홈·원정 경기 수와 지금 연속. 끝까지 내리면 시즌 합계와 같은 숫자.
+ *     구단을 누르면 표에서 그 구단 경기만 진하게(홈은 더 진한 칸). 「엑셀로 받기」(연전 기간별·출전표·근거 표)
+ *   판정은 서버 줄의 판정 칸(judge)을 그대로 쓰고 화면이 새로 세지 않는다 — 줄이 어느 기간에 걸리는지만 화면이 찾는다. 누적 숫자는 엔진 결과를 그대로 센 것.
  *  실행이 끝날 때 받은 점검표(판정·근거 줄만, 원자료는 뺌)를 결과·버전에 남기고, 이 화면은 지금 일정으로 서버에 다시 묻는다(손으로 옮긴 경기까지).
  *  서버가 없으면(file://·시험 엔진) 「서버 점검을 할 수 없음」으로 정직하게 보인다.
  */
@@ -21,7 +24,7 @@
   const PASS = 'PASS', FAIL = 'FAIL', INFO = 'INFO';
   const METHOD = '서버가 완성된 일정만 다시 세어 판정했습니다(엔진 점수와 따로)';
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
-  const V = P.verify = { data: null, at: null, sig: null, loading: false, error: null, offline: false, filter: 'all', open: {}, gopen: {}, day: null };
+  const V = P.verify = { data: null, at: null, sig: null, loading: false, error: null, offline: false, open: {}, gopen: {} };
 
   // ───────── 공통 ─────────
   /** 일정의 지문(서버 점검표의 planSig와 같은 식, core/engine-adapter.js). 점검표가 지금 보이는 일정의 것인지는 이 값이 같은지로만 본다 */
@@ -31,7 +34,7 @@
   /** 결과·버전에 남길 몫: 근거 원자료(tables)는 크니까 뺀다 */
   V.slim = (v) => { if (!v) return null; const o = Object.assign({}, v); delete o.tables; return o; };
   /** 실행이 끝날 때 받은 점검표(원자료 포함)를 이 화면의 값으로 삼는다. 지문은 점검표에 적힌 것 — 지금 일정과 같은지는 보일 때마다 견준다 */
-  V.took = (v) => { V.data = v; V.at = v.checkedAt; V.error = null; V.offline = false; V.day = null; V.gopen = {}; V.open = {}; };
+  V.took = (v) => { V.data = v; V.at = v.checkedAt; V.error = null; V.offline = false; V.gopen = {}; V.open = {}; V.rows = {}; V.scrollTo = null; };
   const STALE = '이 점검표는 지금 보이는 일정의 것이 아닙니다';
   const when = (iso) => { if (!iso) return ''; const d = new Date(iso), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
   const verdictIcon = (v) => (v === FAIL ? '<span class="pf-vic bad">' + icon('x') + '</span>' : v === INFO ? '<span class="pf-vic info">' + icon('info') + '</span>' : '<span class="pf-vic ok">' + icon('check') + '</span>');
@@ -105,179 +108,166 @@
     return '<td>' + esc(v) + '</td>';
   }
 
-  // ───────── 날짜별 출전표 · 아무 날 ─────────
+  // ───────── 연전 기간 따라 점검 (대안 C) ─────────
+  /* 서버 점검표의 연전 기간 줄(series-length)을 뼈대로, 날짜별 경기(tables.days)를 기간마다 붙이고 구장별 칸에 놓는다.
+     서버가 적은 근거 줄은 걸리는 기간에 붙인다(특별 요구는 지켰어도 그 기간에 표, 어긴 줄은 빨간 표). 시즌 전체 항목은 시즌 합계 상자로.
+     누적 띠는 기간 순서대로 홈·원정 경기 수와 연속을 센 것(엔진 결과를 그대로 셈). 연속의 ✖는 서버 줄(streak)이 있을 때만 */
+  const H0 = S.parseHash(); // 점검용 주소: vteam=구단(강조) · vbad=1(어긴 기간만) · vk=기간 번호(그 줄로 내림) · vend=1(끝까지)
+  V.team = H0.vteam || ''; V.onlyBad = H0.vbad === '1'; V.allOpen = null; V.rows = {}; V.cur = 0; V.scrollTo = null; V.toEnd = false;
   const teamsOf = (v) => (v.tables && v.tables.teams) || app().state.teams.map((t) => t.name);
-  /** 날짜별 출전: 날짜 → 구단마다 { opp, home, stadium } */
+  /** 날짜별 출전(엑셀 시트): 날짜 → 구단마다 { opp, home, stadium } */
   function lineup(day, teams) {
     const m = {};
     for (const g of day.games || []) { m[g.home] = { opp: g.away, home: true, stadium: g.stadium }; m[g.away] = { opp: g.home, home: false, stadium: g.stadium }; }
     return teams.map((t) => m[t] || null);
   }
-  const specialDates = () => new Set(app().state.events.filter((e) => e.mode === 'STADIUM' && e.date).map((e) => e.date.slice(0, 10)));
-  function restRows(v) {
-    const out = [];
-    for (const it of items(v)) if (it.id === 'rest-weekdays' || it.id === 'blackouts') for (const r of it.rows || []) out.push({ date: r.date, weekday: r.weekday, games: r.games, judge: r.judge, label: r.label || (it.id === 'rest-weekdays' ? '휴식 요일' : '') });
-    return out.sort((a, b) => (a.date < b.date ? -1 : 1));
-  }
-  function gridHtml(v) {
-    const days = (v.tables && v.tables.days) || [], teams = teamsOf(v), f = V.filter;
-    const tabs = [['all', '시즌 전체 ' + days.length + '일'], ['special', '특별 경기 날만'], ['rest', '휴식일만']].map(([k, l]) => '<button class="' + (f === k ? 'on' : '') + '" data-act="vf-filter" data-v="' + k + '">' + l + '</button>').join('');
-    let body;
-    if (f === 'rest') {
-      const rows = restRows(v);
-      body = rows.length ? '<table class="pf-t pf-vt"><thead><tr><th>날짜</th><th>요일</th><th>무엇</th><th>경기 수</th><th>판정</th></tr></thead><tbody>' + rows.map((r) => '<tr>' + cell(r.date) + '<td>' + esc(r.weekday) + '</td><td>' + esc(r.label) + '</td><td>' + esc(r.games) + '</td><td>' + esc(r.judge) + '</td></tr>').join('') + '</tbody></table>' : '<p class="pf-d">휴식일 줄이 없습니다.</p>';
-    } else {
-      const sp = specialDates(), list = f === 'special' ? days.filter((d) => sp.has(d.date)) : days;
-      body = list.length ? '<table class="pf-t pf-vt pf-vgrid"><thead><tr><th>날짜</th>' + teams.map((t) => '<th>' + esc(t) + '</th>').join('') + '</tr></thead><tbody>' + list.map((d) => '<tr>' + cell(d.date) + lineup(d, teams).map((x) => (x ? '<td class="' + (x.home ? 'h' : 'a') + '" title="' + esc(x.stadium) + '">' + esc(x.opp) + '</td>' : '<td class="none">—</td>')).join('') + '</tr>').join('') + '</tbody></table>' : '<p class="pf-d">보일 날이 없습니다.</p>';
-    }
-    return '<div class="pf-sec pf-vgridsec"><h3>날짜별 출전표<span class="r"><span class="home-mark">홈</span><span class="away-mark">원</span> 칸 = 그 날 상대 · 옅은 칸은 홈, 진한 칸은 원정</span></h3><p class="pf-d">서버가 일정을 날짜별로 푼 원자료입니다. 날마다 모든 구단이 한 번씩 나오는지 직접 세어 볼 수 있습니다. 날짜를 누르면 달력의 그 날로 갑니다.</p><div class="pf-tabs">' + tabs + '</div><div class="pf-vscroll">' + body + '</div></div>';
-  }
-  function dayHtml(v) {
-    const days = (v.tables && v.tables.days) || [];
-    if (!days.length) return '';
-    if (V.day == null || V.day >= days.length) V.day = Math.floor(Math.random() * days.length);
-    const d = days[V.day], teams = teamsOf(v), cnt = {};
-    for (const g of d.games || []) { cnt[g.home] = (cnt[g.home] || 0) + 1; cnt[g.away] = (cnt[g.away] || 0) + 1; }
-    const once = teams.every((t) => cnt[t] === 1);
-    return '<div class="pf-sec pf-vday"><h3>아무 날 골라 보기<span class="r"><button class="btn sm" data-act="vf-day">다른 날</button></span></h3><p class="pf-d">무작위로 고른 하루입니다. 경기 ' + (d.games || []).length + '개에 ' + teams.length + '구단이 한 번씩 나오는지 보세요.</p>' +
-      '<div class="pf-vday-row"><div class="pf-vday-date">' + cell(d.date).replace(/^<td>|<\/td>$/g, '') + ' <span class="muted">' + esc(d.weekday) + '요일</span></div><ul class="pf-vday-games">' + (d.games || []).map((g) => '<li><span class="a">' + esc(g.away) + '</span> <span class="muted xs">원정</span> → <span class="h">' + esc(g.home) + '</span> <span class="muted xs">홈 · ' + esc(g.stadium) + '</span></li>').join('') + '</ul>' +
-      '<div class="pf-vday-teams">' + teams.map((t) => '<span class="' + (cnt[t] === 1 ? 'ok' : 'bad') + '">' + esc(t) + ' ' + (cnt[t] || 0) + '</span>').join('') + '</div><div class="xs ' + (once ? 'ok' : 'bad') + '">' + (once ? teams.length + '구단 모두 한 번씩 출전' : '한 번씩이 아닌 구단이 있음') + '</div></div></div>';
-  }
-
-  // ───────── 연전 목록 · 연전마다 판정 (대안 C: 왼쪽 연전 목록, 오른쪽 그 연전의 점검표) ─────────
-  /* 점검표 원자료(tables.flow·days)에서 연전(시리즈) 목록을 만들고, 서버가 적은 근거 줄을 걸리는 연전마다 붙인다.
-     왼쪽 목록을 내리면(또는 누르면) 오른쪽 점검표가 맨 위 연전의 판정으로 바뀐다.
-     판정은 서버 줄의 판정 칸(judge)을 그대로 쓰고 화면이 새로 세지 않는다 — 줄이 어느 연전에 걸리는지만 화면이 찾는다 */
-  V.sel = null; V.team = 'all'; V.onlyBad = false; V.scrollTo = false; V.showGrid = false;
-  const H0 = S.parseHash(); // 점검용 주소(vteam=구단 · vbad=1 · vscroll=픽셀): 처음 한 번만 목록 상태를 맞춘다(그림 찍기용)
-  const cache = { v: null };
+  const SHORT = { '잠실종합운동장': '잠실', '서울 올림픽 주경기장': '잠실 주경기장', '문학경기장': '문학', '수원KT위즈파크': '수원', '대구삼성라이언즈파크': '대구', '광주챔피언스필드': '광주', '한화이글스파크': '대전', '사직야구장': '사직', '창원NC파크': '창원', '고척돔야구장': '고척' };
+  const ORDER = ['잠실', '잠실 주경기장', '고척', '문학', '수원', '대전', '대구', '사직', '창원', '광주'];
+  const shortName = (s) => SHORT[s] || String(s || '').replace(/(종합운동장|야구장|경기장|볼파크|파크|필드|돔)$/g, '').trim() || s;
   const OK_JUDGE = /^(정한 홈|정한 대진|개막 연전)$|^예외로 정한 날/; // 판정 칸에 글이 있어도 어긴 것이 아닌 말
-  const SPECIAL = (id) => id === 'opening' || id === 'children' || /^stadium-/.test(id) || id === 'four-game'; // 걸리는 연전에만 뜻이 있는 항목(나머지 연전은 「해당 없음」)
+  const SPECIAL = (id) => id === 'opening' || id === 'children' || /^stadium-/.test(id) || id === 'four-game'; // 걸리는 기간에만 뜻이 있는 항목
+  const BASIC = ['daily-stadiums', 'daily-teams', 'series-length']; // 기간마다 늘 보는 셋 — 「✔ 지킴」에 접힌다
+  const SEASON = ['unassigned', 'pair-games', 'home-totals', 'season-range']; // 시즌 전체로만 세는 항목
+  const badRow = (it, r) => it.verdict === FAIL && !!r.judge && !OK_JUDGE.test(r.judge);
+  const cache = { v: null };
   function build(v) {
     if (cache.v === v) return cache;
-    const flow = (v.tables && v.tables.flow) || {}, days = (v.tables && v.tables.days) || [];
-    const by = {};
-    for (const t of Object.keys(flow)) for (const x of flow[t]) if (x.home) by[x.series] = { id: x.series, slot: x.slot, home: t, away: x.opponent, stadium: x.stadium, date: x.date, end: x.end, dates: [], games: [] };
-    for (const d of days) for (const g of d.games || []) { const s = by[g.series]; if (s) { s.dates.push(d.date); s.games.push({ date: d.date, weekday: d.weekday, home: g.home, away: g.away, stadium: g.stadium }); } }
-    for (const it of items(v)) if (it.id === 'unassigned') for (const r of it.rows || []) if (by[r.series] == null) by[r.series] = { id: r.series, slot: -1, home: r.home, away: r.away, stadium: '', date: null, end: null, dates: [], games: [], length: r.length };
-    const series = Object.values(by).sort((a, b) => (a.date == null) - (b.date == null) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || a.slot - b.slot || a.id - b.id);
-    const bySlot = {}, byDate = {}, byTeam = {};
-    for (const s of series) {
-      (bySlot[s.slot] = bySlot[s.slot] || []).push(s);
-      for (const d of s.dates) (byDate[d] = byDate[d] || []).push(s);
-      for (const t of [s.home, s.away]) (byTeam[t] = byTeam[t] || []).push(s);
+    const days = (v.tables && v.tables.days) || [], flow = (v.tables && v.tables.flow) || {}, teams = teamsOf(v), its = items(v), byId = {};
+    for (const it of its) byId[it.id] = it;
+    // 구장 열: 일정에 나오는 구장을 정한 순서(잠실·고척·문학·수원·대전·대구·사직·창원·광주)로, 모르는 구장은 뒤에
+    const homeStad = {};
+    for (const t of Object.keys(flow)) { const cnt = {}; for (const x of flow[t]) if (x.home && x.stadium) cnt[x.stadium] = (cnt[x.stadium] || 0) + 1; homeStad[t] = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || ''; }
+    const names = [];
+    for (const d of days) for (const g of d.games || []) if (g.stadium && !names.includes(g.stadium)) names.push(g.stadium);
+    const cols = names.map((n) => ({ name: n, short: shortName(n), homes: teams.filter((t) => homeStad[t] === n) }))
+      .sort((a, b) => { const ia = ORDER.indexOf(a.short), ib = ORDER.indexOf(b.short); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || names.indexOf(a.name) - names.indexOf(b.name); });
+    // 기간: 서버의 연전 기간 줄
+    const sl = byId['series-length'];
+    const periods = ((sl && sl.rows) || []).filter((r) => isDate(r.date)).slice().sort((a, b) => a.slot - b.slot).map((r, i) => {
+      const ds = days.filter((d) => d.date >= r.date && d.date <= (r.end || r.date));
+      const p = { i, k: i + 1, slot: r.slot, start: r.date, end: r.end || r.date, len: r.length, days: ds.map((d) => ({ date: d.date, weekday: d.weekday, games: (d.games || []).map((g) => ({ home: g.home, away: g.away, stadium: g.stadium, st: shortName(g.stadium) })) })), byStad: {}, checks: {}, bad: [] };
+      for (const g of (p.days[0] ? p.days[0].games : [])) if (!p.byStad[g.stadium]) p.byStad[g.stadium] = g;
+      return p;
+    });
+    const periodOf = (date) => periods.find((p) => date >= p.start && date <= p.end) || null;
+    const seps = []; let loose = 0; const streaks = {}; // streaks[구단] = [시작 기간 i, 끝 기간 i, 판정]
+    const attach = (p, it, r) => { const c = p.checks[it.id] = p.checks[it.id] || { it, rows: [], bad: false, sp: SPECIAL(it.id) || (it.id === 'rest-weekdays' && !badRow(it, r)) }; c.rows.push(r); if (badRow(it, r)) c.bad = true; };
+    for (const it of its) for (const r of it.rows || []) {
+      const id = it.id, bad = badRow(it, r);
+      if (SEASON.includes(id)) { if (bad && id === 'season-range' && isDate(r.date) && !periodOf(r.date)) seps.push({ date: r.date, label: it.title, judge: r.judge, bad: true }); else if (bad) loose++; continue; }
+      if (id === 'series-length') { const p = periods.find((x) => x.slot === r.slot); if (p && bad) attach(p, it, r); else if (bad) loose++; continue; }
+      if (id === 'streak') { const p0 = periodOf(r.date); if (!p0) { if (bad) loose++; continue; } const i1 = Math.min(periods.length - 1, p0.i + Math.max(1, +r.run || 1) - 1); if (bad) { attach(periods[i1], it, r); (streaks[r.team] = streaks[r.team] || []).push([p0.i, i1, r.judge]); } continue; }
+      if (id === 'repeat-opponent') { const p = periodOf(r.next) || periodOf(r.date); if (p && bad) attach(p, it, r); else if (bad) loose++; continue; }
+      if (!isDate(r.date)) { if (bad) loose++; continue; }
+      const p = periodOf(r.date);
+      if (SPECIAL(id)) { if (p) attach(p, it, r); else if (bad) loose++; continue; } // 특별 요구는 지켰어도 그 기간에 표
+      if (id === 'rest-weekdays' && /^예외로 정한 날/.test(r.judge || '')) { if (p) attach(p, it, r); continue; }
+      if (id === 'blackouts') { if (p) { if (bad) attach(p, it, r); } else seps.push({ date: r.date, label: r.label || it.title, judge: r.judge, bad }); continue; }
+      if (!bad) continue; // 보통 휴식 요일(경기 없음)·날마다 한 번씩 지킨 줄 등은 적지 않는다
+      if (p) attach(p, it, r); else seps.push({ date: r.date, label: it.title, judge: r.judge, bad: true });
     }
-    const onDate = (date, pred) => (byDate[date] || []).filter(pred || (() => true));
-    const teamAt = (team, date) => (byTeam[team] || []).find((s) => s.date === date);
-    /** 근거 줄 하나가 걸리는 연전들 */
-    function hits(it, r) {
-      const id = it.id;
-      if (id === 'unassigned') return by[r.series] ? [by[r.series]] : [];
-      if (id === 'pair-games') return (byTeam[r.a] || []).filter((s) => s.home === r.b || s.away === r.b);
-      if (id === 'home-totals') return byTeam[r.team] || [];
-      if (id === 'series-length') return bySlot[r.slot] || [];
-      if (id === 'streak') { const l = byTeam[r.team] || [], i = l.findIndex((s) => s.date === r.date); return i < 0 ? [] : l.slice(i, i + (+r.run || 1)); }
-      if (id === 'repeat-opponent') return [teamAt(r.team, r.date), teamAt(r.team, r.next)].filter(Boolean);
-      if (!isDate(r.date)) return [];
-      if (id === 'daily-stadiums') return onDate(r.date, (s) => s.stadium === r.stadium);
-      if (id === 'length-match' || id === 'four-game') return r.home ? onDate(r.date, (s) => s.home === r.home && s.away === r.away) : [];
-      if (SPECIAL(id)) return onDate(r.date, (s) => (!r.home || s.home === r.home || s.away === r.home) && (!r.away || s.home === r.away || s.away === r.away));
-      return onDate(r.date); // 휴식 요일·휴식기·시즌 기간·날마다 한 번씩: 그 날의 연전 모두
+    for (const p of periods) p.bad = Object.values(p.checks).filter((c) => c.bad);
+    // 기간 사이 줄: 날짜 순, 이어진 날은 한 줄로(같은 이름·같은 판정)
+    seps.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const merged = [];
+    for (const x of seps) { const l = merged[merged.length - 1]; if (l && l.label === x.label && l.bad === x.bad && Dates.dayNum(x.date) === Dates.dayNum(l.to) + 1) { l.to = x.date; l.n++; } else merged.push({ from: x.date, to: x.date, n: 1, label: x.label, judge: x.judge, bad: x.bad }); }
+    const entries = []; let si = 0;
+    for (const p of periods) { while (si < merged.length && merged[si].from < p.start) entries.push({ sep: merged[si++] }); entries.push({ p }); }
+    while (si < merged.length) entries.push({ sep: merged[si++] });
+    // 누적: 기간마다 구단별 홈·원정 경기 수와 지금 연속(연전 단위)
+    const cum = [], h = {}, a = {}, run = {};
+    for (const t of teams) { h[t] = 0; a[t] = 0; run[t] = { kind: '', n: 0 }; }
+    for (const p of periods) {
+      const now = {};
+      for (const d of p.days) for (const g of d.games) { if (h[g.home] == null) { h[g.home] = 0; a[g.home] = 0; run[g.home] = { kind: '', n: 0 }; } if (h[g.away] == null) { h[g.away] = 0; a[g.away] = 0; run[g.away] = { kind: '', n: 0 }; } h[g.home]++; a[g.away]++; now[g.home] = '홈'; now[g.away] = '원정'; }
+      for (const t of teams) { const k = now[t]; if (!k) continue; run[t] = run[t].kind === k ? { kind: k, n: run[t].n + 1 } : { kind: k, n: 1 }; }
+      cum.push(teams.map((t) => ({ t, h: h[t] || 0, a: a[t] || 0, kind: run[t] ? run[t].kind : '', n: run[t] ? run[t].n : 0 })));
     }
-    const ev = {}; let loose = 0; // ev[연전 id][항목 id] = { bad, rows } · loose = 어느 연전에도 붙지 않는 어긴 줄
-    for (const it of items(v)) {
-      for (const r of it.rows || []) {
-        const bad = it.verdict === FAIL && !!r.judge && !OK_JUDGE.test(r.judge), hs = hits(it, r);
-        if (bad && !hs.length) loose++;
-        for (const s of hs) { const e = ev[s.id] = ev[s.id] || {}, x = e[it.id] = e[it.id] || { bad: false, rows: [] }; if (bad) x.bad = true; x.rows.push(r); }
-      }
-    }
-    for (const s of series) { const e = ev[s.id] || {}; s.bad = Object.keys(e).filter((k) => e[k].bad); }
-    cache.v = v; cache.series = series; cache.ev = ev; cache.loose = loose; cache.byId = by;
+    // 시즌 합계의 숫자(엔진 결과를 그대로 센 것)
+    const perTeam = {}, sids = new Set(); let games = 0;
+    for (const d of days) for (const g of d.games || []) { games++; perTeam[g.home] = (perTeam[g.home] || 0) + 1; perTeam[g.away] = (perTeam[g.away] || 0) + 1; if (g.series != null) sids.add(g.series); }
+    const rw = (byId['rest-weekdays'] && byId['rest-weekdays'].rows) || [], bo = (byId['blackouts'] && byId['blackouts'].rows) || [], sr = (byId['season-range'] && byId['season-range'].rows) || [];
+    const tot = { days: days.length, periods: periods.length, games, series: sids.size + ((byId.unassigned && byId.unassigned.rows) || []).length, perTeam,
+      restDays: rw.filter((r) => !r.judge).length, restEx: rw.filter((r) => /^예외로 정한 날/.test(r.judge || '')).map((r) => r.date), restBad: rw.filter((r) => badRow(byId['rest-weekdays'], r)).length,
+      blackDays: bo.filter((r) => !r.judge).length, blackBad: bo.filter((r) => badRow(byId.blackouts, r)).length,
+      first: (sr.find((r) => r.what === '첫 경기') || {}).date, last: (sr.find((r) => r.what === '마지막 경기') || {}).date };
+    Object.assign(cache, { v, days, teams, its, byId, cols, periods, entries, cum, streaks, loose, tot });
     return cache;
   }
-  /** 이 연전에서 이 항목의 상태: ok · bad · info · na(해당 없음) */
-  function stateOf(c, s, it) {
-    const x = c.ev[s.id] && c.ev[s.id][it.id];
-    if (x) return { k: x.bad ? 'bad' : it.verdict === INFO ? 'info' : 'ok', rows: x.rows };
-    return { k: SPECIAL(it.id) ? 'na' : it.verdict === INFO ? 'info' : 'ok', rows: [] };
-  }
-  const stateIcon = (k) => (k === 'na' ? '<span class="pf-vic na">–</span>' : verdictIcon(k === 'bad' ? FAIL : k === 'info' ? INFO : PASS));
-  const stateWord = (k) => (k === 'bad' ? '어김' : k === 'info' ? '참고' : k === 'na' ? '해당 없음' : '지킴');
+  const ic = (k) => verdictIcon(k === 'bad' ? FAIL : k === 'info' ? INFO : PASS);
   const dateBtn = (d) => '<button class="pf-link pf-vdate" data-act="vf-date" data-date="' + d + '" title="달력의 이 날로">' + fmtDate(d) + '</button>';
-  const range = (s) => (s.date ? fmtDate(s.date) + (s.end && s.end !== s.date ? '–' + fmtDate(s.end) : '') : '날짜 없음');
-  const nOf = (s) => (s.dates.length || s.length || 0);
-  /** 근거 줄 한 줄을 짧은 글로: 「날짜 3/22(토) · 원정 한화 · 홈 LG · 판정 …」 */
+  /** 경기 한 칸: 「원정 vs 홈」(홈이 굵게). 강조한 구단이 있으면 그 구단의 경기만 진하게 */
+  function gm(g, withSt) {
+    const hl = V.team && (g.home === V.team || g.away === V.team), home = hl && g.home === V.team;
+    return '<span class="pf-vgm' + (hl ? ' hl' : '') + (home ? ' home' : '') + '"><span class="away">' + esc(g.away) + '</span> <span class="vs">vs</span> <span class="home">' + esc(g.home) + '</span>' + (withSt ? ' <span class="stad">' + esc(g.st) + '</span>' : '') + '</span>';
+  }
+  /** 근거 줄 한 줄을 짧은 글로: 「날짜 3/22(토) · 원정 한화 · 홈 LG · 판정」 */
   function rowText(it, r) {
-    const cols = it.columns || [], out = [];
-    for (const c of cols) { const x = r[c.key]; if (x == null || x === '' || c.key === 'judge') continue; out.push('<span class="muted">' + esc(c.label) + '</span> ' + (isDate(x) ? dateBtn(x) : esc(x))); }
-    const bad = it.verdict === FAIL && !!r.judge && !OK_JUDGE.test(r.judge);
-    if (r.judge) out.push('<b class="' + (bad ? 'bad' : 'ok') + '">' + esc(r.judge) + '</b>');
+    const out = [];
+    for (const c of it.columns || []) { const x = r[c.key]; if (x == null || x === '' || c.key === 'judge') continue; out.push('<span class="muted">' + esc(c.label) + '</span> ' + (isDate(x) ? dateBtn(x) : esc(x))); }
+    if (r.judge) out.push('<b class="' + (badRow(it, r) ? 'bad' : 'ok') + '">' + esc(r.judge) + '</b>');
     return out.join(' · ');
   }
-  /** 목록에 보이는 연전(구단 · 「어긴 연전만」으로 거른 것) */
-  function shownList(c) {
-    const list = V.team === 'all' ? c.series : c.series.filter((s) => s.home === V.team || s.away === V.team);
-    return V.onlyBad ? list.filter((s) => s.bad.length) : list;
+  const chipLabel = (c) => { const id = c.it.id; const nb = c.rows.filter((r) => badRow(c.it, r)).length; return c.bad ? c.it.title + (nb > 1 ? ' ' + nb + '줄' : '') : id === 'opening' ? '개막전 정한 홈' : id === 'children' ? '어린이날 홈 구장' : id === 'four-game' ? '4연전 개막 대진' : id === 'rest-weekdays' ? fmtDate(c.rows[0].date) + ' 예외 경기' : c.it.title; };
+  const chip = (c) => '<span class="pf-vchip ' + (c.bad ? 'bad' : 'sp') + '">' + (c.bad ? '✖' : '✔') + ' ' + esc(chipLabel(c)) + '</span>';
+  const isOpen = (p) => (V.rows[p.k] != null ? V.rows[p.k] : V.allOpen === true ? true : V.allOpen === false ? false : p.bad.length > 0); // allOpen: null = 어긴 줄만 펼침 · true = 모두 · false = 모두 접음
+  const shownEntries = (c) => (V.onlyBad ? c.entries.filter((e) => (e.p ? e.p.bad.length > 0 : e.sep.bad)) : c.entries);
+  function totalsHtml(v, c) {
+    const t = c.tot, by = c.byId, get = (ids) => ids.map((id) => by[id]).filter(Boolean);
+    const state = (its) => (its.some((it) => it.verdict === FAIL) ? 'bad' : its.some((it) => it.verdict === INFO) ? 'info' : 'ok');
+    const badN = (its) => its.reduce((n, it) => n + (it.rows || []).filter((r) => badRow(it, r)).length, 0);
+    const firstBad = (its) => { const p = c.periods.find((x) => its.some((it) => x.checks[it.id] && x.checks[it.id].bad)); return p ? p.k : null; };
+    const line = (ids, head, sub) => { const its = get(ids), k = state(its), n = k === 'bad' ? badN(its) : 0, go = k === 'bad' ? firstBad(its) : null;
+      return '<div class="' + k + '">' + ic(k) + '<b>' + head + (n ? ' <span class="bad">· ' + n + '줄 어김</span>' : '') + '</b>' + (go ? '<button class="pf-link xs" data-act="vf-goto" data-k="' + go + '">기간 ' + go + '으로 ›</button>' : '') + '<small>' + sub + '</small></div>'; };
+    const same = Object.values(t.perTeam), allSame = same.length && same.every((x) => x === same[0]);
+    const homeNums = ((by['home-totals'] && by['home-totals'].rows) || []).map((r) => esc(r.team) + ' ' + r.home).join(' · ');
+    const rest = by['rest-weekdays'], bl = by.blackouts;
+    return '<div class="pf-sec pf-vtot"><h3>시즌 합계<span class="r muted">시즌 전체로 세는 것 — 요구한 일정을 전부 치렀는지. 아래 누적 띠를 끝까지 내리면 같은 숫자가 됩니다</span></h3><div class="pf-vtgrid">' +
+      line(['daily-teams', 'daily-stadiums'], '경기일 ' + t.days + '일', '날마다 모든 구단이 한 번씩 · 구장마다 경기 하나') +
+      line(['series-length', 'length-match'], '연전 기간 ' + t.periods + '개', esc((by['series-length'] && by['series-length'].standard) || '')) +
+      line(['unassigned'], '경기 ' + t.games + '개 · 시리즈 ' + t.series + '개' + (by.unassigned && by.unassigned.verdict === FAIL ? '' : ' 모두 날짜 있음'), esc((by.unassigned && by.unassigned.result) || '')) +
+      line(['pair-games'], esc((by['pair-games'] && by['pair-games'].result) || '맞대결 경기 수'), '구단마다 ' + (allSame ? same[0] + '경기(홈+원정)' : Object.keys(t.perTeam).map((k) => esc(k) + ' ' + t.perTeam[k]).join(' · ')) + ' — 누적 띠의 마지막 숫자') +
+      line(['home-totals'], '홈 경기 수 — ' + (by['home-totals'] ? verdictWord(by['home-totals'].verdict) : '참고'), (by['home-totals'] && by['home-totals'].verdict === INFO ? '정한 값이 없어 숫자만: ' : '') + homeNums) +
+      line(['season-range'], '시즌 기간 ' + (t.first ? fmtDate(t.first) : '?') + ' ~ ' + (t.last ? fmtDate(t.last) : '?'), esc((by['season-range'] && by['season-range'].result) || '')) +
+      line(['rest-weekdays', 'blackouts'], '휴식 요일 ' + t.restDays + '일 · 휴식기 ' + t.blackDays + '일' + (t.restBad + t.blackBad ? '' : ' 모두 경기 없음'), (t.restEx.length ? '예외로 정한 날 ' + t.restEx.map(fmtDate).join('·') + '만 경기 · ' : '') + '휴식기와 어긴 날은 목록 사이에 줄로' + (rest && bl ? '' : '')) +
+      line(['streak', 'repeat-opponent'], (by.streak && by.streak.verdict === FAIL ? '홈·원정 연속 어김' : '홈·원정 ' + esc(((by.streak && by.streak.standard) || '4연속 없음').replace(/\(.*\)$/, '').replace(/^홈 또는 원정 연전 /, ''))) + ' · ' + (by['repeat-opponent'] && by['repeat-opponent'].verdict === FAIL ? '같은 상대 연속 어김' : '같은 상대 연속 없음'), '누적 띠의 「지금 연속」 · 어기면 그 기간 줄에도 표') +
+      '</div>' + (c.loose ? '<div class="xs muted" style="margin-top:4px">기간에 붙지 않는 어긴 줄 ' + c.loose + ' — 항목별 근거 표(엑셀)에서 볼 수 있습니다</div>' : '') + '</div>';
   }
-  /** 왼쪽: 연전 목록 */
-  function serHtml(v, c, stale) {
-    const teams = teamsOf(v);
-    const chips = [['all', '전체']].concat(teams.map((t) => [t, t])).map(([k, l]) => '<button class="pf-chip' + (V.team === k ? ' on' : '') + '" data-act="vf-team" data-v="' + esc(k) + '">' + esc(l) + '</button>').join('');
-    const shown = shownList(c), badN = c.series.filter((s) => s.bad.length).length;
-    let body = '', last = null;
-    for (const s of shown) {
-      if (V.team === 'all' && s.slot !== last) { last = s.slot; body += '<div class="pf-vser-h">' + (s.slot < 0 ? '날짜 없음' : '연전 기간 ' + (s.slot + 1) + ' <span class="muted">' + range(s) + ' · ' + nOf(s) + '연전</span>') + '</div>'; }
-      const mine = V.team !== 'all';
-      const main = mine ? '<b>' + esc(s.home === V.team ? s.away : s.home) + '</b> <span class="pf-tag ' + (s.home === V.team ? 'got' : 'blue') + '">' + (s.home === V.team ? '홈' : '원정') + '</span>'
-        : '<b>' + esc(s.away) + '</b><span class="xs muted"> 원정</span> → <b>' + esc(s.home) + '</b><span class="xs muted"> 홈</span>';
-      body += '<button class="pf-vser-card' + (V.sel === s.id ? ' on' : '') + (s.bad.length ? ' bad' : '') + '" data-act="vf-sel" data-id="' + s.id + '" data-sid="' + s.id + '">' +
-        '<span class="d">' + (mine ? range(s) : '') + '</span><span class="m">' + main + '<span class="xs muted"> · ' + esc(s.stadium || '구장 없음') + (mine ? ' · ' + nOf(s) + '연전' : '') + '</span></span>' +
-        '<span class="r">' + (s.bad.length ? '<span class="pf-tag over">' + s.bad.length + '개 어김</span>' : '<span class="pf-vic ok sm">' + icon('check') + '</span>') + '</span></button>';
-    }
-    if (!shown.length) body = '<p class="pf-d" style="padding:10px">보일 연전이 없습니다.</p>';
-    const nav = badN ? '<button class="pf-link xs" data-act="vf-next" data-dir="-1">‹ 앞 어긴 연전</button><button class="pf-link xs" data-act="vf-next" data-dir="1">다음 어긴 연전 ›</button>' : '';
-    return '<div class="pf-sec pf-vser' + (stale ? ' pf-vstale' : '') + '"><h3>연전 목록' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + c.series.length + '연전 · ' + (badN ? '<b class="bad">어긴 연전 ' + badN + '</b>' : '<b class="ok">어긴 연전 없음</b>') + (c.loose ? ' · 연전에 붙지 않는 어김 ' + c.loose + '줄' : '') + '</span></h3>' +
-      '<p class="pf-d">서버가 센 일정을 연전(한 대진이 한 구장에서 이어 치르는 경기)마다 늘어놓았습니다. 목록을 내리면 오른쪽 점검표가 맨 위 연전의 것으로 바뀝니다.</p>' +
-      '<div class="pf-vser-tools"><div class="pf-chips">' + chips + '</div><label class="xs"><input type="checkbox" data-act="vf-onlybad"' + (V.onlyBad ? ' checked' : '') + '> 어긴 연전만</label>' + nav + '</div>' +
-      '<div class="pf-vserlist" data-sk="vser">' + body + '</div></div>';
+  function rowHtml(p, c) {
+    const open = isOpen(p), chips = Object.values(p.checks).filter((x) => x.bad || x.sp).sort((x, y) => (y.bad - x.bad)).map(chip).join('');
+    const cells = c.cols.map((col) => { const g = p.byStad[col.name]; const hl = g && V.team && (g.home === V.team || g.away === V.team); return g ? '<td class="pf-vgc' + (hl ? ' hl' + (g.home === V.team ? ' home' : '') : '') + '">' + gm(g) + '</td>' : '<td class="pf-vgc empty"></td>'; }).join('');
+    const basics = BASIC.map((id) => c.byId[id]).filter(Boolean).map((it) => (it.id === 'series-length' ? p.len + '연전' : it.title)).join(' · ');
+    const verdict = p.bad.length ? '<span class="pf-vv bad">✖ ' + p.bad.length + '개 어김</span>' : '<span class="pf-vv ok" title="' + esc(basics) + '">✔ 지킴</span>';
+    return '<tr class="pf-vrow' + (p.bad.length ? ' bad' : '') + (open ? ' open' : '') + (p.i === V.cur ? ' cur' : '') + '" data-act="vf-row" data-k="' + p.k + '" data-i="' + p.i + '"><td class="pf-vc">' + icon('right') + '</td><td class="pf-vk">기간 ' + p.k + '</td><td class="pf-vd">' + fmtDate(p.start) + '–' + fmtDate(p.end) + '<small>' + p.len + '연전</small></td>' + cells + '<td class="pf-vck">' + chips + '</td><td class="pf-vvc">' + verdict + '</td></tr>' + (open ? detailHtml(p, c) : '');
   }
-  /** 오른쪽: 고른 연전의 점검표 */
-  function chkHtml(v, c, s, stale) {
-    if (!s) return '<div class="pf-vchk-empty">왼쪽에서 연전을 고르세요.</div>';
-    const games = s.games.length ? '<ul class="pf-vchk-games">' + s.games.map((g) => '<li>' + dateBtn(g.date) + ' <span class="a">' + esc(g.away) + '</span><span class="xs muted"> 원정</span> → <span class="h">' + esc(g.home) + '</span><span class="xs muted"> 홈 · ' + esc(g.stadium) + '</span></li>').join('') + '</ul>'
-      : '<p class="pf-d">날짜가 없는 시리즈입니다(' + nOf(s) + '연전).</p>';
-    const head = '<div class="pf-vchk-head' + (s.bad.length ? ' bad' : '') + '"><div class="t"><b>' + esc(s.away) + '</b><span class="xs muted"> 원정</span> → <b>' + esc(s.home) + '</b><span class="xs muted"> 홈 · ' + esc(s.stadium || '구장 없음') + '</span></div>' +
-      '<div class="xs muted">' + range(s) + ' · ' + nOf(s) + '연전' + (s.slot >= 0 ? ' · 연전 기간 ' + (s.slot + 1) : '') + '</div>' +
-      '<div class="pf-vchk-verdict">' + (s.bad.length ? verdictIcon(FAIL) + '<b>이 연전에서 ' + s.bad.length + '개 어김</b>' : verdictIcon(PASS) + '<b>이 연전은 모두 지킴</b>') + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '</div>' +
-      (s.bad.length ? '<ul class="pf-vchk-rows pf-vchk-badsum">' + items(v).filter((it) => s.bad.includes(it.id)).map((it) => '<li><b>' + esc(it.title) + '</b> — ' + (function (rows) { const bad = rows.filter((r) => r.judge && !OK_JUDGE.test(r.judge)); return (bad.length ? bad : rows).slice(0, 3).map((r) => rowText(it, r)).join('<br>') || '근거 표 참고'; })(stateOf(c, s, it).rows) + '</li>').join('') + '</ul>' : '') + // 어긴 항목은 맨 위에 근거와 함께(내리지 않아도 보이게)
-      '<div class="xs muted" style="margin-top:6px">엔진이 낸 경기(서버가 날짜별로 푼 것)</div>' + games + '</div>';
-    const groups = (v.groups || []).map((g) => {
-      const rows = (g.items || []).map((it) => {
-        const st = stateOf(c, s, it), open = !!V.open[it.id], shown = st.rows.slice(0, 4), more = st.rows.length - shown.length;
-        const note = st.k === 'na' ? '<div class="xs muted">이 연전과는 상관없는 항목 · 시즌 전체: ' + esc(it.result) + '</div>'
-          : st.rows.length ? '<ul class="pf-vchk-rows">' + shown.map((r) => '<li>' + rowText(it, r) + '</li>').join('') + (more > 0 ? '<li class="muted">… ' + more + '줄 더(근거 표에서)</li>' : '') + '</ul>'
-          : '<div class="xs muted">이 연전에 걸리는 어긴 줄 없음 · 시즌 전체: ' + esc(it.result) + '</div>';
-        return '<div class="pf-vchk-i ' + st.k + '"><div class="pf-vchk-ih">' + stateIcon(st.k) + '<div class="t"><b>' + esc(it.title) + '</b><span class="xs muted">' + esc(it.desc) + ' · 정한 값: ' + esc(it.standard) + '</span></div><span class="w ' + st.k + '">' + stateWord(st.k) + '</span>' +
-          ((it.rows || []).length ? '<button class="pf-link xs" data-act="vf-item" data-id="' + esc(it.id) + '">' + (open ? '근거 표 접기' : '근거 표 ' + it.rows.length + '줄') + '</button>' : '') + '</div>' + note +
-          (open && (it.rows || []).length ? '<div class="pf-vtbl"><table class="pf-t pf-vt"><thead><tr>' + (it.columns || []).map((cc) => '<th>' + esc(cc.label) + '</th>').join('') + '</tr></thead><tbody>' + it.rows.map((r) => '<tr>' + (it.columns || []).map((cc) => cell(r[cc.key])).join('') + '</tr>').join('') + '</tbody></table></div>' : '') + '</div>';
-      }).join('');
-      const gbad = (g.items || []).filter((it) => stateOf(c, s, it).k === 'bad').length;
-      return '<div class="pf-vchk-g"><div class="pf-vchk-gh"><b>' + esc(g.title) + '</b><span class="xs muted">' + esc(g.desc) + '</span><span class="r">' + (gbad ? '<span class="pf-tag over">' + gbad + '개 어김</span>' : '<span class="pf-tag ok">지킴</span>') + '</span></div>' + rows + '</div>';
-    }).join('');
-    return head + groups;
+  function detailHtml(p, c) {
+    const dt = p.days.map((d) => '<tr><td class="pf-vdd">' + dateBtn(d.date) + '</td><td>' + d.games.map((g) => gm(g, true)).join(' &nbsp; ') + '</td></tr>').join('');
+    const ev = (k, title, body) => '<div class="pf-vev ' + k + '">' + ic(k) + '<b>' + esc(title) + '</b><span>' + body + '</span></div>';
+    const basics = BASIC.map((id) => c.byId[id]).filter(Boolean).map((it) => { const x = p.checks[it.id]; return ev(x && x.bad ? 'bad' : 'ok', it.id === 'series-length' ? p.len + '연전' : it.title, x && x.bad ? x.rows.map((r) => rowText(it, r)).join('<br>') : '이 기간에 어긴 줄 없음 · 시즌 전체: ' + esc(it.result)); }).join('');
+    const others = Object.values(p.checks).filter((x) => !BASIC.includes(x.it.id)).sort((x, y) => (y.bad - x.bad)).map((x) => ev(x.bad ? 'bad' : 'ok', x.it.title, x.rows.map((r) => rowText(x.it, r)).join('<br>'))).join('');
+    const na = c.its.filter((it) => !BASIC.includes(it.id) && !p.checks[it.id]).map((it) => esc(it.title)).join(' · ');
+    return '<tr class="pf-vdet"><td></td><td colspan="' + (c.cols.length + 4) + '"><div class="pf-vdet-in"><table class="pf-vdt"><tbody>' + dt + '</tbody></table><div class="pf-vevs">' + basics + others + '</div>' + (na ? '<div class="xs muted pf-vna">이 기간과 상관없는 항목은 시즌 합계·근거 표에서 봅니다: ' + na + '</div>' : '') + '</div></td></tr>';
   }
-  /** 목록을 내릴 때: 맨 위에 보이는 연전을 고른 것으로 삼고 오른쪽만 바꾼다(전체를 다시 그리면 스크롤이 튄다) */
-  function syncSel(box) {
-    const v = V.data; if (!v) return;
-    const c = build(v), top = box.getBoundingClientRect().top + 30; // 붙어 있는 연전 기간 머리줄 아래로 보이는 첫 카드
-    let pick = null;
-    for (const el of box.querySelectorAll('.pf-vser-card')) { if (el.getBoundingClientRect().bottom > top) { pick = +el.dataset.sid; break; } }
-    if (pick == null || pick === V.sel) return;
-    V.sel = pick;
-    box.querySelectorAll('.pf-vser-card').forEach((el) => el.classList.toggle('on', +el.dataset.sid === pick));
-    const chk = document.querySelector('.pf-vchk');
-    if (chk) { chk.innerHTML = chkHtml(v, c, c.byId[pick], !V.matches(v, app().state)); chk.scrollTop = 0; }
+  const sepHtml = (s, c) => '<tr class="pf-vsep' + (s.bad ? ' bad' : '') + '"><td></td><td colspan="' + (c.cols.length + 4) + '">' + ic(s.bad ? 'bad' : 'ok') + (s.n > 1 ? fmtDate(s.from) + '–' + fmtDate(s.to) + ' ' + esc(s.label) + ' ' + s.n + '일' : fmtDate(s.from) + ' ' + esc(s.label)) + (s.bad ? ' · <b class="bad">' + esc(s.judge) + '</b>' : ' · 경기 없음') + '</td></tr>';
+  /** 누적 띠: i번째 기간까지 */
+  function stripHtml(c, i) {
+    const p = c.periods[i], end = i === c.periods.length - 1, row = c.cum[i] || [], t = c.tot;
+    const same = Object.values(t.perTeam), allSame = same.length && same.every((x) => x === same[0]), hs = row.map((x) => x.h);
+    const title = !p ? '<b>누적</b>' : end ? '<b>시즌 끝(기간 ' + p.k + ')까지 누적</b> <span class="pf-vend">= 시즌 합계 — ' + (allSame ? '구단마다 ' + same[0] + '경기' : '구단별 경기 수') + ' · 홈 ' + Math.min.apply(null, hs) + '~' + Math.max.apply(null, hs) + '</span>' : '<b>기간 ' + p.k + '(' + fmtDate(p.start) + '–' + fmtDate(p.end) + ')까지 누적</b> <span class="muted">10구단 홈·원정 경기 수와 지금 연속 — 내려가면 바뀜</span>';
+    const sel = V.team ? '<span class="pf-vsel"><b>' + esc(V.team) + '</b> 강조 — 진한 칸 홈, 연한 칸 원정 · <button class="pf-link xs" data-act="vf-team" data-v="">강조 풀기</button></span>' : '<span class="muted xs">구단을 누르면 그 구단 경기만 진하게</span>';
+    const cells = row.map((x) => { const sb = (c.streaks[x.t] || []).find((s) => i >= s[0] && i <= s[1]); const cls = sb ? 'r4' : x.n >= 3 ? 'r3' : '';
+      return '<button class="pf-vtc' + (sb ? ' r4' : '') + (V.team === x.t ? ' sel' : '') + '" data-act="vf-team" data-v="' + esc(x.t) + '" title="' + esc(x.t) + ' 경기만 진하게"><b>' + esc(x.t) + '</b><span class="pf-vha">홈 <em>' + x.h + '</em> 원정 <em>' + x.a + '</em> <span class="pf-vsum2">= ' + (x.h + x.a) + '</span></span><span class="pf-vrun ' + cls + '">' + (sb ? '✖ ' + esc(sb[2]) : x.kind ? x.kind + ' ' + x.n + '연속' : '—') + '</span></button>'; }).join('');
+    return '<div class="pf-vstrip-t">' + title + sel + '</div><div class="pf-vtcs" style="grid-template-columns:repeat(' + Math.max(1, row.length) + ',minmax(0,1fr))">' + cells + '</div>';
+  }
+  function listHtml(v, c, stale) {
+    const badN = c.periods.filter((p) => p.bad.length).length, shown = shownEntries(c);
+    const head = '<tr><th></th><th>기간</th><th>날짜</th>' + c.cols.map((col) => '<th class="pf-vst">' + esc(col.short) + '<small>' + (col.homes.length ? esc(col.homes.join('·')) + ' 홈' : '') + '</small></th>').join('') + '<th>특별 요구 · 어긴 것</th><th>판정</th></tr>';
+    const body = shown.length ? shown.map((e) => (e.p ? rowHtml(e.p, c) : sepHtml(e.sep, c))).join('') : '<tr><td colspan="' + (c.cols.length + 5) + '" class="muted" style="padding:14px">' + (V.onlyBad ? '어긴 기간이 없습니다.' : '연전 기간이 없습니다.') + '</td></tr>';
+    return '<div class="pf-sec pf-fill pf-vper' + (stale ? ' pf-vstale' : '') + '"><h3>연전 기간 따라 점검' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + c.periods.length + '개 기간 · ' + (badN ? '<b class="bad">어긴 기간 ' + badN + '</b>' : '<b class="ok">어긴 기간 없음</b>') + '</span></h3>' +
+      '<div class="pf-vtools"><span class="muted">한 줄 = 한 기간. 칸은 구장마다 고정이라 한 칸에 경기가 둘 들어갈 자리가 없고, 기간마다 경기 수만큼 차고 나머지는 빕니다. 늘 보는 셋(구장마다 경기 하나·모든 구단 한 번씩·연전 길이)은 「✔ 지킴」에 접혀 있고, 특별 요구와 어긴 것만 표로 보입니다. 줄을 누르면 날짜별 경기와 근거가 펼쳐집니다.</span>' +
+      '<label class="xs"><input type="checkbox" data-act="vf-onlybad"' + (V.onlyBad ? ' checked' : '') + '> 어긴 기간만</label><button class="pf-link xs" data-act="vf-all">' + (V.allOpen === true ? '모두 접기' : '모두 펼치기') + '</button>' + (badN ? '<button class="pf-link xs" data-act="vf-next">다음 어긴 기간 ›</button>' : '') + '</div>' +
+      '<div class="pf-vstrip" data-i="' + V.cur + '">' + stripHtml(c, V.cur) + '</div>' +
+      '<div class="pf-vplist" data-sk="vplist"><table class="pf-vpt"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></div>';
   }
 
   // ───────── 화면 ─────────
@@ -288,29 +278,39 @@
       const tools = '<span class="grow"></span>' + (fromRest() ? '<button class="btn sm" data-act="vf-again"' + (V.loading ? ' disabled' : '') + '>' + icon('redo') + '지금 일정 다시 점검</button>' : '') + (v && v.tables && !stale ? '<button class="btn sm" data-act="vf-xlsx">' + icon('download') + '엑셀로 받기</button>' : '');
       let head;
       if (!v) head = '<div class="pf-sec pf-vsum none"><div class="pf-vsum-row"><span class="pf-vic none">' + icon('todo') + '</span><b>' + (V.loading ? '점검표를 받는 중' : '점검표가 없습니다') + '</b>' + tools + '</div><div class="xs">' + status + '</div></div>';
-      else if (stale) head = '<div class="pf-sec pf-vsum stale"><div class="pf-vsum-row"><span class="pf-vic warn">' + icon('warn') + '</span><b>' + STALE + '</b>' + tools + '</div><div class="xs">실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다. 아래 연전·판정·근거는 <b>' + when(V.at) + '에 센 그 일정</b>의 것이지 지금 달력의 것이 아닙니다. ' + (fromRest() ? '「지금 일정 다시 점검」을 누르면 서버가 지금 일정을 다시 셉니다.' : '서버에 연결되면 지금 일정을 다시 셀 수 있습니다.') + ' ' + status + '</div></div>';
+      else if (stale) head = '<div class="pf-sec pf-vsum stale"><div class="pf-vsum-row"><span class="pf-vic warn">' + icon('warn') + '</span><b>' + STALE + '</b>' + tools + '</div><div class="xs">실행 뒤 일정을 고쳤거나 다른 일정의 점검표입니다. 아래 합계·기간·판정·근거는 <b>' + when(V.at) + '에 센 그 일정</b>의 것이지 지금 달력의 것이 아닙니다. ' + (fromRest() ? '「지금 일정 다시 점검」을 누르면 서버가 지금 일정을 다시 셉니다.' : '서버에 연결되면 지금 일정을 다시 셀 수 있습니다.') + ' ' + status + '</div></div>';
       else head = '<div class="pf-sec pf-vsum ' + (v.failed ? 'bad' : 'ok') + '"><div class="pf-vsum-row">' + verdictIcon(v.failed ? FAIL : PASS) + '<b>' + (v.failed ? '요구 사항 ' + v.failed + '개 어김 — ' + esc((v.failedTitles || []).join(' · ')) : '요구 사항 ' + v.total + '개 모두 지킴') + '</b>' + (v.info ? '<span class="pf-tag got">참고 ' + v.info + '개 · 정한 값이 없어 숫자만</span>' : '') + tools + '</div><div class="xs">' + status + '</div></div>';
-      let main, below = '';
+      let main;
       if (v && v.tables) {
         const c = build(v);
-        if (V.sel == null || !c.byId[V.sel]) { const b = c.series.find((s) => s.bad.length); V.sel = b ? b.id : c.series.length ? c.series[0].id : null; V.scrollTo = true; }
-        const shown = shownList(c); if (shown.length && !shown.some((s) => s.id === V.sel)) { V.sel = shown[0].id; V.scrollTo = true; } // 구단·「어긴 연전만」으로 걸러 고른 연전이 빠지면 보이는 첫 연전
-        main = '<div class="pf-cols pf-fill pf-vsercols">' + serHtml(v, c, stale) + '<div class="pf-sec pf-vchkwrap"><h3>이 연전의 점검표<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고 (시즌 전체)</span></h3><p class="pf-d">항목마다 이 연전에 걸리는 서버 근거 줄을 보입니다. 「근거 표」를 누르면 시즌 전체 줄이, 날짜를 누르면 달력의 그 날이 보입니다.</p><div class="pf-vchk" data-sk="vchk">' + chkHtml(v, c, c.byId[V.sel], stale) + '</div></div></div>';
-        below = '<div class="pf-sec pf-vmore"><h3>날짜별 출전표 · 아무 날 골라 보기<span class="r"><button class="btn sm" data-act="vf-grid">' + (V.showGrid ? '접기' : '펼치기') + '</button></span></h3><p class="pf-d">연전이 아니라 날짜로 세어 보고 싶을 때. 날마다 모든 구단이 한 번씩 나오는지 직접 셀 수 있습니다.</p>' + (V.showGrid ? (stale ? '<div class="pf-note warn" style="margin:0 0 10px">아래 출전표는 ' + when(V.at) + '에 센 다른 일정의 것입니다.</div>' : '') + '<div class="pf-vright">' + dayHtml(v) + gridHtml(v) + '</div>' : '') + '</div>';
+        if (V.cur >= c.periods.length) V.cur = 0;
+        main = totalsHtml(v, c) + listHtml(v, c, stale);
       } else if (v) {
-        main = '<div class="pf-sec pf-vlist' + (stale ? ' pf-vstale' : '') + '"><h3>점검표' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고</span></h3><p class="pf-d">이 점검표에는 연전 원자료가 없어 항목만 보입니다(서버에 연결되면 연전마다 볼 수 있습니다). 묶음을 누르면 항목이, 「근거」를 누르면 서버가 일정에서 뽑은 줄이 보입니다.</p>' + (v.groups || []).map(groupHtml).join('') + '</div>';
+        main = '<div class="pf-sec pf-vlist' + (stale ? ' pf-vstale' : '') + '"><h3>점검표' + (stale ? ' <span class="pf-tag est">다른 일정</span>' : '') + '<span class="r">' + (v.passed || 0) + ' 지킴 · ' + (v.failed || 0) + ' 어김 · ' + (v.info || 0) + ' 참고</span></h3><p class="pf-d">이 점검표에는 연전 원자료가 없어 항목만 보입니다(서버에 연결되면 기간마다 볼 수 있습니다). 묶음을 누르면 항목이, 「근거」를 누르면 서버가 일정에서 뽑은 줄이 보입니다.</p>' + (v.groups || []).map(groupHtml).join('') + '</div>';
       } else {
         main = '<div class="pf-sec pf-vlist"><h3>점검표</h3><p class="pf-d">' + (V.offline ? '서버에 연결되면 지금 일정을 다시 셉니다. 서버 엔진으로 실행한 결과에는 실행이 끝날 때 받은 점검표가 함께 남습니다.' : V.error ? '서버가 점검표를 주지 못했습니다.' : '잠시만 기다려 주세요.') + '</p>' + (!res ? '<p class="pf-d">아직 실행한 결과가 없습니다.</p>' : '') + '</div>';
       }
-      return '<div class="stepview no-band"><div class="pf-page pf-vf">' + head + main + below + '</div></div>';
+      return '<div class="stepview no-band"><div class="pf-page pf-vf' + (V.team ? ' hl' : '') + '">' + head + main + '</div></div>';
     },
     after() {
       ensure(false);
-      const box = document.querySelector('.pf-vserlist');
-      if (!box) return;
-      if (V.scrollTo) { V.scrollTo = false; const el = box.querySelector('[data-sid="' + V.sel + '"]'); if (el) box.scrollTop = Math.max(0, box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 26); }
-      box.addEventListener('scroll', () => syncSel(box), { passive: true });
-      if (!V.hashed && V.data) { V.hashed = true; if (H0.vteam || H0.vbad) { V.team = H0.vteam || 'all'; V.onlyBad = H0.vbad === '1'; V.scrollTo = true; S.scheduleRender(); } else if (H0.vscroll) { box.scrollTop = +H0.vscroll; } }
+      const list = document.querySelector('.pf-vplist'), strip = document.querySelector('.pf-vstrip');
+      if (!list || !strip || !V.data) return;
+      const c = build(V.data), rows = Array.prototype.slice.call(list.querySelectorAll('tr.pf-vrow'));
+      const hh = () => { const th = list.querySelector('thead'); return (th ? th.offsetHeight : 0) + 2; };
+      const curIdx = () => { // 붙어 있는 머리줄 아래로 보이는 첫 기간 줄 · 끝까지 내렸으면 마지막 기간
+        if (!rows.length) return 0;
+        const top = list.getBoundingClientRect().top + hh() + 4; let i = +rows[rows.length - 1].dataset.i;
+        for (const r of rows) if (r.getBoundingClientRect().bottom > top) { i = +r.dataset.i; break; }
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 2) i = +rows[rows.length - 1].dataset.i;
+        return i;
+      };
+      const sync = () => { const i = curIdx(); if (String(i) === strip.dataset.i) return; V.cur = i; strip.dataset.i = i; strip.innerHTML = stripHtml(c, i); rows.forEach((r) => r.classList.toggle('cur', +r.dataset.i === i)); };
+      if (!V.hashed) { V.hashed = true; if (H0.vk) V.scrollTo = +H0.vk; if (H0.vend) V.toEnd = true; }
+      if (V.scrollTo != null) { const r = list.querySelector('tr.pf-vrow[data-k="' + V.scrollTo + '"]'); if (r) list.scrollTop = Math.max(0, list.scrollTop + r.getBoundingClientRect().top - list.getBoundingClientRect().top - hh()); V.scrollTo = null; }
+      if (V.toEnd) { V.toEnd = false; list.scrollTop = list.scrollHeight; }
+      list.addEventListener('scroll', sync, { passive: true });
+      sync();
     }
   };
 
@@ -318,8 +318,9 @@
   function xlsx(v) {
     const teams = teamsOf(v), days = (v.tables && v.tables.days) || [];
     const grid = [['날짜', '요일'].concat(teams)].concat(days.map((d) => [{ date: d.date }, d.weekday].concat(lineup(d, teams).map((x) => (x ? x.opp + (x.home ? ' 홈' : ' 원정') : '')))));
-    const sheets = [{ name: '날짜별 출전표', rows: grid, header: true, widths: [12, 5].concat(teams.map(() => 9)) }];
-    const used = new Set(['날짜별 출전표']);
+    const c = build(v), per = [['기간', '시작', '끝', '연전'].concat(c.cols.map((col) => col.short)).concat(['특별 요구 · 어긴 것', '판정'])].concat(c.periods.map((p) => [p.k, { date: p.start }, { date: p.end }, p.len].concat(c.cols.map((col) => { const g = p.byStad[col.name]; return g ? g.away + ' vs ' + g.home : ''; })).concat([Object.values(p.checks).filter((x) => x.bad || x.sp).map((x) => (x.bad ? '✖ ' : '✔ ') + chipLabel(x)).join(' · '), p.bad.length ? p.bad.length + '개 어김' : '지킴'])));
+    const sheets = [{ name: '연전 기간별', rows: per, header: true, widths: [6, 12, 12, 5].concat(c.cols.map(() => 12)).concat([30, 9]) }, { name: '날짜별 출전표', rows: grid, header: true, widths: [12, 5].concat(teams.map(() => 9)) }];
+    const used = new Set(['연전 기간별', '날짜별 출전표']);
     for (const g of v.groups || []) for (const it of g.items || []) {
       const cols = it.columns || [];
       let name = (it.title + ' ' + verdictWord(it.verdict)).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31);
@@ -331,7 +332,7 @@
     const bytes = Xlsx.write(sheets);
     const file = 'KBO ' + S.seasonYear() + ' 요구 사항 점검 ' + (V.at || '').slice(0, 10) + '.xlsx';
     if (!S.selftestMode) KBO.UI.download(file, new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    S.toast('「' + file + '」을 내려받았습니다. 첫 시트가 날짜별 출전표, 다음 시트가 항목마다 근거 표입니다.', 'ok', 6000);
+    S.toast('「' + file + '」을 내려받았습니다. 첫 시트가 연전 기간별, 다음이 날짜별 출전표, 그다음이 항목마다 근거 표입니다.', 'ok', 6000);
   }
 
   // ───────── 동작 ─────────
@@ -345,23 +346,23 @@
   Object.assign(S.actions, {
     'vf-group': (el) => { const g = (V.data.groups || []).find((x) => x.id === el.dataset.id); if (g) V.gopen[g.id] = !groupOpen(g); S.render(); },
     'vf-item': (el) => { V.open[el.dataset.id] = !V.open[el.dataset.id]; S.render(); },
-    'vf-filter': (el) => { V.filter = el.dataset.v; S.render(); },
-    'vf-day': () => { const n = ((V.data && V.data.tables && V.data.tables.days) || []).length; if (n > 1) { let k = Math.floor(Math.random() * n); if (k === V.day) k = (k + 1) % n; V.day = k; } S.render(); },
     'vf-date': (el) => goDate(el.dataset.date),
     'vf-again': () => { ensure(true); S.render(); },
     'vf-xlsx': () => { if (V.data && V.data.tables) xlsx(V.data); },
-    'vf-sel': (el) => { V.sel = +el.dataset.id; V.scrollTo = true; S.render(); },
-    'vf-team': (el) => { V.team = el.dataset.v; V.scrollTo = true; S.render(); },
-    'vf-onlybad': (el) => { V.onlyBad = !!el.checked; V.scrollTo = true; S.render(); },
-    'vf-next': (el) => { const c = build(V.data); const bad = shownList(c).filter((s) => s.bad.length); if (!bad.length) return; const dir = +el.dataset.dir, cur = c.byId[V.sel]; let k = bad.findIndex((s) => s.id === V.sel); if (k < 0) { const i = c.series.indexOf(cur); k = dir > 0 ? bad.findIndex((s) => c.series.indexOf(s) > i) : bad.length - 1 - [...bad].reverse().findIndex((s) => c.series.indexOf(s) < i); if (k < 0 || k >= bad.length) k = dir > 0 ? 0 : bad.length - 1; } else k = (k + dir + bad.length) % bad.length; V.sel = bad[k].id; V.scrollTo = true; S.render(); },
-    'vf-grid': () => { V.showGrid = !V.showGrid; S.render(); }
+    'vf-row': (el) => { const c = build(V.data), p = c.periods[+el.dataset.i]; if (p) V.rows[p.k] = !isOpen(p); S.render(); },
+    'vf-all': () => { V.allOpen = V.allOpen === true ? false : true; V.rows = {}; S.render(); },
+    'vf-onlybad': (el) => { V.onlyBad = !!el.checked; S.render(); },
+    'vf-team': (el) => { V.team = el.dataset.v === V.team ? '' : (el.dataset.v || ''); S.render(); },
+    'vf-goto': (el) => { V.rows[+el.dataset.k] = true; V.scrollTo = +el.dataset.k; S.render(); },
+    'vf-next': () => { const c = build(V.data), bad = c.periods.filter((p) => p.bad.length); if (!bad.length) return; const n = bad.find((p) => p.i > V.cur) || bad[0]; V.rows[n.k] = true; V.scrollTo = n.k; S.render(); }
   });
   /** 점검용 주소 demo=verify: 서버 없이 점검 화면을 본다 — run27 결과에 보여주는 문의 저장된 점검표(2025 기본 결과)를 얹는다. 날짜는 2025 것이라 달력 이동은 맞지 않는다 */
-  S.demos.verify = function () {
+  S.demos.verify = function (bad) {
     S.demos.run27();
     const go = () => fetch('show/fixtures/result-default.json').then((r) => (r.ok ? r.json() : null)).then((j) => {
       if (!j || !j.verification) return;
       // 2025 기본 결과의 점검표를 2027 달력에 얹는 것이라 지문이 다르다 → 화면이 「다른 일정의 점검표」로 알려야 한다(그것이 이 점검 경로가 보는 것)
+      if (bad) fakeBad(j.verification);
       V.took(j.verification); V.offline = true;
       V.gopen.special = true; V.open.opening = true; // 점검 화면 그림에 펼친 묶음·근거 표가 보이게
       const slim = V.slim(j.verification);
@@ -370,4 +371,15 @@
     }).catch(() => { /* 없으면 서버 없음 화면 */ });
     if (typeof fetch === 'function') go();
   };
+  /** 점검용 주소 demo=verifybad: 위 점검표에 어긴 줄을 꾸며 넣어 어긴 기간 줄·빨간 표·띠의 ✖·휴식 요일 어김 줄이 보이게 한다(그림·점검용, 실제 판정이 아님) */
+  S.demos.verifybad = function () { S.demos.verify(true); };
+  function fakeBad(v) {
+    const by = {}; for (const it of items(v)) by[it.id] = it;
+    const fail = (it, row, result) => { if (!it) return; if (it.verdict !== FAIL) { it.verdict = FAIL; v.failed = (v.failed || 0) + 1; v.passed = Math.max(0, (v.passed || 0) - 1); v.failedTitles = (v.failedTitles || []).concat([it.title]); v.ok = false; } it.rows = (it.rows || []).concat([row]); it.result = result; };
+    const sl = (by['series-length'] && by['series-length'].rows) || [], at = (i) => (sl[i] ? sl[i].date : '2025-04-22');
+    fail(by.streak, { team: '한화', date: at(6), run: 4, kind: '홈', judge: '홈 4연속' }, '한화가 홈 4연속입니다(점검용으로 꾸민 줄).');
+    fail(by['daily-stadiums'], { date: at(19), weekday: '화', stadium: '잠실종합운동장', games: 'KIA vs 두산 · KT vs LG', judge: '한 구장에 경기 2' }, '한 구장에 경기가 둘인 날이 있습니다(점검용으로 꾸민 줄).');
+    fail(by['rest-weekdays'], { date: '2025-06-02', weekday: '월', games: 5, judge: '휴식 요일에 경기' }, '휴식 요일에 경기가 있는 날이 있습니다(점검용으로 꾸민 줄).');
+    if (by.children && by.children.rows && by.children.rows[0]) { by.children.rows[0].judge = '정한 홈 아님'; fail(by.children, { date: by.children.rows[0].date, away: '', home: by.children.rows[0].home, stadium: by.children.rows[0].stadium, judge: '홈 경기가 없음' }, '어린이날 홈 구장이 정한 대로가 아닙니다(점검용으로 꾸민 줄).'); }
+  }
 })();

@@ -684,46 +684,76 @@ table.pf-vgrid th:not(:first-child), table.pf-vgrid td:not(:first-child) { text-
 .pf-vsum.stale .xs { color: var(--text); }
 .pf-vic.warn { background: var(--warn); }
 .pf-vlist.pf-vstale { opacity: .82; }
-/* 대안 C: 연전 목록(왼쪽) · 이 연전의 점검표(오른쪽). 두 칸이 남는 높이를 받고 각자 안에서 스크롤한다 */
-.pf-vsercols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); contain: size; min-height: 520px; }
-.pf-vsercols > .pf-sec { display: flex; flex-direction: column; min-height: 0; }
-.pf-vser-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
-.pf-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.pf-chip { font: inherit; font-size: 12px; padding: 2px 9px; border-radius: 12px; border: 1px solid var(--line-2); background: #fff; color: var(--text-2); cursor: pointer; }
-.pf-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
-.pf-vserlist { flex: 1 1 0; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
-.pf-vser-h { position: sticky; top: 0; z-index: 1; background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--navy); }
-.pf-vser-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 6px 10px; border: 0; border-bottom: 1px solid var(--line); background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
-.pf-vser-card .d { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
-.pf-vser-card .d:empty { display: none; }
-.pf-vser-card b { color: var(--navy); }
-.pf-vser-card:hover { background: var(--blue-weak); }
-.pf-vser-card.on { background: var(--blue-weak); box-shadow: inset 3px 0 0 var(--blue); }
-.pf-vser-card.bad { background: var(--bad-bg); }
-.pf-vser-card.bad.on { box-shadow: inset 3px 0 0 var(--bad); }
-.pf-vic.sm { width: 16px; height: 16px; } .pf-vic.sm .i { width: 10px; height: 10px; }
-.pf-vic.na { background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text-3); font-size: 12px; font-weight: 700; }
-.pf-vchk { flex: 1 1 0; min-height: 0; overflow: auto; }
-.pf-vchk-head { border: 1px solid var(--ok-line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--ok-bg); }
-.pf-vchk-head.bad { background: var(--bad-bg); border-color: var(--bad-line); }
-.pf-vchk-head .t { font-size: 16px; } .pf-vchk-head .t b { color: var(--navy); }
-.pf-vchk-verdict { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; }
-.pf-vchk-games { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }
-.pf-vchk-badsum { margin: 6px 0 0; padding-top: 6px; border-top: 1px dashed var(--bad-line); }
-.pf-vchk-games .h { font-weight: 700; color: var(--navy); } .pf-vchk-games .a { font-weight: 700; }
-.pf-vchk-g { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
-.pf-vchk-gh { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 13px; }
-.pf-vchk-gh b { color: var(--navy); } .pf-vchk-gh .r { margin-left: auto; }
-.pf-vchk-i { padding: 7px 10px; border-top: 1px solid var(--line); font-size: 12.5px; }
-.pf-vchk-i:first-of-type { border-top: 0; }
-.pf-vchk-i.bad { box-shadow: inset 3px 0 0 var(--bad); }
-.pf-vchk-i.na { opacity: .6; }
-.pf-vchk-ih { display: flex; align-items: flex-start; gap: 8px; }
-.pf-vchk-ih .t { flex: 1; display: flex; flex-direction: column; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; } .pf-vchk-ih .t > b { color: var(--navy); font-size: 13px; }
-.pf-vchk-ih .w { font-weight: 700; font-size: 12px; white-space: nowrap; } .pf-vchk-ih .w.ok { color: var(--ok); } .pf-vchk-ih .w.bad { color: var(--bad); } .pf-vchk-ih .w.info, .pf-vchk-ih .w.na { color: var(--text-3); }
-.pf-vchk-rows { list-style: none; margin: 4px 0 0 28px; padding: 0; display: grid; gap: 2px; font-size: 12px; }
-.pf-vchk-rows b.bad { color: var(--bad); } .pf-vchk-rows b.ok { color: var(--ok); }
-.pf-vchk-i > .xs { margin: 3px 0 0 28px; }
-.pf-vchk-empty { padding: 20px; color: var(--text-3); text-align: center; }
-.pf-vmore .pf-vright { margin-top: 4px; }
-.pf-vser h3 .r b.bad { color: var(--bad); } .pf-vser h3 .r b.ok { color: var(--ok); }
+/* 대안 C: 연전 기간 따라 점검 — 시즌 합계 상자, 누적 띠, 기간 한 줄 표(구장별 칸). 표가 남는 높이를 받고 안에서 스크롤한다 */
+.pf-vtot h3 .r { font-weight: 400; }
+.pf-vtgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 16px; font-size: 12.5px; }
+.pf-vtgrid > div { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
+.pf-vtgrid > div > b { color: var(--navy); }
+.pf-vtgrid > div > b .bad { color: var(--bad); }
+.pf-vtgrid > div > small { flex-basis: 100%; margin-left: 26px; color: var(--text-2); font-size: 11.5px; word-break: keep-all; }
+.pf-vtgrid .pf-vic { margin-right: 0; }
+.pf-vper.pf-fill { contain: size; min-height: 420px; display: flex; flex-direction: column; }
+.pf-vper h3 .r b.bad { color: var(--bad); } .pf-vper h3 .r b.ok { color: var(--ok); }
+.pf-vtools { display: flex; align-items: center; gap: 12px; font-size: 12px; margin: 2px 0 6px; }
+.pf-vtools > .muted { flex: 1; min-width: 0; }
+.pf-vtools label { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.pf-vtools .pf-link { white-space: nowrap; }
+/* 누적 띠 */
+.pf-vstrip { border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-2); padding: 6px 10px; margin-bottom: 6px; }
+.pf-vstrip-t { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.pf-vstrip-t > b { color: var(--navy); font-size: 12.5px; }
+.pf-vstrip-t .pf-vend { color: var(--ok); font-weight: 700; }
+.pf-vstrip-t .pf-vsel { margin-left: auto; color: var(--blue); } .pf-vstrip-t .pf-vsel b { color: var(--blue); }
+.pf-vstrip-t > .xs { margin-left: auto; }
+.pf-vtcs { display: grid; gap: 4px; }
+.pf-vtc { background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px; font: inherit; font-size: 12px; line-height: 1.35; text-align: left; cursor: pointer; min-width: 0; }
+.pf-vtc:hover { border-color: var(--blue); }
+.pf-vtc > b { color: var(--navy); font-size: 12.5px; }
+.pf-vtc .pf-vha { display: block; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pf-vtc .pf-vha em { font-style: normal; font-weight: 700; color: var(--text); } .pf-vtc .pf-vha .pf-vsum2 { color: var(--text-3); }
+.pf-vtc .pf-vrun { display: block; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.pf-vtc .pf-vrun.r3 { color: var(--warn); } .pf-vtc .pf-vrun.r4 { color: var(--bad); font-weight: 700; }
+.pf-vtc.r4 { border-color: var(--bad-line); background: var(--bad-bg); }
+.pf-vtc.sel { box-shadow: 0 0 0 2px var(--blue); border-color: var(--blue); }
+.pf-vf.hl .pf-vtc:not(.sel) { opacity: .45; }
+/* 기간 표 */
+.pf-vplist { flex: 1 1 0; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vpt { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.pf-vpt th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-size: 11.5px; color: var(--text-3); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); z-index: 1; white-space: nowrap; }
+table.pf-vpt th.pf-vst { text-align: center; } table.pf-vpt th.pf-vst small { display: block; font-weight: 400; font-size: 10.5px; min-height: 13px; }
+table.pf-vpt td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+tr.pf-vrow { cursor: pointer; }
+tr.pf-vrow:hover td { background: var(--blue-weak); }
+tr.pf-vrow.bad td { background: var(--bad-bg); }
+tr.pf-vrow.cur td.pf-vc { box-shadow: inset 3px 0 0 var(--blue); }
+tr.pf-vrow td.pf-vc { width: 18px; } tr.pf-vrow td.pf-vc .i { width: 12px; height: 12px; stroke: var(--text-3); fill: none; stroke-width: 2; transition: transform .15s; }
+tr.pf-vrow.open td.pf-vc .i { transform: rotate(90deg); }
+tr.pf-vrow td.pf-vk { font-weight: 800; color: var(--navy); }
+tr.pf-vrow td.pf-vd { color: var(--text-2); font-variant-numeric: tabular-nums; } tr.pf-vrow td.pf-vd small { display: inline; margin-left: 5px; color: var(--text-3); font-size: 11px; }
+table.pf-vpt td.pf-vgc { text-align: center; border-left: 1px solid var(--line); }
+table.pf-vpt td.pf-vgc.empty { background: var(--surface-2); } tr.pf-vrow.bad td.pf-vgc.empty { background: #F6DEDC; }
+.pf-vgm .away { font-weight: 500; color: var(--text-2); } .pf-vgm .vs { font-size: 10px; color: var(--text-3); } .pf-vgm .home { font-weight: 800; color: var(--navy); } .pf-vgm .stad { color: var(--text-3); font-size: 11.5px; }
+table.pf-vpt td.pf-vck { white-space: normal; border-left: 1px solid var(--line); min-width: 120px; }
+table.pf-vpt td.pf-vvc { text-align: right; width: 84px; }
+.pf-vv { font-size: 12px; font-weight: 700; white-space: nowrap; } .pf-vv.ok { color: var(--ok); } .pf-vv.bad { color: var(--bad); }
+.pf-vchip { display: inline-block; font-size: 11.5px; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid var(--blue-line, #B9CDF3); background: var(--blue-weak); color: var(--blue); font-weight: 700; margin: 1px 3px 1px 0; }
+.pf-vchip.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+/* 구단 강조: 그 구단 경기만 진하게(홈은 더 진한 칸), 나머지는 흐리게 */
+.pf-vf.hl .pf-vgm { opacity: .28; } .pf-vf.hl .pf-vgm.hl { opacity: 1; }
+table.pf-vpt td.pf-vgc.hl { background: var(--blue-weak); box-shadow: inset 0 0 0 1.5px var(--blue); } table.pf-vpt td.pf-vgc.hl.home { background: #CFDEFA; }
+tr.pf-vrow:hover td.pf-vgc.hl { background: #C4D6F8; }
+table.pf-vdt .pf-vgm.hl { background: var(--blue-weak); border-radius: 4px; padding: 0 4px; outline: 1.5px solid var(--blue); } table.pf-vdt .pf-vgm.hl.home { background: #CFDEFA; }
+/* 펼친 줄: 날짜별 경기 + 근거 */
+tr.pf-vdet td { white-space: normal; background: #fff; padding: 0; }
+tr.pf-vrow.bad + tr.pf-vdet td { background: var(--bad-bg); }
+.pf-vdet-in { padding: 6px 10px 10px; }
+table.pf-vdt { border-collapse: collapse; font-size: 12.5px; margin: 2px 0 6px; } table.pf-vdt td { padding: 2px 8px 2px 0; border: 0; vertical-align: top; } table.pf-vdt td.pf-vdd { white-space: nowrap; }
+.pf-vevs { display: grid; gap: 3px; font-size: 12.5px; }
+.pf-vev { display: flex; gap: 6px; align-items: flex-start; } .pf-vev .pf-vic { width: 18px; height: 18px; margin-top: 1px; } .pf-vev .pf-vic .i { width: 11px; height: 11px; }
+.pf-vev > b { color: var(--navy); white-space: nowrap; } .pf-vev > span { color: var(--text-2); } .pf-vev.bad > span { color: var(--bad); font-weight: 700; }
+.pf-vev > span b.bad { color: var(--bad); } .pf-vev > span b.ok { color: var(--ok); }
+.pf-vdet-in .pf-vna { margin-top: 8px; }
+/* 기간 사이 줄: 휴식기·어긴 휴식 요일 */
+tr.pf-vsep td { padding: 3px 8px; font-size: 12px; color: var(--text-2); background: var(--surface-2); }
+tr.pf-vsep td .pf-vic { width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px; } tr.pf-vsep td .pf-vic .i { width: 10px; height: 10px; }
+tr.pf-vsep.bad td { background: var(--bad-bg); } tr.pf-vsep td b.bad { color: var(--bad); }

@@ -100,5 +100,7 @@ pf-running4|step=2&year=2027&demo=running4
 pf-result|step=5&year=2027&demo=run27
 pf-verify|step=8&year=2027&demo=verify
 pf-verify-none|step=8&year=2027&demo=run27
-pf-verify-team|step=8&year=2027&demo=verify&vteam=두산&vbad=1
+pf-verify-bad|step=8&year=2027&demo=verifybad&vteam=한화&vk=7
+pf-verify-team|step=8&year=2027&demo=verifybad&vteam=두산&vbad=1
+pf-verify-end|step=8&year=2027&demo=verify&vend=1
 pf-result-verify|step=5&year=2027&demo=verify
