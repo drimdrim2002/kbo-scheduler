@@ -146,6 +146,13 @@
   // ───────── 오버레이 ─────────
   S.modals = {};
   S.drawers = {};
+  /** 실행 중에 브라우저 뒤로/앞으로를 누른 때(base.js S.onHistory): 그 자리에 머물지, 멈추고 갈지 */
+  S.modals.runLeave = function () {
+    return '<div class="modal narrow" role="dialog" aria-label="실행 중" style="width:480px;max-width:94vw"><div class="modal-head"><h3>계획을 실행하는 중입니다</h3></div><div class="modal-body" style="display:block;padding:14px">' +
+      '<p style="margin:0 0 6px">실행이 끝날 때까지 이 화면에 그대로 있습니다.</p>' +
+      '<p class="muted" style="margin:0 0 12px">다른 화면으로 가려면 실행을 멈춰야 합니다. 멈추면 지금까지 찾은 가장 좋은 결과를 저장하고 이동합니다.</p>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="close-modal">계속 실행</button><button class="btn primary" data-act="run-leave-go">실행 멈추고 이동</button></div></div></div>';
+  };
   function renderOverlay() {
     let s = '';
     const u = S.ui;
@@ -213,6 +220,7 @@
   const scrollMem = {};
   S.render = function () {
     const u = S.ui;
+    if (u.modal === 'runLeave' && !S.running()) u.modal = null; // 묻는 사이에 실행이 끝났으면 닫는다
     S.wide = window.innerWidth >= 1800; S.tall = window.innerHeight >= 900;
     document.querySelectorAll('[data-sk]').forEach((el) => { scrollMem[el.getAttribute('data-sk')] = [el.scrollTop, el.scrollLeft]; });
     document.body.classList.toggle('mode-ops', !!u.ops);
@@ -268,6 +276,7 @@
     'open-settings': (el) => { S.go({ drawer: S.ui.drawer === 'settings' && !el.dataset.set ? null : 'settings', setTab: el.dataset.set || S.ui.setTab || 'features' }); },
     'close-drawer': () => { S.go({ drawer: null }); },
     'close-modal': () => { S.go({ modal: null }); },
+    'run-leave-go': () => S.stopRunAndGo(),
     'scrim': (el, e) => { if (e.target === el) S.go({ modal: null }); },
     'menu': (el) => {
       const r = el.getBoundingClientRect();
@@ -345,7 +354,8 @@
     app.probeRoad(); // 편성 서버의 도로거리 계산(카카오모빌리티 길찾기 중계)이 되는지
     app.setNavigator((target) => S.navTarget(target));
     S.applyRoute(S.parseHash());
-    window.addEventListener('hashchange', () => { S.applyRoute(S.parseHash()); S.render(); });
+    // 브라우저 뒤로/앞으로·주소 고쳐 쓰기(해시만 바뀌는 이동도 popstate가 먼저 온다)
+    window.addEventListener('popstate', (e) => S.onHistory(e.state));
     // 폭·높이 구간(1800px·900px)이 바뀌면 JS로 크기를 정한 차트·달력을 다시 그린다
     window.addEventListener('resize', () => { const w = window.innerWidth >= 1800, t = window.innerHeight >= 900; if (w !== S.wide || t !== S.tall) S.render(); else S.checkScroll(); });
     bindEvents();
@@ -353,6 +363,7 @@
     S.render();
     if (S.ui.demo && S.demos[S.ui.demo]) { S.quiet = true; try { S.demos[S.ui.demo](); } finally { S.quiet = false; } }
     setTimeout(() => S.checkScroll(), 300);
+    setTimeout(() => { S.hist.ready = true; }, 0); // 시작 때 고쳐 쓴 주소는 기록에 쌓지 않는다
     if (q.get('selftest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/selftest.js'; document.body.appendChild(sc); }
     if (q.get('plantest') === '1') { const sc = document.createElement('script'); sc.src = 'app/studio/plan-selftest.js'; document.body.appendChild(sc); }
   };
