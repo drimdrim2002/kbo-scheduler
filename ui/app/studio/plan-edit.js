@@ -200,6 +200,7 @@
     if (isRunning() || (S.locked && S.locked())) return;
     const r = prepare();
     if (!r) return;
+    E.homeSlot = null; // 홈 구단 고르기 창이 열려 있으면 닫는다 — 남아 있으면 실행 뒤 전후 비교를 가린다
     S.toast('연전 ' + r.free + '개를 새로 짭니다(최대 ' + EDIT_SEC / 60 + '분). 고정하지 않은 경기는 대부분 바뀝니다.', 'info', 5000);
     start();
   }
@@ -214,7 +215,7 @@
     app().store.commit('결과 고치기: 실행 뒤', (x) => {
       if (x.meta.editRun) Object.assign(x.meta.editRun, { after: summaryOf(ex), left: (ex.violations || []).length, saved: res.vid ? res.name : null, why, done: new Date().toISOString() });
     }, { tags: ['meta'], undo: false });
-    E.panel = null; E.baHidden = false; E.focus = null;
+    E.panel = null; E.homeSlot = null; E.baHidden = false; E.focus = null;
     S.go({ step: 3, view: 'calendar', sel: null, pop: null, moving: null });
     return out;
   };
