@@ -177,7 +177,7 @@ final class RescheduleCodec {
                 Match m = matchByCancelledKey.get(key);
                 if (m == null || !("M:" + key).equals(id)) {
                     throw new IllegalArgumentException("취소 표시가 없는 경기가 배정 대상에 들어 있습니다: " + home.getName() + "–"
-                            + away.getName() + " " + Json.asString(t.get("date"), ""));
+                            + away.getName() + " " + shortDate(Json.asString(t.get("date"), "")));
                 }
                 if (m.getHome() != home || m.getAway() != away) {
                     throw new IllegalArgumentException("취소 경기의 홈·원정이 1차 편성과 다릅니다: " + id);
@@ -219,7 +219,7 @@ final class RescheduleCodec {
             if (!coveredCancelled.contains(key)) {
                 Match m = matchByCancelledKey.get(key);
                 throw new IllegalArgumentException("취소한 경기가 배정 대상에 빠져 있습니다: " + m.getHome().getName() + "–"
-                        + m.getAway().getName() + " " + key.substring(key.indexOf('|') + 1));
+                        + m.getAway().getName() + " " + shortDate(key.substring(key.indexOf('|') + 1)));
             }
         }
         for (int i = 0; i < n; i++) {
@@ -357,6 +357,15 @@ final class RescheduleCodec {
             out.add(new TeamHistory(team.getIndex(), moves, distance, location, run, last, dh));
         }
         return out;
+    }
+
+    /** 2025-08-27 → 8/27(읽을 수 없으면 그대로). */
+    static String shortDate(String iso) {
+        try {
+            return RuleCheck.label(LocalDate.parse(iso));
+        } catch (DateTimeParseException e) {
+            return iso;
+        }
     }
 
     private static LocalDate date(Object v, String what) {

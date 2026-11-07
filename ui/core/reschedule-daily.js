@@ -40,6 +40,8 @@
   /** 9/20 */
   function label(day) { const s = D().isoDate(day); return Number(s.slice(5, 7)) + '/' + Number(s.slice(8, 10)); }
   const km = (tenths) => tenths / 10;
+  /** 2025-08-27 → 8/27(읽을 수 없으면 그대로). 엔진 RescheduleCodec.shortDate와 같다 */
+  function shortDate(iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso) && Number.isFinite(D().dayNum(iso)) ? label(D().dayNum(iso)) : iso; }
 
   function fail(msg) { const e = new Error(msg); e.userMessage = true; throw e; }
   function parseDay(v, what) {
@@ -118,7 +120,7 @@
       if (source === 'CANCELLED') {
         const key = num(t.match, -1) + '|' + (t.date == null ? '' : t.date);
         const s = matchByCancelledKey.get(key);
-        if (!s || 'M:' + key !== id) fail('취소 표시가 없는 경기가 배정 대상에 들어 있습니다: ' + teams[home].name + '–' + teams[away].name + ' ' + (t.date == null ? '' : t.date));
+        if (!s || 'M:' + key !== id) fail('취소 표시가 없는 경기가 배정 대상에 들어 있습니다: ' + teams[home].name + '–' + teams[away].name + ' ' + shortDate(t.date == null ? '' : String(t.date)));
         if (s.home !== home || s.away !== away) fail('취소 경기의 홈·원정이 1차 편성과 다릅니다: ' + id);
         covered.add(key);
       } else if (source === 'REMAINING') {
@@ -146,7 +148,7 @@
       games.push(game);
     }
     for (const [key, s] of matchByCancelledKey) {
-      if (!covered.has(key)) fail('취소한 경기가 배정 대상에 빠져 있습니다: ' + teams[s.home].name + '–' + teams[s.away].name + ' ' + key.slice(key.indexOf('|') + 1));
+      if (!covered.has(key)) fail('취소한 경기가 배정 대상에 빠져 있습니다: ' + teams[s.home].name + '–' + teams[s.away].name + ' ' + shortDate(key.slice(key.indexOf('|') + 1)));
     }
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
       if (pairGames[i][j] !== gamesPerPair) fail(teams[i].name + '–' + teams[j].name + '의 경기 수가 ' + gamesPerPair + '경기가 되지 않습니다(지금 ' + pairGames[i][j] + '경기).');

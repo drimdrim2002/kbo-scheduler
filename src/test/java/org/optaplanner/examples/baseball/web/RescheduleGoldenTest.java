@@ -94,7 +94,72 @@ class RescheduleGoldenTest {
                 cases.add(caseOf(names[i] + " · 무작위 " + (k + 1), i, p, RescheduleCodec.planJson(parsed)));
             }
         }
-        return Json.obj("base", "data/baseball/project_2025.json", "problems", problems, "cases", cases);
+        return Json.obj("base", "data/baseball/project_2025.json", "problems", problems, "cases", cases, "errors", errors());
+    }
+
+    /** 입력 오류: 서버가 돌려주는 문장 그대로. 브라우저 parse가 같은 문장을 내야 한다. */
+    @SuppressWarnings("unchecked")
+    static JSONArray errors() {
+        JSONArray out = new JSONArray();
+        java.util.function.BiConsumer<String, JSONObject> add = (name, p) -> {
+            String message;
+            try {
+                RescheduleCodec.parse(p);
+                throw new IllegalStateException("오류가 나야 하는 사례: " + name);
+            } catch (IllegalArgumentException e) {
+                message = e.getMessage();
+            }
+            JSONObject entry = Json.obj("name", name, "games", p.get("games"), "reschedule", p.get("reschedule"), "message", message);
+            if (p.get("settings") != null && ((JSONObject) p.get("settings")).get("homeTotals") != null) {
+                entry.put("settings", p.get("settings"));
+            }
+            out.add(entry);
+        };
+        add.accept("시작이 1차 편성 안", RescheduleFixtures.problem(21, 5, "2025-08-31", "2025-09-20"));
+        add.accept("마감일이 시작보다 앞", RescheduleFixtures.problem(21, 5, "2025-09-05", "2025-09-03"));
+        add.accept("기간이 너무 김", RescheduleFixtures.problem(21, 5, "2025-09-01", "2026-01-31"));
+        JSONObject missing = RescheduleFixtures.problem(21, 5, "2025-09-01", "2025-09-20");
+        ((JSONArray) ((JSONObject) missing.get("reschedule")).get("targets")).remove(0);
+        add.accept("취소 경기 빠짐", missing);
+        JSONObject fewer = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        JSONArray ft = (JSONArray) ((JSONObject) fewer.get("reschedule")).get("targets");
+        ft.remove(ft.size() - 1);
+        add.accept("구단쌍 15경기", fewer);
+        JSONObject unmarked = RescheduleFixtures.problem(21, 3, "2025-09-01", "2025-09-20");
+        ((JSONArray) unmarked.get("games")).remove(0);
+        add.accept("취소 표시 없는 대상", unmarked);
+        JSONObject order = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        ((JSONObject) order.get("reschedule")).put("order", Json.arr(List.of("lastDay", "monday")));
+        add.accept("기준 순서", order);
+        JSONObject run = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        ((JSONObject) run.get("reschedule")).put("maxConsecutiveDays", 0L);
+        add.accept("연속 경기일 상한 0", run);
+        JSONObject home = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        JSONObject hs = (JSONObject) ((JSONObject) home.get("settings")).clone();
+        hs.put("homeTotals", Json.obj("moreTeams", Json.arr(List.of("SSG", "두산", "LG", "KT", "키움")),
+                "more", Json.obj("total", 73L, "initial", 69L), "less", Json.obj("total", 71L, "initial", 66L)));
+        home.put("settings", hs);
+        add.accept("홈 73/71 안 맞음", home);
+        // 발표한 일정: LG가 8/26~8/31에 이어 9/1~9/3 매일 → 연속 9일
+        JSONObject streak = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        JSONObject rs = (JSONObject) streak.get("reschedule");
+        JSONArray plan = new JSONArray();
+        int day = 1;
+        for (Object o : (JSONArray) rs.get("targets")) {
+            JSONObject t = (JSONObject) o;
+            if (day <= 3 && ("LG".equals(t.get("home")) || "LG".equals(t.get("away")))) {
+                plan.add(Json.obj("game", t.get("id"), "date", "2025-09-0" + day++));
+            }
+        }
+        rs.put("plan", plan);
+        add.accept("발표 일정이 연속 경기일을 넘음", streak);
+        JSONObject late = RescheduleFixtures.problem(21, 0, "2025-09-01", "2025-09-20");
+        JSONObject lrs = (JSONObject) late.get("reschedule");
+        JSONArray lp = new JSONArray();
+        lp.add(Json.obj("game", ((JSONObject) ((JSONArray) lrs.get("targets")).get(0)).get("id"), "date", "2025-09-25"));
+        lrs.put("plan", lp);
+        add.accept("발표 일정이 마감일 뒤", late);
+        return out;
     }
 
     @SuppressWarnings("unchecked")

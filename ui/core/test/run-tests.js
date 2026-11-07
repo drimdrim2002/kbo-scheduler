@@ -910,8 +910,14 @@ test('재편성 서버·브라우저 같은 답: 사례마다 점수 8단계, �
   assert(unplaced > 0 && violations > 0 && dh > 0, '사례에 못 넣은 경기·규칙 위반·더블헤더가 모두 들어 있다');
 });
 
-test('재편성 입력 오류 문장이 서버와 같다(기간 시작, 빠진 취소 경기, 16경기, 순서)', () => {
+test('재편성 입력 오류 문장이 서버와 글자까지 같다(기간·대상·순서·상한·홈 73/71·발표 일정)', () => {
   const g = rdGolden(), base = rdBase();
+  assert(g.errors.length >= 10, '오류 사례 수');
+  for (const e of g.errors) {
+    let got = '';
+    try { RD.parse(rdProblem(base, e)); } catch (err) { got = err.message; }
+    eq(got, e.message, e.name);
+  }
   const p = rdProblem(base, g.problems[0]);
   const msg = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
   eq(msg(() => RD.parse(Object.assign({}, p, { reschedule: Object.assign({}, p.reschedule, { start: '2025-08-31' }) }))), '재편성 기간은 1차 편성이 끝난 다음 날(9/1)부터 잡을 수 있습니다.');
