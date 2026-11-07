@@ -1108,6 +1108,17 @@
     document.body.classList.toggle('pf-ro', home || (S.seasonYear() === YEAR_VIEW && S.ui.step === 5) || (S.seasonYear() === YEAR_NEW && S.ui.step === 7));
   };
 
+  // 달력에서 수정 화면도 주소에 남긴다(ce=1): 브라우저 뒤로를 누르면 검토 화면으로 돌아온다
+  const origG1Hash = S.g1Hash, origG1Route = S.g1Route;
+  S.g1Hash = function (o) { origG1Hash(o); if (P.calEdit && G.mode === 'flow' && (G.fs === 2 || G.fs === 3)) o.ce = 1; };
+  S.g1Route = function (o) {
+    origG1Route(o);
+    if (o.step && +o.step !== 1) return;
+    const on = o.ce === '1' && G.mode === 'flow' && (G.fs === 2 || G.fs === 3);
+    if (P.calEdit && !on) { P.inline = null; S.cal.edit = null; S.cal.pickOpen = false; }
+    P.calEdit = on;
+  };
+
   // ───────── 동작 ─────────
   const go1 = (n) => { P.calEdit = false; S.flowGo(n); };
   const origCalNext = S.actions['cal-next'];
