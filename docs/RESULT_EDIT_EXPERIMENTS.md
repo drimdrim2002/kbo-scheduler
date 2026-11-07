@@ -30,7 +30,7 @@
 | 3개 | 6~48 | 1~6 |
 | 4개 | 96~1,536 | 1~10 |
 
-스크립트: `count-simple-moves.js`, `count-chain-moves.js`, `count-refill.js` (`node <스크립트> <저장소 경로>`).
+스크립트: `count-simple-moves.js`(하나만 옮기기 · 홈·원정 바꾸기. 맞바꾸기 수는 같은 대진끼리도 세어 195로 나옴), `count-real-swaps.js`(같은 대진끼리를 뺀 맞바꾸기 24), `count-chain-moves.js`, `count-refill.js` (`node <스크립트> <저장소 경로>`).
 
 ## 3. 실제 엔진 실험
 
