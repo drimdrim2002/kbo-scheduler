@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매치봇 마스코트 후보</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=block">
+<style>
+:root { --blue: #3b6cf4; --deep: #2546a8; --screen: #dfe9ff; --ink: #1f2430; --line: #e3e6ec; --muted: #6b7280; --bg: #f6f7f9; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 0 0 16px; display: grid; grid-template-columns: 200px 1fr 1fr 300px; gap: 20px; align-items: center; }
+.name b { display: block; font-size: 17px; }
+.name span { display: block; color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 4px; }
+.bar { display: flex; align-items: center; gap: 7px; background: rgba(246,247,249,.94); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.bar svg { width: 28px; height: 28px; flex: none; }
+.bar .wm { font-family: 'Jua', sans-serif; font-size: 24px; line-height: 1; color: var(--blue); padding-top: 2px; }
+.say { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: start; }
+.say svg { width: 44px; height: 44px; }
+.say p { margin: 0; background: var(--screen); border-radius: 4px 14px 14px 14px; padding: 9px 12px; font-size: 13px; line-height: 1.5; }
+.faces { display: flex; gap: 10px; align-items: flex-end; }
+.faces figure { margin: 0; text-align: center; font-size: 11px; color: var(--muted); }
+.faces svg { width: 60px; height: 60px; display: block; margin: 0 auto 3px; }
+.faces .big svg { width: 96px; height: 96px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--blue); background: var(--screen); border-radius: 4px; padding: 1px 6px; margin-bottom: 6px; }
+.tiny { display: flex; gap: 14px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.tiny svg { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>매치봇 마스코트 후보</h1>
+  <p class="lead">왼쪽부터 상단 띠(28px) · 말풍선(44px) · 표정 4가지(기본 / 계산 중 / 완료 / 대기). 맨 위 「지금」이 현재 그림이에요.</p>
+  <div id="list"></div>
+</div>
+<script>
+(function () {
+  var C = { blue: '#3b6cf4', deep: '#2546a8', screen: '#e6eeff', ink: '#1f2430', mint: '#7ef0d0', yellow: '#ffc53d', green: '#3ccf8e', white: '#fff' };
+  var LIGHT = { normal: C.mint, think: C.yellow, done: C.green, sleep: 'rgba(126,240,208,.4)' };
+
+  // 표정: (fx, fy) 얼굴 가운데, s 크기 배율, ink 색
+  function face(state, fx, fy, s, ink, opt) {
+    opt = opt || {};
+    var ex = 10.5 * s, ew = 8 * s, eh = 12.5 * s, sw = 3.6 * s, o = '';
+    function eye(cx, dx, dy) { return '<rect x="' + (cx - ew / 2 + dx) + '" y="' + (fy - 4 * s - eh / 2 + dy) + '" width="' + ew + '" height="' + eh + '" rx="' + ew / 2 + '" fill="' + ink + '"/>'; }
+    function line(d) { return '<path d="' + d + '" stroke="' + ink + '" stroke-width="' + sw + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'; }
+    var my = fy + 9.5 * s;
+    if (state === 'normal') { o += eye(fx - ex, 0, 0) + eye(fx + ex, 0, 0) + line('M' + (fx - 6 * s) + ' ' + my + ' q' + 6 * s + ' ' + 4.5 * s + ' ' + 12 * s + ' 0'); }
+    if (state === 'think') { o += eye(fx - ex, 2 * s, -1.5 * s) + eye(fx + ex, 2 * s, -1.5 * s) + line('M' + (fx - 4.5 * s) + ' ' + (my + 1 * s) + ' h' + 9 * s); }
+    if (state === 'done') {
+      var ey = fy - 3 * s;
+      o += line('M' + (fx - ex - 5 * s) + ' ' + (ey + 2.5 * s) + ' q' + 5 * s + ' ' + (-6 * s) + ' ' + 10 * s + ' 0');
+      o += line('M' + (fx + ex - 5 * s) + ' ' + (ey + 2.5 * s) + ' q' + 5 * s + ' ' + (-6 * s) + ' ' + 10 * s + ' 0');
+      o += '<path d="M' + (fx - 8 * s) + ' ' + (my - 1.5 * s) + ' q' + 8 * s + ' ' + 9 * s + ' ' + 16 * s + ' 0 z" fill="' + ink + '"/>';
+    }
+    if (state === 'sleep') {
+      o += line('M' + (fx - ex - 4 * s) + ' ' + (fy - 2 * s) + ' h' + 8 * s) + line('M' + (fx + ex - 4 * s) + ' ' + (fy - 2 * s) + ' h' + 8 * s);
+      o += '<ellipse cx="' + fx + '" cy="' + (my + 1 * s) + '" rx="' + 2.6 * s + '" ry="' + 3.2 * s + '" fill="' + ink + '"/>';
+      var zc = opt.zColor || C.deep;
+      o += '<text x="' + (opt.zx || 78) + '" y="' + (opt.zy || 26) + '" font-family="Jua, sans-serif" font-size="13" fill="' + zc + '">z</text><text x="' + ((opt.zx || 78) + 7) + '" y="' + ((opt.zy || 26) - 9) + '" font-family="Jua, sans-serif" font-size="9" fill="' + zc + '">z</text>';
+    }
+    return o;
+  }
+
+  var DESIGNS = [
+    { key: 'now', name: '지금', note: '귀·안테나·눈 반짝이·입 아래 막대까지 요소가 많아 작게 보면 뭉개져요.', svg: function (st) {
+      var body = '<rect x="47" y="6" width="6" height="14" rx="3" fill="#2546a8"/><rect x="8" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="84" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="14" y="20" width="72" height="68" rx="20" fill="#3b6cf4"/><rect x="22" y="30" width="56" height="42" rx="12" fill="#dfe9ff"/>';
+      var a = '<circle cx="50" cy="7" r="6" fill="' + LIGHT[st] + '"/>';
+      var bars = '<rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".45"/>';
+      var f = { normal: '<rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="35" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="60" y="45" width="3" height="3" rx="1.5" fill="#fff"/><path d="M42 62 q8 6 16 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+        think: '<rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="37" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="62" y="45" width="3" height="3" rx="1.5" fill="#fff"/><path d="M43 63 h14" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+        done: '<path d="M32 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M57 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M40 60 q10 10 20 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+        sleep: '<path d="M33 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/><path d="M58 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="50" cy="63" rx="3.5" ry="4.5" fill="#1f2430"/><text x="74" y="30" font-family="Jua, sans-serif" font-size="12" fill="#2546a8">z</text><text x="80" y="22" font-family="Jua, sans-serif" font-size="9" fill="#2546a8">z</text>' };
+      return body + a + f[st] + bars;
+    } },
+    { key: 'A', name: 'A. 다듬기', tag: '표준', note: '지금 모양 그대로, 귀·반짝이·막대를 빼고 한 가지 파랑으로. 눈을 키워 작게 봐도 또렷해요.', svg: function (st) {
+      return '<rect x="48" y="7" width="4" height="13" rx="2" fill="' + C.deep + '"/><circle cx="50" cy="8" r="5.5" fill="' + LIGHT[st] + '" stroke="' + C.deep + '" stroke-width="1.5"/>' +
+        '<rect x="12" y="19" width="76" height="70" rx="26" fill="' + C.blue + '"/><rect x="21" y="30" width="58" height="48" rx="17" fill="' + C.screen + '"/>' + face(st, 50, 54, 1.05, C.ink);
+    } },
+    { key: 'B', name: 'B. 화면 얼굴', note: '파란 네모 하나에 흰 눈·입만. 앱 아이콘처럼 단순해요. 오른쪽 위 불빛 색이 상태를 알려요.', svg: function (st) {
+      return '<rect x="8" y="12" width="84" height="80" rx="30" fill="' + C.blue + '"/><circle cx="76" cy="27" r="5.5" fill="' + LIGHT[st] + '"/>' + face(st, 50, 54, 1.35, C.white, { zColor: C.white, zx: 58, zy: 34 });
+    } },
+    { key: 'C', name: 'C. 야구공', note: '머리가 야구공. 파란 실밥으로 야구 느낌을 바로 줘요. 안테나 대신 표정만으로 상태를 보여요.', svg: function (st) {
+      var seam = function (d) { return '<path d="' + d + '" stroke="' + C.blue + '" stroke-width="3" fill="none" stroke-linecap="round"/><path d="' + d + '" stroke="' + C.blue + '" stroke-width="8" fill="none" stroke-dasharray="1.6 5.2" stroke-linecap="butt" opacity=".9"/>'; };
+      return '<circle cx="50" cy="52" r="41" fill="#fff" stroke="' + C.blue + '" stroke-width="5"/>' +
+        seam('M21 24 Q35 52 21 80') + seam('M79 24 Q65 52 79 80') + face(st, 50, 53, 1.15, C.ink, { zx: 76, zy: 20 });
+    } },
+    { key: 'D', name: 'D. 달력', note: '머리가 탁상 달력. 위의 두 고리로 「일정 짜는 봇」이 드러나요. 위 띠의 불빛 색이 상태를 알려요.', svg: function (st) {
+      return '<rect x="12" y="16" width="76" height="76" rx="20" fill="' + C.blue + '"/><rect x="20" y="36" width="60" height="48" rx="12" fill="' + C.screen + '"/>' +
+        '<rect x="29" y="6" width="8" height="20" rx="4" fill="' + C.deep + '"/><rect x="63" y="6" width="8" height="20" rx="4" fill="' + C.deep + '"/><circle cx="50" cy="26" r="4" fill="' + LIGHT[st] + '"/>' + face(st, 50, 61, 0.95, C.ink, { zx: 74, zy: 32 });
+    } }
+  ];
+
+  function svg(d, st) { return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + d.svg(st) + '</svg>'; }
+  var html = '';
+  DESIGNS.forEach(function (d) {
+    html += '<section class="card" data-k="' + d.key + '">' +
+      '<div class="name">' + (d.tag ? '<span class="tag">' + d.tag + '</span>' : '') + '<b>' + d.name + '</b><span>' + d.note + '</span></div>' +
+      '<div><div class="bar">' + svg(d, 'normal') + '<span class="wm">매치봇</span></div><div class="tiny">' + svg(d, 'normal') + '<span>16px(탭 아이콘 크기)</span></div></div>' +
+      '<div class="say">' + svg(d, 'done') + '<p>같은 대진, 같은 규칙으로 매치봇이 찾은 일정이에요.</p></div>' +
+      '<div class="faces">' + ['normal', 'think', 'done', 'sleep'].map(function (st, i) { return '<figure>' + svg(d, st) + ['기본', '계산 중', '완료', '대기'][i] + '</figure>'; }).join('') + '</div>' +
+      '</section>';
+  });
+  document.getElementById('list').innerHTML = html;
+  document.documentElement.setAttribute('data-errors', '0');
+})();
+</script>
+</body>
+</html>

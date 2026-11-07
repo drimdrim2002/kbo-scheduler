@@ -9,7 +9,7 @@
    큰 제목 h1 28(768+ 32, 큰 숫자도 같은 크기) / 블록 제목 h2 22 / 소제목 h3·항목 제목 item 17 / 본문·버튼 body·설명 desc 15 /
    작은 글 small 13 / 머리글·범례 cap 12 / 그래프 글자 chart 11 / 빽빽한 그림 nano 10(재생기 카드·점 지도 축).
    세 안 중 사용자 선택: 휴대폰에서 읽기 편한 안(설명 14→15, 항목 제목 16→17). 역할 이름은 나눠 둔다 */
-:root { --sh-fs-h1: 28px; --sh-fs-h2: 22px; --sh-fs-h3: 17px; --sh-fs-item: 17px; --sh-fs-body: 15px; --sh-fs-desc: 15px; --sh-fs-small: 13px; --sh-fs-cap: 12px; --sh-fs-chart: 11px; --sh-fs-nano: 10px; }
+:root { --sh-fs-h1: 28px; --sh-fs-h2: 22px; --sh-fs-h3: 17px; --sh-fs-item: 16px; --sh-fs-body: 15px; --sh-fs-desc: 15px; --sh-fs-small: 13px; --sh-fs-cap: 12px; --sh-fs-chart: 11px; --sh-fs-nano: 10px; }
 @media (min-width: 768px) { :root { --sh-fs-h1: 32px; } }
 html { -webkit-text-size-adjust: 100%; }
 body.sh-body { background: var(--bg); color: var(--fg); font-size: var(--sh-fs-body); line-height: 1.55; min-width: 320px; }
@@ -652,7 +652,7 @@ html[data-lay] .sh-story-h { font-size: var(--sh-fs-h3); margin-top: var(--ly-su
 
 /* ── 첫 화면: 표제어 → 대본 그림 → 쪽 제목 h1 → 기준 질문(모양은 위 "첫 화면: 드라마 대본 한 장 = 그림" 블록) ── */
 .sh-body .sh-q1-h { margin: 0 0 16px; } /* 표제어(사용자 문구) → 종이 */
-html[data-lay] .sh-lead + .sh-h1 { margin-top: var(--ly-sub); } /* 드라마 이야기(그림·근거 문장)와 쪽 제목 사이: 소블록 여백(사용자: 윗문장에 붙어 보임) */
+html[data-lay] .sh-lead + .sh-h1, html[data-lay] .sh-lead + #hero-h { margin-top: var(--ly-sub); } /* 드라마 이야기(그림·근거 문장)와 쪽 제목 사이: 소블록 여백(사용자: 윗문장에 붙어 보임) */
 
 /* ── 질문 접기: 결과 카드 맨 아래 줄처럼 붙인 단추(점 지도 카드의 「경기 일정 보기 →」 줄과 같은 자리), 닫힌 채 시작. 열면 같은 틀 안에 칩 + 답 말풍선 ── */
 .sh-ask-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; font: inherit; text-align: left; cursor: pointer; }
@@ -839,3 +839,13 @@ html[data-lay] .sh-tool-top .sh-h2 { margin: 0; }
 .sh-vday-sum { margin: 10px 0 0; font-weight: 800; font-size: var(--sh-fs-body); }
 .sh-vday-sum.ok { color: var(--ok); } .sh-vday-sum.bad { color: var(--warn); }
 .sh-vday-tools { margin-top: 10px; }
+
+/* 소개 맨 위 정의 한두 줄(2026-11-08 사용자: 소개가 배경보다 먼저 와야 자연스럽다는 의견 → 이야기 순서는 두고 맨 위에 정의만) */
+.sh-intro { margin: 0 0 28px; padding: 0 0 20px; border-bottom: 1px solid var(--line); }
+.sh-intro-t { font-size: var(--sh-fs-h1); font-weight: 700; line-height: 1.25; letter-spacing: -.02em; margin: 0 0 8px; color: var(--fg); word-break: keep-all; text-wrap: balance; } /* 쪽 제목(h1). 휴대폰에서 두 줄을 고르게 */
+.sh-intro-d { font-size: var(--sh-fs-desc); line-height: 1.6; color: var(--muted); margin: 0; word-break: keep-all; }
+.sh-intro .sh-chip { margin-top: 12px; }
+/* 글자 크기 통일(2026-11-08 사용자: 위계·크기 검토 → 권장안). 항목 제목은 위 --sh-fs-item 16(소제목 17보다 한 단계 아래) */
+.sh-rb-val { font-size: var(--sh-fs-body); } /* 결과 막대의 실제·매치봇 값: 기준 카드 숫자와 같은 무게로(12 → 15) */
+html[data-lay] .sh-maker-p { font-size: var(--sh-fs-desc); line-height: 1.6; } /* 만든 사람 카드 설명: 다른 카드 설명과 같은 15 */
+.sh-why-gap span { color: inherit; } /* 「가장 큰 차이 6일」: 숫자도 단위와 같은 본문색 */

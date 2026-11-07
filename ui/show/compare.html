@@ -8,7 +8,10 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="실제 2025 KBO 일정 vs 매치봇: 같은 조건, 같은 채점 방식">
 <meta property="og:description" content="구단별 이동 일수 31~37 → 30~33일, 이동거리 차이 1,603 → 716km, 주말·공휴일 홈 경기 22~28 → 모두 25경기, 총 이동거리 13% 감소.">
-<meta property="og:image" content="https://schedulelab.kr/og/default.png">
+<!-- 미리보기 그림: 마스코트 한 장(2026-11-08 사용자 선택). 카카오는 그림 주소를 오래 기억하므로 바꿀 때 번호를 올린다. 다시 만들기: ui/tools/show/og-card/make.py -->
+<meta property="og:image" content="https://schedulelab.kr/share-matchbot-1.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <script>
   (function () {
@@ -29,49 +32,20 @@
 <link rel="stylesheet" href="show.css?v=20261027a">
 </head>
 <body class="sh-body" data-page="compare">
-<!-- 매치봇 마스코트(브랜드 가이드 v1.0의 심볼 그대로, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
+<!-- 매치봇 마스코트(브랜드 가이드 v1.0 심볼을 다듬은 A안 표준, 2026-11-08 사용자 선택: 귀·눈 반짝이·입 아래 막대를 빼고 한 가지 파랑. 다시 만들기: ui/tools/show/mascot/mascot.py apply std, id 앞에 mb-). 상단 띠 마크와 말풍선(.sh-say)에 쓴다 -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
-    <symbol id="mb-bot-body" viewBox="0 0 100 100">
-      <rect x="47" y="6" width="6" height="14" rx="3" fill="#2546a8"/>
-      <rect x="8" y="42" width="8" height="22" rx="4" fill="#2546a8"/><rect x="84" y="42" width="8" height="22" rx="4" fill="#2546a8"/>
-      <rect x="14" y="20" width="72" height="68" rx="20" fill="#3b6cf4"/>
-      <rect x="22" y="30" width="56" height="42" rx="12" fill="#dfe9ff"/>
-    </symbol>
-    <symbol id="mb-bot" viewBox="0 0 100 100">
-      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0"/>
-      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
-      <rect x="35" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="60" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
-      <path d="M42 62 q8 6 16 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".45"/>
-    </symbol>
-    <symbol id="mb-bot-think" viewBox="0 0 100 100">
-      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#ffc53d"/>
-      <rect x="33" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/><rect x="58" y="43" width="9" height="12" rx="4.5" fill="#1f2430"/>
-      <rect x="37" y="45" width="3" height="3" rx="1.5" fill="#fff"/><rect x="62" y="45" width="3" height="3" rx="1.5" fill="#fff"/>
-      <path d="M43 63 h14" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" class="mb-blink"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
-    </symbol>
-    <symbol id="mb-bot-done" viewBox="0 0 100 100">
-      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#3ccf8e"/>
-      <path d="M32 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <path d="M57 50 q5.5 -6 11 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <path d="M40 60 q10 10 20 0" stroke="#1f2430" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0"/>
-    </symbol>
-    <symbol id="mb-bot-sleep" viewBox="0 0 100 100">
-      <use href="#mb-bot-body"/><circle cx="50" cy="7" r="6" fill="#7ef0d0" opacity=".4"/>
-      <path d="M33 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/><path d="M58 51 h9" stroke="#1f2430" stroke-width="3.5" stroke-linecap="round"/>
-      <ellipse cx="50" cy="63" rx="3.5" ry="4.5" fill="#1f2430"/>
-      <text x="74" y="30" font-family="Jua, sans-serif" font-size="12" fill="#2546a8">z</text><text x="80" y="22" font-family="Jua, sans-serif" font-size="9" fill="#2546a8">z</text>
-      <rect x="30" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="45" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/><rect x="60" y="77" width="10" height="4" rx="2" fill="#7ef0d0" opacity=".25"/>
-    </symbol>
+    <symbol id="mb-bot-body" viewBox="0 0 100 100"><rect x="48" y="7" width="4" height="13" rx="2" fill="#2546a8"/><rect x="12" y="19" width="76" height="70" rx="26" fill="#3b6cf4"/><rect x="21" y="30" width="58" height="48" rx="17" fill="#e6eeff"/></symbol>
+    <symbol id="mb-bot" viewBox="0 0 100 100"><use href="#mb-bot-body"/><circle cx="50" cy="8" r="5.5" fill="#7ef0d0" stroke="#2546a8" stroke-width="1.5"/><rect x="34.77" y="43.24" width="8.4" height="13.12" rx="4.2" fill="#1f2430"/><rect x="56.82" y="43.24" width="8.4" height="13.12" rx="4.2" fill="#1f2430"/><path d="M43.7 63.98 q6.3 4.73 12.6 0" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="mb-bot-think" viewBox="0 0 100 100"><use href="#mb-bot-body"/><circle cx="50" cy="8" r="5.5" fill="#ffc53d" stroke="#2546a8" stroke-width="1.5" class="mb-blink"/><rect x="36.88" y="41.66" width="8.4" height="13.12" rx="4.2" fill="#1f2430"/><rect x="58.92" y="41.66" width="8.4" height="13.12" rx="4.2" fill="#1f2430"/><path d="M45.27 65.03 h9.45" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="mb-bot-done" viewBox="0 0 100 100"><use href="#mb-bot-body"/><circle cx="50" cy="8" r="5.5" fill="#3ccf8e" stroke="#2546a8" stroke-width="1.5"/><path d="M33.73 53.48 q5.25 -6.3 10.5 0" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M55.77 53.48 q5.25 -6.3 10.5 0" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M41.6 62.4 q8.4 9.45 16.8 0 z" fill="#1f2430"/></symbol>
+    <symbol id="mb-bot-sleep" viewBox="0 0 100 100"><use href="#mb-bot-body"/><circle cx="50" cy="8" r="5.5" fill="#7ef0d0" stroke="#2546a8" stroke-width="1.5" opacity=".4"/><path d="M34.77 51.9 h8.4" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M56.82 51.9 h8.4" stroke="#1f2430" stroke-width="3.78" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="50" cy="65.03" rx="2.73" ry="3.36" fill="#1f2430"/><text x="80" y="24" font-family="Jua, sans-serif" font-size="13" fill="#2546a8">z</text><text x="87" y="15" font-family="Jua, sans-serif" font-size="9" fill="#2546a8">z</text></symbol>
   </defs>
 </svg>
 <header class="sh-top">
   <div class="sh-wrap">
     <a class="sh-brand" href="index.html" aria-label="매치봇 홈"><svg class="sh-mark" aria-hidden="true"><use href="#mb-bot"/></svg><span class="sh-wm">매치봇</span></a>
-    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="how.html">결정구</a><a href="../index.html" data-studio data-pc-note>편성 스튜디오(PC)</a></nav>
+    <nav class="sh-nav" aria-label="주요 메뉴"><a href="index.html">소개</a><a href="../index.html" data-studio data-pc-note>편성 스튜디오(PC)</a></nav>
   </div>
 </header>
 
@@ -136,6 +110,8 @@
   <!-- 궁금한 점: 소개 쪽과 같은 질문·답(show.js SHOW.QA). 예전 「어떻게 쟀나요」「매치봇이 모르는 것」은 여기 답으로 옮겼다 -->
   <section class="sh-sec sh-faq" aria-labelledby="qa-h" data-qa="list">
     <h2 class="sh-h2" id="qa-h">궁금한 점</h2>
+    <!-- 「푸는 방법」은 위쪽 메뉴에서 빼고 본문에서 열게 함(2026-11-08 사용자). 질문 목록은 show.js가 이 줄 앞에 넣는다 -->
+    <p class="sh-eng-more sh-qa-tail"><a class="sh-link" href="how.html">푸는 방법 →</a><span class="sh-small"> 매치봇이 일정을 어떻게 짜는지 일곱 가지 질문으로</span></p>
   </section>
 
   <!-- 구장 간 거리표: 매치봇 입력(ui/core/preset-2025.js = data/baseball/input_2025.json)의 distanceMatrix를 그대로 표로. 화면에 들어올 때 프리셋을 읽는다 -->

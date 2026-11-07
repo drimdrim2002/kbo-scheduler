@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매치봇 마스코트 A안</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=block">
+<style>
+:root { --blue: #3b6cf4; --deep: #2546a8; --screen: #dfe9ff; --ink: #1f2430; --line: #e3e6ec; --muted: #6b7280; --bg: #f6f7f9; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 0 0 16px; display: grid; grid-template-columns: 200px 1fr 1fr 300px; gap: 20px; align-items: center; }
+.name b { display: block; font-size: 17px; }
+.name span { display: block; color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 4px; }
+.bar { display: flex; align-items: center; gap: 7px; background: rgba(246,247,249,.94); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.bar svg { width: 28px; height: 28px; flex: none; }
+.bar .wm { font-family: 'Jua', sans-serif; font-size: 24px; line-height: 1; color: var(--blue); padding-top: 2px; }
+.say { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: start; }
+.say svg { width: 44px; height: 44px; }
+.say p { margin: 0; background: var(--screen); border-radius: 4px 14px 14px 14px; padding: 9px 12px; font-size: 13px; line-height: 1.5; }
+.faces { display: flex; gap: 10px; align-items: flex-end; }
+.faces figure { margin: 0; text-align: center; font-size: 11px; color: var(--muted); }
+.faces svg { width: 60px; height: 60px; display: block; margin: 0 auto 3px; }
+.faces .big svg { width: 96px; height: 96px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--blue); background: var(--screen); border-radius: 4px; padding: 1px 6px; margin-bottom: 6px; }
+.tiny { display: flex; gap: 14px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.tiny svg { width: 16px; height: 16px; }
+.faces svg, .say svg, .bar svg, .tiny svg { overflow: visible; }
+.mb-blink { animation: mb-blink 1.4s steps(1) infinite; }
+@keyframes mb-blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: .25; } 100% { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>매치봇 마스코트 A안 · 표준과 옵션</h1>
+  <p class="lead">옵션은 표준에서 한 군데만 달라요. 왼쪽부터 상단 띠(28px) · 말풍선(44px, 계산 중) · 표정 4가지.</p>
+<!--ROWS-->
+</div>
+<script>document.documentElement.setAttribute('data-errors', '0');</script>
+</body>
+</html>

@@ -82,13 +82,13 @@ svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: vis
   if (V === 'b') { padL += W >= 688 ? 30 : 20; var h = document.createElement('div'); h.className = 'holes'; h.innerHTML = '<i></i><i></i>'; paper.appendChild(h); }
   else { var s = document.createElement('i'); s.className = 'staple'; paper.appendChild(s); }
   paper.style.padding = padT + 'px ' + padR + 'px ' + padB + 'px ' + padL + 'px';
-  var rot = V === 'a' || V === 'd' ? -1.4 : V === 'b' ? 0 : 1.1;
+  var rot = V === 'a' || V === 'd' || V === 'e' ? -1.4 : V === 'b' ? 0 : 1.1;
   paper.style.transform = 'rotate(' + rot + 'deg)';
-  var color = V === 'a' || V === 'd' ? '#d0271d' : V === 'b' ? '#1f3fa8' : '#4a4640';
+  var color = V === 'a' || V === 'd' || V === 'e' ? '#d0271d' : V === 'b' ? '#1f3fa8' : '#4a4640';
   var note = document.getElementById('note');
-  if (V === 'c' || V === 'd') { // 포스트잇: 메모 글을 종이 오른쪽 아래에 붙인 쪽지로(d는 빨간 펜 글씨)
+  if (V === 'c' || V === 'd' || V === 'e') { // 포스트잇: 메모 글을 종이 오른쪽 아래에 붙인 쪽지로(d·e는 빨간 펜 글씨)
     note.parentNode.removeChild(note);
-    var st = document.createElement('div'); st.className = 'sticky'; st.textContent = '여기서 영감을 받았어요'; if (V === 'd') st.style.color = color; paper.appendChild(st);
+    var st = document.createElement('div'); st.className = 'sticky'; st.textContent = '여기서 영감을 받았어요'; if (V === 'd' || V === 'e') st.style.color = color; paper.appendChild(st);
     document.getElementById('noteWrap').style.height = (W >= 688 ? 16 : 24) + 'px';
   } else { note.style.color = color; if (V === 'b') { note.style.transform = 'rotate(-1.5deg)'; } }
   // 종이를 돌리기 전 좌표로 잰다(svg도 종이 안에 있어 같이 돈다)
@@ -115,8 +115,27 @@ svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: vis
   var pen = document.getElementById('pen');
   var sw = W >= 688 ? 3 : 2.4;
   var penStyle = V === 'c' ? 'stroke:' + color + ';stroke-width:' + (sw * .9) + ';opacity:.85;filter:url(#pencil)' : 'stroke:' + color + ';stroke-width:' + sw + ';opacity:.92;filter:url(#rough)';
-  var html = '<path d="' + loop(1.28, -0.5) + '" fill="none" stroke-linecap="round" stroke-linejoin="round" style="' + penStyle + '"/>';
-  if (V !== 'c' && V !== 'd') { // 메모 → 동그라미 화살표
+  var html = '';
+  if (V === 'e') { // 빨간 펜 밑줄: 대사 줄마다 손으로 그은 듯 살짝 기울고 흔들리는 줄
+    var kt = document.getElementById('key').firstChild, rg = document.createRange(); rg.selectNodeContents(kt);
+    var lines = [];
+    Array.prototype.forEach.call(rg.getClientRects(), function (r) {
+      var last = lines[lines.length - 1];
+      if (last && Math.abs(last.bottom - r.bottom) < 4) { last.left = Math.min(last.left, r.left); last.right = Math.max(last.right, r.right); }
+      else lines.push({ left: r.left, right: r.right, bottom: r.bottom });
+    });
+    var off = W >= 688 ? 3 : 2;
+    lines.forEach(function (r, li) {
+      var x0 = r.left - P.left - (3 + rnd() * 3), x1 = r.right - P.left + (2 + rnd() * 4), y = r.bottom - P.top + off;
+      var tilt = (rnd() - .5) * 2.2, n = Math.max(4, Math.round((x1 - x0) / 40)), d = '';
+      for (var i = 0; i <= n; i++) {
+        var f = i / n, x = x0 + (x1 - x0) * f, yy = y + tilt * f + (i === 0 || i === n ? 0 : (rnd() - .5) * 1.6);
+        d += (i ? ' L' : 'M') + x.toFixed(1) + ' ' + yy.toFixed(1);
+      }
+      html += '<path d="' + d + '" fill="none" stroke-linecap="round" stroke-linejoin="round" style="' + penStyle + '"/>';
+    });
+  } else html = '<path d="' + loop(1.28, -0.5) + '" fill="none" stroke-linecap="round" stroke-linejoin="round" style="' + penStyle + '"/>';
+  if (V !== 'c' && V !== 'd' && V !== 'e') { // 메모 → 동그라미 화살표
     var N = note.getBoundingClientRect();
     var x1 = N.left - P.left - 4, y1 = N.top - P.top + N.height * .55;
     var x2 = cx - rx * .12, y2 = cy + ry + 4;
@@ -127,7 +146,7 @@ svg.ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: vis
   }
   pen.innerHTML = html;
   paper.style.transform = 'rotate(' + rot + 'deg)';
-  function report() { document.documentElement.setAttribute('data-h', Math.ceil(document.body.getBoundingClientRect().height + (V === 'c' || V === 'd' ? 24 : 0))); }
+  function report() { document.documentElement.setAttribute('data-h', Math.ceil(document.body.getBoundingClientRect().height + (V === 'c' || V === 'd' || V === 'e' ? 24 : 0))); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(report); else report();
   setTimeout(report, 1500);
 })();
