@@ -97,3 +97,4 @@
 /* 운영 방침 아래 줄 알림 */
 .pe-keep { display: inline-flex; align-items: center; gap: 3px; color: var(--navy); font-weight: 700; margin-right: 6px; }
 .pe-keep .i { width: 12px; height: 12px; }
+.footer .pe-keep { flex: none; white-space: nowrap; font-size: 13px; margin: 0 0 0 10px; }

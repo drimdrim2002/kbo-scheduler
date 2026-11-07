@@ -110,3 +110,4 @@ pf-edit-strip-block|step=3&year=2027&demo=edit27block
 pf-edit-strip-low|step=3&year=2027&demo=edit27low
 pf-edit-strip-after|step=3&year=2027&demo=edit27after
 pf-edit-strip-saveblock|step=3&year=2027&demo=edit27save
+pf-edit-strip-step2|step=2&year=2027&demo=edit27run

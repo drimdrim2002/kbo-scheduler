@@ -483,6 +483,34 @@
         }
         S.go({ step: 3, view: 'calendar', month: 4 }); flush();
       }
+      // 홈 지정을 넣으면 운영 방침 화면의 실행도 처음부터(고정은 지킴) · 아래 줄에 「…를 지킵니다」 (사용자 결정 2026-11-07)
+      {
+        const PF = S.planFlow, startRun = S.startRun, solver0 = Object.assign({}, st().settings.solver);
+        press(q('.pe-c[data-pe="' + fixAt + '"]'));
+        click('[data-act="pe-mode"][data-v="home"]'); flush();
+        const d = S.app.derived(), des0 = window.KBO.FixPlan.designations(st()), hs = d.slots.find((x) => x.index > fixAt + 5 && x.consecutive === 3 && !des0[x.index]).index; // 어린이날처럼 이미 정한 연전은 피한다
+        const shared = new Set(st().teams.filter((t) => st().teams.filter((x) => x.stadium === t.stadium).length > 1).map((t) => t.name));
+        const team = d.bySlot[hs].map((i) => st().matches[i].away).find((t) => !shared.has(t));
+        press(q('.pe-c[data-pe="' + hs + '"]'));
+        click('.pe-tm[data-team="' + team + '"]'); flush();
+        ok('홈 지정: 띠에서 3연전 → 구단 고르기 → 홈 지정 이벤트(1단계와 같은 값)', st().events.some((e) => e.mode === 'STADIUM' && e.fix === 'home' && (e.teams || []).includes(team)) && PF.homeEdited(st()));
+        S.go({ step: 2 }); flush();
+        const foot = q('.footer').innerText, band = q('#stepper').innerText;
+        ok('운영 방침: 아래 줄 실행 단추 옆에 「고정한 연전 1개를 지킵니다」', !!q('.footer .pe-keep') && /고정한 연전 1개를 지킵니다/.test(q('.footer .pe-keep').textContent));
+        ok('운영 방침: 홈 지정이 바뀌면 「이어서」가 아니라 처음부터 다시', /처음부터 다시/.test(foot) && !/이어서/.test(foot) && /처음부터 다시 실행/.test(band) && !/이어서 실행/.test(band));
+        const editedBefore = PF.homeEdited(st()) && st().meta.result.sig !== PF.inputSig(st()); // 편성 조건이 바뀌어 예전 규칙이면 「이어서」였을 경우
+        S.startRun = () => {};
+        try { click('.footer [data-act="pf-run"]'); flush(); } finally { S.startRun = startRun; PF.runOption = null; }
+        ok('운영 방침: 홈 지정을 바꾼 뒤 실행은 처음부터(고정은 그대로 보냄)', editedBefore && st().settings.solver.init === 'SCRATCH' && st().plan.filter((p) => p.calendar === fixAt).every((p) => st().matches[p.match].pinned));
+        S.app.updateSolverSettings(solver0);
+        S.go({ step: 3, view: 'calendar' }); flush();
+        click('[data-act="pe-mode"][data-v="home"]'); flush();
+        press(q('.pe-c[data-pe="' + hs + '"]'));
+        click('.pe-tm[data-team="' + team + '"]'); flush();
+        ok('홈 지정 빼면 다시 「이어서」 대상 아님', !PF.homeEdited(st()));
+        click('[data-act="pe-mode"][data-v="fix"]'); flush();
+        const conf2 = window.confirm; window.confirm = () => true; click('[data-act="pe-clear"]'); window.confirm = conf2; flush();
+      }
       S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
       ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
       // 구단별 보기: 한 구단 → 둘째 구단 고르기 → 두 구단 비교(team-view.js)

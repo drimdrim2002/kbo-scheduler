@@ -140,6 +140,18 @@
   /** 연전은 그대로인데 값(홈 구장·대진 지정 등)을 고쳤는가 → 다음 실행은 전 결과에서 이어서 푼다 */
   const inputsEdited = (st) => { const r = st.meta.result; return !!(r && r.sig && !resultStale(st) && r.sig !== inputSig(st)); };
   const freshResult = (st) => (st.meta.result && !resultStale(st) ? st.meta.result : null);
+  /** 홈 지정(연전 기간마다 홈 경기를 해야 하는 구단) 지문. 이어서 풀기로는 새 홈 지정을 지키지 못해(실험) 바뀌었으면 처음부터 다시 짠다(사용자 결정 2026-11-07) */
+  const homeSig = (p) => { const d = KBO.FixPlan.designations(p); return JSON.stringify(Object.keys(d).map(Number).sort((a, b) => a - b).map((k) => [k, d[k].slice().sort()])); };
+  P.homeSig = homeSig;
+  /** 지금 결과를 낸 때와 홈 지정이 다른가. 결과에 지문이 없으면(예전 결과) 그 버전에 담긴 값(없으면 처음 제공 값)과 견준다 */
+  const homeEdited = (st) => {
+    const r = freshResult(st);
+    if (!r) return false;
+    let was = r.homeSig;
+    if (was == null) { const v = r.vid || r.from ? P.versions.get(YEAR_NEW, r.vid || r.from) : null; if (!v) return false; was = homeSig({ events: (v.inputs || preset27()).events, calendar: st.calendar }); }
+    return was !== homeSig(st);
+  };
+  P.homeEdited = homeEdited;
 
   // ───────── 값 검토 상태 ─────────
   const KEYS = { 2: ['opening', 'allStar', 'initialEnd'], 3: ['openingHome', 'childrenHome'] };
@@ -733,7 +745,7 @@
     // 반드시 지킬 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 결과는 화면에 남겨 무엇을 어겼는지 보게 하고, 번호도 쓰지 않는다
     if (!ex.feasible) {
       P.runTag = null; P.runNote = null;
-      const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, option, rule: true, vid: null };
+      const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), homeSig: homeSig(st), engine: app().engineConfig.kind, option, rule: true, vid: null };
       if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 어긴 결과도 서버 점검표는 붙여 무엇을 어겼는지 보게 한다
       app().store.commit('실행 결과 기록', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
       S.toast('실행이 끝났지만 반드시 지킬 규칙을 지키지 못해 저장하지 않았습니다.', 'warn', 6000);
@@ -743,7 +755,7 @@
     const no = nextNo(YEAR_NEW);
     S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
     const tag = P.runTag || null, note = P.runNote || ''; P.runTag = null; P.runNote = null; // 결과 고치기에서 낸 실행이면 이름 끝에 붙이고 메모를 남긴다(plan-edit.js)
-    const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) + (tag ? '_' + tag : ''), note };
+    const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), homeSig: homeSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) + (tag ? '_' + tag : ''), note };
     // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
     if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 점검표에 적힌 지문(planSig)으로 지금 일정의 것인지 가린다
     const v = storeRun(res, ex);
@@ -849,7 +861,7 @@
   /** 점검용 주소 demo=run27: 실행 없이 지금 달력을 결과로 삼아 현재 결과 분석 화면을 본다(저장 목록에는 넣지 않는다) */
   S.demos.run27 = function () {
     const st = app().state, ob = st.settings.objective || DEFAULT_OBJECTIVE, option = optionOf(ob);
-    const res = { at: new Date().toISOString(), elapsedMs: 61000, why: '최대 실행 시간', objective: ob, sig: inputSig(st), calSig: calSig(st), engine: 'MOCK', no: 1, option, name: runName(1, option, ob) };
+    const res = { at: new Date().toISOString(), elapsedMs: 61000, why: '최대 실행 시간', objective: ob, sig: inputSig(st), calSig: calSig(st), homeSig: homeSig(st), engine: 'MOCK', no: 1, option, name: runName(1, option, ob) };
     const v = storeRun(res, app().derived().ex); res.vid = v ? v.id : null;
     app().store.commit('점검용 결과', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
   };
@@ -877,7 +889,7 @@
       if (res && resultStale(st)) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>연전이 바뀌었습니다</h3><p class="pf-d">전에 낸 결과는 이 달력에서 쓸 수 없습니다. 처음부터 다시 실행하거나, 실행 결과 비교에서 저장한 버전을 불러오세요.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
       if (!res) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>아직 결과가 없습니다</h3><p class="pf-d">운영 방침을 정하고 실행하면 여기에 결과가 나옵니다.</p><button class="btn primary" data-act="pf-stage" data-stage="2">운영 방침·실행으로' + icon('right') + '</button></div></div></div>';
       const ex = app().derived().ex, data = dataOf(ex), ob = res.objective || objective();
-      const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. 실행하면 이 결과에서 이어서 풉니다. <button class="pf-link" data-act="pf-stage" data-stage="2">운영 방침·실행으로 ›</button></div>' : '';
+      const editedNote2 = inputsEdited(st) ? '<div class="pf-note warn" style="margin:0">편성 조건을 고친 뒤로 아직 실행하지 않아 지키지 못한 규칙이 보일 수 있습니다. ' + (homeEdited(st) ? '홈 지정이 바뀌어 실행하면 처음부터 다시 짭니다(고정한 것은 그대로).' : '실행하면 이 결과에서 이어서 풉니다.') + ' <button class="pf-link" data-act="pf-stage" data-stage="2">운영 방침·실행으로 ›</button></div>' : '';
       return '<div class="stepview no-band"><div class="pf-page">' + policyCheck(data, ob) +
         saveRow(res) +
         (P.verify ? P.verify.summary(res, data) : '') + // 요구 사항 점검 요약 줄(verify-view.js): 서버가 따로 센 판정. 「지키지 못한 규칙 N건」 경고를 대신한다
@@ -975,7 +987,7 @@
     app().commit('버전 불러오기: ' + v.name, (s) => {
       applyVersion(s, v);
       delete s.meta.editFix; delete s.meta.editRun; // 다른 일정이라 고정한 연전·전후 비교는 그 일정의 것이 아니다
-      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), verification: v.verification || null };
+      s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), homeSig: homeSig(s), verification: v.verification || null };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 편성 조건도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);
     S.go({ step: 5, sel: null });
@@ -1104,7 +1116,7 @@
     const start = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
     const sub = {
       1: fs.allDone ? '4단계 검토함' : start ? '' : (G.mode === 'flow' ? G.fs + ' / 4 ' + fs.steps[G.fs - 1].name + ' · 검토 중' : fs.stop + ' / 4에서 멈춤'),
-      2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? '편성 조건이 바뀜 · 이어서 실행' : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '운영 방침 정하기' : '편성 조건 검토를 마치면',
+      2: running ? '실행 중' : stale ? '연전이 바뀜 · 다시 실행' : edited ? (homeEdited(st) ? '홈 지정이 바뀜 · 처음부터 다시 실행' : '편성 조건이 바뀜 · 이어서 실행') : res ? '실행 끝 · ' + fmt.time(res.elapsedMs || 0) : fs.allDone ? '운영 방침 정하기' : '편성 조건 검토를 마치면',
       3: res ? (S.ui.step === 3 ? '일정 자세히' : S.ui.step === 4 ? '구단별 보기' : S.ui.step === 8 ? '요구 사항 점검' : '한 장으로 보기') : '실행 뒤',
       4: n ? '저장한 버전 ' + n + '개' : '저장한 버전 없음'
     };
@@ -1127,7 +1139,7 @@
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 운영 방침입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (!running && inputsEdited(app().state) ? ' · 지금 결과에서 이어서' : '') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
+    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (running || !inputsEdited(app().state) ? '' : homeEdited(app().state) ? ' · 홈 지정이 바뀌어 처음부터 다시' : ' · 지금 결과에서 이어서') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전을 순위대로 보고, 두 개를 골라 비교합니다</span>';
@@ -1280,7 +1292,9 @@
       if (!fs.allDone) { S.toast('편성 조건 입력·검증을 먼저 마쳐 주세요.', 'warn'); go1(fs.stop); return; }
       if (!app().state.settings.objective) app().updateSettings({ objective: Object.assign({}, DEFAULT_OBJECTIVE) }, '운영 방침 기본값');
       if (!S.seriesOkOf(app().state)) { S.calNext(); if (!S.seriesOkOf(app().state)) return; }
-      const keep = inputsEdited(app().state); // 값을 고쳤으면 전 결과에서 이어서, 운영 방침만 바꿨거나 결과가 없으면 처음부터 — 사용자 결정 2026-11-01
+      // 값을 고쳤으면 전 결과에서 이어서, 운영 방침만 바꿨거나 결과가 없으면 처음부터 — 사용자 결정 2026-11-01.
+      // 단 홈 지정을 넣거나 바꿨으면 처음부터(고정한 연전·손으로 놓은 경기는 지킨다). 서버가 고정한 채로 시작을 못 하면 plan-edit.js가 이어서 풀기로 다시 보낸다 — 사용자 결정 2026-11-07
+      const keep = inputsEdited(app().state) && !homeEdited(app().state);
       app().updateSolverSettings({ timeLimitSec: P.timeSec, unimprovedSec: Math.round(P.timeSec / 2), init: keep ? 'KEEP' : 'SCRATCH' });
       P.runOption = optionOf(objective()); // 이름에 쓸 방침은 실행을 누른 때의 것
       S.startRun();

@@ -142,7 +142,7 @@
     }, ['events', 'pins']);
     if (!ok) return;
     if (removing) S.toast(team + ' 홈 지정을 뺐습니다.', 'info');
-    else if (homeNow) S.toast(team + '은(는) 이미 홈입니다. 지정해 두면 새로 짤 때도 홈으로 남습니다.', 'info', 5000);
+    else if (homeNow) S.toast(team + '은(는) 이미 홈입니다. 홈 지정으로 남겨 두어 다시 짤 때도 홈으로 지킵니다.', 'info', 5500);
     else S.toast(team + ' 홈 지정 · 지금 일정에서는 원정이라 위반으로 보입니다. 「나머지 엔진으로 짜기」가 반영합니다.', 'info', 5500);
   }
 
@@ -484,7 +484,8 @@
     if (!h || S.ui.step !== 2 || !inYear() || isRunning()) return h;
     const st = app().state, n = fixedOf(st).length, k = handCount(st);
     if (!n && !k) return h;
-    return h.replace('<span class="hint pf-policy">', '<span class="hint pf-policy"><span class="pe-keep">' + icon('lock') + '고정한 연전 ' + n + '개' + (k ? '·손으로 놓은 경기 ' + k + '개' : '') + '는 그대로 둡니다</span> ');
+    const what = [n ? '고정한 연전 ' + n + '개' : '', k ? '손으로 놓은 경기 ' + k + '개' : ''].filter(Boolean).join(' · ');
+    return h.replace('<span class="pf-ftime', '<span class="pe-keep" title="일정 자세히 보기의 시즌 띠에서 풀 수 있습니다">' + icon('lock') + esc(what) + '를 지킵니다</span><span class="pf-ftime');
   };
 
   // ───────── 점검용 주소(demo=edit27…): 2027-rank1을 불러와 고정·홈 지정·손으로 놓기 상태를 만든다 ─────────
@@ -534,6 +535,12 @@
     setFixed(D().slots.map((sl) => sl.index).filter((s) => s < n - 8), '점검용: 마지막 8개만 남기고 고정');
     E.focus = n - 8;
     Object.assign(S.ui, { view: 'calendar', month: D().slots[n - 8].month, sel: null, pop: null });
+  });
+  /** 운영 방침·실행 화면: 고정·홈 지정이 있는 채로 — 아래 줄에 「…를 지킵니다」, 홈 지정이 바뀌어 처음부터 다시 */
+  S.demos.edit27run = () => withRank1((v) => {
+    demoEdit(v);
+    app().store.commit('점검용: 검토 끝', (x) => { x.meta.review = Object.assign({}, x.meta.review, { opening: true, allStar: true, initialEnd: true, openingHome: true, childrenHome: true }); x.meta.flow = Object.assign({}, x.meta.flow, { teams: 'same' }); }, { tags: ['meta'], undo: false });
+    Object.assign(S.ui, { step: 2, sel: null, pop: null, moving: null });
   });
   /** 저장 막힘: 손으로 놓아 생긴 위반이 있는 채로 「검사하고 저장」 */
   S.demos.edit27save = () => withRank1((v) => { demoEdit(v); save(); });
