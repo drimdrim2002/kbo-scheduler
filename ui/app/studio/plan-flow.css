@@ -638,3 +638,33 @@ button.tv-flow-blk.h { color: var(--text-2); }
 .pf-strip .sd.game.wk, .sc-strip .sd.game.wk, .pf-cal-leg .sd.game.wk { background: var(--cal-wk); }
 .sc-legend i.bnd { background: var(--cal-wd); border-color: var(--cal-wd); }
 .sc-legend i.bnd.wk { background: var(--cal-wk); border-color: var(--cal-wk); }
+
+/* 달력 수정 화면(3단계 줄의 「수정」): 칸 높이를 창 높이 세 단계로 고정하지 않고, 남는 높이를 달력 줄이 나눠 가진다.
+   한 줄은 최소 42px(1366×680에서도 지금보다 작아지지 않게), 최대 88px(큰 창에서 칸이 막대처럼 길쭉해지지 않게). 달 수는 --m */
+body.pf .stepview.fl.cal .sc-calbody { display: flex; flex-direction: column; }
+body.pf .stepview.fl.cal .sc-legend, body.pf .stepview.fl.cal .sc-tips { flex: none; }
+body.pf .stepview.fl.cal .sc-strip { flex: 1 1 0; min-height: calc(var(--m, 7) * 45px); grid-auto-rows: minmax(42px, 88px); align-content: start; }
+body.pf .stepview.fl.cal .sc-strip .strip-row { align-items: stretch; }
+body.pf .stepview.fl.cal .sc-strip .strip-row .m { align-self: center; }
+body.pf .stepview.fl.cal .sc-strip .sd { height: auto; min-height: 42px; }
+@media (min-height: 950px) { body.pf .stepview.fl.cal .sc-strip .sd { font-size: 13px; padding-top: 7px; } }
+
+/* 달력 머리를 한 줄로: 3단계에서는 「여기서는 날을 누릅니다」(아래 사용법과 같은 말)와 연전 묶음 수(2단계에서 고치는 값)를 빼고,
+   범례는 아래 사용법 줄 오른쪽으로 옮긴다. 달력이 그만큼 높아진다 */
+body.pf .stepview.fl.cal .sc.s3 .sc-head { flex-wrap: nowrap; }
+body.pf .stepview.fl.cal .sc.s3 .sc-head > .muted, body.pf .stepview.fl.cal .sc.s3 .sc-hist { display: none; }
+body.pf .stepview.fl.cal .sc-calbody { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 16px; }
+body.pf .stepview.fl.cal .sc-strip { grid-column: 1 / -1; grid-row: 1; }
+body.pf .stepview.fl.cal .sc-tips { grid-column: 1; grid-row: 2; margin-top: 8px; }
+body.pf .stepview.fl.cal .sc-legend { grid-column: 2; grid-row: 2; margin: 8px 0 0; align-self: start; }
+
+/* 달력 수정 중에는 위의 두 단계 띠를 낮춘다(설명 줄을 숨기고 한 줄로). 검토로 돌아가면 원래 높이 */
+body.pf:has(.stepview.fl.cal) { --step-h: 40px; }
+body.pf:has(.stepview.fl.cal) .step { padding-top: 5px; padding-bottom: 5px; }
+body.pf:has(.stepview.fl.cal) .step-sum { display: none; }
+body.pf:has(.stepview.fl.cal) .step-no { grid-row: 1; }
+body.pf .stepview.fl.cal .fl-band { min-height: 38px; }
+body.pf .stepview.fl.cal .fb-lead { padding: 4px 14px; }
+body.pf .stepview.fl.cal .fb-lead small, body.pf .stepview.fl.cal .fb-t small { display: none; }
+body.pf .stepview.fl.cal .fb-step { padding: 4px 14px 4px 20px; }
+body.pf .stepview.fl.cal .fb-step > i { width: 22px; height: 22px; }
