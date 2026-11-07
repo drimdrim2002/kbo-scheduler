@@ -732,6 +732,7 @@
     P.runOption = null;
     // 반드시 지킬 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 결과는 화면에 남겨 무엇을 어겼는지 보게 하고, 번호도 쓰지 않는다
     if (!ex.feasible) {
+      P.runTag = null; P.runNote = null;
       const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, option, rule: true, vid: null };
       if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 어긴 결과도 서버 점검표는 붙여 무엇을 어겼는지 보게 한다
       app().store.commit('실행 결과 기록', (s) => { s.meta.result = res; }, { tags: ['meta'], undo: false });
@@ -741,7 +742,8 @@
     }
     const no = nextNo(YEAR_NEW);
     S.ls.set(noKey(YEAR_NEW), String(no)); // 목록보다 먼저 센다(목록을 못 써도 번호는 다시 쓰지 않는다)
-    const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) };
+    const tag = P.runTag || null, note = P.runNote || ''; P.runTag = null; P.runNote = null; // 결과 고치기에서 낸 실행이면 이름 끝에 붙이고 메모를 남긴다(plan-edit.js)
+    const res = { at: new Date().toISOString(), elapsedMs: run.elapsed, why, objective: ob, sig: inputSig(st), calSig: calSig(st), engine: app().engineConfig.kind, no, option, name: runName(no, option, ob) + (tag ? '_' + tag : ''), note };
     // 서버 요구 사항 점검표(엔진 점수와 따로). 근거 원자료(날짜별 출전표)는 커서 빼고 판정·기준·근거 줄만 남긴다 — 점검 화면이 지금 일정으로 서버에 다시 묻는다
     if (P.verify) { res.verification = P.verify.slim(S.run && S.run.verification); if (S.run && S.run.verification) P.verify.took(S.run.verification); } // 점검표에 적힌 지문(planSig)으로 지금 일정의 것인지 가린다
     const v = storeRun(res, ex);
@@ -932,7 +934,7 @@
   function storeRun(res, ex) {
     const st = app().state, data = dataOf(ex || app().derived().ex), ob = res.objective;
     const op = (st.events || []).find((e) => e.type === 'OPENING') || {};
-    const rec = Object.assign({ id: 'v' + Date.now(), no: res.no, auto: true, option: res.option, name: res.name, year: YEAR_NEW, savedAt: res.at.slice(0, 10), ranAt: res.at, elapsedMs: res.elapsedMs || 0, objective: ob, note: res.option === 'custom' ? '순서: ' + orderText(ob) : '', engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st), verification: res.verification || null }, data, {
+    const rec = Object.assign({ id: 'v' + Date.now(), no: res.no, auto: true, option: res.option, name: res.name, year: YEAR_NEW, savedAt: res.at.slice(0, 10), ranAt: res.at, elapsedMs: res.elapsedMs || 0, objective: ob, note: [res.option === 'custom' ? '순서: ' + orderText(ob) : '', res.note || ''].filter(Boolean).join(' · '), engine: res.engine, pairs: op.pairs || null, inputs: inputsOf(st), verification: res.verification || null }, data, {
       matches: st.matches.map((m) => ({ index: m.index, home: m.home, away: m.away, consecutive: m.consecutive })), plan: st.plan.map((x) => ({ match: x.match, calendar: x.calendar }))
     });
     return P.versions.put(YEAR_NEW, pruneRuns(P.versions.list(YEAR_NEW).concat([rec]), YEAR_NEW)) ? rec : null;
@@ -950,6 +952,8 @@
   /** 「11월 3일 14:05」. 시각이 없는 예전 버전은 저장한 날만 */
   const whenText = (v) => { if (!v.ranAt) { const m = /^\d{4}-(\d\d)-(\d\d)$/.exec(v.savedAt || ''); return m ? +m[1] + '월 ' + +m[2] + '일' : v.savedAt || ''; } const d = new Date(v.ranAt), p = (x) => String(x).padStart(2, '0'); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
   Object.assign(P, { pruneRuns, nextRunNo: nextNo, runName, AUTO_KEEP });
+  // 결과 고치기(plan-edit.js)가 같은 저장·채점을 쓴다
+  Object.assign(P, { dataOf, storeRun, applyVersion, optionOf, pickNew, noKey, noRoom, freshResult, goalValue, within, YEAR_NEW });
   /** 버전의 값과 일정을 프로젝트에 넣는다. 일정은 그 버전을 만든 값(달력·개막전·어린이날…)에서만 맞으므로 값도 그때로 돌린다. 값을 담지 않은 버전은 처음 제공한 2027 값으로 */
   function applyVersion(s, v) {
     const b = JSON.parse(JSON.stringify(v.inputs || preset27())), solver = s.settings.solver;
@@ -970,6 +974,7 @@
     const changed = inputSig(before) !== inputSig(base);
     app().commit('버전 불러오기: ' + v.name, (s) => {
       applyVersion(s, v);
+      delete s.meta.editFix; delete s.meta.editRun; // 다른 일정이라 고정한 연전·전후 비교는 그 일정의 것이 아니다
       s.meta.result = { at: new Date().toISOString(), elapsedMs: v.elapsedMs, why: '저장한 버전', objective: v.objective, from: v.id, engine: v.engine, sig: inputSig(s), calSig: calSig(s), verification: v.verification || null };
     }, ['teams', 'calendar', 'matches', 'plan', 'games', 'settings', 'events', 'meta']);
     S.toast('「' + v.name + '」을(를) 불러왔습니다.' + (changed ? ' 편성 조건도 그 버전을 만들 때로 돌아갔습니다.' : ''), 'ok', changed ? 5000 : undefined);

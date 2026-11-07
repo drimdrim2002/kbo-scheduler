@@ -19,6 +19,8 @@
 
   function app() { return S.app; }
   function D() { return S.app.derived(); }
+  /** 결과 고치기(2027 흐름, plan-edit.js): 연전 기간 고정 · 손으로 놓기. 없으면(예전 화면) 아무것도 바꾸지 않는다 */
+  const EX = () => (S.r3Edit && S.r3Edit.on() ? S.r3Edit : null);
 
   S.findViolation = function (sig) { return D().ex.violations.find((v) => S.vsig(v) === sig) || null; };
   S.slotMonth = (s) => D().slots[s] ? D().slots[s].month : 4;
@@ -135,6 +137,8 @@
     const c = D(), st = app().state, mt = st.matches[mv];
     if (!mt || !c.slots[slot] || c.plan[mv] === slot || c.slots[slot].consecutive !== mt.consecutive) return false;
     if (target != null && (st.matches[target].pinned || target === mv)) return false;
+    const E = EX();
+    if (E && !E.canDrop(mv, slot, target)) return false;
     return true;
   }
 
@@ -151,7 +155,7 @@
       (v
         ? '<span class="vb-msg" title="' + esc(shortMsg(v)) + '"><span class="vb-rule">' + S.ruleLabel(v.code) + '</span><span class="vb-text">' + esc(shortMsg(v)) + '</span><span class="vb-loc">' + icon('cal') + esc(fmt.date(c.slots[v.slot].day)) + '</span>' + (S.isVirtual(v) ? S.virt() : '') + '</span>'
         : '<span class="vb-msg muted">‹ ›로 위반을 하나씩 봅니다. 달력이 그 자리로 갑니다.</span>') +
-      '<button class="btn sm' + (u.pop === 'fix' ? ' on' : ' primary') + '" data-act="viol-fix">' + icon('bolt') + '고치는 방법</button>' +
+      (EX() ? '' : '<button class="btn sm' + (u.pop === 'fix' ? ' on' : ' primary') + '" data-act="viol-fix">' + icon('bolt') + '고치는 방법</button>') +
       '<button class="btn sm' + (u.menu === 'viols' ? ' on' : '') + '" data-act="viol-menu" aria-haspopup="menu">' + icon('list') + '목록' + icon('down') + '</button></div>';
   }
 
@@ -176,7 +180,8 @@
     if (u.view === 'calendar') {
       if (u.teamFilter.length) items.push('<span><span class="fm h">홈</span>홈 경기</span><span><span class="fm a">원</span>원정 경기</span>');
       if (anyViol) items.push('<span><i class="lg-viol"></i>위반</span>');
-      if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
+      if (EX()) items.push(EX().legend());
+      else if (anyPin) items.push('<span>' + icon('pin') + '고정</span>');
     } else if (u.view === 'flow') {
       items.push('<span><i class="lg-home"></i>홈 연전</span><span><i class="lg-fa"></i>원정 연전</span><span><i class="lg-fg' + (FLOW_GRAPH === 'over' ? ' over' : '') + '"></i>' + (FLOW_GRAPH === 'cum' ? '쌓인 이동 거리' : '옮긴 거리') + '</span>');
       if (anyViol) items.push('<span><i class="lg-mviol"></i>위반</span>');
@@ -227,7 +232,7 @@
       else { cls += ' off'; act = ''; }
     }
     return '<button class="' + cls + '"' + (act ? ' data-act="' + act + '"' : ' disabled') + ' data-m="' + m + '"' + extra + ' title="' + esc(title) + '">' +
-      fm + (mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
+      fm + (EX() ? EX().chipMark(m) : mt.pinned ? '<span class="pin-ico">' + icon('pin') + '</span>' : '') +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.away)) + '"></i>' + esc(mt.away) + '</span><span class="at">vs</span>' +
       '<span class="tm"><i style="background:' + esc(S.teamColor(mt.home)) + '"></i>' + esc(mt.home) + '</span>' +
       (S.wide ? '<span class="stad">· ' + esc(stad.replace(/(야구장|경기장|종합운동장|구장|라이언즈파크|챔피언스필드|이글스파크|NC파크|KT위즈파크|돔야구장)$/, '')) + '</span>' : '') +
@@ -256,7 +261,7 @@
       weeks.push(w);
     }
     const vslot = S._selViol ? S._selViol.slot : -1;
-    const mv = u.moving, fromSlot = mv != null ? c.plan[mv] : -2;
+    const mv = u.moving, fromSlot = mv != null ? c.plan[mv] : -2, E = EX();
     let s = '<div class="cal-wrap"><div class="cal-head"><div></div>' + ['월', '화', '수', '목', '금', '토', '일'].map((d, i) => '<div class="' + (i === 6 ? 'sun' : i === 0 ? 'mon' : '') + '">' + d + '</div>').join('') + '</div>';
     s += '<div class="cal-grid" style="grid-template-rows:repeat(' + weeks.length + ',minmax(0,1fr))">';
     for (const w of weeks) {
@@ -270,7 +275,7 @@
         let extra = '';
         if (sl) {
           const hard = c.ex.slotHard[sl.index];
-          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (!hard ? (sl.weekend ? ' 주말' : ' 주중') : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '');
+          extra = ' <span class="muted">· ' + sl.consecutive + '연전' + (!hard ? (sl.weekend ? ' 주말' : ' 주중') : '') + '</span>' + (hard ? ' <span style="color:var(--bad);font-weight:700">' + icon('x') + slotCodes(sl.index) + '</span>' : '') + (E ? E.slotTag(sl.index) : '');
         }
         s += '<div class="cal-day' + (out ? ' out' : '') + (i === 6 ? ' sun' : '') + (hn ? ' hol' : '') + (d === ref ? ' today' : '') + '" style="grid-column:' + (i + 2) + '">' + Dates.fmtShort(d).split('/')[1] + (hn ? '<span class="hn">' + esc(hn) + '</span>' : '') + extra + '</div>';
         const inSlot = c.dayToSlot.has(d);
@@ -284,7 +289,8 @@
         let drop = '';
         if (mv != null && sl.index === fromSlot) drop = '<div class="sb-from">' + icon('move') + '지금 자리</div>';
         else if (mv != null && canDrop(mv, sl.index)) { const h = app().previewDrop(mv, sl.index).hardDelta; drop = '<button class="sb-drop ' + (h > 0 ? 'good' : h < 0 ? 'bad' : 'zero') + '" data-act="move-here" data-slot="' + sl.index + '" title="이 연전 기간으로 옮기기">' + icon('move') + '여기로 · ' + esc(deltaWord(h)) + '</button>'; }
-        s += '<div class="slotband' + (hard ? ' hard' : '') + (sl.index === vslot ? ' vsel' : '') + (mv != null && sl.index === fromSlot ? ' from' : '') + (drop && sl.index !== fromSlot ? ' can' : '') + '" style="grid-column:' + col + ' / span ' + ds.length + (outMonth ? ';opacity:.5' : '') + '" data-slot="' + sl.index + '" title="' + esc(sl.label) + '">' + drop +
+        else if (mv != null && E) drop = E.dropNote(sl.index);
+        s += '<div class="slotband' + (hard ? ' hard' : '') + (sl.index === vslot ? ' vsel' : '') + (E ? E.slotCls(sl.index) : '') + (mv != null && sl.index === fromSlot ? ' from' : '') + (drop && sl.index !== fromSlot ? ' can' : '') + '" style="grid-column:' + col + ' / span ' + ds.length + (outMonth ? ';opacity:.5' : '') + '" data-slot="' + sl.index + '" title="' + esc(sl.label) + '">' + drop +
           '<div class="sb-list" style="grid-template-rows:repeat(' + Math.max(5, c.bySlot[sl.index].length) + ',minmax(0,1fr))">' + c.bySlot[sl.index].map((m) => chip(m, sl.index)).join('') + '</div></div>';
       }
       s += '</div>';
@@ -477,9 +483,11 @@
       (ev ? '<dt>특별 경기</dt><dd>' + esc(ev.name) + ' <span class="tag pin">대진 지정</span></dd>' : '') +
       '<dt>위반</dt><dd>' + (vs.length ? vs.map((v) => '<button class="btn xs" style="color:var(--bad)" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '" title="이 위반으로">' + icon('x') + esc(S.dev() ? v.code : S.ruleName(v.code)) + '</button>').join('') : S.stat('ok', '없음')) + '</dd>' +
       '</dl>';
-    s += '<div class="pop-acts"><label class="pop-pin"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>고정<span class="muted small">자동 편성이 옮기지 않음</span></label>' +
+    if (EX()) s += EX().popActs(m);
+    else s += '<div class="pop-acts"><label class="pop-pin"><span class="switch"><input type="checkbox" data-in="pin" data-m="' + m + '"' + (mt.pinned ? ' checked' : '') + '><i></i></span>고정<span class="muted small">자동 편성이 옮기지 않음</span></label>' +
       (S.feature('M8') && s0 >= 0 ? '<button class="btn sm" data-act="to-pool" data-m="' + m + '"' + (mt.pinned ? ' disabled' : '') + '>' + icon('pool') + '보관함으로 빼기</button>' : '') + '</div>';
-    if (s0 < 0) {
+    if (EX()) { /* 결과 고치기: 옮기기·손으로 놓은 것 풀기는 popActs가 그린다(추천·홈/원정 뒤집기·고정 스위치 없음) */ }
+    else if (s0 < 0) {
       const opts = c.slots.filter((x) => x.consecutive === mt.consecutive).map((x) => { const p = app().previewDrop(m, x.index); return { x, p }; }).sort((a, b) => b.p.hardDelta - a.p.hardDelta).slice(0, 5);
       s += '<div class="pop-sec"><h4>넣을 연전 기간</h4><div class="cands">' + opts.map((o) => '<div class="cand"><span class="what"><span class="kind">이 기간에 넣기</span>' + esc(o.x.label) + '</span>' + (S.feature('M2') ? S.deltaHtml(o.p.hardDelta, null) : '') + '<button class="btn sm go" data-act="from-pool" data-m="' + m + '" data-slot="' + o.x.index + '">넣기</button></div>').join('') + '</div></div>';
     } else {
@@ -569,9 +577,9 @@
       S._selViol = u.sel && u.sel.startsWith('v:') ? S.findViolation(u.sel.slice(2)) : null;
       let pop = '';
       if (u.sel && u.sel.startsWith('m:') && u.moving == null) { pop = popMatch(parseInt(u.sel.slice(2), 10)); u.pop = null; }
-      else if (u.pop === 'fix' && S._selViol) pop = popFix(S._selViol);
+      else if (u.pop === 'fix' && S._selViol && !EX()) pop = popFix(S._selViol);
       else u.pop = null;
-      return '<div class="stepview no-band"><div class="r3' + (u.moving != null ? ' moving' : '') + '">' + renderVBand() + renderToolbar() +
+      return '<div class="stepview no-band"><div class="r3' + (u.moving != null ? ' moving' : '') + (EX() ? ' r3-edit' : '') + '">' + (EX() ? EX().top() : '') + renderVBand() + renderToolbar() +
         '<div class="r3-body">' + (u.view === 'calendar' ? renderCalendar() : u.view === 'flow' ? renderFlow() : u.view === 'pairs' ? renderPairs() : renderMatrix()) + '</div>' + pop + '</div></div>';
     },
     after() {
@@ -633,6 +641,7 @@
     'viol-prev': () => stepViol(-1),
     'viol-next': () => stepViol(1),
     'viol-fix': () => {
+      if (EX()) return;
       const list = orderedViolations();
       if (!list.length) return;
       if (curViolIndex(list) < 0) { gotoViolation(list[0], { pop: 'fix' }); return; }

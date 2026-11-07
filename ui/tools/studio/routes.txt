@@ -104,3 +104,9 @@ pf-verify-bad|step=8&year=2027&demo=verifybad&vteam=한화&vk=7
 pf-verify-team|step=8&year=2027&demo=verifybad&vteam=두산&vbad=1
 pf-verify-end|step=8&year=2027&demo=verify&vend=1
 pf-result-verify|step=5&year=2027&demo=verify
+pf-edit-strip-fixed|step=3&year=2027&demo=edit27
+pf-edit-strip-home|step=3&year=2027&demo=edit27home
+pf-edit-strip-block|step=3&year=2027&demo=edit27block
+pf-edit-strip-low|step=3&year=2027&demo=edit27low
+pf-edit-strip-after|step=3&year=2027&demo=edit27after
+pf-edit-strip-saveblock|step=3&year=2027&demo=edit27save

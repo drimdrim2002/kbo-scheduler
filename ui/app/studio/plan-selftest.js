@@ -447,6 +447,16 @@
       ok('일정 달력: 그 해 날짜로 그려짐(연도가 2025로 고정되지 않음)', qa('.cal-week').length >= 4 && /vs/.test(q('.cal-grid').innerText));
       const mt = q('.month-tabs');
       ok('일정 달력: 달 단추가 잘리지 않음', mt.scrollWidth <= mt.clientWidth + 1);
+      // 결과 고치기(plan-edit.js): 시즌 띠 — 누르면 그 연전 고정(경기 모두 고정), 다시 누르면 풀림 · 「고치는 방법」 추천은 없음
+      const press = (el, shift) => { el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, shiftKey: !!shift })); document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 })); flush(); };
+      ok('결과 고치기: 시즌 띠에 연전 기간 전부 + 마치기 단추 둘 · 고치는 방법 단추 없음', qa('.pe-strip .pe-c').length === st().calendar.length && !!q('[data-act="pe-run"]') && !!q('[data-act="pe-save"]') && !q('[data-act="viol-fix"]'));
+      const fixAt = 5, slotPins = () => st().plan.filter((p) => p.calendar === fixAt).map((p) => !!st().matches[p.match].pinned);
+      press(q('.pe-c[data-pe="' + fixAt + '"]'));
+      ok('결과 고치기: 누른 연전이 고정되고 그 연전 경기가 모두 고정됨 · 달력이 그 달로', (st().meta.editFix || {}).slots.join() === String(fixAt) && slotPins().every(Boolean) && !!q('.pe-c.fx[data-pe="' + fixAt + '"]') && !!q('.slotband.pe-fx'));
+      press(q('.pe-c[data-pe="' + (fixAt + 3) + '"]'), true);
+      ok('결과 고치기: Shift로 누르면 사이의 연전까지 고정', st().meta.editFix.slots.join() === [fixAt, fixAt + 1, fixAt + 2, fixAt + 3].join());
+      const conf = window.confirm; window.confirm = () => true; click('[data-act="pe-clear"]'); window.confirm = conf; flush();
+      ok('결과 고치기: 모두 풀기 → 고정 없음', !st().meta.editFix.slots.length && slotPins().every((x) => !x) && !q('.pe-c.fx'));
       S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
       ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
       // 구단별 보기: 한 구단 → 둘째 구단 고르기 → 두 구단 비교(team-view.js)

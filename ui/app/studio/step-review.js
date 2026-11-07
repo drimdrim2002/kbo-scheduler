@@ -366,6 +366,7 @@
     const ar = app().run;
     S.lastRun = { history: r.history, elapsed: r.elapsed, improvements: r.improvements, reason: why, count: ((S.lastRun && S.lastRun.count) || 0) + 1, when: '방금 ' + fmt.clock(new Date()), engine: r.engine, seeds: r.seeds, trace: (ar && ar.trace) || null };
     S.run = null;
+    if (reason === 'ERROR' && S.onRunError && S.onRunError(message)) { S.render(); return; } // 2027 흐름이 오류를 받아 다시 보내거나 사용자 말로 알린다(plan-edit.js)
     if (reason === 'ERROR') { S.toast('편성 실패 — ' + (message || '엔진 오류'), 'bad', 7000); S.render(); return; }
     const ex = D().ex;
     if (S.afterRun && S.afterRun(ex, r, why)) return;
