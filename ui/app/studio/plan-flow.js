@@ -438,7 +438,7 @@
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
   // 2단계 줄의 「수정」은 화면을 옮기지 않고 그 줄 안에 입력칸을 펼친다(season-calendar.js S.seasonInlineEditor)
-  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', rules: 'rules' };
+  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', seasonEnd: 'seasonEnd', rules: 'rules' };
   const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + (k === 'rules' ? S.homeTotalsEditor() : S.seasonInlineEditor(INLINE[k])) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
   /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
   const seasonCal = () => {
@@ -469,6 +469,8 @@
       { key: 'opening', t: '개막일', tag: 'est', v: fmt.date(s.seasonStart) + ' · 개막 2연전', ...BASIS.opening },
       { key: 'allStar', t: '올스타 휴식기·후반기 첫 4연전', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', v2: '후반기 첫 4연전 ' + (four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음'), ...BASIS.allStar },
       { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd },
+      // 시즌 종료일: 재편성 기간의 끝. 1차 편성에는 쓰지 않지만 여기서 바꿀 수 있게(사용자 결정 2026-11-08; 전에는 모든 표 보기 → 시즌 기본 설정에만 있었다)
+      { t: '시즌 종료일', to: 'seasonEnd', tag: 'got', tagText: '기본', v: fmt.date(s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31') + ' · 재편성 기간의 끝', why: '1차 편성 뒤 남은 경기와 취소 경기를 넣는 재편성 기간이 이 날 끝납니다. 1차 편성에는 쓰지 않습니다.' },
       // 홈 경기 수: 날짜에 붙는 값이 아니라 시즌 전체의 편성 조건이라 2단계에 둔다(수정은 4 확인의 시리즈 규칙)
       ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
     ].filter(Boolean);
@@ -702,8 +704,10 @@
       // 실행에 관한 알림만 이 칸 끝에. 실행 칸은 없앴다(2026-11-04: 방침 요약·시간은 아래 줄에 있어 되풀이였다). 실행 시간 입력은 아래 줄 단추 옆
       (rest ? '' : '<div class="pf-runbar"><span class="grow"></span><span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저의 시험용 자동 편성을 씁니다">시험용 자동 편성 — 결과가 좋지 않습니다</span></div>') +
       (maxSec && maxSec < P.timeSec ? '<div class="pf-note warn">서버 한도가 ' + maxSec + '초라 그 시간까지만 실행합니다.</div>' : '') +
-      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div>';
+      (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다 — ' + esc(blockNames(pf)) + '. 편성 조건 입력·검증으로 돌아가 고치세요.</div>') + '</div></div></div>';
   }
+  /** 사전 점검에서 진행 불가인 항목 이름(「구장 간 거리 · 특별 경기 충돌」). 운영자가 어느 단계로 돌아갈지 알게 */
+  const blockNames = (pf) => pf.items.filter((i) => i.status === 'block').map((i) => i.title).join(' · ');
   /** 결과 화면 맨 위 한 줄: 결과의 실제 격차를 방침의 허용 수준과 목표마다 견준다. 옆에 「수준 다시 정하기」 */
   function policyCheck(data, ob) {
     const items = ob.order.filter((id) => GOALS[id].tol).map((id) => { const g = GOALS[id], v = goalValue(data, id), tol = ob[g.tol], ok = v <= tol;
@@ -1142,7 +1146,7 @@
       const hint = { 1: '2025 구단 정보에 LG·두산 구장만 고쳐 두었습니다. 그 밖에 바뀐 것이 있는지 확인합니다', 2: '추정값을 하나씩 확인합니다', 3: '개막전 대진과 어린이날 홈 구단을 확인합니다', 4: S.flowStatus().allDone ? '모든 편성 조건을 검토했습니다. 다음은 운영 방침입니다' : '앞 단계의 편성 조건을 먼저 확인해 주세요' }[n];
       return prev + '<span class="hint"><b>' + n + ' / 4 ' + esc(steps[n - 1].name) + '</b> — ' + hint + '</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>' + next;
     }
-    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (running || !inputsEdited(app().state) ? '' : homeEdited(app().state) ? ' · 홈 지정이 바뀌어 처음부터 다시' : ' · 지금 결과에서 이어서') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="사전 점검에 진행 불가가 있습니다"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
+    if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (running || !inputsEdited(app().state) ? '' : homeEdited(app().state) ? ' · 홈 지정이 바뀌어 처음부터 다시' : ' · 지금 결과에서 이어서') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="' + esc('사전 점검에 진행 불가: ' + blockNames(app().preflight())) + '"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전을 순위대로 보고, 두 개를 골라 비교합니다</span>';
