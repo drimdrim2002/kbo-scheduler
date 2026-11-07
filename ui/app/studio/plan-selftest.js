@@ -6,6 +6,7 @@
 (function () {
   'use strict';
   const S = window.Studio, P = S.planFlow, app = () => S.app, st = () => S.app.state;
+  const KBO = window.KBO, Dates = KBO.Dates;
   const out = [];
   const ok = (name, cond, info) => out.push((cond ? 'PASS ' : 'FAIL ') + name + (info != null ? ' (' + info + ')' : ''));
   const q = (sel) => document.querySelector(sel), qa = (sel) => Array.from(document.querySelectorAll(sel));
@@ -26,7 +27,7 @@
     try {
       // ── 처음 화면: 목적 아래에 연도
       const heads = qa('.pf-ch h2').map((h) => h.innerText), yrs = (i) => [...qa('.pf-ch')[i].querySelectorAll('.pf-yr .y')].map((y) => y.innerText);
-      ok('처음 화면: 결과 확인(2025) / 새 계획 만들기(2027) — 확정 전 2027은 결과 확인에 없음', heads.join() === S.homeCopy.checkTitle + ',' + S.homeCopy.title && q('.pf-start h1').innerText === S.homeCopy.heading && yrs(0).join() === '2025' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
+      ok('처음 화면: 결과 확인(2025) / 새 계획 만들기(2027) / 시즌 중 재편성 줄 — 확정 전 2027은 결과 확인에 없음', heads.join() === S.homeCopy.checkTitle + ',' + S.homeCopy.title + ',' + S.homeCopy.rsTitle && q('.pf-start h1').innerText === S.homeCopy.heading && yrs(0).join() === '2025' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
       ok('결과가 없으면 새 계획 > 2027은 검토 시작 단추(문구는 home-copy.js)', !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]').innerText.includes(S.homeCopy.startButton));
       // ── 검토 게이트
       click('[data-act="pf-open-2027"]'); flush();
@@ -437,7 +438,83 @@
 
       // ── 글
       S.go({ step: 5 }); flush();
-      const screens = { 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3, view: 'calendar' }), 흐름: () => S.go({ step: 3, view: 'flow' }), 상대: () => S.go({ step: 3, view: 'pairs' }), 공정성: () => S.go({ step: 4, qv: 'sched', team: 'KT', team2: null }), 비교: () => S.go({ step: 4, qv: 'cmp', team: 'KT', team2: '삼성' }) };
+      // ── 재편성(step=9): 버전 → 취소 표시 → 기간·조건 → 실행(브라우저) → 보기 넷 → 엑셀 (reschedule-parts.js · reschedule-view.js)
+      {
+        const R = S.rs, rsSt = () => st().reschedule, cf0 = window.confirm;
+        window.confirm = () => true;
+        S.actions['pf-home'](); flush();
+        ok('처음 화면: 「시즌 중 재편성」 줄 · 재편성 단추', !!q('.rs-home [data-act="rs-open"]'));
+        click('.rs-home [data-act="rs-open"]'); flush();
+        ok('재편성 화면(단계 띠 없음) · 버전을 저절로 고름', S.ui.step === 9 && document.body.classList.contains('pf-rs') && !!rsSt().version && !!q('select[data-in="rs-version"]'));
+        const sel = q('select[data-in="rs-version"]');
+        ok('버전 목록: 규칙을 지킨 2027 버전만', [...sel.options].every((o) => !o.value || (P.versions.get(2027, o.value) || {}).feasible !== false) && [...sel.options].some((o) => o.value === '2027-rank1'));
+        sel.value = '2027-rank1'; sel.dispatchEvent(new Event('change', { bubbles: true })); flush();
+        ok('버전 고름 → 기간 시작 = 1차 편성 마지막 날 다음 날', rsSt().version === '2027-rank1' && rsSt().start === Dates.isoDate(Dates.dayNum(R.base().last) + 1) && !rsSt().games.length);
+        click('[data-act="rs-month"][data-m="8"]'); flush();
+        click('.rs-cal .rs-d.has'); flush();
+        const day = R.ui.date, n0 = R.base().byDate.get(day).length;
+        ok('달력에서 날 → 그날 경기와 「취소」 단추', !!day && qa('.rs-day [data-act="rs-cancel"][data-v="1"]').length === n0);
+        click('.rs-day [data-act="rs-cancel"][data-v="1"]'); flush();
+        ok('「취소」 → 취소 기록(우천)', rsSt().games.length === 1 && rsSt().games[0].reason === 'RAIN' && rsSt().games[0].date === day && !!q('.rs-day tr.cx'));
+        const rsel = q('.rs-day select[data-in="rs-reason"]'); rsel.value = 'HEAT'; rsel.dispatchEvent(new Event('change', { bubbles: true })); flush();
+        ok('사유 바꾸기 → 폭염', rsSt().games[0].reason === 'HEAT');
+        click('.rs-day [data-act="rs-day-all"][data-v="1"]'); flush();
+        ok('그날 모두 취소', rsSt().games.filter((g) => g.date === day).length === n0 && !!q('.rs-cal .rs-d.cx'));
+        const pr = R.problem();
+        ok('배정할 경기 = 취소 + 잔여 45 · 홈 73/71 맞음', !pr.error && pr.targets.cancelled === n0 && pr.targets.remaining === 45 && new RegExp((n0 + 45) + '경기').test(q('.rs-sum').innerText));
+        app().undo(); flush();
+        ok('실행 취소로 되돌림', rsSt().games.length === 1);
+        ok('대안 B: 첫 쪽은 취소 경기', !!q('.rs-bstep.on[data-p="1"]') && !q('input[data-in="rs-date"]'));
+        click('.footer [data-act="rs-page"][data-p="2"]'); flush();
+        ok('다음 → 기간·조건 쪽', !!q('.rs-bstep.on[data-p="2"]') && !!q('input[data-in="rs-date"]') && !!q('.rs-tt'));
+        const setIn = (sel2, v) => { const el = q(sel2); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+        setIn('input[data-in="rs-date"][data-k="end"]', '2027-09-01');
+        ok('마감일이 시작일보다 앞 → 이유를 보이고 실행 단추 막음', /마감일이 시작일보다 앞입니다/.test(q('.rs-err').innerText) && q('[data-act="rs-run"]').disabled);
+        setIn('input[data-in="rs-date"][data-k="end"]', '2027-10-10');
+        setIn('input[data-in="rs-num"][data-k="maxConsecutiveDays"]', '5');
+        ok('연속 경기일 상한 5', rsSt().maxConsecutiveDays === 5 && !R.problem().error);
+        const firstCrit = rsSt().order[0];
+        click('[data-act="rs-ord"][data-k="' + firstCrit + '"][data-d="1"]'); flush();
+        ok('기준 순서 바꾸기', rsSt().order[1] === firstCrit && rsSt().order.length === 5);
+        click('[data-act="rs-run"]'); flush();
+        ok('실행 중 표시', R.running() && !!q('[data-act="rs-stop"]'));
+        for (let i = 0; i < 300 && !R.result(); i++) await wait(100);
+        flush();
+        const r = R.result();
+        ok('실행이 끝나면 결과 쪽으로', !!q('.rs-bstep.on[data-p="3"]') && !!q('.rs-tg'));
+        ok('결과: 브라우저 결과 안내 · 서버와 같은 모양', !!r && r.engine === 'browser' && /인터넷 연결 없이 만든 간단한 결과입니다/.test(q('.rs-notice').innerText) && !!r.metrics && Array.isArray(r.unplaced) && !R.stale(r));
+        ok('결과: 배정 대상 모두(넣음 + 못 넣음)', r && r.plan.length === R.problem().targets.targets.length);
+        ok('구단 × 날짜 표: 10구단 · 재편성 기간 날짜 칸', qa('.rs-tg tbody tr').length === st().teams.length && qa('.rs-tg thead th.d').length === R.model(r).days.length);
+        click('[data-act="rs-view"][data-v="cal"]'); flush();
+        const pdays = qa('.rsc-d.pd').map((b) => b.dataset.date);
+        ok('달력: 재편성 첫 달 · 기간의 날마다 칸', pdays.length > 0 && pdays.every((d) => d >= r.period.start && d <= r.period.end) && pdays[0].slice(0, 7) === r.period.start.slice(0, 7) && !!q('.rsc-chip'), pdays.length);
+        const gday = R.model(r).games.find((g) => g.kind === 're').date;
+        click('[data-act="rsc-day"][data-date="' + gday + '"]'); flush();
+        ok('달력에서 날 → 오른쪽에 그날 경기 · 구단별 연속 경기일', !!q('.rsc-d.sel[data-date="' + gday + '"]') && qa('.rsc-side tr').length === R.model(r).games.filter((g) => g.kind === 're' && g.date === gday).length && qa('.rsc-runs li').length === st().teams.length);
+        if (qa('[data-act="rsc-month"]').length > 1) { const m2 = qa('[data-act="rsc-month"]')[1].dataset.m; click('[data-act="rsc-month"][data-m="' + m2 + '"]'); flush(); ok('달 바꾸기', !!q('[data-act="rsc-month"].on[data-m="' + m2 + '"]') && qa('.rsc-d.pd').every((b) => b.dataset.date.slice(0, 7) === m2)); }
+        click('[data-act="rs-view"][data-v="days"]'); flush();
+        ok('날짜별 경기: 기간의 날마다', qa('.rs-dl-day').length === Dates.dayNum(r.period.end) - Dates.dayNum(r.period.start) + 1 && qa('.rs-dl-day tr').length === R.model(r).placed);
+        click('[data-act="rs-view"][data-v="metrics"]'); flush();
+        ok('평가 숫자: 구단별 표', qa('.rs-mt tbody tr').length === st().teams.length && !!q('.rs-tiles'));
+        click('[data-act="rs-view"][data-v="unplaced"]'); flush();
+        ok('못 넣은 경기 보기', r.unplaced.length ? qa('.rs-un li').length === r.unplaced.length : !!q('.rs-allin'));
+        R.quietDownload = true;
+        click('.rs-tabs [data-act="rs-xlsx"]'); flush();
+        const xs = await KBO.Xlsx.read(R.lastXlsx, null);
+        ok('엑셀: 시트 다섯 · 날짜별 경기 = 1차 + 재편성', xs.map((x) => x.name).join() === '날짜별 경기,구단별 출전표,평가 숫자,못 넣은 경기,조건' && xs[0].rows.length === 1 + R.base().games.length + R.model(r).placed && xs[1].rows[0].length === 3 + st().teams.length);
+        click('.rs-band [data-act="rs-page"][data-p="1"]'); flush();
+        click('[data-act="rs-month"][data-m="7"]'); flush();
+        click('.rs-cal .rs-d.has'); flush();
+        click('.rs-day [data-act="rs-cancel"][data-v="1"]'); flush();
+        ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(r) && /조건이 바뀜 · 다시 실행/.test(page()));
+        const other = [...q('select[data-in="rs-version"]').options].find((o) => o.value && o.value !== '2027-rank1');
+        if (other) { setIn('select[data-in="rs-version"]', other.value); ok('다른 버전 → 취소 표시·결과 지움', rsSt().version === other.value && !rsSt().games.length && !rsSt().result); }
+        R.ui.view = 'grid'; S.go({ step: 9 }); flush();
+        ok('재편성 아래 줄: 처음 화면으로', !!q('.footer [data-act="pf-home"]'));
+        window.confirm = cf0;
+        S.actions['pf-home'](); flush();
+      }
+      const screens = { 재편성: () => S.go({ step: 9 }), 처음: () => S.actions['pf-home'](), 값1: () => S.flowGo(1), 값2: () => S.flowGo(2), 값3: () => S.flowGo(3), 값4: () => S.flowGo(4), 옵션: () => S.go({ step: 2 }), 분석: () => S.go({ step: 5 }), 비교: () => S.go({ step: 6 }), 일정: () => S.go({ step: 3, view: 'calendar' }), 흐름: () => S.go({ step: 3, view: 'flow' }), 상대: () => S.go({ step: 3, view: 'pairs' }), 공정성: () => S.go({ step: 4, qv: 'sched', team: 'KT', team2: null }), 비교: () => S.go({ step: 4, qv: 'cmp', team: 'KT', team2: '삼성' }) };
       for (const v of ['export', 'metrics', 'soft', 'a1', 'a2']) { S.go({ step: 4, qv: v }); flush(); ok('구단 간 비교·내보내기 보기(' + v + ')는 빼고 구단별 보기로', S.ui.qv === 'sched' && !q('[data-qv="' + v + '"]')); }
       ok('남은 보기는 한 구단을 따라가는 것뿐(구단별 일정표·두 구단 비교)', qa('[data-act="q-view"]').length === 2 && qa('[data-act="q-view"]').every((b) => !['metrics', 'soft', 'a1', 'a2', 'export'].includes(b.dataset.qv)));
       S.ui.step = 1; S.g1.mode = 'all'; S.render(); flush();

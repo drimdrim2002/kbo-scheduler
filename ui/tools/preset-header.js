@@ -85,9 +85,14 @@
     solver: { timeLimitSec: 10, unimprovedSec: 5, seed: 42, init: 'KEEP' }
   };
 
+  /**
+   * 날짜 단위 재편성(docs/RESCHEDULE_DAILY_REQUIREMENTS.md §7). version = 고른 1차 편성 버전, games = 그 버전에 표시한 취소 경기
+   * ({ match, date, status: 'CANCELLED', reason }), plan = 발표해서 고정할 일정 [{ game, date }], result = 마지막 실행 결과.
+   * reschedule.targets는 저장하지 않고 실행할 때마다 다시 만든다(SeasonGames.buildTargets).
+   */
   const DEFAULT_RESCHEDULE = {
-    start: '2025-09-01', end: '2025-10-31', allowMonday: true, allowDoubleHeader: true, maxDoubleHeaderPerTeam: 3,
-    blackouts: [], units: [], plan: []
+    start: '2025-09-01', end: '2025-10-31', lastDayToleranceDays: 3, maxConsecutiveDays: 6, maxDoubleHeadersPerTeam: 2,
+    order: ['lastDay', 'fairness', 'addedDistance', 'monday', 'doubleHeader'], version: null, games: [], plan: [], result: null
   };
 
   /**
