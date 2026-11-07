@@ -1,8 +1,9 @@
 /*
- * 편성 스튜디오 — 날짜 단위 재편성 화면 (step=9, 2027) · 기본안: 왼쪽 입력 / 오른쪽 결과
- *  왼쪽: ① 1차 편성 버전 ② 취소 경기(달력에서 날 → 그날 경기에 「취소」·사유) ③ 기간·꼭 지키는 값·기준 순서 → 실행
- *  오른쪽: 결과 숫자 한 줄 + 보기 넷(구단×날짜 표 · 날짜별 경기 · 평가 숫자 · 못 넣은 경기) + 엑셀
- *  부품은 reschedule-parts.js(S.rs). 이 파일은 배치만 정한다.
+ * 편성 스튜디오 — 날짜 단위 재편성 화면 (step=9, 2027) · 대안 B: 세 쪽으로 나눈 단계
+ *  1 취소 경기: 버전 · 큰 달력(왼쪽) · 그날 경기와 표시한 취소 경기(오른쪽)
+ *  2 기간·조건: 기간 · 꼭 지키는 값 · 기준 순서(왼쪽) · 배정할 경기 표(오른쪽) · 실행 — 실행이 끝나면 3으로
+ *  3 결과: 결과 숫자 한 줄 + 보기 넷(구단×날짜 표 · 날짜별 경기 · 평가 숫자 · 못 넣은 경기) + 엑셀, 화면 폭을 다 쓴다
+ *  쪽은 주소 rp=1|2|3. 부품은 reschedule-parts.js(S.rs). 이 파일은 배치만 정한다.
  */
 (function () {
   'use strict';
@@ -12,47 +13,69 @@
   const { esc, icon } = S;
   const app = () => S.app;
   const VIEWS = [['grid', '구단 × 날짜'], ['days', '날짜별 경기'], ['metrics', '평가 숫자'], ['unplaced', '못 넣은 경기']];
+  const PAGES = [[1, '취소 경기', '열리지 못한 경기 표시'], [2, '기간·조건', '기간 · 꼭 지키는 값 · 기준 순서'], [3, '결과', '날짜마다 넣은 일정']];
+  R.ui.page = null;
+  let wasRunning = false;
 
-  function inputCol() {
+  // 주소에 쪽(rp)을 더한다
+  const base = S.stepHash[9];
+  S.stepHash[9] = {
+    write(o) { base.write(o); if (R.ui.page) o.rp = R.ui.page; },
+    read(o) { base.read(o); R.ui.page = ['1', '2', '3'].includes(o.rp) ? +o.rp : null; }
+  };
+  const page = () => R.ui.page || (R.result() ? 3 : 1); // 주소·단추로 고르지 않았으면 결과가 있을 때 결과 쪽
+
+  function band() {
+    const cur = page(), r = R.result(), n = (app().state.reschedule.games || []).length;
+    const sub = { 1: n ? '취소 ' + n + '경기 표시' : '아직 표시 없음', 2: R.problem() && R.problem().error ? '실행할 수 없음' : R.running() ? '실행 중' : '정했으면 실행', 3: r ? (R.stale(r) ? '조건이 바뀜 · 다시 실행' : '결과 있음') : '실행 뒤' };
+    return '<nav class="rs-band" aria-label="재편성 단계">' + PAGES.map(([k, name]) => '<button class="rs-bstep' + (k === cur ? ' on' : '') + (k < cur ? ' done' : '') + '" data-act="rs-page" data-p="' + k + '"' + (k === cur ? ' aria-current="step"' : '') + '><span class="rs-no">' + k + '</span><span class="nm"><b>' + name + '</b><span>' + esc(sub[k]) + '</span></span></button>').join('') + '</nav>';
+  }
+
+  function page1() {
     const v = R.version(), st = app().state.reschedule;
-    let s = '<section class="pf-sec rs-in1"><h3><span class="rs-no">1</span>1차 편성 버전</h3>' + R.versionPicker() + '</section>';
-    if (!v) return s;
-    s += '<section class="pf-sec rs-in2"><h3><span class="rs-no">2</span>취소 경기<span class="r">' + ((st.games || []).length ? '<button class="pf-link" data-act="rs-clear">모두 풀기</button>' : '') + '</span></h3><p class="pf-d">열리지 못한 경기를 표시합니다. 대진과 홈은 그대로, 날짜만 다시 정합니다.</p>' +
-      R.cancelCalendar() + R.dayGames() +
-      '<details class="rs-det"' + ((st.games || []).length && !R.ui.date ? ' open' : '') + '><summary>표시한 취소 경기 ' + (st.games || []).length + '</summary>' + R.cancelList({ compact: true }) + '</details></section>';
-    s += '<section class="pf-sec rs-in3"><h3><span class="rs-no">3</span>기간과 조건</h3>' + R.periodForm() + R.limitsForm() +
-      '<details class="rs-det"><summary>좋은 일정의 기준 순서 <span class="muted">위가 먼저</span></summary>' + R.orderForm() + '</details></section>';
+    let s = '<div class="rs-p1"><section class="pf-sec rs-p1-cal"><div class="rs-p1-top">' + R.versionPicker() + '</div>';
+    if (!v) return s + '</section></div>';
+    s += '<h3>달력에서 날짜를 고르세요<span class="r">' + R.targetSummary() + '</span></h3><p class="pf-d">대진과 홈은 그대로, 날짜만 다시 정합니다.</p>' + R.cancelCalendar({ big: true }) + '</section>';
+    s += '<section class="pf-sec rs-p1-side"><h3>그날 경기</h3>' + R.dayGames() +
+      '<h3 class="rs-h3b">표시한 취소 경기 ' + (st.games || []).length + '<span class="r">' + ((st.games || []).length ? '<button class="pf-link" data-act="rs-clear">모두 풀기</button>' : '') + '</span></h3>' + R.cancelList({ compact: true }) + '</section></div>';
     return s;
   }
 
-  function resultCol() {
-    const r = R.result(), run = R.running();
-    if (!R.version()) return '<div class="rs-blank"><b>결과</b><span>왼쪽에서 1차 편성 버전을 고르세요.</span></div>';
+  function page2() {
+    if (!R.version()) return '<div class="pf-sec">' + R.versionPicker() + '</div>';
+    const pr = R.problem();
+    return '<div class="rs-p2"><section class="pf-sec rs-p2-in"><h3>기간</h3>' + R.periodForm() + '<h3>꼭 지키는 값</h3>' + R.limitsForm() + '<h3>좋은 일정의 기준 순서<span class="r muted small">위가 먼저</span></h3>' + R.orderForm() + '</section>' +
+      '<section class="pf-sec rs-p2-t"><h3>배정할 경기</h3>' + (pr && !pr.error ? R.targetTable() : '') + '<div class="rs-p2-run">' + R.targetSummary() + R.runBox() + '</div></section></div>';
+  }
+
+  function page3() {
+    const r = R.result(), x = app().rsRun;
     if (!r) {
-      const x = app().rsRun;
-      const pre = R.problem() && !R.problem().error ? '<h4>배정할 경기</h4>' + R.targetTable() : '';
-      return '<div class="rs-pre">' + pre + '<div class="rs-blank">' + (run ? '<span class="rs-spin big" aria-hidden="true"></span><b>날짜마다 넣는 중입니다</b><span>끝나면 구단 × 날짜 표와 날짜별 경기가 여기에 나옵니다.</span>'
+      return '<div class="pf-sec rs-p3-none"><div class="rs-blank">' + (R.running() ? '<span class="rs-spin big" aria-hidden="true"></span><b>날짜마다 넣는 중입니다</b>'
         : x && x.status === 'ERROR' && x.error ? '<b>재편성을 하지 못했습니다</b><span>' + esc(x.error) + '</span>'
-          : '<b>아직 재편성 결과가 없습니다</b><span>취소 경기를 표시하고 기간·조건을 정한 뒤 「재편성 실행」을 누르면 날짜마다 넣은 일정이 여기에 나옵니다.</span>') + '</div></div>';
+          : '<b>아직 재편성 결과가 없습니다</b><span>기간·조건을 정하고 실행하면 결과가 여기에 나옵니다.</span>') + '<button class="btn" data-act="rs-page" data-p="2">' + icon('left') + '기간·조건으로</button></div></div>';
     }
     R.crossCheck(r);
     const n = (r.unplaced || []).length;
-    let s = R.resultNotes(r) + R.tiles(r);
-    s += '<div class="rs-tabs" role="tablist">' + VIEWS.map(([k, label]) => '<button role="tab" class="' + (R.ui.view === k ? 'on' : '') + '" data-act="rs-view" data-v="' + k + '">' + label + (k === 'unplaced' && n ? ' <span class="rs-cn">' + n + '</span>' : '') + '</button>').join('') +
-      '<span class="r"><span class="small muted">' + (r.engine === 'browser' ? '이 컴퓨터에서 낸 결과' : '서버에서 낸 결과') + '</span><button class="btn sm" data-act="rs-xlsx">' + icon('download') + '엑셀로 내려받기</button></span></div>';
     const body = { grid: () => R.teamGrid(r), days: () => R.dayList(r, { cols: true }), metrics: () => R.metricsTable(r), unplaced: () => R.unplacedBlock(r) }[R.ui.view] || (() => R.teamGrid(r));
-    s += '<div class="rs-body rs-v-' + esc(R.ui.view) + '">' + body() + '</div>';
-    return s;
+    return '<div class="pf-sec rs-p3">' + R.resultNotes(r) + R.tiles(r) +
+      '<div class="rs-tabs" role="tablist">' + VIEWS.map(([k, label]) => '<button role="tab" class="' + (R.ui.view === k ? 'on' : '') + '" data-act="rs-view" data-v="' + k + '">' + label + (k === 'unplaced' && n ? ' <span class="rs-cn">' + n + '</span>' : '') + '</button>').join('') +
+      '<span class="r"><span class="small muted">' + esc(R.version() ? R.version().name : '') + ' · ' + (r.engine === 'browser' ? '이 컴퓨터에서 낸 결과' : '서버에서 낸 결과') + '</span><button class="btn sm" data-act="rs-xlsx">' + icon('download') + '엑셀로 내려받기</button></span></div>' +
+      '<div class="rs-body rs-v-' + esc(R.ui.view) + '">' + body() + '</div></div>';
   }
 
   S.steps[9] = {
     render() {
       R.ensureVersion();
       if (!R.versions().length && S.planFlow && !S.planFlow.builtinFailed && !Object.keys(S.planFlow.builtin).length) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전을 불러오는 중입니다</h3></div></div></div>';
-      return '<div class="stepview no-band"><div class="pf-page rs-page rs-std">' +
-        '<div class="rs-head"><h2>재편성</h2><span>1차 편성 뒤, 취소 경기와 잔여 경기를 날짜마다 넣습니다</span></div>' +
-        '<div class="rs-cols"><div class="rs-left"><div class="rs-left-in">' + inputCol() + '</div>' + (R.version() ? '<div class="rs-left-foot">' + R.targetSummary() + R.runBox() + '</div>' : '') + '</div>' +
-        '<div class="rs-right pf-sec">' + resultCol() + '</div></div></div></div>';
+      // 실행이 끝나 결과가 생기면 결과 쪽으로
+      const run = R.running();
+      if (wasRunning && !run && R.result() && !R.stale(R.result())) { R.ui.page = 3; setTimeout(() => S.writeHash(), 0); }
+      wasRunning = run;
+      const p = page();
+      return '<div class="stepview no-band"><div class="pf-page rs-page rs-steps">' +
+        '<div class="rs-head"><h2>재편성</h2><span>1차 편성 뒤, 취소 경기와 잔여 경기를 날짜마다 넣습니다</span></div>' + band() +
+        '<div class="rs-pg rs-pg' + p + '">' + (p === 1 ? page1() : p === 2 ? page2() : page3()) + '</div></div></div>';
     },
     after() {
       if (R.running()) R.tick();
@@ -61,10 +84,17 @@
     }
   };
 
+  S.actions['rs-page'] = (el) => { R.ui.page = +el.dataset.p; S.writeHash(); S.render(); };
+
   S.rsView = {
     footer() {
-      const r = R.result();
-      return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>재편성</b> — 1차 편성 버전에 취소 경기를 표시하고, 기간과 조건을 정해 실행합니다</span>' + (r ? '<button class="btn" data-act="rs-xlsx">' + icon('download') + '엑셀로 내려받기</button>' : '');
+      const p = page(), r = R.result();
+      const prev = p === 1 ? '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>' : '<button class="btn" data-act="rs-page" data-p="' + (p - 1) + '">' + icon('left') + '이전: ' + PAGES[p - 2][1] + '</button>';
+      const hint = '<span class="hint"><b>' + p + ' / 3 ' + PAGES[p - 1][1] + '</b> — ' + PAGES[p - 1][2] + '</span>';
+      const next = p === 1 ? '<button class="btn primary" data-act="rs-page" data-p="2"' + (R.version() ? '' : ' disabled') + '>다음: 기간·조건' + icon('right') + '</button>'
+        : p === 2 ? (r ? '<button class="btn" data-act="rs-page" data-p="3">결과 보기' + icon('right') + '</button>' : '')
+          : r ? '<button class="btn" data-act="rs-xlsx">' + icon('download') + '엑셀로 내려받기</button>' : '';
+      return prev + hint + next;
     },
     homeEntry() {
       const C = S.homeCopy, n = R.versions().length;

@@ -464,6 +464,9 @@
         ok('배정할 경기 = 취소 + 잔여 45 · 홈 73/71 맞음', !pr.error && pr.targets.cancelled === n0 && pr.targets.remaining === 45 && new RegExp((n0 + 45) + '경기').test(q('.rs-sum').innerText));
         app().undo(); flush();
         ok('실행 취소로 되돌림', rsSt().games.length === 1);
+        ok('대안 B: 첫 쪽은 취소 경기', !!q('.rs-bstep.on[data-p="1"]') && !q('input[data-in="rs-date"]'));
+        click('.footer [data-act="rs-page"][data-p="2"]'); flush();
+        ok('다음 → 기간·조건 쪽', !!q('.rs-bstep.on[data-p="2"]') && !!q('input[data-in="rs-date"]') && !!q('.rs-tt'));
         const setIn = (sel2, v) => { const el = q(sel2); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
         setIn('input[data-in="rs-date"][data-k="end"]', '2027-09-01');
         ok('마감일이 시작일보다 앞 → 이유를 보이고 실행 단추 막음', /마감일이 시작일보다 앞입니다/.test(q('.rs-err').innerText) && q('[data-act="rs-run"]').disabled);
@@ -478,6 +481,7 @@
         for (let i = 0; i < 300 && !R.result(); i++) await wait(100);
         flush();
         const r = R.result();
+        ok('실행이 끝나면 결과 쪽으로', !!q('.rs-bstep.on[data-p="3"]') && !!q('.rs-tg'));
         ok('결과: 브라우저 결과 안내 · 서버와 같은 모양', !!r && r.engine === 'browser' && /인터넷 연결 없이 만든 간단한 결과입니다/.test(q('.rs-notice').innerText) && !!r.metrics && Array.isArray(r.unplaced) && !R.stale(r));
         ok('결과: 배정 대상 모두(넣음 + 못 넣음)', r && r.plan.length === R.problem().targets.targets.length);
         ok('구단 × 날짜 표: 10구단 · 재편성 기간 날짜 칸', qa('.rs-tg tbody tr').length === st().teams.length && qa('.rs-tg thead th.d').length === R.model(r).days.length);
@@ -491,10 +495,11 @@
         click('.rs-tabs [data-act="rs-xlsx"]'); flush();
         const xs = await KBO.Xlsx.read(R.lastXlsx, null);
         ok('엑셀: 시트 다섯 · 날짜별 경기 = 1차 + 재편성', xs.map((x) => x.name).join() === '날짜별 경기,구단별 출전표,평가 숫자,못 넣은 경기,조건' && xs[0].rows.length === 1 + R.base().games.length + R.model(r).placed && xs[1].rows[0].length === 3 + st().teams.length);
+        click('.rs-band [data-act="rs-page"][data-p="1"]'); flush();
         click('[data-act="rs-month"][data-m="7"]'); flush();
         click('.rs-cal .rs-d.has'); flush();
         click('.rs-day [data-act="rs-cancel"][data-v="1"]'); flush();
-        ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(r) && /다시 실행하면/.test(page()));
+        ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(r) && /조건이 바뀜 · 다시 실행/.test(page()));
         const other = [...q('select[data-in="rs-version"]').options].find((o) => o.value && o.value !== '2027-rank1');
         if (other) { setIn('select[data-in="rs-version"]', other.value); ok('다른 버전 → 취소 표시·결과 지움', rsSt().version === other.value && !rsSt().games.length && !rsSt().result); }
         R.ui.view = 'grid'; S.go({ step: 9 }); flush();

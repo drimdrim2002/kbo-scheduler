@@ -193,15 +193,34 @@
 .rs-home .what { margin: 2px 0 0; }
 .rs-home-s { font-size: 13px; color: var(--text-2); }
 
-/* ───── 기본안 배치: 왼쪽 입력 · 오른쪽 결과 ───── */
-.rs-std { overflow: hidden; }
-.rs-std .rs-cols { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 410px minmax(0, 1fr); gap: 10px; }
-.rs-std .rs-left { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-.rs-std .rs-left-in { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
-.rs-std .rs-left-in > .pf-sec { flex: none; }
-.rs-std .rs-left-foot { flex: none; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-.rs-std .rs-right { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.rs-std .rs-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
-.rs-std .rs-body.rs-v-grid { overflow: hidden; display: flex; flex-direction: column; }
-.rs-std .rs-body.rs-v-grid .rs-tg-wrap { flex: 1 1 auto; min-height: 0; }
-@media (max-width: 1600px) { .rs-std .rs-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* ───── 대안 B 배치: 세 쪽(취소 경기 → 기간·조건 → 결과) ───── */
+.rs-steps { overflow: hidden; }
+.rs-band { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex: none; }
+.rs-bstep { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 12px; font: inherit; text-align: left; cursor: pointer; }
+.rs-bstep .rs-no { background: var(--line-3); }
+.rs-bstep.done .rs-no { background: var(--ok); }
+.rs-bstep.on { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.rs-bstep.on .rs-no { background: var(--blue); }
+.rs-bstep .nm { display: flex; flex-direction: column; min-width: 0; }
+.rs-bstep .nm b { font-size: 14px; color: var(--navy); }
+.rs-bstep .nm span { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-steps .rs-pg { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.rs-p1, .rs-p2 { flex: 1 1 auto; min-height: 0; display: grid; gap: 10px; }
+.rs-p1 { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.rs-p2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.rs-p1 > .pf-sec, .rs-p2 > .pf-sec { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.rs-p1-top { margin-bottom: 4px; }
+.rs-p1 h3 .r .rs-sum { font-size: 12.5px; }
+.rs-p1 h3 .r .rs-err { display: none; }
+.rs-h3b { margin-top: 12px !important; }
+.rs-p1-cal .rs-cal.big .rs-d { height: clamp(52px, 8.4vh, 84px); }
+.rs-p2 .pf-sec > h3 { margin-top: 6px; }
+.rs-p2 .pf-sec > h3:first-child { margin-top: 0; }
+.rs-p2-run { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.rs-p2 .rs-tt { max-width: none; }
+.rs-p3 { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.rs-p3-none { flex: 1 1 auto; display: flex; }
+.rs-p3 .rs-tiles { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.rs-p3 .rs-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.rs-p3 .rs-body.rs-v-grid { overflow: hidden; display: flex; flex-direction: column; }
+.rs-p3 .rs-body.rs-v-grid .rs-tg-wrap { flex: 1 1 auto; min-height: 0; }
