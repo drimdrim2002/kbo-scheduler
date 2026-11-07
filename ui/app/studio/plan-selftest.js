@@ -457,6 +457,32 @@
       ok('결과 고치기: Shift로 누르면 사이의 연전까지 고정', st().meta.editFix.slots.join() === [fixAt, fixAt + 1, fixAt + 2, fixAt + 3].join());
       const conf = window.confirm; window.confirm = () => true; click('[data-act="pe-clear"]'); window.confirm = conf; flush();
       ok('결과 고치기: 모두 풀기 → 고정 없음', !st().meta.editFix.slots.length && slotPins().every((x) => !x) && !q('.pe-c.fx'));
+      // 서버가 「고정한 채로 처음부터 짤 수 없음」(JobManager.problemFor)이라 답하면 이어서 풀기로 다시 → 그것도 안 되면 사용자 말로. 시험 엔진은 이 오류를 내지 않으므로 실행 시작만 바꿔 끼워 본다
+      {
+        const PF = S.planFlow, PE = PF.edit, startRun = S.startRun, solver0 = Object.assign({}, st().settings.solver), toasts = [], toast0 = S.toast;
+        let started = 0;
+        S.startRun = () => { started++; };
+        S.toast = (m) => toasts.push(String(m));
+        const JAVA = '고정한 3연전 시리즈 2개를 그 자리에 둔 채로는 편성을 처음부터 짤 수 없었습니다. 고정을 몇 개 풀고 다시 시도해 주세요.';
+        const arm = (init) => { S.app.updateSolverSettings({ init }); PE.pending = true; PF.runTag = '고정후새로짜기'; PF.runNote = '메모'; S.app.store.commit('점검: 실행 전', (x) => { x.meta.editRun = { before: { gaps: {}, hard: 0 }, init }; }, { tags: ['meta'], undo: false }); };
+        try {
+          arm('SCRATCH');
+          const r1 = S.onRunError(JAVA);
+          await wait(30);
+          ok('결과 고치기: 처음부터 못 짜면 이어서 풀기로 다시 보냄', r1 === true && st().settings.solver.init === 'KEEP' && started === 1 && st().meta.editRun.fallback === true && toasts.some((t) => /이어서 고칩니다/.test(t)));
+          arm('KEEP');
+          const r2 = S.onRunError(JAVA);
+          ok('결과 고치기: 이어서 풀기도 못 하면 「고정한 연전이 많아…」 · 이름 꼬리표 지움', r2 === true && st().meta.editRun.failed === true && toasts.some((t) => /고정한 연전이 많아 새로 짤 수 없습니다/.test(t)) && !toasts.some((t) => /시리즈/.test(t)) && PF.runTag == null && !PE.pending);
+          arm('SCRATCH');
+          const r3 = S.onRunError('이벤트 스트림 연결이 끊어졌습니다.');
+          ok('결과 고치기: 다른 오류는 그대로 넘기고 이름 꼬리표 지움', r3 === false && PF.runTag == null && PF.runNote == null && !PE.pending && started === 1);
+        } finally {
+          S.startRun = startRun; S.toast = toast0;
+          S.app.updateSolverSettings(solver0);
+          S.app.store.commit('점검: 정리', (x) => { delete x.meta.editRun; }, { tags: ['meta'], undo: false });
+        }
+        S.go({ step: 3, view: 'calendar', month: 4 }); flush();
+      }
       S.go({ step: 4, qv: 'sched', team: st().teams[0].name }); flush();
       ok('구단별 일정표: 제목이 그 해', /2027 정규시즌/.test(page()) && !/2025 정규시즌/.test(page()));
       // 구단별 보기: 한 구단 → 둘째 구단 고르기 → 두 구단 비교(team-view.js)

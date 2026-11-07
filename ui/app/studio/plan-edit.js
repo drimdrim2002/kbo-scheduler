@@ -148,6 +148,15 @@
 
   // ───────── 실행 ─────────
   const summaryOf = (ex) => ({ gaps: Object.assign({}, ex.objectiveGaps), hard: (ex.violations || []).length });
+  /** 「전」 = 고치기 전 결과(지금 결과로 저장한 버전)를 지금 편성 조건으로 다시 센 것. 손으로 놓아 생긴 중복으로 센 숫자가 아니다. 버전이 없으면 지금 일정 */
+  function baseSummary() {
+    const st = app().state, r = st.meta.result || {}, id = r.vid || r.from, v = id ? P.versions.get(YEAR, id) : null;
+    if (!v || v.matches.length !== st.matches.length) return Object.assign(summaryOf(D().ex), { name: null });
+    const p = JSON.parse(JSON.stringify(st));
+    p.matches = v.matches.map((m) => Object.assign({ pinned: false }, m));
+    p.plan = v.plan.map((x) => ({ match: x.match, calendar: x.calendar }));
+    return Object.assign(summaryOf(Score.scoreProject(p, {})), { name: v.name });
+  }
   const objective = () => app().state.settings.objective || P.DEFAULT_OBJECTIVE;
   /** 실행 전 검사: 고정한 것끼리의 진짜 위반. 있으면 막고 그 자리로 */
   function precheck() {
@@ -165,10 +174,10 @@
     if (!precheck()) { S.toast('고정한 것끼리 위반이 있어 실행하지 않았습니다. 고정을 풀거나 직접 고치세요.', 'warn', 6000); S.render(); return false; }
     E.panel = null; E.baHidden = false;
     const kind = app().engineConfig.kind, init = kind === 'REST' ? 'SCRATCH' : 'KEEP'; // 시험 엔진은 처음부터 짜기를 못 해 이어서 푼다
-    const hands = handCount(st);
+    const hands = handCount(st), before = baseSummary();
     app().store.commit('결과 고치기: 실행 전', (x) => {
       FixPlan.syncPins(x, fixed);
-      x.meta.editRun = { at: new Date().toISOString(), before: summaryOf(D().ex), fixed: fixed.length, hand: hands, free, init, engine: kind, objective: objective() };
+      x.meta.editRun = { at: new Date().toISOString(), before, fixed: fixed.length, hand: hands, free, init, engine: kind, objective: objective() };
     }, { tags: ['meta', 'pins'], undo: false });
     app().updateSolverSettings({ timeLimitSec: EDIT_SEC, unimprovedSec: Math.round(EDIT_SEC / 2), init });
     P.runOption = P.optionOf(objective());
@@ -179,17 +188,19 @@
   /** 실행 시작(첫 결과가 오면 전 결과 표시를 지운다 — 운영 방침 화면의 실행과 같음) */
   function start() {
     S.startRun();
-    if (!(S.run && app().run)) { E.pending = false; return false; }
+    if (!(S.run && app().run)) { endEdit(); return false; }
     let once = false;
     app().run.handle.on('best', () => { if (once) return; once = true; if (app().state.meta.result) app().store.commit('전 결과 표시 지우기', (x) => { delete x.meta.result; }, { tags: ['meta'], undo: false }); });
     S.go({ step: 2, sel: null, moving: null }); // 실행 중 화면(찾는 중…)에서 본다. 끝나면 여기로 돌아온다
     return true;
   }
+  /** 결과 고치기 실행이 afterRun까지 가지 못하고 끝났을 때: 다음 보통 실행의 이름·메모에 섞이지 않게 */
+  function endEdit() { E.pending = false; P.runTag = null; P.runNote = null; }
   function run() {
     if (isRunning() || (S.locked && S.locked())) return;
     const r = prepare();
     if (!r) return;
-    S.toast('연전 ' + r.free + '개를 새로 짭니다(최대 ' + EDIT_SEC / 60 + '분).', 'info', 4000);
+    S.toast('연전 ' + r.free + '개를 새로 짭니다(최대 ' + EDIT_SEC / 60 + '분). 고정하지 않은 경기는 대부분 바뀝니다.', 'info', 5000);
     start();
   }
   // 실행이 끝나면(plan-flow.js S.afterRun이 버전으로 저장): 전후를 남기고 「일정 자세히 보기」로 돌아온다
@@ -209,7 +220,7 @@
   };
   // 서버가 고정한 채로 처음부터 짜지 못하면(JobManager 「…처음부터 짤 수 없었습니다」) 이어서 풀기로 한 번 더. 그것도 안 되면 사용자 말로
   S.onRunError = function (message) {
-    if (!inYear() || !FixPlan.isPinnedStartFailure(message)) { E.pending = false; return false; }
+    if (!inYear() || !FixPlan.isPinnedStartFailure(message)) { if (E.pending) endEdit(); return false; }
     const sv = app().state.settings.solver, er = app().state.meta.editRun;
     if (sv.init === 'SCRATCH') {
       app().updateSolverSettings({ init: 'KEEP' });
@@ -219,7 +230,7 @@
       return true;
     }
     if (er && E.pending) app().store.commit('결과 고치기: 실패', (x) => { if (x.meta.editRun) x.meta.editRun.failed = true; }, { tags: ['meta'], undo: false });
-    E.pending = false;
+    endEdit();
     S.toast('고정한 연전이 많아 새로 짤 수 없습니다 · 고정을 줄여 보세요', 'bad', 7000);
     S.go({ step: 3 });
     return true;
@@ -230,12 +241,14 @@
   function save() {
     if (isRunning()) return;
     const st = app().state, ex = D().ex;
-    if (ex.violations.length) {
-      E.panel = { kind: 'save' };
-      const v = orderedViolations()[0];
+    // 홈 지정은 구단으로 지킨다(서버와 같음). 화면 채점기는 같이 쓰는 구장을 한 묶음으로 보아 「두산 홈 지정」을 LG 홈으로도 지켰다고 셀 수 있다
+    const extra = FixPlan.precheck(st, st.calendar.map((c, i) => i)).violations.filter((v) => v.code === 'H0-e' && !ex.violations.some((w) => w.code === 'H0-e' && w.slot === v.slot));
+    if (ex.violations.length || extra.length) {
+      E.panel = { kind: 'save', extra };
+      const v = ex.violations.length ? orderedViolations()[0] : extra[0];
       focusSlot(v.slot, v.matches);
-      S.ui.sel = 'v:' + S.vsig(v);
-      S.toast('필수 규칙 위반 ' + ex.violations.length + '건이 있어 저장하지 않았습니다.', 'warn', 5000);
+      if (ex.violations.length) S.ui.sel = 'v:' + S.vsig(v);
+      S.toast('필수 규칙 위반 ' + (ex.violations.length + extra.length) + '건이 있어 저장하지 않았습니다.', 'warn', 5000);
       S.render();
       return;
     }
@@ -294,7 +307,7 @@
       '<button class="btn sm" data-act="pe-clear"' + (nothing ? ' disabled' : '') + ' title="고정한 연전과 손으로 놓은 경기의 고정을 모두 풉니다(홈 지정은 그대로)">모두 풀기</button></div>' +
       '<div class="pe-grid" style="--n:' + c.slots.length + '">' + months + cells + '</div>' +
       '<div class="pe-foot"><span class="pe-sum"><b>새로 짤 연전 ' + free + '개</b><span class="muted"> / ' + c.slots.length + '</span><i>·</i>고정 ' + fixed.length + '<i>·</i>홈 지정 ' + nDes + '곳<i>·</i>손으로 놓은 경기 ' + hands + '</span>' + warn +
-      '<span class="grow"></span><span class="pe-time muted small">최대 ' + EDIT_SEC / 60 + '분</span>' +
+      '<span class="grow"></span><span class="pe-time muted small" title="고정하지 않은 경기는 대부분 바뀝니다">최대 ' + EDIT_SEC / 60 + '분 · 고정 안 한 경기는 대부분 바뀜</span>' +
       '<button class="btn" data-act="pe-save" title="엔진 없이 반드시 지킬 규칙을 모두 검사하고, 지켰으면 버전으로 저장합니다">' + icon('check') + '검사하고 저장</button>' +
       '<button class="btn primary" data-act="pe-run"' + (lvl === 'zero' ? ' disabled' : '') + ' title="고정한 연전·손으로 놓은 경기·홈 지정은 두고 나머지 연전 ' + free + '개를 엔진이 새로 짭니다">' + icon('play') + '나머지 엔진으로 짜기</button></div>' +
       panel() + '</div>';
@@ -310,10 +323,11 @@
         '<ul class="pe-list">' + p.list.slice(0, 6).map((v) => '<li><span class="pe-rule">' + esc(ruleWord[v.code] || S.ruleName(v.code)) + '</span><span class="pe-msg">' + esc(v.message) + '</span><button class="pf-link" data-act="pe-goto" data-slot="' + v.slot + '" data-ms="' + (v.matches || []).join(',') + '">그 자리로 ›</button></li>').join('') + (p.list.length > 6 ? '<li class="muted">… ' + (p.list.length - 6) + '건 더</li>' : '') + '</ul></div>';
     }
     if (p && p.kind === 'save') {
-      const list = orderedViolations();
-      if (!list.length) { E.panel = null; return ''; }
-      return '<div class="pe-panel bad"><div class="pe-ph"><b>필수 규칙 위반 ' + list.length + '건이라 저장할 수 없습니다</b><span>고친 뒤 다시 누르거나 「나머지 엔진으로 짜기」로 고칩니다</span>' + close + '</div>' +
+      const list = orderedViolations(), extra = p.extra || [];
+      if (!list.length && !extra.length) { E.panel = null; return ''; }
+      return '<div class="pe-panel bad"><div class="pe-ph"><b>필수 규칙 위반 ' + (list.length + extra.length) + '건이라 저장할 수 없습니다</b><span>고친 뒤 다시 누르거나 「나머지 엔진으로 짜기」로 고칩니다</span>' + close + '</div>' +
         '<ul class="pe-list">' + list.slice(0, 5).map((v) => '<li><span class="pe-rule">' + esc(S.ruleName(v.code)) + '</span><span class="pe-msg">' + esc(S.plain(String(v.message)).replace(/시리즈/g, '경기')) + '</span><button class="pf-link" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">그 자리로 ›</button></li>').join('') +
+        extra.slice(0, 3).map((v) => '<li><span class="pe-rule">홈 지정</span><span class="pe-msg">' + esc(v.message) + '</span><button class="pf-link" data-act="pe-goto" data-slot="' + v.slot + '" data-ms="' + (v.matches || []).join(',') + '">그 자리로 ›</button></li>').join('') +
         (list.length > 5 ? '<li><button class="pf-link" data-act="viol-menu">' + (list.length - 5) + '건 더 보기 ›</button></li>' : '') + '</ul></div>';
     }
     if (p && p.kind === 'saved') return '<div class="pe-panel ok"><div class="pe-ph"><b>' + icon('check') + '「' + esc(p.name) + '」(으)로 저장했습니다</b><span>반드시 지킬 규칙을 모두 지켰습니다 · 실행 결과 비교에서 다른 버전과 견줍니다</span><button class="pf-link" data-act="pf-stage" data-stage="4">실행 결과 비교 ›</button>' + close + '</div></div>';
@@ -333,7 +347,7 @@
     const how = r.init === 'KEEP' ? (r.fallback ? '처음부터 다시 짜지 못해 지금 일정에서 이어서 풀었습니다' : r.engine !== 'REST' ? '시험 엔진이라 지금 일정에서 이어서 풀었습니다' : '지금 일정에서 이어서 풀었습니다') : '고정한 것만 두고 처음부터 다시 짰습니다';
     const tail = r.left ? '<b class="bad">남은 위반 ' + r.left + '건</b> — 저장하지 않았습니다. 달력에서 직접 고치거나 고정을 줄여 다시 짜세요' : r.saved ? '「' + esc(r.saved) + '」(으)로 저장 · 실행 결과 비교에서 견줍니다' : '';
     return '<div class="pe-panel ba' + (r.left ? ' bad' : '') + '"><div class="pe-ph"><b>새로 짠 결과 · 전 → 후</b>' + (r.engine !== 'REST' ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '') +
-      '<span>' + esc(how) + ' · 연전 ' + r.free + '개 새로 짬</span>' + close + '</div>' +
+      '<span>' + esc(how) + ' · 연전 ' + r.free + '개 새로 짬' + (r.before.name ? ' · 전 = 「' + esc(r.before.name) + '」' : '') + '</span>' + close + '</div>' +
       '<div class="pe-ba">' + ob.order.map(cell).join('') + '</div>' + (tail ? '<div class="pe-ba-tail">' + tail + '</div>' : '') + '</div>';
   }
   function homeMenu(close) {
