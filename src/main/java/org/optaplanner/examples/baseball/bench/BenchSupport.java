@@ -28,12 +28,13 @@ public final class BenchSupport {
     public static final String SOLVER_CONFIG = "org/optaplanner/examples/baseball/solver/baseballSolverConfig.xml";
 
     /**
-     * How many score calculations stand for one requested second, per seed. Measured on the development Mac (M4, 4 seeds
-     * at once, 2-minute runs, 2026-11-07, with other work on the machine): 28,000 to 46,000 per second per seed. Set below
-     * the slowest seed so a run normally ends on this count before its time limit. Changing it changes the result of
-     * every run that is asked for in seconds.
+     * How many score calculations stand for one requested second, per seed. Set for the public server (Akamai Tokyo,
+     * 4 dedicated cores, 4 seeds at once): a 2-minute run there did 738,000 to 962,000 calculations per seed, that is
+     * 6,150 to 8,000 per second (2026-11-08). 5,500 is about 10% below the slowest seed so a server run normally ends on
+     * this count, and so repeats, before its time limit. The development Mac (M4) is about 4x faster and ends the same run
+     * in about a quarter of the chosen time. Changing it changes the result of every run that is asked for in seconds.
      */
-    public static final long CALCS_PER_SECOND = 25_000;
+    public static final long CALCS_PER_SECOND = 5_500;
 
     /** Converts the requested "no improvement" seconds into steps (the stop that remains step-based). */
     public static final long STEPS_PER_SECOND = 40;

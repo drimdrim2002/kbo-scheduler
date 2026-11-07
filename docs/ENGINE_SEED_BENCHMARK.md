@@ -27,7 +27,7 @@ mvn -q compile dependency:build-classpath -Dmdep.outputFile=target/cp.txt
 java -Xmx6g -Dlogback.level.org.optaplanner=warn -cp target/classes:$(cat target/cp.txt) org.optaplanner.examples.baseball.bench.SeedBench all target/bench 10
 ```
 
-> 2026-11-07부터 `<초>`는 시간 제한이 아니라 점수 계산 수다(초 × 25,000번, `BenchSupport.CALCS_PER_SECOND`). 그래서 위 "시간 종료 지터" 같은 차이 없이 같은 명령은 어느 컴퓨터에서나 같은 숫자를 낸다. 이 문서의 표는 그 전에 시간 기준으로 잰 값이다. 시간은 안전장치(요청의 3배, 최소 60초)로만 남았다. step 수가 아니라 계산 수를 쓰는 까닭: 막힌 시드는 2,000 step쯤부터 step 하나가 최대 13배 느려지지만(늦은 수락 2,000이 차면 받아들일 수가 드물어진다), 계산 한 번의 비용은 2~3배 안에서 고르다.
+> 2026-11-07부터 `<초>`는 시간 제한이 아니라 점수 계산 수다(초 × 5,500번, `BenchSupport.CALCS_PER_SECOND` — 공개 서버의 시드당 초당 6,150~8,000번에 맞춘 값이라 이 맥에서는 약 4배 빨리 끝난다). 그래서 위 "시간 종료 지터" 같은 차이 없이 같은 명령은 어느 컴퓨터에서나 같은 숫자를 낸다. 이 문서의 표는 그 전에 시간 기준으로 잰 값이다. 시간은 안전장치(요청의 3배, 최소 60초)로만 남았다. step 수가 아니라 계산 수를 쓰는 까닭: 막힌 시드는 2,000 step쯤부터 step 하나가 최대 13배 느려지지만(늦은 수락 2,000이 차면 받아들일 수가 드물어진다), 계산 한 번의 비용은 2~3배 안에서 고르다.
 
 모드는 `A`, `B`, `C`, `trace`, `one <outDir> <초> <시드> <moveThreadCount>`, `all`. 결과는 `<outDir>/bench-*.md`, 실행별 한 줄 `runs.tsv`, best 이벤트별 한 줄 `curves.tsv`로 남는다.
 

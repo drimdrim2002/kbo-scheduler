@@ -34,7 +34,7 @@ import org.optaplanner.examples.baseball.domain.BaseballSolution;
  * </pre>
  *
  * Every run re-reads the input and re-initializes it with the run's seed, so runs never share state.
- * {@code secondsPerRun} is a work budget, not a wall-clock limit: each run does {@code secondsPerRun * 25,000} score
+ * {@code secondsPerRun} is a work budget, not a wall-clock limit: each run does {@code secondsPerRun * 5,500} score
  * calculations ({@link BenchSupport#CALCS_PER_SECOND}), so the same command gives the same numbers on any machine. Time is
  * still measured and reported, and a run stops early only if it hits the safety cap ({@link BenchSupport#capSeconds}).
  * Results are appended to {@code <outDir>/bench-<mode>.md} as Markdown tables plus one line per run

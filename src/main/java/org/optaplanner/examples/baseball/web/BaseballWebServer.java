@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * POST /api/v1/solve                     { problem, options, mode } → { jobId, status }
  *                                        options: { timeLimitSec, unimprovedSec, seed, seeds, init, stepLimit?, unimprovedSteps? }.
  *                                        options: calcLimit?·unimprovedSteps?를 주면 초에서 바꾼 값 대신 쓴다.
- *                                        엔진은 점수 계산 수(초 × 25,000), 고른 시간, 개선 없음(unimprovedSec × 40 step,
+ *                                        엔진은 점수 계산 수(초 × 5,500, 서버 실측에 맞춤), 고른 시간, 개선 없음(unimprovedSec × 40 step,
  *                                        계산 수 75%를 넘긴 뒤에만) 중 먼저 닿는 것에서 멈춘다(StopRule).
  *                                        done.reason: CALC_LIMIT | UNIMPROVED | TIME_LIMIT(고른 시간, 재현 보장 없음) | STOPPED,
  *                                        done.seedResults[]에 시드마다 steps·calcCount·reason
