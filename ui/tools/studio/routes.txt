@@ -115,3 +115,7 @@ pf-rs-final|step=7&year=2027
 pf-rs-page2|step=9&year=2027&demo=rsin&rp=2
 pf-rs-page3-none|step=9&year=2027&demo=rsin&rp=3
 pf-rs-page1-result|step=9&year=2027&demo=rs&rp=1
+pf-rs-cal|step=9&year=2027&demo=rs&rv=cal
+pf-rs-cal-day|step=9&year=2027&demo=rs&rv=cal&rd=2027-09-14
+pf-rs-cal-oct|step=9&year=2027&demo=rs&rv=cal&rm=2027-10
+pf-rs-cal-short|step=9&year=2027&demo=rsun&rv=cal

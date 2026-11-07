@@ -224,3 +224,45 @@
 .rs-p3 .rs-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .rs-p3 .rs-body.rs-v-grid { overflow: hidden; display: flex; flex-direction: column; }
 .rs-p3 .rs-body.rs-v-grid .rs-tg-wrap { flex: 1 1 auto; min-height: 0; }
+
+/* 결과 쪽 「달력」 보기: 재편성 기간의 달마다 넣은 경기 · 오른쪽에 고른 날 */
+.rs-p3 .rs-body.rs-v-cal { overflow: hidden; display: flex; flex-direction: column; }
+.rsc-calwrap { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; }
+.rsc-cal { min-height: 0; display: flex; flex-direction: column; }
+.rsc-side { min-height: 0; overflow: auto; border-left: 1px solid var(--line); padding-left: 12px; }
+.rsc-mtabs { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.rsc-mtabs button { border: 1px solid var(--line-2); background: #fff; border-radius: 6px; padding: 2px 8px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-2); }
+.rsc-mtabs button.on { border-color: var(--blue); color: var(--blue); background: var(--blue-weak); font-weight: 700; }
+.rsc-mt { font-size: 13px; color: var(--navy); }
+.rsc-leg { margin-left: auto; display: inline-flex; gap: 10px; font-size: 11px; color: var(--text-3); }
+.rsc-leg i { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; border: 1px solid var(--line-2); }
+.rsc-leg i.cx { background: var(--bad-bg); border-color: var(--bad-line); }
+.rsc-leg i.pd { background: var(--blue-weak); border-color: var(--blue-line); }
+.rsc-leg i.mon { background: #FFF6E3; border-color: var(--warn-line); }
+.rsc-leg i.org { background: #fff; border-color: var(--bad-line); }
+.rsc-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); grid-template-rows: auto; gap: 3px; }
+.rsc-grid .hd { font-size: 11px; color: var(--text-3); text-align: center; height: 16px; }
+.rsc-d { min-height: 0; overflow: hidden; border: 1px solid transparent; border-radius: 6px; background: transparent; display: flex; flex-direction: column; align-items: stretch; gap: 1px; padding: 3px 5px; font: inherit; font-size: 11px; text-align: left; min-width: 0; }
+.rsc-d .dn { font-weight: 700; font-size: 12px; }
+.rsc-d.fr { background: var(--bg-2, #F6F8FB); border-color: var(--line); }
+.rsc-d.has { background: #fff; border-color: var(--line); cursor: pointer; }
+.rsc-d.has:hover { border-color: var(--blue); }
+.rsc-d.pd { background: var(--blue-weak); border-color: var(--blue-line); }
+.rsc-d.mon.pd { background: #FFF6E3; border-color: var(--warn-line); }
+.rsc-d.mon .dn { color: var(--warn); }
+.rsc-d.cx { background: var(--bad-bg); border-color: var(--bad-line); }
+.rsc-d.sel { box-shadow: inset 0 0 0 2px var(--blue); }
+.rsc-x { color: var(--bad); font-weight: 700; }
+.rsc-g { color: var(--text-3); }
+.rsc-chip { flex: none; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; font-size: 10.5px; line-height: 15px; }
+.rsc-chip i { font-style: normal; color: var(--text-3); margin: 0 2px; }
+.rsc-chip b { color: var(--blue); margin-left: 2px; }
+.rsc-chip.org { border-color: var(--bad-line); }
+.rsc-more { font-size: 10.5px; color: var(--text-3); }
+.rsc-h { margin: 12px 0 4px; font-size: 13px; color: var(--navy); display: flex; align-items: center; gap: 6px; }
+.rsc-sub { display: block; font-size: 11px; color: var(--text-3); }
+.rsc-side .rs-dl-day td.v { white-space: normal; }
+.rsc-runs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: 12px; }
+.rsc-runs li { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid var(--line); }
+.rsc-runs li.rest b { color: var(--text-3); font-weight: 400; }
+.rsc-runs li.lim b { color: var(--warn); }

@@ -485,6 +485,13 @@
         ok('결과: 브라우저 결과 안내 · 서버와 같은 모양', !!r && r.engine === 'browser' && /인터넷 연결 없이 만든 간단한 결과입니다/.test(q('.rs-notice').innerText) && !!r.metrics && Array.isArray(r.unplaced) && !R.stale(r));
         ok('결과: 배정 대상 모두(넣음 + 못 넣음)', r && r.plan.length === R.problem().targets.targets.length);
         ok('구단 × 날짜 표: 10구단 · 재편성 기간 날짜 칸', qa('.rs-tg tbody tr').length === st().teams.length && qa('.rs-tg thead th.d').length === R.model(r).days.length);
+        click('[data-act="rs-view"][data-v="cal"]'); flush();
+        const pdays = qa('.rsc-d.pd').map((b) => b.dataset.date);
+        ok('달력: 재편성 첫 달 · 기간의 날마다 칸', pdays.length > 0 && pdays.every((d) => d >= r.period.start && d <= r.period.end) && pdays[0].slice(0, 7) === r.period.start.slice(0, 7) && !!q('.rsc-chip'), pdays.length);
+        const gday = R.model(r).games.find((g) => g.kind === 're').date;
+        click('[data-act="rsc-day"][data-date="' + gday + '"]'); flush();
+        ok('달력에서 날 → 오른쪽에 그날 경기 · 구단별 연속 경기일', !!q('.rsc-d.sel[data-date="' + gday + '"]') && qa('.rsc-side tr').length === R.model(r).games.filter((g) => g.kind === 're' && g.date === gday).length && qa('.rsc-runs li').length === st().teams.length);
+        if (qa('[data-act="rsc-month"]').length > 1) { const m2 = qa('[data-act="rsc-month"]')[1].dataset.m; click('[data-act="rsc-month"][data-m="' + m2 + '"]'); flush(); ok('달 바꾸기', !!q('[data-act="rsc-month"].on[data-m="' + m2 + '"]') && qa('.rsc-d.pd').every((b) => b.dataset.date.slice(0, 7) === m2)); }
         click('[data-act="rs-view"][data-v="days"]'); flush();
         ok('날짜별 경기: 기간의 날마다', qa('.rs-dl-day').length === Dates.dayNum(r.period.end) - Dates.dayNum(r.period.start) + 1 && qa('.rs-dl-day tr').length === R.model(r).placed);
         click('[data-act="rs-view"][data-v="metrics"]'); flush();
