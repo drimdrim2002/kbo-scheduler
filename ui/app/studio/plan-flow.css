@@ -684,3 +684,46 @@ table.pf-vgrid th:not(:first-child), table.pf-vgrid td:not(:first-child) { text-
 .pf-vsum.stale .xs { color: var(--text); }
 .pf-vic.warn { background: var(--warn); }
 .pf-vlist.pf-vstale { opacity: .82; }
+/* 대안 C: 연전 목록(왼쪽) · 이 연전의 점검표(오른쪽). 두 칸이 남는 높이를 받고 각자 안에서 스크롤한다 */
+.pf-vsercols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); contain: size; min-height: 520px; }
+.pf-vsercols > .pf-sec { display: flex; flex-direction: column; min-height: 0; }
+.pf-vser-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
+.pf-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pf-chip { font: inherit; font-size: 12px; padding: 2px 9px; border-radius: 12px; border: 1px solid var(--line-2); background: #fff; color: var(--text-2); cursor: pointer; }
+.pf-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
+.pf-vserlist { flex: 1 1 0; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.pf-vser-h { position: sticky; top: 0; z-index: 1; background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--navy); }
+.pf-vser-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 6px 10px; border: 0; border-bottom: 1px solid var(--line); background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.pf-vser-card .d { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.pf-vser-card .d:empty { display: none; }
+.pf-vser-card b { color: var(--navy); }
+.pf-vser-card:hover { background: var(--blue-weak); }
+.pf-vser-card.on { background: var(--blue-weak); box-shadow: inset 3px 0 0 var(--blue); }
+.pf-vser-card.bad { background: var(--bad-bg); }
+.pf-vser-card.bad.on { box-shadow: inset 3px 0 0 var(--bad); }
+.pf-vic.sm { width: 16px; height: 16px; } .pf-vic.sm .i { width: 10px; height: 10px; }
+.pf-vic.na { background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text-3); font-size: 12px; font-weight: 700; }
+.pf-vchk { flex: 1 1 0; min-height: 0; overflow: auto; }
+.pf-vchk-head { border: 1px solid var(--ok-line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--ok-bg); }
+.pf-vchk-head.bad { background: var(--bad-bg); border-color: var(--bad-line); }
+.pf-vchk-head .t { font-size: 16px; } .pf-vchk-head .t b { color: var(--navy); }
+.pf-vchk-verdict { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; }
+.pf-vchk-games { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }
+.pf-vchk-badsum { margin: 6px 0 0; padding-top: 6px; border-top: 1px dashed var(--bad-line); }
+.pf-vchk-games .h { font-weight: 700; color: var(--navy); } .pf-vchk-games .a { font-weight: 700; }
+.pf-vchk-g { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
+.pf-vchk-gh { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 13px; }
+.pf-vchk-gh b { color: var(--navy); } .pf-vchk-gh .r { margin-left: auto; }
+.pf-vchk-i { padding: 7px 10px; border-top: 1px solid var(--line); font-size: 12.5px; }
+.pf-vchk-i:first-of-type { border-top: 0; }
+.pf-vchk-i.bad { box-shadow: inset 3px 0 0 var(--bad); }
+.pf-vchk-i.na { opacity: .6; }
+.pf-vchk-ih { display: flex; align-items: flex-start; gap: 8px; }
+.pf-vchk-ih .t { flex: 1; display: flex; flex-direction: column; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; } .pf-vchk-ih .t > b { color: var(--navy); font-size: 13px; }
+.pf-vchk-ih .w { font-weight: 700; font-size: 12px; white-space: nowrap; } .pf-vchk-ih .w.ok { color: var(--ok); } .pf-vchk-ih .w.bad { color: var(--bad); } .pf-vchk-ih .w.info, .pf-vchk-ih .w.na { color: var(--text-3); }
+.pf-vchk-rows { list-style: none; margin: 4px 0 0 28px; padding: 0; display: grid; gap: 2px; font-size: 12px; }
+.pf-vchk-rows b.bad { color: var(--bad); } .pf-vchk-rows b.ok { color: var(--ok); }
+.pf-vchk-i > .xs { margin: 3px 0 0 28px; }
+.pf-vchk-empty { padding: 20px; color: var(--text-3); text-align: center; }
+.pf-vmore .pf-vright { margin-top: 4px; }
+.pf-vser h3 .r b.bad { color: var(--bad); } .pf-vser h3 .r b.ok { color: var(--ok); }
