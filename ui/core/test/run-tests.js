@@ -861,6 +861,16 @@ test('목적식 순서·허용 차이: 순위대로 점수를 놓고, 가장 많
   assert(plain.score.soft[4] === -gaps.totalKm, '설정이 없으면 기존 순서');
 });
 
+test('일정 지문(planSignature): 서버 점검표의 planSig(Java RequirementChecker, PlanSignatureTest)와 같은 값 · 경기 하나를 옮기면 달라짐', () => {
+  eq(Engine.fnv1a('hello'), '4f9f2cab'); eq(Engine.fnv1a('두산'), '1ff5cc87');
+  const p = JSON.parse(fs.readFileSync(path.resolve(core, '..', '..', 'data', 'baseball', 'project_2025.json'), 'utf8'));
+  eq(Engine.planSignature(p, null), '64bedacb');
+  const moved = p.plan.map((x) => Object.assign({}, x)); moved[3].calendar = 7;
+  assert(Engine.planSignature(p, moved) !== '64bedacb', '배정이 바뀌면 지문도 바뀐다');
+  // 화면 상태처럼 plan 순서가 섞여도 시리즈 번호 순으로 읽으므로 같다
+  eq(Engine.planSignature(p, p.plan.slice().reverse()), '64bedacb');
+});
+
 (async () => {
   for (const t of queue) {
     try { await t.fn(); passed++; console.log('✔ ' + t.name); }

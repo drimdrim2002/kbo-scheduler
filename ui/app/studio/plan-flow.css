@@ -668,3 +668,137 @@ body.pf .stepview.fl.cal .fb-lead { padding: 4px 14px; }
 body.pf .stepview.fl.cal .fb-lead small, body.pf .stepview.fl.cal .fb-t small { display: none; }
 body.pf .stepview.fl.cal .fb-step { padding: 4px 14px 4px 20px; }
 body.pf .stepview.fl.cal .fb-step > i { width: 22px; height: 22px; }
+
+/* ───── 요구 사항 점검 (verify-view.js, step 8) · 현재 결과 분석 요약 줄 ───── */
+/* 요약 줄: 지킴 = 초록 테두리, 어김 = 빨강, 점검 없음 = 회색. 밑 줄에 셈 방법과 시각 */
+.pf-vsum { padding: 8px 14px; }
+.pf-vsum.ok { border-color: var(--ok-line); background: var(--ok-bg); }
+.pf-vsum.bad { border-color: var(--bad-line); background: var(--bad-bg); }
+.pf-vsum.none { background: var(--surface-2); }
+.pf-vsum-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.pf-vsum-row > b { color: var(--navy); }
+.pf-vsum-row .grow { flex: 1; }
+.pf-vsum .xs { margin-top: 2px; }
+.pf-vic { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; flex: none; }
+.pf-vic .i { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.2; }
+.pf-vic.ok { background: var(--ok); } .pf-vic.bad { background: var(--bad); } .pf-vic.info { background: var(--text-3); } .pf-vic.none { background: var(--line-2); }
+/* 두 열: 점검표 | 아무 날 + 날짜별 출전표. 1217까지 가로 스크롤 없이 */
+.pf-vcols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.pf-vright { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* 묶음: 머리 단추(펼침·판정·제목·설명·개수) + 항목 */
+.pf-vg { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
+.pf-vg-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; background: var(--surface-2); border: 0; font: inherit; cursor: pointer; }
+.pf-vg-head > .i { width: 14px; height: 14px; stroke: var(--text-3); fill: none; stroke-width: 1.8; flex: none; }
+.pf-vg-head > b { color: var(--navy); font-size: 13.5px; }
+.pf-vg-head > .r { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
+.pf-vg.open .pf-vg-head { border-bottom: 1px solid var(--line); }
+/* 항목: 판정 · 제목(밑 줄 설명) · 정한 값(출처) · 결과(근거 단추). 어긴 항목은 왼쪽 빨간 띠 */
+.pf-vi { padding: 8px 10px; border-top: 1px solid var(--line); }
+.pf-vi:first-of-type { border-top: 0; }
+.pf-vi.fail { box-shadow: inset 3px 0 0 var(--bad); }
+.pf-vi-head { display: grid; grid-template-columns: 20px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; align-items: start; font-size: 12.5px; }
+.pf-vi-head .pf-vic { margin-top: 1px; }
+.pf-vi-t, .pf-vi-std, .pf-vi-res { display: flex; flex-direction: column; gap: 1px; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+.pf-vi-t > b { color: var(--navy); font-size: 13px; }
+.pf-vi-std > span:nth-child(2), .pf-vi-res > span:nth-child(2) { font-weight: 600; }
+.pf-vi .pf-link.xs { align-self: flex-start; margin-top: 2px; }
+.pf-vtbl { margin-top: 8px; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vt { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.pf-vt th, table.pf-vt td { text-align: left; padding: 3px 8px; white-space: nowrap; }
+table.pf-vt thead th { position: sticky; top: 0; z-index: 1; }
+.pf-vdate { font-variant-numeric: tabular-nums; }
+/* 날짜별 출전표: 옅은 칸 = 홈, 진한 칸 = 원정(모든 화면 같은 뜻) */
+.pf-vscroll { max-height: 56vh; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vgrid td.h { background: #E9EDF4; color: var(--navy); }
+table.pf-vgrid td.a { background: var(--navy); color: #fff; }
+table.pf-vgrid td.none { color: var(--text-3); }
+table.pf-vgrid th:not(:first-child), table.pf-vgrid td:not(:first-child) { text-align: center; }
+.pf-vgridsec h3 .r .home-mark, .pf-vgridsec h3 .r .away-mark { width: 22px; font-size: 10px; }
+/* 아무 날 골라 보기 */
+.pf-vday-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 14px; align-items: start; font-size: 13px; }
+.pf-vday-date { font-size: 15px; font-weight: 700; }
+.pf-vday-games { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.pf-vday-games .h { font-weight: 700; color: var(--navy); } .pf-vday-games .a { font-weight: 700; }
+.pf-vday-teams, .pf-vday-row > .xs { grid-column: 1 / -1; }
+.pf-vday-teams { display: flex; flex-wrap: wrap; gap: 4px; }
+.pf-vday-teams span { font-size: 11.5px; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok); font-weight: 700; }
+.pf-vday-teams span.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+.pf-vday .ok { color: var(--ok); font-weight: 700; } .pf-vday .bad { color: var(--bad); font-weight: 700; }
+/* 지문이 다른 점검표(실행 뒤 일정을 고쳤거나 다른 일정): 노랑 띠로 크게, 지킨 개수를 내걸지 않는다 */
+.pf-vsum.stale { border-color: var(--warn-line); background: var(--warn-bg); }
+.pf-vsum.stale .xs { color: var(--text); }
+.pf-vic.warn { background: var(--warn); }
+.pf-vlist.pf-vstale { opacity: .82; }
+/* 대안 C: 연전 기간 따라 점검 — 시즌 합계 상자, 누적 띠, 기간 한 줄 표(구장별 칸). 표가 남는 높이를 받고 안에서 스크롤한다 */
+.pf-vtot h3 .r { font-weight: 400; }
+.pf-vtgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 16px; font-size: 12.5px; }
+.pf-vtgrid > div { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
+.pf-vtgrid > div > b { color: var(--navy); }
+.pf-vtgrid > div > b .bad { color: var(--bad); }
+.pf-vtgrid > div > small { flex-basis: 100%; margin-left: 26px; color: var(--text-2); font-size: 11.5px; word-break: keep-all; }
+.pf-vtgrid .pf-vic { margin-right: 0; }
+.pf-vper.pf-fill { contain: size; min-height: 420px; display: flex; flex-direction: column; }
+.pf-vper h3 .r b.bad { color: var(--bad); } .pf-vper h3 .r b.ok { color: var(--ok); }
+.pf-vtools { display: flex; align-items: center; gap: 12px; font-size: 12px; margin: 2px 0 6px; }
+.pf-vtools > .muted { flex: 1; min-width: 0; }
+.pf-vtools label { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.pf-vtools .pf-link { white-space: nowrap; }
+/* 누적 띠 */
+.pf-vstrip { border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface-2); padding: 6px 10px; margin-bottom: 6px; }
+.pf-vstrip-t { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.pf-vstrip-t > b { color: var(--navy); font-size: 12.5px; }
+.pf-vstrip-t .pf-vend { color: var(--ok); font-weight: 700; }
+.pf-vstrip-t .pf-vsel { margin-left: auto; color: var(--blue); } .pf-vstrip-t .pf-vsel b { color: var(--blue); }
+.pf-vstrip-t > .xs { margin-left: auto; }
+.pf-vtcs { display: grid; gap: 4px; }
+.pf-vtc { background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px; font: inherit; font-size: 12px; line-height: 1.35; text-align: left; cursor: pointer; min-width: 0; }
+.pf-vtc:hover { border-color: var(--blue); }
+.pf-vtc > b { color: var(--navy); font-size: 12.5px; }
+.pf-vtc .pf-vha { display: block; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pf-vtc .pf-vha em { font-style: normal; font-weight: 700; color: var(--text); } .pf-vtc .pf-vha .pf-vsum2 { color: var(--text-3); }
+.pf-vtc .pf-vrun { display: block; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.pf-vtc .pf-vrun.r3 { color: var(--warn); } .pf-vtc .pf-vrun.r4 { color: var(--bad); font-weight: 700; }
+.pf-vtc.r4 { border-color: var(--bad-line); background: var(--bad-bg); }
+.pf-vtc.sel { box-shadow: 0 0 0 2px var(--blue); border-color: var(--blue); }
+.pf-vf.hl .pf-vtc:not(.sel) { opacity: .45; }
+/* 기간 표 */
+.pf-vplist { flex: 1 1 0; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.pf-vpt { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.pf-vpt th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-size: 11.5px; color: var(--text-3); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); z-index: 1; white-space: nowrap; }
+table.pf-vpt th.pf-vst { text-align: center; } table.pf-vpt th.pf-vst small { display: block; font-weight: 400; font-size: 10.5px; min-height: 13px; }
+table.pf-vpt td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+tr.pf-vrow { cursor: pointer; }
+tr.pf-vrow:hover td { background: var(--blue-weak); }
+tr.pf-vrow.bad td { background: var(--bad-bg); }
+tr.pf-vrow.cur td.pf-vc { box-shadow: inset 3px 0 0 var(--blue); }
+tr.pf-vrow td.pf-vc { width: 18px; } tr.pf-vrow td.pf-vc .i { width: 12px; height: 12px; stroke: var(--text-3); fill: none; stroke-width: 2; transition: transform .15s; }
+tr.pf-vrow.open td.pf-vc .i { transform: rotate(90deg); }
+tr.pf-vrow td.pf-vk { font-weight: 800; color: var(--navy); }
+tr.pf-vrow td.pf-vd { color: var(--text-2); font-variant-numeric: tabular-nums; } tr.pf-vrow td.pf-vd small { display: inline; margin-left: 5px; color: var(--text-3); font-size: 11px; }
+table.pf-vpt td.pf-vgc { text-align: center; border-left: 1px solid var(--line); }
+table.pf-vpt td.pf-vgc.empty { background: var(--surface-2); } tr.pf-vrow.bad td.pf-vgc.empty { background: #F6DEDC; }
+.pf-vgm .away { font-weight: 500; color: var(--text-2); } .pf-vgm .vs { font-size: 10px; color: var(--text-3); } .pf-vgm .home { font-weight: 800; color: var(--navy); } .pf-vgm .stad { color: var(--text-3); font-size: 11.5px; }
+table.pf-vpt td.pf-vck { white-space: normal; border-left: 1px solid var(--line); min-width: 120px; }
+table.pf-vpt td.pf-vvc { text-align: right; width: 84px; }
+.pf-vv { font-size: 12px; font-weight: 700; white-space: nowrap; } .pf-vv.ok { color: var(--ok); } .pf-vv.bad { color: var(--bad); }
+.pf-vchip { display: inline-block; font-size: 11.5px; border-radius: 10px; padding: 0 8px; line-height: 18px; border: 1px solid var(--blue-line, #B9CDF3); background: var(--blue-weak); color: var(--blue); font-weight: 700; margin: 1px 3px 1px 0; }
+.pf-vchip.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+/* 구단 강조: 그 구단 경기만 진하게(홈은 더 진한 칸), 나머지는 흐리게 */
+.pf-vf.hl .pf-vgm { opacity: .28; } .pf-vf.hl .pf-vgm.hl { opacity: 1; }
+table.pf-vpt td.pf-vgc.hl { background: var(--blue-weak); box-shadow: inset 0 0 0 1.5px var(--blue); } table.pf-vpt td.pf-vgc.hl.home { background: #CFDEFA; }
+tr.pf-vrow:hover td.pf-vgc.hl { background: #C4D6F8; }
+table.pf-vdt .pf-vgm.hl { background: var(--blue-weak); border-radius: 4px; padding: 0 4px; outline: 1.5px solid var(--blue); } table.pf-vdt .pf-vgm.hl.home { background: #CFDEFA; }
+/* 펼친 줄: 날짜별 경기 + 근거 */
+tr.pf-vdet td { white-space: normal; background: #fff; padding: 0; }
+tr.pf-vrow.bad + tr.pf-vdet td { background: var(--bad-bg); }
+.pf-vdet-in { padding: 6px 10px 10px; }
+table.pf-vdt { border-collapse: collapse; font-size: 12.5px; margin: 2px 0 6px; } table.pf-vdt td { padding: 2px 8px 2px 0; border: 0; vertical-align: top; } table.pf-vdt td.pf-vdd { white-space: nowrap; }
+.pf-vevs { display: grid; gap: 3px; font-size: 12.5px; }
+.pf-vev { display: flex; gap: 6px; align-items: flex-start; } .pf-vev .pf-vic { width: 18px; height: 18px; margin-top: 1px; } .pf-vev .pf-vic .i { width: 11px; height: 11px; }
+.pf-vev > b { color: var(--navy); white-space: nowrap; } .pf-vev > span { color: var(--text-2); } .pf-vev.bad > span { color: var(--bad); font-weight: 700; }
+.pf-vev > span b.bad { color: var(--bad); } .pf-vev > span b.ok { color: var(--ok); }
+.pf-vdet-in .pf-vna { margin-top: 8px; }
+/* 기간 사이 줄: 휴식기·어긴 휴식 요일 */
+tr.pf-vsep td { padding: 3px 8px; font-size: 12px; color: var(--text-2); background: var(--surface-2); }
+tr.pf-vsep td .pf-vic { width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px; } tr.pf-vsep td .pf-vic .i { width: 10px; height: 10px; }
+tr.pf-vsep.bad td { background: var(--bad-bg); } tr.pf-vsep td b.bad { color: var(--bad); }

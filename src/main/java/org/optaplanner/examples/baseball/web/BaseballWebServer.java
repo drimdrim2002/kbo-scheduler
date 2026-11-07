@@ -41,6 +41,9 @@ import org.slf4j.LoggerFactory;
  * GET  /api/v1/solve/{jobId}/events      SSE: queued | status | seed-best | best | done | error
  * POST /api/v1/solve/{jobId}/stop        조기 종료
  * POST /api/v1/score                     { problem, plan?, mode } → { score, scoreString }
+ * POST /api/v1/verify                    { problem, plan? } → 요구 사항 점검표 { ok, total, passed, failed, info, groups[], tables }
+ *                                        (엔진 점수와 따로, 완성된 일정을 날짜별 경기로 풀어 다시 센다. RequirementChecker.
+ *                                        편성 결과·저장 결과(/results/{id})에도 같은 모양이 verification으로 실린다)
  * POST /api/v1/road-distance             { pairs: [{ from: {lat, lon}, to: {lat, lon} }] } → { results: [{ km } | { error }] }
  *                                        (카카오모빌리티 길찾기 중계, 서버 환경 변수 KAKAO_REST_KEY가 있을 때만)
  * GET  /api/v1/distances                 저장된 해 목록 → { years: [{ year, savedAt, count }] }
@@ -271,6 +274,15 @@ public final class BaseballWebServer {
                 score = scorer.update(solution);
             }
             sendJson(ex, 200, Json.obj("score", Json.score(score), "scoreString", score.toString(), "complete", full));
+            return;
+        }
+        if ("verify".equals(rest) && "POST".equals(method)) {
+            JSONObject body = readJsonObject(ex);
+            JSONObject problem = Json.object(body.get("problem"));
+            if (problem == null) {
+                throw new IllegalArgumentException("problem이 없습니다.");
+            }
+            sendJson(ex, 200, RequirementChecker.check(problem, Json.array(body.get("plan"))));
             return;
         }
         if (rest.startsWith("solve/")) {

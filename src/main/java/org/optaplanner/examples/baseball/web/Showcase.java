@@ -34,6 +34,8 @@ final class Showcase {
     private final ResultStore store;
     private final ServerLimits limits;
     private final JSONObject problem;
+    /** 요구 사항 점검에 쓰는 프로젝트(설정·이벤트 포함, {@code project_2025.json}). 없으면 엔진 입력 그대로(정한 값 없는 항목은 INFO). */
+    private final JSONObject verifyProblem;
     private final JSONObject real;
     private volatile String defaultStatus = "MISSING";
     /** id + createdAt → {@link #recount} 결과. 저장된 결과는 바뀌지 않으니 한 번만 센다. */
@@ -44,7 +46,26 @@ final class Showcase {
         this.store = store;
         this.limits = limits;
         this.problem = BaseballApp.readJsonFile(inputFile.toString());
+        this.verifyProblem = loadVerifyProblem(inputFile, problem);
         this.real = realMetrics(problem);
+    }
+
+    /** {@code input_2025.json} 옆의 {@code project_2025.json}({@code node ui/tools/build-project.js}로 만든 2025 프리셋 프로젝트). */
+    static JSONObject loadVerifyProblem(Path inputFile, JSONObject fallback) {
+        String name = inputFile.getFileName().toString().replaceFirst("^input", "project");
+        Path project = inputFile.toAbsolutePath().resolveSibling(name);
+        if (!name.equals(inputFile.getFileName().toString()) && Files.isRegularFile(project)) {
+            try {
+                return BaseballApp.readJsonFile(project.toString());
+            } catch (RuntimeException e) {
+                LOG.warn("{} unreadable; requirement checks use the engine input", project, e);
+            }
+        }
+        return fallback;
+    }
+
+    JSONObject verifyProblem() {
+        return verifyProblem;
     }
 
     /** input JSON의 initialPlan(= KBO 발표 1차 일정)을 같은 채점기로 채점한다. */
@@ -121,7 +142,7 @@ final class Showcase {
         return defaultStatus;
     }
 
-    /** GET /api/v1/results/{id}: 저장된 결과 + 실제 일정 요약. */
+    /** GET /api/v1/results/{id}: 저장된 결과 + 실제 일정 요약 + 요구 사항 점검(저장된 결과에 없으면 열 때 센다). */
     Optional<JSONObject> result(String id) {
         return store.load(id).map(r -> {
             JSONObject out = (JSONObject) recount(id, r).clone();
@@ -134,6 +155,116 @@ final class Showcase {
     }
 
     /**
+     * 요구 사항 점검이 생기기 전에 저장된 결과(기본 결과 포함)는 파일을 다시 만들지 않고 열 때 센다. 저장된 결과에는 문제(설정·이벤트)가
+     * 없으므로 서버의 2025 프로젝트에 저장된 조건(어린이날 홈 구단·홈 구장 지정)을 입혀서 센다. 일정이 그 프로젝트와 맞지 않으면
+     * (스튜디오에서 연전 기간·시리즈를 고친 결과) 점검하지 않고 그 이유를 싣는다.
+     */
+    private JSONObject verifyStored(JSONObject stored) {
+        JSONArray plan = Json.array(stored.get("plan"));
+        if (plan == null) {
+            return Json.obj("error", "저장된 결과에 일정이 없어 점검하지 못했습니다.");
+        }
+        JSONObject problemForCheck = problemWithKnobs(verifyProblem, Json.object(stored.get("knobs")));
+        if (!planFits(problemForCheck, plan)) {
+            return Json.obj("error", "이 결과는 서버가 아는 2025 연전 기간·시리즈와 달라 다시 점검하지 못했습니다(스튜디오에서 고친 일정).");
+        }
+        return JobManager.verify(problemForCheck, plan);
+    }
+
+    /** 저장된 손잡이(homeDesignations: 연전 기간 시작일 → 홈 구단)를 이벤트(홈 구장 지정)로 바꿔 프로젝트에 입힌다. */
+    @SuppressWarnings("unchecked")
+    static JSONObject problemWithKnobs(JSONObject base, JSONObject knobs) {
+        JSONObject out = (JSONObject) base.clone();
+        JSONObject settings = Json.object(base.get("settings"));
+        settings = settings == null ? new JSONObject() : (JSONObject) settings.clone();
+        out.put("settings", settings);
+        if (knobs == null) {
+            return out;
+        }
+        JSONArray children = Json.array(knobs.get("childrenDayHomeTeams"));
+        if (children != null && !children.isEmpty()) {
+            settings.put("obligationTeams", children);
+        }
+        JSONObject designations = Json.object(knobs.get("homeDesignations"));
+        if (designations == null || designations.isEmpty()) {
+            return out;
+        }
+        JSONArray cal = Json.array(base.get("calendar"));
+        java.time.LocalDate opening = cal == null || cal.isEmpty() ? null : RequirementChecker.parseDate(Json.asString(((JSONObject) cal.get(0)).get("datetime"), ""));
+        String openingDate = opening == null ? "" : opening.toString();
+        JSONArray events = new JSONArray();
+        JSONArray baseEvents = Json.array(base.get("events"));
+        java.util.Set<String> covered = new java.util.HashSet<>();
+        for (Object key : new java.util.TreeSet<>(designations.keySet())) {
+            String date = String.valueOf(key);
+            JSONArray teams = Json.array(designations.get(key));
+            if (teams == null) {
+                continue;
+            }
+            String type = date.equals(openingDate) ? "OPENING" : date.endsWith("-05-05") || isChildrenSlot(cal, date) ? "CHILDREN" : "CUSTOM";
+            String name = "OPENING".equals(type) ? "개막전" : "CHILDREN".equals(type) ? "어린이날" : "홈 구장 지정";
+            covered.add(type);
+            events.add(Json.obj("id", "knob-" + date, "type", type, "name", name, "date", "CHILDREN".equals(type) ? date.substring(0, 4) + "-05-05" : date,
+                    "mode", "STADIUM", "teams", teams));
+        }
+        if (baseEvents != null) {
+            for (Object o : baseEvents) {
+                JSONObject ev = Json.object(o);
+                if (ev != null && !covered.contains(Json.asString(ev.get("type"), ""))) {
+                    events.add(ev);
+                }
+            }
+        }
+        out.put("events", events);
+        return out;
+    }
+
+    /** 연전 기간 시작일 date가 그 해 5/5를 품는 기간인가. */
+    private static boolean isChildrenSlot(JSONArray cal, String date) {
+        if (cal == null) {
+            return false;
+        }
+        java.time.LocalDate start = RequirementChecker.parseDate(date);
+        if (start == null) {
+            return false;
+        }
+        java.time.LocalDate children = java.time.LocalDate.of(start.getYear(), 5, 5);
+        for (Object o : cal) {
+            JSONObject c = (JSONObject) o;
+            java.time.LocalDate s = RequirementChecker.parseDate(Json.asString(c.get("datetime"), ""));
+            if (s != null && s.equals(start)) {
+                long len = Json.asLong(c.get("consecutive"), 3);
+                return !children.isBefore(s) && children.isBefore(s.plusDays(len));
+            }
+        }
+        return false;
+    }
+
+    /** plan의 시리즈 수가 프로젝트와 같고, 배정된 모든 시리즈의 연전 수가 그 기간의 연전 수와 같은가(미배정 -1은 점검기가 잡는다). */
+    static boolean planFits(JSONObject problem, JSONArray plan) {
+        JSONArray matches = Json.array(problem.get("matches"));
+        JSONArray cal = Json.array(problem.get("calendar"));
+        if (matches == null || cal == null || plan.size() != matches.size()) {
+            return false;
+        }
+        for (Object o : plan) {
+            JSONObject e = Json.object(o);
+            long m = e == null ? -1 : Json.asLong(e.get("match"), -1);
+            long c = e == null ? -1 : Json.asLong(e.get("calendar"), -1);
+            if (m < 0 || m >= matches.size() || c >= cal.size()) {
+                return false;
+            }
+            if (c < 0) {
+                continue;
+            }
+            if (Json.asLong(((JSONObject) matches.get((int) m)).get("consecutive"), 3) != Json.asLong(((JSONObject) cal.get((int) c)).get("consecutive"), 3)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 올스타 휴식기(경기 없는 날 {@link ScoreFormulas#LONG_BREAK_REST_DAYS}일 이상) 사이 이동을 세지 않게 바뀌기 전에 저장된
      * 결과의 지표를, 저장된 일정(plan)은 그대로 두고 지금 채점기로 다시 센다. 2025 입력으로 만든 결과인지는 저장된 지표가
      * 「지금 지표 + 휴식기 이동」과 구단마다 같은지로 본다(스튜디오에서 거리·연전을 고친 결과는 건드리지 않는다).
@@ -142,12 +273,18 @@ final class Showcase {
     JSONObject recount(String id, JSONObject stored) {
         String key = id + "|" + stored.get("createdAt");
         return recounted.computeIfAbsent(key, k -> {
+            JSONObject out = stored;
             try {
-                return recountNow(problem, id, stored);
+                out = recountNow(problem, id, stored);
             } catch (RuntimeException e) {
                 LOG.warn("result {} not recounted", id, e);
-                return stored;
             }
+            if (out.get("verification") == null) {
+                JSONObject withCheck = (JSONObject) out.clone();
+                withCheck.put("verification", verifyStored(out));
+                out = withCheck;
+            }
+            return out;
         });
     }
 
