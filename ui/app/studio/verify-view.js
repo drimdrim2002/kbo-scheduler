@@ -68,9 +68,11 @@
   // ───────── 서버에 묻기 ─────────
   /** 지금 일정으로 서버에 점검을 청한다(이미 같은 일정의 점검표가 있으면 그대로) */
   function ensure(force) {
-    const st = app().state;
+    const st = app().state, sig = V.planSig(st);
     if (V.loading) return;
     if (!force && V.matches(V.data, st)) return;
+    if (!force && V.asked === sig) return; // 같은 일정은 한 번만 묻는다 — 서버가 오류를 주거나 지문이 다른 점검표를 주어도 그릴 때마다 다시 묻지 않는다(「지금 일정 다시 점검」만 다시 묻는다)
+    V.asked = sig;
     if (!fromRest()) {
       // 서버 없음: 실행 때 받아 둔 것(판정·근거 줄)이라도 보여 주되, 지금 일정과 지문이 다르면 화면이 그 사실을 크게 적는다(render의 stale)
       const res = st.meta.result;
@@ -324,7 +326,7 @@
     for (const g of v.groups || []) for (const it of g.items || []) {
       const cols = it.columns || [];
       let name = (it.title + ' ' + verdictWord(it.verdict)).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31);
-      while (used.has(name)) name = name.slice(0, 29) + '·' + used.size;
+      while (used.has(name)) { const sfx = '·' + used.size; name = name.slice(0, 31 - sfx.length) + sfx; } // 엑셀 시트 이름은 31자까지
       used.add(name);
       const rows = [['항목', it.title], ['설명', it.desc], ['정한 값', it.standard], ['출처', it.source], ['결과', it.result], []].concat([cols.map((c) => c.label)]).concat((it.rows || []).map((r) => cols.map((c) => (isDate(r[c.key]) ? { date: r[c.key] } : r[c.key] == null ? null : r[c.key]))));
       sheets.push({ name, rows, widths: cols.map(() => 14) });

@@ -81,6 +81,9 @@ public final class RequirementChecker {
             }
             for (Object t : teamArr) {
                 JSONObject o = Json.object(t);
+                if (o == null) {
+                    throw new IllegalArgumentException("problem.teams 항목이 객체가 아닙니다.");
+                }
                 String name = Json.asString(o.get("name"), "");
                 teams.add(name);
                 stadiumOf.put(name, Json.asString(o.get("stadium"), ""));
@@ -92,7 +95,7 @@ public final class RequirementChecker {
             }
             for (int i = 0; i < cal.size(); i++) {
                 JSONObject c = Json.object(cal.get(i));
-                LocalDate d = parseDate(Json.asString(c.get("datetime"), ""));
+                LocalDate d = c == null ? null : parseDate(Json.asString(c.get("datetime"), ""));
                 if (d == null) {
                     throw new IllegalArgumentException("연전 기간 " + i + "의 날짜를 읽지 못했습니다.");
                 }
@@ -104,6 +107,9 @@ public final class RequirementChecker {
             }
             for (int i = 0; i < matches.size(); i++) {
                 JSONObject m = Json.object(matches.get(i));
+                if (m == null) {
+                    throw new IllegalArgumentException("시리즈 " + i + "이(가) 객체가 아닙니다.");
+                }
                 series.add(new Series(i, Json.asString(m.get("home"), ""), Json.asString(m.get("away"), ""),
                         (int) Json.asLong(m.get("consecutive"), 3)));
             }
