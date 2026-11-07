@@ -11,6 +11,7 @@
 | `xlsx-lite.js` | 바깥 라이브러리 없는 .xlsx 쓰기(압축 없는 zip · 날짜 서식 · 수식)와 읽기(deflate zip · 공유 문자열 · 수식 값). 압축 풀기는 호출하는 쪽이 넘긴다(브라우저 `DecompressionStream`, Node `zlib`) | ① 엑셀 서식 |
 | `score.js` | `ScoreFormulas.evaluate` 1:1 포팅, 위반 설명, 구단 지표, Soft 분해 | §6.1, §6.2 |
 | `reschedule.js` | 경기 상태, 잔여·취소 집계, 재편성 묶음, RH/RS 채점, 재편성 탐색 | §5.8, §6.3 |
+| `reschedule-daily.js` | **날짜 단위 재편성**(`KBO.RescheduleDaily`, `docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md`). 서버(Java `reschedule` 패키지)와 같은 계산식·같은 문장: 입력 검사, 점수(Hard 2 · Soft 6), 평가 숫자, 규칙 위반, 못 넣은 이유. 간단한 배정기(서버보다 약함)와 `file://`용 탐색기. 서버와 답이 어긋나면 오류다(golden `reschedule-golden.json`). 지금 화면은 아직 `reschedule.js`(묶음 방식)를 쓰며, 새 결과 화면을 만들 때 이 모듈로 옮긴다 | 재편성 요구 §4~§10 |
 | `mock-solver.js` | Late Acceptance 로컬서치, 완전 매칭 구성 휴리스틱, time-slicing 드라이버, Worker 진입점 | §7.2 |
 | `engine-adapter.js` | `MockEngineAdapter`(Blob Worker → 실패 시 메인 스레드), `RestEngineAdapter`(§7.3) | §7.1, FR-R5 |
 | `store.js` | 상태, undo/redo(100단계), 스냅샷, localStorage 자동 저장, JSON/CSV 입출력, 필드 단위 검증 | FR-M6, FR-M7, FR-D |
@@ -69,8 +70,9 @@ node core/test/run-tests.js          # 헤드리스 테스트 (AC-1~8, 10, 11 �
 | `POST` | `/api/v1/solve/{jobId}/stop` | - | `{ status }` |
 | `POST` | `/api/v1/score` | `{ problem, plan, mode }` | `{ score, violations, teamMetrics }` |
 
-- `problem`은 §8 프로젝트 JSON이다. `plan`은 INITIAL이면 `[{ match, calendar }]`, RESCHEDULE이면 `[{ unit, start, dh }]`이다.
-- 점수 문자열은 OptaPlanner `BendableLongScore` 표기(`[0/0]hard/[0/-400/-573307/-13/-72955]soft`)를 함께 쓴다. RESCHEDULE은 Hard `[RH-1~4, RH-5]`, Soft `[RS-1, RS-2a, RS-2b, RS-3]`이다.
+- `problem`은 §8 프로젝트 JSON이다. `plan`은 INITIAL이면 `[{ match, calendar }]`이다.
+- **RESCHEDULE**(날짜 단위 재편성, 설계 `docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md` §5): `problem` = 고른 1차 편성 버전 + `games[]`(취소 기록) + `reschedule { start, end, lastDayToleranceDays, maxConsecutiveDays, maxDoubleHeadersPerTeam, order, targets[], plan[] }`. `targets`는 화면이 만든 배정 대상(취소 `M:<시리즈>|<날짜>` · 잔여 `R:<홈>-<원정>`), `plan`은 고정할(발표한) 일정 `[{ game, date }]`. 결과(done·score)는 `{ mode, engine: 'server' | 'browser', plan: [{ game, date, doubleHeader, fixed, played? }], score: { hard: [위반, 못 넣은 경기], soft: [6단계] }, scoreString, levels, metrics, violations[], unplaced[], teamLimits[], fixes[], period }`. 고칠 곳 확인(`fixes`의 `confirmed: true`)은 서버만 한다.
+- 점수 문자열은 OptaPlanner `BendableLongScore` 표기(`[0/0]hard/[0/-400/-573307/-13/-72955]soft`)를 함께 쓴다. RESCHEDULE은 Hard `[규칙 위반, 못 넣은 경기]`, Soft는 `levels` 순서(기본 `lastDay, fairMoves, fairDistance, addedDistance, monday, doubleHeader`)다. 옛 묶음 방식(`reschedule.js`, `reschedule.targets`가 없는 요청)은 브라우저에서만 돈다.
 - 일시정지는 계약에 없다. `RestEngineAdapter`는 일시정지 중 받은 해를 보류했다가 재개할 때 반영한다.
 
 ## 결정·가정

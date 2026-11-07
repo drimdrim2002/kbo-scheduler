@@ -235,6 +235,7 @@
   }
 
   function createSearch(problem, options) {
+    if (problem.mode === 'RESCHEDULE_DAILY') return KBO.RescheduleDaily.createSearch(problem.input, options);
     if (problem.mode === 'RESCHEDULE') return KBO.Reschedule.createSearch(problem.input, options);
     return createInitialSearch(problem.input, options);
   }

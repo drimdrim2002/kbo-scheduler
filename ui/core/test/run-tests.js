@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const core = path.resolve(__dirname, '..');
-for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
+for (const f of ['calendar-gen', 'preset-2025', 'score', 'reschedule', 'reschedule-daily', 'mock-solver', 'store', 'engine-adapter', 'svg-chart', 'svg-map', 'replay-model', 'xlsx-lite']) require(path.join(core, f + '.js'));
 const K = globalThis.KBO;
 const { Score, CalendarGen, Preset, Reschedule, MockSolver, Store, Engine, Chart, MapKit, ReplayModel, Xlsx } = K;
 
@@ -869,6 +869,103 @@ test('일정 지문(planSignature): 서버 점검표의 planSig(Java Requirement
   assert(Engine.planSignature(p, moved) !== '64bedacb', '배정이 바뀌면 지문도 바뀐다');
   // 화면 상태처럼 plan 순서가 섞여도 시리즈 번호 순으로 읽으므로 같다
   eq(Engine.planSignature(p, p.plan.slice().reverse()), '64bedacb');
+});
+
+// ---- 날짜 단위 재편성: 서버(Java)와 브라우저가 같은 일정에 같은 답을 내야 한다. 어긋나면 오류(설계 §6.4) ----
+const RD = K.RescheduleDaily;
+const rdGolden = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'reschedule-golden.json'), 'utf8'));
+const rdBase = () => JSON.parse(fs.readFileSync(path.resolve(core, '..', '..', 'data', 'baseball', 'project_2025.json'), 'utf8'));
+function rdProblem(base, p) {
+  const out = JSON.parse(JSON.stringify(base));
+  out.games = JSON.parse(JSON.stringify(p.games));
+  out.reschedule = JSON.parse(JSON.stringify(p.reschedule));
+  if (p.settings) out.settings = JSON.parse(JSON.stringify(p.settings));
+  return out;
+}
+/** 키 순서와 상관없이, 숫자는 값으로 비교할 수 있게 */
+function canon(v) {
+  if (Array.isArray(v)) return v.map(canon);
+  if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v).sort()) o[k] = canon(v[k]); return o; }
+  return v;
+}
+function firstDiff(a, b, at) {
+  if (JSON.stringify(a) === JSON.stringify(b)) return null;
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    for (const k of new Set(Object.keys(a).concat(Object.keys(b)))) { const d = firstDiff(a[k], b[k], at + '.' + k); if (d) return d; }
+  }
+  return at + ': 서버 ' + JSON.stringify(a) + ' / 브라우저 ' + JSON.stringify(b);
+}
+
+test('재편성 서버·브라우저 같은 답: 사례마다 점수 8단계, 평가 숫자, 규칙 위반, 못 넣은 이유 문장, 결과 일정이 글자까지 같다', () => {
+  const g = rdGolden(), base = rdBase();
+  assert(g.cases.length >= 20, '사례 수');
+  let unplaced = 0, violations = 0, dh = 0;
+  for (const c of g.cases) {
+    const got = RD.score(rdProblem(base, g.problems[c.problem]), c.plan);
+    delete got.engine;
+    const d = firstDiff(canon(c.expect), canon(got), c.name);
+    if (d) throw new Error(d);
+    unplaced += c.expect.unplaced.length; violations += c.expect.violations.length; dh += c.expect.metrics.doubleHeaders.total;
+  }
+  assert(unplaced > 0 && violations > 0 && dh > 0, '사례에 못 넣은 경기·규칙 위반·더블헤더가 모두 들어 있다');
+});
+
+test('재편성 입력 오류 문장이 서버와 같다(기간 시작, 빠진 취소 경기, 16경기, 순서)', () => {
+  const g = rdGolden(), base = rdBase();
+  const p = rdProblem(base, g.problems[0]);
+  const msg = (fn) => { try { fn(); return ''; } catch (e) { return e.message; } };
+  eq(msg(() => RD.parse(Object.assign({}, p, { reschedule: Object.assign({}, p.reschedule, { start: '2025-08-31' }) }))), '재편성 기간은 1차 편성이 끝난 다음 날(9/1)부터 잡을 수 있습니다.');
+  const lessTargets = Object.assign({}, p.reschedule, { targets: p.reschedule.targets.slice(0, -1) });
+  assert(/16경기가 되지 않습니다\(지금 15경기\)/.test(msg(() => RD.parse(Object.assign({}, p, { reschedule: lessTargets })))), '16경기');
+  const noCancel = Object.assign({}, p.reschedule, { targets: p.reschedule.targets.slice(1) });
+  assert(/취소한 경기가 배정 대상에 빠져 있습니다/.test(msg(() => RD.parse(Object.assign({}, p, { reschedule: noCancel })))), '빠진 취소 경기');
+  eq(msg(() => RD.parse(Object.assign({}, p, { reschedule: Object.assign({}, p.reschedule, { order: ['lastDay'] }) }))), '기준 순서에는 다섯 기준이 한 번씩 들어 있어야 합니다.');
+  eq([RD.josa.topic('LG'), RD.josa.topic('두산'), RD.josa.subject('한화'), RD.josa.subject('KIA'), RD.josa.subject('삼성')], ['LG는', '두산은', '한화가', 'KIA가', '삼성이']);
+});
+
+test('재편성 브라우저 배정: 시드를 바꿔도 꼭 지키는 규칙 위반 0, 발표 경기는 그대로', () => {
+  const g = rdGolden(), base = rdBase();
+  for (let i = 0; i < g.problems.length; i++) {
+    const p = rdProblem(base, g.problems[i]);
+    for (const seed of [1, 2, 3]) {
+      const ctx = RD.parse(p);
+      const pinned = ctx.games.filter((x) => x.pinned).map((x) => x.key + '@' + x.day);
+      RD.initialize(ctx, seed, 3);
+      eq(RD.totals(ctx).ruleViolations, 0, g.problems[i].name + ' 시드 ' + seed);
+      eq(RD.violations(ctx), [], '위반 문장 없음');
+      eq(ctx.games.filter((x) => x.pinned).map((x) => x.key + '@' + x.day), pinned, '발표 경기 그대로');
+    }
+  }
+  // 4주 문제는 브라우저 배정으로도 다 들어간다
+  const ctx = RD.parse(rdProblem(base, g.problems[0]));
+  eq(RD.initialize(ctx, 1, 5), 0, '4주 · 못 넣은 경기 0');
+});
+
+test('재편성 결과 모양: 브라우저(Mock 엔진) 결과가 서버 결과 견본과 같은 항목·같은 형을 가진다 · 점수를 다시 채점해도 같다', async () => {
+  const g = rdGolden(), base = rdBase();
+  const sample = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden', 'reschedule-done-sample.json'), 'utf8'));
+  const p = rdProblem(base, g.problems[1]);
+  const engine = new Engine.MockEngineAdapter({ useWorker: false });
+  const done = await new Promise((resolve, reject) => {
+    const h = engine.solve(p, { mode: 'RESCHEDULE', timeLimitSec: 1, unimprovedSec: 1, seed: 5 });
+    h.on('done', resolve); h.on('error', (e) => reject(new Error(e.message)));
+  });
+  eq(done.engine, 'browser');
+  assert(done.notice && /인터넷 연결 없이/.test(done.notice), '브라우저 결과 표시');
+  const shape = (v) => Array.isArray(v) ? (v.length ? [shape(v[0])] : []) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, shape(v[k])])) : v === null ? 'null' : typeof v;
+  const keys = ['mode', 'plan', 'score', 'scoreString', 'levels', 'metrics', 'violations', 'unplaced', 'teamLimits', 'fixes', 'period'];
+  for (const k of keys) {
+    assert(k in done, '브라우저 결과에 ' + k + ' 없음');
+    if (k === 'fixes') { for (const f of done.fixes.concat(sample.fixes)) assert(['code', 'confirmed', 'text'].every((x) => x in f), '고칠 곳 항목'); continue; }
+    const a = shape(sample[k]), b = shape(done[k]);
+    if (Array.isArray(a) && Array.isArray(b) && (!a.length || !b.length)) continue;
+    const d = firstDiff(a, b, k);
+    if (d && !/date: 서버 "string" \/ 브라우저 "null"|date: 서버 "null" \/ 브라우저 "string"/.test(d)) throw new Error('모양이 다름 ' + d);
+  }
+  assert(done.unplaced.length > 0 && done.fixes.length === 1 && done.fixes[0].confirmed === false, '못 넣은 경기 · 고칠 곳은 「해 보세요」만');
+  eq(RD.crossCheck(p, done), null, '다시 채점해도 같은 점수');
+  eq(RD.crossCheck(p, Object.assign({}, done, { scoreString: '[0/0]hard/[0/0/0/0/0/0]soft' })) !== null, true, '점수가 다르면 오류 문장');
+  eq(engine.score(p, done.plan, 'RESCHEDULE').scoreString, done.scoreString, 'engine.score');
 });
 
 (async () => {
