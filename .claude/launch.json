@@ -19,13 +19,19 @@
     },
     {
       "name": "kbo-server",
-      "runtimeExecutable": "bash",
+      "runtimeExecutable": "env",
       "runtimeArgs": [
+        "JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=4",
+        "bash",
         "scripts/run-server.sh",
         "--port",
         "8080",
         "--ui",
-        "ui"
+        "ui",
+        "--max-seconds",
+        "300",
+        "--seeds",
+        "4"
       ],
       "port": 8080
     },
