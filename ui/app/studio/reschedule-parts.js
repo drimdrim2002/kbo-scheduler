@@ -761,6 +761,7 @@
       S.quiet = true;
       const keepDate = R.ui.date; // 주소의 rd(점검 경로)
       try {
+        app().store.commit('점검용 초기화', (s) => { s.reschedule.version = null; }, { tags: ['reschedule'], undo: false }); // 같은 버전이어도 취소·결과·발표를 처음부터
         R.chooseVersion(v.id, true);
         R.ui.date = keepDate;
         const b = R.base(), late = b.games.filter((g) => g.date >= '2027-07-20');
