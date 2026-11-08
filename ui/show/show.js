@@ -491,7 +491,7 @@
       const hash = (a.getAttribute('href') || '').replace(/^[^#]*/, '');
       a.setAttribute('href', (isFile ? SHOW.studioHref.file : SHOW.studioHref.http) + hash);
       // 휴대폰·태블릿(1024px 아래)에서는 스튜디오를 열지 않고 알림만(스튜디오는 PC 화면 전용). 링크는 보이게 둬서 스튜디오가 있다는 걸 알린다
-      if (a.hasAttribute('data-pc-note')) a.addEventListener('click', (e) => { if (window.innerWidth < 1024) { e.preventDefault(); toast('편성 스튜디오는 PC에서 열 수 있어요'); } });
+      if (a.hasAttribute('data-pc-note')) a.addEventListener('click', (e) => { if (window.innerWidth < 1024) { e.preventDefault(); toast('매치봇 스튜디오는 PC에서 열 수 있어요'); } });
     });
   }
 
@@ -1131,7 +1131,6 @@
         'knob.tol': kb.distanceToleranceKm != null ? tolWord(kb.distanceToleranceKm) + ' (±' + fmtInt(kb.distanceToleranceKm) + 'km)' : '–',
         'knob.holiday': kb.holidayTolerance != null ? (kb.holidayTolerance <= 1 ? '똑같이 나누기' : '한두 번 차이는 괜찮게') : '–',
         'knob.cd': (kb.childrenDayHomeTeams || []).join('·') || '–',
-        'knob.unavail': (kb.unavailableHomeSlots || []).length ? kb.unavailableHomeSlots.map((u) => (u.date || u.slot || '') + ' ' + (u.team || '') + (u.reason ? ' (' + u.reason + ')' : '')).join(', ') : '없음',
         'knob.run': (res.options ? (res.options.timeLimitSec || '–') + '초 · 출발점 ' + (res.options.seeds || '–') + '개 동시' : '–') + (res.seed != null ? ' · 고른 출발점 ' + res.seed : ''),
         'knob.improve': res.improvementCount != null ? fmtInt(res.improvementCount) + '번 개선' : '–'
       });
@@ -1265,7 +1264,6 @@
     const parts = [];
     if (k.distanceToleranceKm != null) parts.push(tolWord(k.distanceToleranceKm));
     if (k.childrenDayHomeTeams && k.childrenDayHomeTeams.length) parts.push('어린이날 홈 ' + k.childrenDayHomeTeams.join('·'));
-    if (k.unavailableHomeSlots && k.unavailableHomeSlots.length) parts.push('홈 불가 ' + k.unavailableHomeSlots.length + '건');
     return parts.join(' · ');
   }
   function setMeta(name, content) {

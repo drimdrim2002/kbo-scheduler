@@ -96,7 +96,7 @@
     }, ['plan', 'pins']);
     if (ok) {
       S.ui.flashMatches = target != null ? [m, target] : [m];
-      S.toast('손으로 놓았습니다 · 이 경기는 그 자리에 고정 · ' + deltaWord(pv.hardDelta) + (pv.hardDelta < 0 ? ' — 남은 위반은 「나머지 엔진으로 짜기」가 고칩니다' : ''), pv.hardDelta >= 0 ? 'ok' : 'info', 5000);
+      S.toast('손으로 놓았습니다 · 이 경기는 그 자리에 고정 · ' + deltaWord(pv.hardDelta) + (pv.hardDelta < 0 ? ' — 남은 위반은 「나머지 자동 편성」이 고칩니다' : ''), pv.hardDelta >= 0 ? 'ok' : 'info', 5000);
     }
     return ok;
   }
@@ -143,7 +143,7 @@
     if (!ok) return;
     if (removing) S.toast(team + ' 홈 지정을 뺐습니다.', 'info');
     else if (homeNow) S.toast(team + '은(는) 이미 홈입니다. 홈 지정으로 남겨 두어 다시 짤 때도 홈으로 지킵니다.', 'info', 5500);
-    else S.toast(team + ' 홈 지정 · 지금 일정에서는 원정이라 위반으로 보입니다. 「나머지 엔진으로 짜기」가 반영합니다.', 'info', 5500);
+    else S.toast(team + ' 홈 지정 · 지금 일정에서는 원정이라 위반으로 보입니다. 「나머지 자동 편성」이 반영합니다.', 'info', 5500);
   }
 
   // ───────── 실행 ─────────
@@ -309,8 +309,8 @@
       '<div class="pe-grid" style="--n:' + c.slots.length + '">' + months + cells + '</div>' +
       '<div class="pe-foot"><span class="pe-sum"><b>새로 짤 연전 ' + free + '개</b><span class="muted"> / ' + c.slots.length + '</span><i>·</i>고정 ' + fixed.length + '<i>·</i>홈 지정 ' + nDes + '곳<i>·</i>손으로 놓은 경기 ' + hands + '</span>' + warn +
       '<span class="grow"></span><span class="pe-time muted small" title="고정하지 않은 경기는 대부분 바뀝니다">최대 ' + EDIT_SEC / 60 + '분 · 고정 안 한 경기는 대부분 바뀜</span>' +
-      '<button class="btn" data-act="pe-save" title="엔진 없이 반드시 지킬 규칙을 모두 검사하고, 지켰으면 버전으로 저장합니다">' + icon('check') + '검사하고 저장</button>' +
-      '<button class="btn primary" data-act="pe-run"' + (lvl === 'zero' ? ' disabled' : '') + ' title="고정한 연전·손으로 놓은 경기·홈 지정은 두고 나머지 연전 ' + free + '개를 엔진이 새로 짭니다">' + icon('play') + '나머지 엔진으로 짜기</button></div>' +
+      '<button class="btn" data-act="pe-save" title="자동 편성 없이 반드시 지킬 규칙을 모두 검사하고, 지켰으면 버전으로 저장합니다">' + icon('check') + '검사하고 저장</button>' +
+      '<button class="btn primary" data-act="pe-run"' + (lvl === 'zero' ? ' disabled' : '') + ' title="고정한 연전·손으로 놓은 경기·홈 지정은 두고 나머지 연전 ' + free + '개를 자동 편성이 새로 짭니다">' + icon('play') + '나머지 자동 편성</button></div>' +
       panel() + '</div>';
   }
   function panel() {
@@ -326,7 +326,7 @@
     if (p && p.kind === 'save') {
       const list = orderedViolations(), extra = p.extra || [];
       if (!list.length && !extra.length) { E.panel = null; return ''; }
-      return '<div class="pe-panel bad"><div class="pe-ph"><b>필수 규칙 위반 ' + (list.length + extra.length) + '건이라 저장할 수 없습니다</b><span>고친 뒤 다시 누르거나 「나머지 엔진으로 짜기」로 고칩니다</span>' + close + '</div>' +
+      return '<div class="pe-panel bad"><div class="pe-ph"><b>필수 규칙 위반 ' + (list.length + extra.length) + '건이라 저장할 수 없습니다</b><span>고친 뒤 다시 누르거나 「나머지 자동 편성」으로 고칩니다</span>' + close + '</div>' +
         '<ul class="pe-list">' + list.slice(0, 5).map((v) => '<li><span class="pe-rule">' + esc(S.ruleName(v.code)) + '</span><span class="pe-msg">' + esc(S.plain(String(v.message)).replace(/시리즈/g, '경기')) + '</span><button class="pf-link" data-act="sel-viol" data-sig="' + esc(S.vsig(v)) + '">그 자리로 ›</button></li>').join('') +
         extra.slice(0, 3).map((v) => '<li><span class="pe-rule">홈 지정</span><span class="pe-msg">' + esc(v.message) + '</span><button class="pf-link" data-act="pe-goto" data-slot="' + v.slot + '" data-ms="' + (v.matches || []).join(',') + '">그 자리로 ›</button></li>').join('') +
         (list.length > 5 ? '<li><button class="pf-link" data-act="viol-menu">' + (list.length - 5) + '건 더 보기 ›</button></li>' : '') + '</ul></div>';
@@ -345,9 +345,9 @@
       return '<div class="pe-ba-g' + (over ? ' over' : '') + '"><span class="k">' + esc(g.name.replace(/ 줄이기$/, '')) + '</span><span class="v">' + num(a, g.d) + ' → <b>' + num(b, g.d) + '</b>' + g.unit + '</span>' +
         '<span class="dv ' + (d < 0 ? 'good' : d > 0 ? 'bad' : '') + '">' + (d === 0 ? '그대로' : (d > 0 ? '+' : '−') + num(Math.abs(d), g.d) + g.unit) + '</span>' + (g.tol ? (over ? '<span class="pf-tag over">허용 ' + num(ob[g.tol]) + g.unit + ' 넘음</span>' : '<span class="pf-tag ok">허용 안</span>') : '') + '</div>';
     };
-    const how = r.init === 'KEEP' ? (r.fallback ? '처음부터 다시 짜지 못해 지금 일정에서 이어서 풀었습니다' : r.engine !== 'REST' ? '시험 엔진이라 지금 일정에서 이어서 풀었습니다' : '지금 일정에서 이어서 풀었습니다') : '고정한 것만 두고 처음부터 다시 짰습니다';
+    const how = r.init === 'KEEP' ? (r.fallback ? '처음부터 다시 짜지 못해 지금 일정에서 이어서 풀었습니다' : r.engine !== 'REST' ? '시험용 자동 편성이라 지금 일정에서 이어서 풀었습니다' : '지금 일정에서 이어서 풀었습니다') : '고정한 것만 두고 처음부터 다시 짰습니다';
     const tail = r.left ? '<b class="bad">남은 위반 ' + r.left + '건</b> — 저장하지 않았습니다. 달력에서 직접 고치거나 고정을 줄여 다시 짜세요' : r.saved ? '「' + esc(r.saved) + '」(으)로 저장 · 실행 결과 비교에서 견줍니다' : '';
-    return '<div class="pe-panel ba' + (r.left ? ' bad' : '') + '"><div class="pe-ph"><b>새로 짠 결과 · 전 → 후</b>' + (r.engine !== 'REST' ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저 시험 엔진으로 냈습니다">시험 엔진으로 낸 결과</span>' : '') +
+    return '<div class="pe-panel ba' + (r.left ? ' bad' : '') + '"><div class="pe-ph"><b>새로 짠 결과 · 전 → 후</b>' + (r.engine !== 'REST' ? '<span class="pf-tag est" title="편성 서버에 연결되지 않아 브라우저의 시험용 자동 편성으로 냈습니다">시험용 자동 편성으로 낸 결과</span>' : '') +
       '<span>' + esc(how) + ' · 연전 ' + r.free + '개 새로 짬' + (r.before.name ? ' · 전 = 「' + esc(r.before.name) + '」' : '') + '</span>' + close + '</div>' +
       '<div class="pe-ba">' + ob.order.map(cell).join('') + '</div>' + (tail ? '<div class="pe-ba-tail">' + tail + '</div>' : '') + '</div>';
   }
@@ -368,7 +368,7 @@
     const mt = app().state.matches[m], why = lockReason(m);
     if (why) return '<div class="pe-pop">' + icon('lock') + '<span><b>' + esc(why) + '</b>' + (isFixed(D().plan[m]) ? '<br><span class="muted small">위 띠에서 이 연전의 고정을 풀면 옮길 수 있습니다</span>' : '') + '</span></div>';
     return (mt.hand ? '<div class="pe-pop hand"><span class="pe-hand">손</span><span><b>손으로 놓은 경기</b> — 이 자리에 고정됩니다</span><button class="btn sm" data-act="pe-unhand" data-m="' + m + '">고정 풀기</button></div>' : '') +
-      '<div class="pop-row"><button class="btn sm primary" data-act="move-start" data-m="' + m + '">' + icon('move') + '옮기기…</button><span class="muted small">놓은 경기만 그 자리에 고정됩니다. 생긴 위반은 엔진이 고칩니다</span></div>';
+      '<div class="pop-row"><button class="btn sm primary" data-act="move-start" data-m="' + m + '">' + icon('move') + '옮기기…</button><span class="muted small">놓은 경기만 그 자리에 고정됩니다. 생긴 위반은 자동 편성이 고칩니다</span></div>';
   }
 
   S.r3Edit = {

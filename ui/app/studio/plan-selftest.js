@@ -136,7 +136,7 @@
       ok('− 단추 → 600', ob().distanceGapKm === 600);
       setBox(1, '0'); click('[data-act="pf-gap-step"][data-k="distanceGapKm"][data-d="-50"]'); flush();
       ok('0에서 − 단추는 0 그대로', ob().distanceGapKm === 0);
-      ok('허용 수준 칸에 지난 결과 숫자가 없음', !/2025 이 엔진|KBO \d/.test(qa('.pf-sl').map((e) => e.innerText).join(' ')) && !qa('.pf-ax .dot, .pf-ax .tk').length);
+      ok('허용 수준 칸에 지난 결과 숫자가 없음', !/2025 자동 편성|KBO \d/.test(qa('.pf-sl').map((e) => e.innerText).join(' ')) && !qa('.pf-ax .dot, .pf-ax .tk').length);
       setBox(1, '600'); setBox(0, '4');
       ok('방침 요약: 직접 정한 순서', /지금 방침: 직접 정한 순서 · 이동 횟수 4회 · 이동 거리 600km · 주말·공휴일 3점/.test(q('.pf-policy').innerText), q('.pf-policy').innerText);
       click('[data-act="pf-order"][data-id="balance"]'); flush();
@@ -189,7 +189,7 @@
       click('[data-act="pf-relevel"]'); flush();
       ok('「수준 다시 정하기」 → 운영 방침 화면의 허용 수준 구역', S.ui.step === 2 && !!q('#pf-levels'));
       S.go({ step: 5 }); flush();
-      ok('시험 엔진 결과임을 표시(서버 없을 때만)', app().engineConfig.kind === 'REST' || /시험 엔진으로 낸 결과/.test(page()));
+      ok('시험 엔진 결과임을 표시(서버 없을 때만)', app().engineConfig.kind === 'REST' || /시험용 자동 편성으로 낸 결과/.test(page()));
 
       // 규칙을 어긴 결과는 저장하지 않는다(사용자 결정 2026-11-07). 시험 엔진은 짧은 시간에 규칙을 다 맞추지 못할 수 있어, 그때는 그것을 확인하고 이후 점검은 지킨 결과로 이어 간다
       const exRun = app().derived().ex;
@@ -337,12 +337,12 @@
       const fromMock = Object.assign(JSON.parse(JSON.stringify(v1)), { id: 't-mock', name: '시험 브라우저 결과', engine: 'MOCK' });
       const beforeTag = P.versions.list(2027); P.versions.put(2027, beforeTag.concat([fromServer, fromMock]));
       S.go({ step: 6 }); flush();
-      ok('시험 엔진 버전만 표시', /시험 엔진/.test(q('.pf-ver input[data-id="t-mock"]').closest('.pf-ver').innerText) && !/시험 엔진/.test(q('.pf-ver input[data-id="t-rest"]').closest('.pf-ver').innerText));
+      ok('시험 엔진 버전만 표시', /시험용 자동 편성/.test(q('.pf-ver input[data-id="t-mock"]').closest('.pf-ver').innerText) && !/시험용 자동 편성/.test(q('.pf-ver input[data-id="t-rest"]').closest('.pf-ver').innerText));
       click('[data-act="pf-load"][data-id="t-rest"]'); flush();
-      ok('서버에서 낸 버전을 불러오면 시험 엔진 표시 없음', S.ui.step === 5 && !/시험 엔진으로 낸 결과/.test(page()));
+      ok('서버에서 낸 버전을 불러오면 시험 엔진 표시 없음', S.ui.step === 5 && !/시험용 자동 편성으로 낸 결과/.test(page()));
       click('.footer [data-act="pf-stage"][data-stage="4"]'); flush();
       click('[data-act="pf-load"][data-id="t-mock"]'); flush();
-      ok('시험 엔진 버전을 불러오면 표시', S.ui.step === 5 && /시험 엔진으로 낸 결과/.test(page()));
+      ok('시험 엔진 버전을 불러오면 표시', S.ui.step === 5 && /시험용 자동 편성으로 낸 결과/.test(page()));
       P.versions.put(2027, beforeTag); S.go({ step: 6 }); flush();
       // 비교: 규칙을 어긴 버전 · 허용 차이가 다른 버전
       const keepList = P.versions.list(2027);

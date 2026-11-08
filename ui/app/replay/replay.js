@@ -66,7 +66,7 @@
     const axis = [0, 0.25, 0.5, 0.75, 1].map((k) => '<span>' + Math.round(dur * k) + '초</span>').join('');
     return (this.o.embedded ? '' :
       '<header class="rp-top"><div class="rp-brand"><span class="rp-mark">KBO</span><b>편성 과정 다시 보기</b></div><span class="rp-meta">' + meta + '</span>' +
-      '<a class="rp-link" href="index.html">편성 스튜디오로</a></header>') +
+      '<a class="rp-link" href="index.html">매치봇 스튜디오로</a></header>') +
       '<div class="rp-main">' +
       '<section class="rp-board-wrap"><div class="rp-board-h"><b>편성 보드</b><span class="rp-muted">연전 기간 ' + m.slots.length + '개 · 카드 1장 = 시리즈 1개, 색은 홈 구단</span><span class="rp-pool" hidden></span><span class="rp-legend">' + legend + '</span></div>' +
       '<div class="rp-board"><div class="rp-grid">' + slots + '</div><div class="rp-cards"></div></div></section>' +
