@@ -185,6 +185,31 @@
 .rs-un-sub b, .rs-un-fix b { display: block; color: var(--navy); margin-bottom: 2px; }
 .rs-un-fix { padding: 8px 10px; border: 1px solid var(--blue-line); background: var(--blue-weak); border-radius: 6px; color: var(--text); }
 
+/* 발표 · 다시 짜기 (요구 §8) */
+.rs-publine { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); flex: none; }
+.rs-publine b { color: var(--navy); }
+.rs-publine .muted { font-size: 12px; }
+.rs-pend { color: var(--bad); font-weight: 700; }
+.rs-moved { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+.rs-pubtag { line-height: 24px; padding: 0 10px; }
+.rs-d.pub { border-color: var(--blue-line); background: var(--blue-weak); }
+.rs-d.pub.cx { background: var(--bad-bg); border-color: var(--bad-line); }
+.rs-day.pub { border-color: var(--blue-line); }
+.rs-clist li.re .d { color: var(--blue); }
+.rs-ft td { font-size: 12.5px; }
+.rs-tg th.grp.past, .rs-tg th.d.past { background: #F3F6FB; color: var(--text-2); }
+.rs-tg td.past { opacity: .8; }
+.rs-tg td.g.fx { box-shadow: inset 0 0 0 2px var(--ok); }
+.rs-tg td.g.h.fx { box-shadow: inset 0 0 0 2px #8FD3AE; }
+.rs-legend i.fx { box-shadow: inset 0 0 0 2px var(--ok); border-color: var(--ok); }
+.rs-dl-day.past { background: #F7F9FC; }
+.rs-dl-day tr.cx td.v { text-decoration: line-through; color: var(--bad); }
+.rs-dl-day .cxw { color: var(--bad); }
+.rsc-d.pd.past { background: #F3F6FB; border-color: var(--line); }
+.rsc-chip.fx { border-color: var(--ok-line); }
+.rsc-chip.cx { text-decoration: line-through; color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+.rsc-side tr.cx td.v { color: var(--bad); }
+
 /* 처음 화면 줄 */
 .pf-choices:has(.rs-home) { grid-template-rows: minmax(0, 1fr) auto; }
 .pf-choices .rs-home { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 18px; padding: 14px 24px; }

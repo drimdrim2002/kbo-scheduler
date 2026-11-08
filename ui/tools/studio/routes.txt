@@ -126,3 +126,12 @@ pf-rs-cal|step=9&year=2027&demo=rs&rv=cal
 pf-rs-cal-day|step=9&year=2027&demo=rs&rv=cal&rd=2027-09-14
 pf-rs-cal-oct|step=9&year=2027&demo=rs&rv=cal&rm=2027-10
 pf-rs-cal-short|step=9&year=2027&demo=rsun&rv=cal
+pf-rs-pub|step=9&year=2027&demo=rspub
+pf-rs-pub-p1|step=9&year=2027&demo=rspub&rp=1
+pf-rs-re-p1|step=9&year=2027&demo=rsre&rp=1
+pf-rs-re-p2|step=9&year=2027&demo=rsre&rp=2
+pf-rs-re-p3|step=9&year=2027&demo=rsre&rp=3
+pf-rs-re2|step=9&year=2027&demo=rsre2
+pf-rs-re2-cal|step=9&year=2027&demo=rsre2&rv=cal
+pf-rs-re2-days|step=9&year=2027&demo=rsre2&rv=days
+pf-rs-re2-metrics|step=9&year=2027&demo=rsre2&rv=metrics

@@ -708,7 +708,8 @@
    */
   const DEFAULT_RESCHEDULE = {
     start: '2025-09-01', end: '2025-10-31', lastDayToleranceDays: 3, maxConsecutiveDays: 6, maxDoubleHeadersPerTeam: 2,
-    order: ['lastDay', 'fairness', 'addedDistance', 'monday', 'doubleHeader'], version: null, games: [], plan: [], result: null
+    order: ['lastDay', 'fairness', 'addedDistance', 'monday', 'doubleHeader'], version: null, games: [], plan: [], result: null,
+    published: null // 발표 기록(요구 §8): { rounds: [{ at, start, end, placed, unplaced, resultAt }] } — plan이 그때 발표한 일정
   };
 
   /**

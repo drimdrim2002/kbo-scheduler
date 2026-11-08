@@ -502,13 +502,46 @@
         click('.rs-tabs [data-act="rs-xlsx"]'); flush();
         const xs = await KBO.Xlsx.read(R.lastXlsx, null);
         ok('엑셀: 시트 다섯 · 날짜별 경기 = 1차 + 재편성', xs.map((x) => x.name).join() === '날짜별 경기,구단별 출전표,평가 숫자,못 넣은 경기,조건' && xs[0].rows.length === 1 + R.base().games.length + R.model(r).placed && xs[1].rows[0].length === 3 + st().teams.length);
+        // ── 다시 짜기(요구 §8): 발표 → 발표한 경기 취소(G:) → 다시 짜기 → 발표한 날짜 그대로 → 다시 발표
+        {
+          const r1 = R.result();
+          click('.rs-tabs [data-act="rs-publish"]'); flush();
+          const pub = rsSt().plan.slice();
+          ok('발표: 넣은 경기 모두 발표한 일정으로 · 결과는 그대로 맞음 · 「발표한 일정」 표시', pub.length === R.model(r1).placed && !!R.published() && R.isPublished(R.result()) && !R.stale(R.result()) && !!q('.rs-pubtag') && !!q('.rs-publine'), pub.length);
+          click('.rs-band [data-act="rs-page"][data-p="1"]'); flush();
+          const tgt = pub.slice().sort((a, c) => (a.date < c.date ? -1 : a.date > c.date ? 1 : 0))[Math.floor(pub.length / 2)];
+          ok('1쪽 달력이 발표한 재편성 달까지', qa('[data-act="rs-month"]').some((b) => +b.dataset.m === Number(tgt.date.slice(5, 7))));
+          R.ui.date = tgt.date; flush();
+          const reBtn = qa('.rs-day.pub [data-act="rs-recancel"][data-v="1"]').find((b) => b.dataset.g === tgt.game);
+          ok('그날 재편성 경기에 「취소」', !!reBtn);
+          reBtn.click(); flush();
+          ok('재편성 경기 취소 → 기록 G:<경기>|<날짜> · 다시 짜는 시작일은 그 다음 날', rsSt().games.some((g) => g.game === tgt.game && g.date === tgt.date) && rsSt().start === Dates.isoDate(Dates.dayNum(tgt.date) + 1) && /새로 취소된 재편성 경기 1/.test(q('.rs-publine').innerText));
+          const n1 = rsSt().games.length, m0 = rsSt().games.find((g) => g.match != null);
+          R.setCancel(['M:' + m0.match + '|' + m0.date], false); flush();
+          ok('발표한 일정에 들어간 1차 편성 취소는 풀리지 않음', rsSt().games.length === n1 && R.lockedM('M:' + m0.match + '|' + m0.date));
+          click('.footer [data-act="rs-page"][data-p="2"]'); flush();
+          const pr2 = R.problem();
+          ok('2쪽: 다시 넣을 경기 1 · 「다시 짜기」', !pr2.error && pr2.rerun.free.length === 1 && pr2.rerun.free[0].t.id === tgt.game && !!q('.rs-ft') && /다시 짜기/.test(q('[data-act="rs-run"]').innerText));
+          setIn('input[data-in="rs-date"][data-k="start"]', tgt.date);
+          ok('시작일이 취소된 날 이전 → 이유를 보이고 막음', /다음 날부터 잡을 수 있습니다/.test(q('.rs-err').innerText) && q('[data-act="rs-run"]').disabled);
+          setIn('input[data-in="rs-date"][data-k="start"]', Dates.isoDate(Dates.dayNum(tgt.date) + 1));
+          const at1 = R.result().at;
+          click('[data-act="rs-run"]'); flush();
+          for (let i = 0; i < 300 && (R.running() || !R.result() || R.result().at === at1); i++) await wait(100);
+          flush();
+          const r2 = R.result(), mv = r2.plan.find((x) => x.game === tgt.game), fx = r2.plan.filter((x) => x.fixed);
+          ok('다시 짜기: 발표한 경기 날짜 그대로 · 취소된 경기만 시작일 뒤 빈 날로', fx.length === pub.length - 1 && fx.every((x) => pub.find((p) => p.game === x.game).date === x.date) && !!mv && !mv.fixed && (mv.date == null || mv.date >= rsSt().start), fx.length + ' / ' + (mv && mv.date));
+          ok('다시 짠 결과: 원래 날은 취소로 · 발표 전 · 「다시 발표」 단추', R.model(r2).games.some((g) => g.kind === 're' && g.cancelled && g.date === tgt.date) && !R.isPublished(r2) && /다시 발표/.test(q('.rs-tabs [data-act="rs-publish"]').innerText));
+          click('.rs-tabs [data-act="rs-publish"]'); flush();
+          ok('다시 발표: 두 번째 발표 · 취소된 경기는 새 날로', R.published().rounds.length === 2 && (mv.date == null ? !R.planMap().has(tgt.game) : R.planMap().get(tgt.game).date === mv.date) && /2번째 발표/.test(q('.rs-publine').innerText));
+        }
         click('.rs-band [data-act="rs-page"][data-p="1"]'); flush();
         click('[data-act="rs-month"][data-m="7"]'); flush();
         click('.rs-cal .rs-d.has'); flush();
         click('.rs-day [data-act="rs-cancel"][data-v="1"]'); flush();
-        ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(r) && /조건이 바뀜 · 다시 실행/.test(page()));
+        ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(R.result()) && /발표함 · 새 취소 있음/.test(page()));
         const other = [...q('select[data-in="rs-version"]').options].find((o) => o.value && o.value !== '2027-rank1');
-        if (other) { setIn('select[data-in="rs-version"]', other.value); ok('다른 버전 → 취소 표시·결과 지움', rsSt().version === other.value && !rsSt().games.length && !rsSt().result); }
+        if (other) { setIn('select[data-in="rs-version"]', other.value); ok('다른 버전 → 취소 표시·결과·발표한 일정 지움', rsSt().version === other.value && !rsSt().games.length && !rsSt().result && !rsSt().plan.length && !rsSt().published); }
         R.ui.view = 'grid'; S.go({ step: 9 }); flush();
         ok('재편성 아래 줄: 처음 화면으로', !!q('.footer [data-act="pf-home"]'));
         window.confirm = cf0;
