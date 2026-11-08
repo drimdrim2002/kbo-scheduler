@@ -164,6 +164,9 @@
   });
 
   S.rsView = {
+    /** 자가 점검이 배치와 상관없이 쓰는 길: 발표한 경기 취소를 표시하는 곳 · 다시 짜기 단추가 있는 곳 */
+    goRecancel(date) { R.ui.page = 1; R.ui.date = date; R.ui.month = Number(date.slice(5, 7)); S.writeHash(); S.render(); },
+    goRerun() { R.ui.page = 2; S.writeHash(); S.render(); },
     footer() {
       const p = page(), r = R.result();
       const prev = p === 1 ? '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>' : '<button class="btn" data-act="rs-page" data-p="' + (p - 1) + '">' + icon('left') + '이전: ' + PAGES[p - 2][1] + '</button>';

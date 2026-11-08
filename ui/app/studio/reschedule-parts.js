@@ -242,17 +242,22 @@
   };
 
   /** 취소 표시 달력(한 달). 날을 누르면 그날 경기가 옆(또는 아래)에 나온다 */
-  R.months = function () {
+  /** range: 'all'(기본: 1차 편성 + 발표한 재편성 일정의 달) | 'first'(1차 편성 달만) | 'pub'(발표한 재편성 일정의 달만) */
+  R.months = function (range) {
     const b = R.base();
     if (!b) return [];
     const out = [];
-    let last = b.last;
-    if (R.published()) for (const e of rs().plan) if (e.date > last) last = e.date; // 발표한 재편성 일정의 달까지
-    for (let m = Number(b.first.slice(5, 7)); m <= Number(last.slice(5, 7)); m++) out.push(m);
+    let first = b.first, last = b.last;
+    if (R.published() && range !== 'first') {
+      if (range === 'pub') first = rs().plan.reduce((a, e) => (e.date < a ? e.date : a), '9999');
+      for (const e of rs().plan) if (e.date > last) last = e.date; // 발표한 재편성 일정의 달까지
+      for (const g of R.reCancels()) if (g.date > last) last = g.date;
+    }
+    for (let m = Number(first.slice(5, 7)); m <= Number(last.slice(5, 7)); m++) out.push(m);
     return out;
   };
-  R.curMonth = function () {
-    const ms = R.months(), u = R.ui;
+  R.curMonth = function (range) {
+    const ms = R.months(range), u = R.ui;
     if (u.date) { const m = Number(u.date.slice(5, 7)); if (ms.includes(m)) u.month = m; }
     if (!ms.includes(u.month)) u.month = ms.length ? ms[ms.length - 1] : null;
     return u.month;
@@ -260,11 +265,11 @@
   R.cancelCalendar = function (opts) {
     const o = opts || {}, b = R.base();
     if (!b) return '';
-    const mo = R.curMonth(), cm = R.cancelMap(), y = Number(b.first.slice(0, 4)), pub = R.pubByDate();
+    const mo = R.curMonth(o.range), cm = R.cancelMap(), y = Number(b.first.slice(0, 4)), pub = o.range === 'first' ? new Map() : R.pubByDate();
     const per = new Map();
-    for (const c of cm.values()) per.set(c.date, (per.get(c.date) || 0) + 1);
-    for (const g of R.reCancels()) per.set(g.date, (per.get(g.date) || 0) + 1);
-    let s = '<div class="rs-cal' + (o.big ? ' big' : '') + '"><div class="rs-mtabs" role="tablist">' + R.months().map((m) => {
+    if (o.range !== 'pub') for (const c of cm.values()) per.set(c.date, (per.get(c.date) || 0) + 1);
+    if (o.range !== 'first') for (const g of R.reCancels()) per.set(g.date, (per.get(g.date) || 0) + 1);
+    let s = '<div class="rs-cal' + (o.big ? ' big' : '') + '"><div class="rs-mtabs" role="tablist">' + R.months(o.range).map((m) => {
       let n = 0;
       for (const [d, c] of per) if (Number(d.slice(5, 7)) === m) n += c;
       return '<button role="tab" class="' + (m === mo ? 'on' : '') + '" data-act="rs-month" data-m="' + m + '">' + m + '월' + (n ? '<span class="rs-cn">' + n + '</span>' : '') + '</button>';
@@ -273,7 +278,7 @@
     for (let k = 0; k < 42; k++) {
       const d = first - lead + k, iso = Dates.isoDate(d), inMo = Number(iso.slice(5, 7)) === mo;
       if (k >= 35 && !inMo) break;
-      const fr = inMo ? b.byDate.get(iso) || [] : [], pg = inMo ? pub.get(iso) || [] : [], n = per.get(iso) || 0;
+      const fr = inMo && o.range !== 'pub' ? b.byDate.get(iso) || [] : [], pg = inMo ? pub.get(iso) || [] : [], n = per.get(iso) || 0;
       const count = fr.length + pg.length, isPub = !fr.length && pg.length > 0;
       const cls = 'rs-d' + (inMo ? '' : ' out') + (count ? ' has' : '') + (isPub ? ' pub' : '') + (n ? ' cx' : '') + (R.ui.date === iso ? ' sel' : '');
       s += count ? '<button class="' + cls + '" data-act="rs-day" data-date="' + iso + '" aria-label="' + esc(mdw(iso) + (isPub ? ' 재편성 경기 ' : ' 경기 ') + count + (n ? ' · 취소 ' + n : '')) + '"><span class="dn">' + Number(iso.slice(8, 10)) + '</span>' + (n ? '<span class="rs-x">취소 ' + n + '</span>' : '<span class="rs-g">' + count + '경기</span>') + '</button>'
@@ -289,9 +294,23 @@
     if (!date || (!b.byDate.has(date) && !pub.has(date))) return '<div class="rs-hint">달력에서 날짜를 누르면 그날 경기가 나옵니다. 열리지 못한 경기에 「취소」를 누르고 사유를 고릅니다.' + (R.published() ? ' 발표한 재편성 경기도 같은 방법으로 표시합니다.' : '') + '</div>';
     const reasonSel = (key, cur, act, extra) => '<select class="select sm" data-in="' + act + '"' + (key ? ' data-key="' + esc(key) + '"' : '') + (extra || '') + ' aria-label="취소 사유">' + Object.keys(R.REASONS).map((k) => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + R.REASONS[k] + '</option>').join('') + '</select>';
     const allBar = (n) => '<div class="rs-day-h"><b>' + esc(mdw(date)) + ' 경기 ' + n + '</b><span class="rs-day-all">그날 모두 ' + reasonSel(null, R.ui.dayReason, 'rs-dayreason') + '<button class="btn sm" data-act="rs-day-all" data-v="1">모두 취소</button><button class="btn sm ghost" data-act="rs-day-all" data-v="0">모두 풀기</button></span></div>';
-    if (!b.byDate.has(date)) {
-      // 발표한 재편성 경기의 날: 취소 기록은 G:<경기 id>|<날짜>
-      const list = pub.get(date);
+    if (!b.byDate.has(date)) return R.pubDay(date, allBar, reasonSel);
+    const list = b.byDate.get(date), cm = R.cancelMap();
+    let s = '<div class="rs-day">' + allBar(list.length) + '<table class="rs-gt"><tbody>';
+    for (const g of list) {
+      const c = cm.get(g.key), lock = c && R.lockedM(g.key);
+      s += '<tr class="' + (c ? 'cx' : '') + '"><td><span class="v">' + S.team(g.away) + ' <span class="muted">vs</span> ' + S.team(g.home) + '</span><span class="stad">' + esc(g.stadium) + '</span></td>' +
+        '<td class="r">' + (lock ? '<span class="rs-moved">' + esc(R.REASONS[c.reason] || '') + ' 취소 · 발표한 일정에 들어감</span>' : c ? reasonSel(g.key, c.reason, 'rs-reason') + '<button class="btn sm ghost" data-act="rs-cancel" data-key="' + esc(g.key) + '" data-v="0">취소 풀기</button>' : '<button class="btn sm" data-act="rs-cancel" data-key="' + esc(g.key) + '" data-v="1">' + icon('x') + '취소</button>') + '</td></tr>';
+    }
+    return s + '</tbody></table></div>';
+  };
+  /** 발표한 재편성 경기의 그날 목록 · 「취소」(기록 G:<경기 id>|<날짜>). 다른 배치(결과 쪽 달력 옆 등)에서도 쓴다 */
+  R.pubDay = function (date, allBar0, reasonSel0) {
+    const pub = R.pubByDate(), list = pub.get(date);
+    if (!list) return '<div class="rs-hint">' + esc(mdw(date)) + '에는 발표한 재편성 경기가 없습니다.</div>';
+    const reasonSel = reasonSel0 || ((key, cur, act, extra) => '<select class="select sm" data-in="' + act + '"' + (extra || '') + ' aria-label="취소 사유">' + Object.keys(R.REASONS).map((k) => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + R.REASONS[k] + '</option>').join('') + '</select>');
+    const allBar = allBar0 || ((n) => '<div class="rs-day-h"><b>' + esc(mdw(date)) + ' 재편성 경기 ' + n + '</b><span class="rs-day-all">그날 모두 ' + reasonSel(null, R.ui.dayReason, 'rs-dayreason') + '<button class="btn sm" data-act="rs-day-all" data-v="1">모두 취소</button><button class="btn sm ghost" data-act="rs-day-all" data-v="0">모두 풀기</button></span></div>');
+    {
       let s = '<div class="rs-day pub">' + allBar(list.filter((g) => !g.moved).length) + '<table class="rs-gt"><tbody>';
       for (const g of list) {
         const c = g.cancelled, from = g.source === 'CANCELLED' ? mdw(g.orig) + ' 취소 경기' : '잔여 경기';
@@ -303,14 +322,6 @@
       }
       return s + '</tbody></table></div>';
     }
-    const list = b.byDate.get(date), cm = R.cancelMap();
-    let s = '<div class="rs-day">' + allBar(list.length) + '<table class="rs-gt"><tbody>';
-    for (const g of list) {
-      const c = cm.get(g.key), lock = c && R.lockedM(g.key);
-      s += '<tr class="' + (c ? 'cx' : '') + '"><td><span class="v">' + S.team(g.away) + ' <span class="muted">vs</span> ' + S.team(g.home) + '</span><span class="stad">' + esc(g.stadium) + '</span></td>' +
-        '<td class="r">' + (lock ? '<span class="rs-moved">' + esc(R.REASONS[c.reason] || '') + ' 취소 · 발표한 일정에 들어감</span>' : c ? reasonSel(g.key, c.reason, 'rs-reason') + '<button class="btn sm ghost" data-act="rs-cancel" data-key="' + esc(g.key) + '" data-v="0">취소 풀기</button>' : '<button class="btn sm" data-act="rs-cancel" data-key="' + esc(g.key) + '" data-v="1">' + icon('x') + '취소</button>') + '</td></tr>';
-    }
-    return s + '</tbody></table></div>';
   };
   /** 표시한 취소 경기 목록 */
   R.cancelList = function (opts) {

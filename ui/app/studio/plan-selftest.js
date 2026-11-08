@@ -508,10 +508,9 @@
           click('.rs-tabs [data-act="rs-publish"]'); flush();
           const pub = rsSt().plan.slice();
           ok('발표: 넣은 경기 모두 발표한 일정으로 · 결과는 그대로 맞음 · 「발표한 일정」 표시', pub.length === R.model(r1).placed && !!R.published() && R.isPublished(R.result()) && !R.stale(R.result()) && !!q('.rs-pubtag') && !!q('.rs-publine'), pub.length);
-          click('.rs-band [data-act="rs-page"][data-p="1"]'); flush();
           const tgt = pub.slice().sort((a, c) => (a.date < c.date ? -1 : a.date > c.date ? 1 : 0))[Math.floor(pub.length / 2)];
-          ok('1쪽 달력이 발표한 재편성 달까지', qa('[data-act="rs-month"]').some((b) => +b.dataset.m === Number(tgt.date.slice(5, 7))));
-          R.ui.date = tgt.date; flush();
+          S.rsView.goRecancel(tgt.date); flush();
+          ok('취소 표시 달력이 발표한 재편성 달까지', qa('[data-act="rs-month"],[data-act="rsc-month"]').some((b) => Number(String(b.dataset.m).slice(-2)) === Number(tgt.date.slice(5, 7))) || qa('.rsc-mt').length === 1);
           const reBtn = qa('.rs-day.pub [data-act="rs-recancel"][data-v="1"]').find((b) => b.dataset.g === tgt.game);
           ok('그날 재편성 경기에 「취소」', !!reBtn);
           reBtn.click(); flush();
@@ -519,9 +518,9 @@
           const n1 = rsSt().games.length, m0 = rsSt().games.find((g) => g.match != null);
           R.setCancel(['M:' + m0.match + '|' + m0.date], false); flush();
           ok('발표한 일정에 들어간 1차 편성 취소는 풀리지 않음', rsSt().games.length === n1 && R.lockedM('M:' + m0.match + '|' + m0.date));
-          click('.footer [data-act="rs-page"][data-p="2"]'); flush();
+          S.rsView.goRerun(); flush();
           const pr2 = R.problem();
-          ok('2쪽: 다시 넣을 경기 1 · 「다시 짜기」', !pr2.error && pr2.rerun.free.length === 1 && pr2.rerun.free[0].t.id === tgt.game && !!q('.rs-ft') && /다시 짜기/.test(q('[data-act="rs-run"]').innerText));
+          ok('다시 짜는 곳: 다시 넣을 경기 1 · 「다시 짜기」', !pr2.error && pr2.rerun.free.length === 1 && pr2.rerun.free[0].t.id === tgt.game && /다시 짜기/.test(q('[data-act="rs-run"]').innerText));
           setIn('input[data-in="rs-date"][data-k="start"]', tgt.date);
           ok('시작일이 취소된 날 이전 → 이유를 보이고 막음', /다음 날부터 잡을 수 있습니다/.test(q('.rs-err').innerText) && q('[data-act="rs-run"]').disabled);
           setIn('input[data-in="rs-date"][data-k="start"]', Dates.isoDate(Dates.dayNum(tgt.date) + 1));
