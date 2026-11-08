@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>매치봇 스튜디오 요약 카드</title>
+<style>
+@page { size: A4; margin: 16mm 16mm 18mm 16mm;
+  @bottom-center { content: counter(page); font: 9pt "Apple SD Gothic Neo", sans-serif; color: #6b7891; } }
+@page cover { @bottom-center { content: none; } }
+@page toc { @bottom-center { content: none; } }
+:root { --ink: #14213d; --sub: #4a5874; --line: #cfd6e3; --blue: #1d4fbf; --orange: #c2540a; }
+* { box-sizing: border-box; }
+html { font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; color: var(--ink); }
+body { margin: 0; font-size: 10.5pt; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+strong { font-weight: 700; }
+code { font-family: Menlo, monospace; font-size: 9pt; }
+.chapter { break-before: auto; margin-top: 14mm; }
+.toc { break-after: page; }
+.toc + .chapter { margin-top: 0; }
+.cover { page: cover; break-after: page; padding-top: 55mm; }
+.cover h1 { font-size: 26pt; line-height: 1.3; border: 0; margin: 0 0 4mm; padding: 0; }
+.cover h1::before { content: none; }
+.cover > p:first-of-type { font-size: 13pt; color: var(--sub); margin: 0 0 22mm; }
+.cover h3 { margin-top: 14mm; }
+.toc { page: toc; break-before: page; }
+.toc h1 { border: 0; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { display: flex; align-items: baseline; gap: 2mm; }
+.toc li a { color: inherit; text-decoration: none; }
+.toc li .dots { flex: 1; border-bottom: 1px dotted #aab3c5; transform: translateY(-3px); }
+.toc li.l1 { font-weight: 700; font-size: 11pt; margin-top: 3.2mm; }
+.toc li.l2 { font-size: 9.6pt; padding-left: 6mm; color: #2c3a57; line-height: 1.55; }
+.toc .pg { min-width: 7mm; text-align: right; font-variant-numeric: tabular-nums; }
+h1 { font-size: 20pt; line-height: 1.3; margin: 0 0 4mm; padding-bottom: 3mm; border-bottom: 2px solid var(--ink); }
+h2 { font-size: 14pt; margin: 9mm 0 3mm; padding-top: 1mm; break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 6mm 0 2mm; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.6mm; orphans: 2; widows: 2; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 6mm 0; }
+.lead { background: #eef3fc; border-left: 4px solid var(--blue); padding: 3mm 4mm; margin: 0 0 5mm; }
+.lead .lab { display: block; font-weight: 700; color: var(--blue); font-size: 9.5pt; margin-bottom: 1mm; }
+.tbl { margin: 3mm 0 4.5mm; }
+table { width: 100%; border-collapse: collapse; font-size: 9.6pt; line-height: 1.5; }
+th, td { border: 1px solid #b9c2d3; padding: 1.6mm 2.4mm; text-align: left; vertical-align: top; }
+thead th { background: #edf1f7; font-weight: 700; }
+tr { break-inside: avoid; }
+.setbox table td:first-child, .setbox table th:first-child { width: 28mm; background: #f6f8fb; font-weight: 700; }
+.setbox thead th { background: #1f2f52; color: #fff; }
+.setbox thead th:first-child { background: #1f2f52; }
+.cover table td:first-child { width: 28mm; background: #f6f8fb; font-weight: 700; }
+ol.steps, ul.dots { margin: 1.5mm 0 3.5mm; padding-left: 7mm; }
+ol.steps > li { margin: 0 0 1.6mm; padding-left: 1mm; }
+ol.steps > li::marker { font-weight: 700; color: var(--blue); }
+ul.dots > li { margin: 0 0 1mm; }
+ul.resp { list-style: none; margin: 1mm 0 1mm; padding: 0 0 0 1mm; color: #34425f; font-size: 9.8pt; }
+ul.resp > li { position: relative; padding-left: 5mm; margin: 0 0 .7mm; }
+ul.resp > li::before { content: "→"; position: absolute; left: 0; color: #8a96ad; }
+ul.dots ul.resp > li::before { content: "·"; }
+.box { display: block; margin: 3.5mm 0 4.5mm; padding: 3mm 4mm; border-radius: 2mm; break-inside: avoid; font-size: 10pt; }
+.box .lab { display: inline-block; font-weight: 700; margin-right: 2mm; padding: 0 2mm; border-radius: 1mm; font-size: 9pt; }
+.box.note { background: #f4f6fa; border: 1px solid #d5dbe6; }
+.box.note .lab { background: #dde4f0; color: #27365a; }
+.box.warn { background: #fff5ec; border: 1px solid #f0b48a; }
+.box.warn .lab { background: var(--orange); color: #fff; }
+figure.fig { margin: 4mm 0 5mm; break-inside: avoid; text-align: center; }
+figure.fig img { width: 60%; max-width: 100%; max-height: 110mm; object-fit: contain; border: 1px solid #c3cbda; border-radius: 1.5mm; }
+figure#fig-2-1 img { border: 0; }
+/* 가로가 긴 전체 화면 그림 */
+figure#fig-3-5 img, figure#fig-4-1 img, figure#fig-4-3 img, figure#fig-4-5 img, figure#fig-4-7 img, figure#fig-4-8 img, figure#fig-5-1 img, figure#fig-5-4 img, figure#fig-6-1 img, figure#fig-7-1 img, figure#fig-6-4 img { width: 70%; }
+figcaption { margin-top: 1.6mm; font-size: 9pt; color: var(--sub); }
+figcaption .fn { font-weight: 700; color: var(--ink); margin-right: 1mm; }
+.card { break-before: page; }
+.card h1 { font-size: 16pt; }
+.card h2 { font-size: 12pt; margin-top: 5mm; }
+.card table { font-size: 9pt; }
+.card td:first-child { white-space: nowrap; }
+.card p, .card li { font-size: 9.6pt; }
+
+@page { margin: 13mm 14mm 14mm; }
+body { font-size: 9.6pt; line-height: 1.55; }
+.card { break-before: auto; }
+.card hr { margin: 3mm 0; }
+.card h2 { margin: 3mm 0 2mm; }
+</style>
+</head>
+<body>
+<section class="card"><h1 id="h1">매치봇 스튜디오 요약 카드</h1>
+<p><strong>한 바퀴 순서와 확정 전 확인 목록.</strong> 시즌 직전 복습용. 자세한 절차는 운영 매뉴얼 3~7장.</p>
+<hr>
+<h2 id="h2">한 바퀴</h2>
+<div class="tbl"><table><thead><tr><th>단계 띠</th><th>할 일</th><th>누르는 것</th></tr></thead><tbody><tr><td>처음 화면</td><td>새 계획 시작</td><td><strong>새 계획 만들기</strong> → <strong>검토 시작</strong>(결과가 있으면 <strong>편성 조건 검토하기</strong>)</td></tr><tr><td>1 <strong>편성 조건 입력·검증</strong></td><td>1단계 구단 정보</td><td>바뀐 곳 없으면 <strong>✓ 없어요 — 그대로</strong></td></tr><tr><td></td><td>2단계 시즌 기간·연전 묶음</td><td>「추정」 줄 셋(개막일 · 올스타 휴식기 · 1차 편성 종료일)을 읽고 <strong>✓ 수락</strong> / <strong>수정</strong></td></tr><tr><td></td><td>3단계 주요 이벤트 일정</td><td>개막 2연전 홈 · 어린이날 홈(발표 전 예상값)을 확인하고 <strong>✓ 수락</strong> / <strong>수정</strong>. 꼭 홈이어야 할 날은 달력에서 그 날을 눌러 <strong>홈 구장 지정</strong></td></tr><tr><td></td><td>4단계 확인</td><td>「검토 완료 · 4 / 4 확인」 → <strong>다음: 운영 방침·실행</strong></td></tr><tr><td>2 <strong>운영 방침·실행</strong></td><td>방침 정하기</td><td><strong>우선순위</strong> 카드 고르기(기본 <strong>이동 격차 줄이기 우선</strong>) · <strong>목표마다 허용 수준</strong>(기본 4회 · 600km · 3점) · 실행 시간(기본 2분)</td></tr><tr><td></td><td>실행</td><td><strong>이 방침으로 실행</strong> → 「찾는 중…」 → 끝나면 저절로 저장</td></tr><tr><td>3 <strong>현재 결과 분석</strong></td><td>읽는 순서</td><td>① 요구 사항 점검 「모두 지킴」 → ② <strong>방침과 견주기</strong> 「안」·「넘음」 → ③ <strong>구단별 보기</strong> 몰린 부담 → ④ <strong>일정 자세히 보기</strong> 달력</td></tr><tr><td></td><td>다시 실행</td><td>「넘음」이 마음에 안 들면 <strong>운영 방침 바꿔 다시 실행</strong>. 몇 연전만 바꾸려면 시즌 띠에서 <strong>고정</strong>/<strong>홈 지정</strong> → <strong>나머지 자동 편성</strong></td></tr><tr><td>4 <strong>실행 결과 비교</strong></td><td>고르기</td><td><strong>비교</strong> 칸에 둘 표시 → <strong>고른 두 버전</strong>에서 「같다고 봄」 지나 <strong>「여기서 갈림」</strong> 줄 읽기</td></tr><tr><td></td><td>확정</td><td>줄 오른쪽 <strong>확정</strong> → 확인. 되돌리기는 <strong>확정 취소</strong></td></tr></tbody></table></div>
+<p><strong>결과는 방침에 따라 달라집니다. 어느 격차를 먼저 줄일지, 어느 결과를 쓸지는 운영자가 정합니다.</strong></p>
+<hr>
+<h2 id="h3">확정 전 확인 목록</h2>
+<div class="tbl"><table><thead><tr><th></th><th>확인할 것</th><th>어디서</th></tr></thead><tbody><tr><td>☐ 1</td><td>요구 사항 점검에서 어긴 항목이 0개인가</td><td>현재 결과 분석 셋째 줄 · 고른 두 버전 「요구 사항」 줄</td></tr><tr><td>☐ 2</td><td>1순위 목표가 「안」인가. 「넘음」이 있다면 받아들일 수 있는 정도인가</td><td>방침과 견주기 · 목표별 격차</td></tr><tr><td>☐ 3</td><td>구단별 보기에서 한 구단에 몰린 부담이 없는가</td><td>구단별 한눈에 · 구단별 보기</td></tr><tr><td>☐ 4</td><td>지정한 것(개막 2연전, 어린이날 홈, 홈 지정, 고정한 연전)이 그대로 들어갔는가</td><td>일정 자세히 보기 달력</td></tr><tr><td>☐ 5</td><td>비교한 버전과의 「여기서 갈림」을 보고 이 버전을 고른 이유를 한 줄로 말할 수 있는가</td><td>고른 두 버전</td></tr></tbody></table></div>
+<p>한 줄 예: 「n순위까지는 둘 다 허용 안이라 같다고 보았고, ○○에서 이쪽이 앞서 이 버전을 골랐다.」</p>
+<hr>
+<h2 id="h4">자주 쓰는 설정</h2>
+<div class="tbl"><table><thead><tr><th>이럴 때</th><th>여기서</th></tr></thead><tbody><tr><td>그날 꼭 그 구단이 홈</td><td>3단계 달력 → <strong>홈 구장만 지정</strong></td></tr><tr><td>그날 꼭 그 대진</td><td>3단계 달력 → <strong>대진까지 고정</strong></td></tr><tr><td>주말 흥행의 공평이 먼저</td><td><strong>주말·공휴일 격차 줄이기 우선</strong></td></tr><tr><td>한 목표의 격차를 더 줄이기</td><td>그 목표의 허용 수준 <strong>−</strong></td></tr><tr><td>몇 연전만 바꾸기</td><td>일정 자세히 보기 시즌 띠 <strong>고정</strong> → <strong>나머지 자동 편성</strong></td></tr><tr><td>남길 결과</td><td>⋯ → <strong>이름 바꾸기</strong>(「남김」)</td></tr><tr><td>다른 사람에게 넘기기</td><td>요구 사항 점검 → <strong>엑셀로 받기</strong></td></tr></tbody></table></div>
+<h2 id="h5">막히면</h2>
+<div class="tbl"><table><thead><tr><th>보이는 글</th><th>하는 일</th></tr></thead><tbody><tr><td>「시험용 자동 편성 — 결과가 좋지 않습니다」</td><td>편성 서버 주소로 다시 열기. 확정 불가</td></tr><tr><td>「사전 점검에 진행 불가 n건」</td><td>편성 조건 입력·검증으로 돌아가 고치기</td></tr><tr><td>「같은 조건으로 전에 실행한 결과를 바로 가져왔습니다.」</td><td>고장 아님. 조건·방침·시간 중 하나를 바꾸면 새로 짬</td></tr><tr><td>「고정한 연전이 많아 새로 짤 수 없습니다」</td><td>시즌 띠에서 고정 줄이기</td></tr></tbody></table></div>
+<p>문의 · 의견: 시프트랩 admin@everyshift.co.kr</p></section>
+</body>
+</html>
