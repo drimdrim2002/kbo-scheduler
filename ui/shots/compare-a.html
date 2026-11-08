@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실행 결과 비교 시안 A</title>
+<style>
+:root {
+  --navy: #0A1E3C; --navy-text: #C9D4E6;
+  --blue: #1F5FD6; --blue-hover: #184FB5; --blue-weak: #EAF1FD; --blue-line: #B7CBF2;
+  --bg: #F3F4F6; --surface: #FFFFFF; --surface-2: #F8F9FB; --hover: #F2F5FA; --sel: #E7EEFC;
+  --line: #E2E5EA; --line-2: #D2D7DF; --line-3: #B4BBC7;
+  --text: #172033; --text-2: #435067; --text-3: #5F697D;
+  --ok: #13703F; --ok-bg: #E5F3EA; --ok-line: #A7D5BB;
+  --warn: #8A5300; --warn-bg: #FFF3D9; --warn-line: #EDCB84;
+  --bad: #B3261E; --bad-bg: #FCEBEA; --bad-line: #EFB1AC;
+  --gray-bar: #C3C8D1;
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  --mono: "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 13px/1.45 var(--font); color: var(--text); background: var(--bg); display: flex; flex-direction: column; min-width: 1200px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* 위 띠 */
+.top { height: 44px; background: var(--navy); color: #fff; display: flex; align-items: center; gap: 12px; padding: 0 14px; flex: none; }
+.top .logo { background: #fff; color: var(--navy); font-weight: 800; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
+.top .yr { background: #fff; color: var(--navy); font-weight: 700; font-size: 16px; padding: 4px 12px; border-radius: 6px; }
+.top .sub { color: var(--navy-text); }
+.top .mock { margin-left: auto; background: #FFD66B; color: #3A2A00; font-weight: 700; font-size: 12px; padding: 3px 9px; border-radius: 10px; }
+.stages { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-bottom: 1px solid var(--line); flex: none; }
+.stage { display: flex; gap: 10px; align-items: center; padding: 9px 14px; border-right: 1px solid var(--line); }
+.stage i { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-3); display: grid; place-items: center; font-style: normal; font-size: 12px; color: var(--text-2); }
+.stage b { display: block; font-size: 13px; } .stage small { color: var(--text-3); font-size: 12px; }
+.stage.on { box-shadow: inset 0 -2px 0 var(--blue); } .stage.on i { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+main { flex: 1; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.sec { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.sec h3 { margin: 0; font-size: 15px; display: flex; align-items: baseline; gap: 10px; }
+.sec h3 .r { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-2); }
+.lead { color: var(--text-2); margin: 3px 0 10px; }
+.tag { display: inline-block; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 9px; border: 1px solid var(--line-2); color: var(--text-2); background: var(--surface-2); white-space: nowrap; vertical-align: 1px; }
+.tag.ok { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-line); }
+.tag.over { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+.tag.blue { color: var(--blue); background: var(--blue-weak); border-color: var(--blue-line); }
+.tag.warn { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
+.tag.final { color: #fff; background: var(--ok); border-color: var(--ok); }
+.btn { border: 1px solid var(--line-2); background: var(--surface); border-radius: 6px; padding: 4px 10px; white-space: nowrap; line-height: 1.3; }
+.btn:hover { border-color: var(--blue); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-hover); }
+.btn.sm { padding: 2px 9px; font-size: 12px; }
+.btn.icon { padding: 2px 7px; font-weight: 700; letter-spacing: 1px; }
+
+/* 방침 줄 */
+.policy { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; color: var(--text-2); }
+.policy b { color: var(--text); }
+.rk { display: inline-block; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; border-radius: 9px; padding: 0 6px; line-height: 16px; }
+.arrow { color: var(--line-3); }
+.policy { flex-wrap: nowrap; white-space: nowrap; }
+.yard { max-width: none !important; font: inherit; border: 1px solid var(--blue-line); background: var(--blue-weak); color: var(--blue); font-weight: 600; border-radius: 6px; padding: 3px 6px; max-width: 300px; cursor: pointer; }
+
+/* 순위표 */
+table.vt { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.vt th { font-size: 12px; font-weight: 600; color: var(--text-2); text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line-2); background: var(--surface-2); vertical-align: bottom; }
+.vt th small { display: block; font-weight: 400; color: var(--text-3); }
+.vt th.l, .vt td.l { text-align: left; }
+.vt td { padding: 0 8px; height: 32px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.vt tr.row:hover td { background: var(--hover); }
+.vt tr.row.pickA td { background: var(--sel); }
+.vt tr.row.pickA td:first-child { box-shadow: inset 4px 0 0 var(--blue); }
+.vt tr.row.pickB td:first-child { box-shadow: inset 4px 0 0 #8E96A4; }
+.vt tr.row.pickB td { background: #F4F5F7; }
+.vt td.name > div { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.vt td.name b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.vt td.name .tag { flex: none; margin-left: 0; }
+.vt td.when { color: var(--text-3); font-size: 12px; }
+.vt td .tag { margin-left: 4px; }
+.vt .place { font-weight: 700; font-size: 14px; text-align: center; }
+.vt .place.p1 { color: var(--blue); }
+.vt .dash { color: var(--line-3); }
+.vt .acts { text-align: right; overflow: visible; }
+.vt .acts .confirm { visibility: hidden; }
+.vt tr.row:hover .acts .confirm, .vt tr.row.first .acts .confirm, .vt tr.row.isfinal .acts .confirm { visibility: visible; }
+.vt input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; vertical-align: -3px; }
+.vt tr.grp td { height: 30px; background: var(--surface-2); color: var(--text-2); text-align: left; cursor: pointer; font-size: 12px; }
+.vt tr.grp td b { color: var(--text); }
+.vt tr.out td { color: var(--text-3); }
+.vt tr.out td.name b { color: var(--text-2); }
+.close-call { margin-top: 8px; display: flex; gap: 8px; align-items: center; color: var(--warn); font-size: 12px; }
+.foot-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-3); font-size: 12px; }
+
+/* ⋯ 메뉴 */
+.menu { position: absolute; z-index: 10; background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 6px 20px rgba(10,30,60,.15); padding: 4px; min-width: 140px; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 6px 10px; border-radius: 5px; }
+.menu button:hover { background: var(--hover); }
+.menu button.del { color: var(--bad); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 3px 0; }
+
+/* 맞대결 */
+.duel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.who { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; max-width: 360px; }
+.who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.sw.a { background: var(--blue); } .sw.b { background: var(--gray-bar); }
+.vs { color: var(--text-3); }
+.duel { display: grid; grid-template-columns: 430px minmax(0, 1fr); gap: 18px; }
+/* 큰 화면: 남는 높이를 아래 비교가 채운다. 구단별 막대 줄이 늘어나고 막대도 굵어진다. 노트북처럼 낮으면 본래 높이로 두고 쪽이 스크롤된다 */
+#duel { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 340px; }
+#duel > .duel { flex: 1; }
+#duel > .duel > div:last-child { display: flex; flex-direction: column; }
+/* 왼쪽 비교표는 오른쪽 그래프 높이에 맞춰 줄이 늘어난다 */
+#duel > .duel > div:first-child { display: flex; flex-direction: column; }
+#duel .ct { flex: 1; height: 100%; }
+#duel .ct thead th { height: 30px; }
+#duel .bars { flex: 1; grid-auto-rows: minmax(19px, 1fr); max-height: 640px; }
+table.ct { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ct th { font-size: 12px; font-weight: 600; color: var(--text-2); text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct th:first-child, .ct td:first-child { text-align: left; }
+.ct td { padding: 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.ct td.good { color: var(--ok); font-weight: 700; }
+.ct tr.same td { opacity: .5; }
+.ct tr.hit td { background: var(--blue-weak); }
+.ct .split { font-size: 11.5px; margin-top: 2px; white-space: normal; }
+.ct .flip { display: block; color: var(--warn); margin-top: 2px; }
+.verdict { margin-top: 10px; background: var(--blue-weak); border: 1px solid var(--blue-line); border-radius: 6px; padding: 9px 11px; line-height: 1.55; }
+.verdict .go { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+.small { font-size: 12px; } .muted { color: var(--text-3); }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.tabs button { border: 0; background: none; padding: 6px 12px; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button.on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+.bars { display: grid; grid-template-columns: 44px minmax(0,1fr) 128px 68px; row-gap: 3px; column-gap: 10px; align-items: center; }
+.bars .t { font-weight: 600; font-size: 12px; }
+.bars .tr { position: relative; height: clamp(16px, 62%, 30px); background: var(--surface-2); border-radius: 2px; }
+.bars .tol { position: absolute; top: 0; bottom: 0; background: rgba(19,112,63,.12); border-left: 1px dashed rgba(19,112,63,.6); border-right: 1px dashed rgba(19,112,63,.6); }
+.bars .bar { position: absolute; left: 0; height: 38%; border-radius: 0 2px 2px 0; }
+.bars .bar.g { top: 8%; background: var(--gray-bar); }
+.bars .bar.a { bottom: 8%; background: var(--blue); }
+.bars .n { font-family: var(--mono); font-size: 11.5px; text-align: right; }
+.bars .n .muted { color: var(--text-3); }
+.bars .dv { font-size: 11.5px; color: var(--text-3); text-align: right; }
+
+.bottom { height: 44px; flex: none; background: var(--surface); border-top: 1px solid var(--line); display: flex; align-items: center; padding: 0 12px; gap: 12px; }
+.bottom .hint { flex: 1; text-align: center; color: var(--text-2); }
+.toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="top"><span class="logo">KBO</span><b>일정 편성</b><span class="yr">2027 시즌 ▾</span><span class="sub">편성 스튜디오</span><span class="mock">시안 A · 표준 (화면 모형)</span></div>
+<div class="stages">
+  <div class="stage"><i>1</i><div><b>편성 조건 입력·검증</b><small>4 / 4 검토 끝</small></div></div>
+  <div class="stage"><i>2</i><div><b>운영 방침·실행</b><small>실행 끝</small></div></div>
+  <div class="stage"><i>3</i><div><b>현재 결과 분석</b><small>방금 실행한 결과</small></div></div>
+  <div class="stage on"><i>4</i><div><b>실행 결과 비교</b><small id="stCount"></small></div></div>
+</div>
+<main>
+  <section class="sec">
+    <h3>저장한 버전<span class="r"><span id="pickCount"></span> <button class="btn sm" style="margin-left:10px">⇪ 받은 버전 올리기</button></span></h3>
+    <p class="lead">고른 운영 방침의 순위대로 줄을 세웠습니다. 앞 순위가 허용 수준 안이면 같다고 보고 다음 순위로 넘어가며, 다른 방침으로 만든 버전도 같은 방침으로 따집니다. 두 개를 골라 아래에서 비교하고, 쓸 일정을 확정합니다.</p>
+    <div class="policy" id="policy"></div>
+    <table class="vt" id="vt"></table>
+    <div id="closeCall"></div>
+  </section>
+  <section class="sec" id="duel"></section>
+</main>
+<div class="bottom"><button class="btn">‹ 현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전을 순위대로 보고, 두 개를 골라 비교합니다</span><span style="width:120px"></span></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ───── 평가 기준(스튜디오와 같은 정의) ─────
+const GOALS = {
+  moves: { name: '이동 횟수 격차', short: '이동 횟수', unit: '회', metric: 'moves', gap: 'moves', tol: 'moveGap', d: 0 },
+  distance: { name: '이동 거리 격차', short: '이동 거리', unit: 'km', metric: 'km', gap: 'distanceKm', tol: 'distanceGapKm', d: 1 },
+  holiday: { name: '주말·공휴일 홈 격차', short: '주말·공휴일', unit: '점', metric: 'hol', gap: 'holiday', tol: 'holidayGap', d: 0 },
+  total: { name: '전체 이동 거리', short: '전체 거리', unit: 'km', metric: 'km', gap: 'totalKm', tol: null, d: 0 }
+};
+const CURRENT = { order: ['moves', 'distance', 'holiday', 'total'], moveGap: 4, distanceGapKm: 600, holidayGap: 3 };
+let POLICY = CURRENT; // 줄 세우는 운영 방침
+const TEAMS = ['SSG', '두산', 'LG', 'KT', '키움', '한화', '삼성', 'KIA', 'NC', '롯데'];
+
+// 기본 제공 두 버전은 실제 숫자, 나머지는 모형용 예시
+const R1 = { SSG: [5453.4, 33, 28], 두산: [5730.1, 31, 28], LG: [5471, 30, 25], KT: [5644.7, 34, 27], 키움: [5896.3, 31, 25], 한화: [5515.8, 33, 26], 삼성: [5884.7, 34, 26], KIA: [5748.9, 31, 26], NC: [6010.5, 33, 26], 롯데: [5893.8, 31, 28] };
+const R2 = { SSG: [6006.9, 31, 26], 두산: [6088.9, 30, 25], LG: [6326, 31, 28], KT: [6088.5, 34, 27], 키움: [6033, 33, 27], 한화: [6007.5, 32, 28], 삼성: [6374.2, 33, 25], KIA: [6052.2, 32, 27], NC: [6114.5, 32, 25], 롯데: [6574.6, 30, 27] };
+const fromRaw = (raw) => { const t = {}; for (const k of TEAMS) t[k] = { km: raw[k][0], moves: raw[k][1], hol: raw[k][2] }; return t; };
+
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+/** 목표 격차·합에 맞춰 구단별 숫자를 만든다(모형용) */
+function synth(g) {
+  const norm = () => { const a = TEAMS.map(rnd), lo = Math.min(...a), hi = Math.max(...a); return a.map((v) => (v - lo) / (hi - lo)); };
+  const nk = norm(), nm = norm(), nh = norm(), s = nk.reduce((x, y) => x + y, 0);
+  const lo = (g.totalKm - g.distanceKm * s) / TEAMS.length, t = {};
+  TEAMS.forEach((k, i) => { t[k] = { km: Math.round((lo + nk[i] * g.distanceKm) * 10) / 10, moves: 30 + Math.round(nm[i] * g.moves), hol: 25 + Math.round(nh[i] * g.holiday) }; });
+  return t;
+}
+function gapsOf(teams) {
+  const v = (m) => TEAMS.map((k) => teams[k][m]), sp = (a) => Math.max(...a) - Math.min(...a);
+  return { moves: sp(v('moves')), distanceKm: Math.round(sp(v('km')) * 10) / 10, holiday: sp(v('hol')), totalKm: Math.round(v('km').reduce((x, y) => x + y, 0)) };
+}
+const HOL_FIRST = { order: ['holiday', 'moves', 'distance', 'total'], moveGap: 5, distanceGapKm: 700, holidayGap: 2 };
+const V = [
+  { id: 'b1', name: '2027 기본안', builtin: true, when: '10월 31일', run: '3분 02초', objective: CURRENT, teams: fromRaw(R1), note: '개막 대진 1순위 예측' },
+  { id: 'b2', name: '2027 2순위 대진안', builtin: true, when: '10월 31일', run: '3분 02초', objective: CURRENT, teams: fromRaw(R2), note: '개막 대진 2순위 예측' },
+  { id: 'r7', name: '#0007_이동격차_4회_600km_3점', when: '11월 6일 16:20', run: '2분', objective: POLICY, g: { moves: 4, distanceKm: 588, holiday: 3, totalKm: 59120 } },
+  { id: 'r8', name: '#0008_이동격차_4회_600km_3점', when: '11월 6일 17:02', run: '2분', objective: POLICY, g: { moves: 5, distanceKm: 512.3, holiday: 2, totalKm: 56480 } },
+  { id: 'r9', name: '개막 1순위 다듬은 안', kept: true, when: '11월 7일 09:41', run: '5분', objective: POLICY, g: { moves: 4, distanceKm: 541.6, holiday: 3, totalKm: 56905 } },
+  { id: 'r10', name: '#0010_주말공휴일_5회_700km_2점', when: '11월 7일 10:15', run: '2분', objective: HOL_FIRST, g: { moves: 5, distanceKm: 640, holiday: 2, totalKm: 58300 } },
+  { id: 'r12', name: '#0012_이동격차_4회_600km_3점', when: '11월 7일 11:30', run: '2분', newest: true, objective: POLICY, g: { moves: 4, distanceKm: 552.8, holiday: 3, totalKm: 57980 } }
+];
+for (const v of V) { if (!v.teams) v.teams = synth(v.g); v.gaps = gapsOf(v.teams); if (v.feasible == null) v.feasible = true; }
+
+// ───── 순위(스튜디오의 「순위대로 따지면」과 같은 규칙) ─────
+const val = (v, id) => v.gaps[GOALS[id].gap];
+const within = (v, id, ob) => !GOALS[id].tol || val(v, id) <= ob[GOALS[id].tol];
+function decide(a, b, ob) {
+  for (const id of ob.order) {
+    const g = GOALS[id], va = val(a, id), vb = val(b, id);
+    if (g.tol && within(a, id, ob) && within(b, id, ob)) continue;
+    if (va !== vb) return { id, winner: va < vb ? a : b, diff: Math.abs(va - vb) };
+  }
+  return null;
+}
+const key = (ob) => JSON.stringify(ob);
+const samePolicy = (v) => key(v.objective) === key(POLICY);
+const orderText = (ob) => ob.order.map((i) => GOALS[i].short).join(' → ');
+/** 저장한 버전에 쓰인 방침들. 지금 방침이 맨 앞 */
+const POLICIES = [CURRENT].concat(V.map((v) => v.objective)).filter((ob, i, a) => a.findIndex((x) => key(x) === key(ob)) === i);
+/** 「1 이동 횟수 → 2 이동 거리 → … · 허용 4회·600km·3점」 */
+const policyText = (ob) => ob.order.map((id, i) => (i + 1) + ' ' + GOALS[id].short).join(' → ') + ' · 허용 ' + ob.moveGap + '회 · ' + num(ob.distanceGapKm) + 'km · ' + ob.holidayGap + '점' + (key(ob) === key(CURRENT) ? ' (지금 방침)' : '');
+let ranked = [], outs = [];
+function rankAll() {
+  V.forEach((v) => { delete v.place; });
+  ranked = V.filter((v) => v.feasible).sort((a, b) => { const d = decide(a, b, POLICY); return d ? (d.winner === a ? -1 : 1) : 0; });
+  outs = V.filter((v) => !v.feasible);
+  ranked.forEach((v, i) => { v.place = i + 1; });
+}
+rankAll();
+
+// ───── 상태 ─────
+const newest = V.find((v) => v.newest);
+let pick = [newest.id, ranked[0].id === newest.id ? ranked[1].id : ranked[0].id]; // [파랑, 회색]: 방금 실행한 것과 1위
+let finalId = null, tab = 'distance', outOpen = false;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = (x, d = 0) => Number(x).toLocaleString('ko-KR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const show = (v, id) => num(val(v, id), GOALS[id].d) + GOALS[id].unit;
+const byId = (id) => V.find((v) => v.id === id);
+function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 2200); }
+
+function renderPolicy() {
+  document.getElementById('policy').innerHTML = '<label for="yard"><b>운영 방침</b></label><select id="yard" class="yard">' + POLICIES.map((ob, i) => '<option value="' + i + '"' + (key(ob) === key(POLICY) ? ' selected' : '') + '>' + esc(policyText(ob)) + '</option>').join('') + '</select>' +
+    '<span class="muted small">' + (POLICIES.length > 1 ? '저장한 버전에 쓰인 방침 ' + POLICIES.length + '가지 중에서 고릅니다' : '') + '</span>';
+}
+
+function row(v, out) {
+  const pa = pick[0] === v.id, pb = pick[1] === v.id, fin = finalId === v.id;
+  const tags = (fin ? '<span class="tag final">확정</span>' : '') + (v.newest ? '<span class="tag blue">새로</span>' : '') + (v.kept ? '<span class="tag">남김</span>' : '') + (v.builtin ? '<span class="tag">기본 제공</span>' : '') +
+    (!v.feasible ? '<span class="tag over">규칙 어김</span>' : '') + (!samePolicy(v) ? '<span class="tag warn" title="만들 때 순서: ' + esc(orderText(v.objective)) + ' · 허용 ' + v.objective.moveGap + '회·' + v.objective.distanceGapKm + 'km·' + v.objective.holidayGap + '점">다른 방침으로 만듦</span>' : '');
+  const cell = (id) => { const g = GOALS[id], inT = within(v, id, POLICY); return '<td class="num">' + show(v, id) + (g.tol ? ' <span class="tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
+  const canFinal = v.feasible;
+  const conf = !canFinal ? '' : fin ? '<button class="btn sm confirm" data-act="unfinal">확정 취소</button>' : '<button class="btn sm confirm' + (v.place === 1 ? ' primary' : '') + '" data-act="final" data-id="' + v.id + '">확정</button>';
+  return '<tr class="row' + (out ? ' out' : '') + (pa ? ' pickA' : '') + (pb ? ' pickB' : '') + (v.place === 1 ? ' first' : '') + (fin ? ' isfinal' : '') + '" data-id="' + v.id + '">' +
+    '<td style="text-align:center"><input type="checkbox" data-act="pick" data-id="' + v.id + '"' + (pa || pb ? ' checked' : '') + ' aria-label="' + esc(v.name) + ' 비교에 넣기"></td>' +
+    '<td class="place' + (v.place === 1 ? ' p1' : '') + '">' + (v.place || '<span class="dash">—</span>') + '</td>' +
+    '<td class="l name" title="' + esc(v.name + (v.note ? ' · ' + v.note : '')) + '"><div><b>' + esc(v.name) + '</b>' + tags + '</div></td>' +
+    '<td class="l when">' + esc(v.when) + ' · ' + esc(v.run) + '</td>' +
+        POLICY.order.map(cell).join('') +
+    '<td class="acts">' + conf + ' <button class="btn sm icon" data-act="menu" data-id="' + v.id + '" aria-label="더 보기">⋯</button></td></tr>';
+}
+
+function renderTable() {
+  const head = '<colgroup><col style="width:44px"><col style="width:42px"><col><col style="width:150px">' + POLICY.order.map(() => '<col style="width:114px">').join('') + '<col style="width:112px"></colgroup>' +
+    '<thead><tr><th style="text-align:center">비교<small>&nbsp;</small></th><th style="text-align:center">순위<small>&nbsp;</small></th><th class="l">이름<small>이름을 바꾸지 않은 결과는 최근 8개만 남음</small></th><th class="l">실행<small>&nbsp;</small></th>' +
+    POLICY.order.map((id, i) => '<th><span class="rk">' + (i + 1) + '</span> ' + GOALS[id].short + '<small>' + (GOALS[id].tol ? '격차 · 허용 ' + num(POLICY[GOALS[id].tol]) + GOALS[id].unit : '10구단 합') + '</small></th>').join('') + '<th></th></tr></thead>';
+  const body = ranked.map((v) => row(v, false)).join('') +
+    '';
+  document.getElementById('vt').innerHTML = head + '<tbody>' + body + '</tbody>';
+  const p = pick.length;
+  document.getElementById('pickCount').innerHTML = '<b>' + p + '개</b> 선택 · 새로 고른 것이 파랑';
+  document.getElementById('stCount').textContent = '저장한 버전 ' + V.length + '개';
+  // 1·2위 차이가 작으면 알린다
+  const cc = document.getElementById('closeCall');
+  const d = ranked.length > 1 && decide(ranked[0], ranked[1], POLICY);
+  cc.innerHTML = d && d.id === 'total' && d.diff < 3000 ? '<div class="close-call"><span class="tag warn">차이 작음</span>1위와 2위는 전체 이동 거리 ' + num(d.diff) + 'km 차이입니다. 같은 조건으로 다시 실행해도 이만큼은 달라질 수 있습니다.</div>' : '';
+}
+
+function bars(a, b, id) {
+  const g = GOALS[id], k = g.metric, tol = POLICY[g.tol];
+  const av = TEAMS.map((t) => a.teams[t][k]), bv = TEAMS.map((t) => b.teams[t][k]), all = av.concat(bv);
+  const lo = Math.min(...all), hi = Math.max(...all), mn = Math.min(...av);
+  const base = k === 'km' ? Math.floor(lo * 0.9 / 100) * 100 : Math.max(0, Math.floor(lo - 4));
+  const top = Math.max(hi, mn + tol) * (k === 'km' ? 1.02 : 1) + (k === 'km' ? 0 : 1);
+  const x = (v) => ((v - base) / (top - base) * 100).toFixed(1) + '%';
+  const mean = av.reduce((s, v) => s + v, 0) / av.length;
+  const rows = TEAMS.map((t, i) => ({ t, v: av[i], w: bv[i] })).sort((p, q) => q.v - p.v);
+  return '<div class="bars">' + rows.map((r) => '<span class="t">' + r.t + '</span><span class="tr"><span class="tol" style="left:' + x(mn) + ';width:calc(' + x(mn + tol) + ' - ' + x(mn) + ')"></span><span class="bar g" style="width:' + x(r.w) + '"></span><span class="bar a" style="width:' + x(r.v) + '"></span></span>' +
+    '<span class="n">' + num(r.v, g.d) + ' <span class="muted">/ ' + num(r.w, g.d) + '</span></span><span class="dv">평균 ' + (r.v - mean >= 0 ? '+' : '−') + num(Math.abs(r.v - mean), g.d ? 0 : 1) + '</span>').join('') +
+    '</div><div class="small muted" style="margin-top:4px">막대는 ' + num(base) + (k === 'km' ? 'km' : '') + '부터 · 숫자는 파랑 / 회색 · 초록 띠 = 파랑의 가장 적은 구단 + 허용 수준</div>';
+}
+
+function renderDuel() {
+  const el = document.getElementById('duel');
+  if (pick.length < 2) { el.innerHTML = '<h3>고른 두 버전</h3><p class="lead" style="margin:6px 0 0">위 표에서 비교할 버전을 두 개 고르세요.</p>'; return; }
+  const [a, b] = pick.map(byId);
+  const okRank = a.feasible && b.feasible;
+  const d = okRank ? decide(a, b, POLICY) : null;
+  const cell = (me, other, id) => { const g = GOALS[id], v = val(me, id), w = val(other, id), inT = within(me, id, POLICY); return '<td class="num' + (v < w ? ' good' : '') + '">' + show(me, id) + (g.tol ? ' <span class="tag ' + (inT ? 'ok' : 'over') + '">' + (inT ? '안' : '넘음') + '</span>' : '') + '</td>'; };
+  const at = d ? POLICY.order.indexOf(d.id) : -1; // 승부가 갈린 순위
+  const mark = (id, i) => i === at ? '<div class="split"><span class="tag blue">여기서 갈림 · ' + num(d.diff, GOALS[id].d) + GOALS[id].unit + '</span>' + (id === 'total' && d.diff < 3000 ? ' <span class="flip">다시 실행하면 뒤집힐 수 있음</span>' : '') + '</div>' : i < at ? '<div class="split muted">같다고 봄</div>' : '';
+  el.innerHTML = '<div class="duel-head"><h3 style="margin:0">고른 두 버전</h3><span class="who"><i class="sw a"></i><span>' + esc(a.name) + '</span></span><span class="vs">와</span><span class="who"><i class="sw b"></i><span>' + esc(b.name) + '</span></span>' +
+    '<button class="btn sm" data-act="swap" style="margin-left:auto">⇄ 색 바꾸기</button></div>' +
+    '<div class="duel"><div><table class="ct"><colgroup><col><col style="width:132px"><col style="width:132px"></colgroup><thead><tr><th>평가 기준</th><th title="' + esc(a.name) + '"><i class="sw a" style="display:inline-block;vertical-align:-1px"></i> 파랑</th><th title="' + esc(b.name) + '"><i class="sw b" style="display:inline-block;vertical-align:-1px"></i> 회색</th></tr></thead><tbody>' +
+    POLICY.order.map((id, i) => '<tr class="' + (i === at ? 'hit' : i < at ? 'same' : '') + '"><td><span class="rk">' + (i + 1) + '</span> ' + GOALS[id].short + mark(id, i) + '</td>' + cell(a, b, id) + cell(b, a, id) + '</tr>').join('') +
+    '</tbody></table>' + (d ? '' : '<div class="small muted" style="margin-top:6px">모든 평가 기준이 같습니다.</div>') + '</div>' +
+    '<div><div class="tabs">' + ['moves', 'distance', 'holiday'].map((id) => '<button class="' + (tab === id ? 'on' : '') + '" data-act="tab" data-v="' + id + '">구단별 ' + GOALS[id].short + '</button>').join('') + '</div>' + bars(a, b, tab) + '</div></div>';
+}
+
+function render() { renderPolicy(); renderTable(); renderDuel(); }
+function closeMenu() { document.querySelectorAll('.menu').forEach((m) => m.remove()); }
+
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'yard') return;
+  POLICY = POLICIES[+e.target.value]; rankAll(); render();
+  toast('고른 운영 방침의 순위대로 다시 줄 세웠습니다.');
+});
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) { closeMenu(); return; }
+  const act = t.dataset.act, id = t.dataset.id;
+  if (act !== 'menu') closeMenu();
+  if (act === 'pick') {
+    if (pick.includes(id)) pick = pick.filter((x) => x !== id);
+    else pick = [id].concat(pick).slice(0, 2); // 새로 고른 것이 파랑, 가장 먼저 고른 것이 빠진다
+    render();
+  } else if (act === 'final') {
+    const v = byId(id);
+    finalId = id; render(); toast('「' + v.name + '」을(를) 2027 일정으로 확정했습니다.');
+  } else if (act === 'unfinal') { finalId = null; render(); toast('확정을 취소했습니다. 버전은 그대로 남습니다.'); }
+  else if (act === 'swap') { pick.reverse(); render(); }
+  else if (act === 'tab') { tab = t.dataset.v; renderDuel(); }
+  else if (act === 'toggleOut') { outOpen = !outOpen; renderTable(); }
+  else if (act === 'menu') {
+    const had = document.querySelector('.menu[data-for="' + id + '"]'); closeMenu(); if (had) return;
+    const v = byId(id), r = t.getBoundingClientRect(), m = document.createElement('div');
+    m.className = 'menu'; m.dataset.for = id;
+    m.innerHTML = '<button data-act="noop">불러오기</button><button data-act="noop">내려받기</button>' + (v.builtin ? '' : '<button data-act="noop">이름 바꾸기</button>' + (finalId === id ? '' : '<hr><button class="del" data-act="noop">지우기</button>'));
+    m.style.top = (r.bottom + window.scrollY + 4) + 'px'; m.style.left = (r.right - 150) + 'px';
+    document.body.appendChild(m);
+  } else if (act === 'noop') { toast('모형이라 이 단추는 동작하지 않습니다.'); }
+});
+render();
+</script>
+</body>
+</html>

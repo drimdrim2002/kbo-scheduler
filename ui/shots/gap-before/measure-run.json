@@ -1,0 +1,52 @@
+[
+ {
+  "name": "running",
+  "w": 1440,
+  "h": 790,
+  "vh": 790,
+  "vw": 1440,
+  "bottomEdge": 750,
+  "footH": 40,
+  "hscroll": false,
+  "main": {
+   "top": 100,
+   "bottom": 750,
+   "ink": 665,
+   "inkGap": 85,
+   "inkEl": "i",
+   "box": 686,
+   "boxGap": 64,
+   "boxEl": "div.pf-sec",
+   "overflow": 0,
+   "overEl": null
+  },
+  "cls": "pf pf-nores",
+  "hash": "#step=2&year=2027",
+  "errors": 0
+ },
+ {
+  "name": "running",
+  "w": 1920,
+  "h": 970,
+  "vh": 970,
+  "vw": 1920,
+  "bottomEdge": 930,
+  "footH": 40,
+  "hscroll": false,
+  "main": {
+   "top": 100,
+   "bottom": 930,
+   "ink": 665,
+   "inkGap": 265,
+   "inkEl": "i",
+   "box": 686,
+   "boxGap": 244,
+   "boxEl": "div.pf-sec",
+   "overflow": 0,
+   "overEl": null
+  },
+  "cls": "pf pf-nores",
+  "hash": "#step=2&year=2027",
+  "errors": 0
+ }
+]
