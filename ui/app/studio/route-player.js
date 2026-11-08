@@ -43,24 +43,6 @@
       const can = (cancelBy.get(v.match) || []).filter((g) => sl.days.some((d) => Dates.isoDate(d) === g.date));
       return { kind: 'season', slot: v.slot, day: sl.day, end: sl.days[sl.days.length - 1], len: sl.consecutive, home: v.home, opp: st.teams[v.opp].name, loc: v.loc, leg: v.legTenths / 10, cum: v.cumTenths / 10, brk: !!v.afterBreak, cancelled: can };
     });
-    // 재편성 묶음 (시즌 운영 → 재편성 실행 뒤)
-    const rs = games.filter((g) => g.source === 'RESCHEDULE' && (g.home === name || g.away === name));
-    if (rs.length) {
-      const byUnit = new Map();
-      for (const g of rs) { if (!byUnit.has(g.unit)) byUnit.set(g.unit, []); byUnit.get(g.unit).push(g); }
-      const units = Array.from(byUnit.values()).map((l) => l.sort((a, b) => (a.date < b.date ? -1 : 1))).sort((a, b) => (a[0].date < b[0].date ? -1 : 1));
-      let prev = out.length ? out[out.length - 1] : null, cum = prev ? prev.cum : 0;
-      for (const l of units) {
-        const g = l[0];
-        const loc = c.teamIndex.get(g.home);
-        const from = prev ? st.teams[prev.loc].name : g.home;
-        const dm = prev && prev.loc !== loc ? app().distanceOf(from, g.home) : null;
-        const leg = dm ? Number(dm.distance) || 0 : 0;
-        cum += leg;
-        const x = { kind: 'resched', day: Dates.dayNum(g.date), end: Dates.dayNum(l[l.length - 1].date), len: l.length, home: g.home === name, opp: g.home === name ? g.away : g.home, loc, leg, cum, cancelled: [] };
-        out.push(x); prev = x;
-      }
-    }
     return out;
   };
 
@@ -141,7 +123,7 @@
     s += '<div class="rt-now-card"><div class="rt-date">' + esc(fmt.date(l.day)) + (l.end !== l.day ? ' ~ ' + esc(fmt.date(l.end)) : '') + '</div>' +
       '<div class="rt-vs">' + (l.home ? '<span class="home-mark" style="width:auto;padding:0 4px">홈</span>' : '<span class="away-mark" style="width:auto;padding:0 4px">원정</span>') + S.team(l.opp) + ' 상대 · ' + l.len + (l.kind === 'resched' ? '경기' : '연전') + '</div>' +
       '<div class="small muted">' + esc(at.stadium) + (l.kind === 'resched' ? ' · <span class="tag rs">재편성</span>' : '') + '</div>' +
-      (l.cancelled.length ? '<div class="rt-cancel">' + icon('x') + '이 시리즈 중 ' + l.cancelled.length + '경기 취소 (' + esc(l.cancelled.map((g) => fmt.short(g.date) + ' ' + (KBO.Reschedule.REASONS[g.reason] || '')).join(', ')) + ')</div>' : '') + '</div>';
+      (l.cancelled.length ? '<div class="rt-cancel">' + icon('x') + '이 시리즈 중 ' + l.cancelled.length + '경기 취소 (' + esc(l.cancelled.map((g) => fmt.short(g.date) + ' ' + (KBO.SeasonGames.REASONS[g.reason] || '')).join(', ')) + ')</div>' : '') + '</div>';
     s += '<dl class="props" style="margin-top:8px"><dt>이번 구간</dt><dd><b class="mono">' + fmt.km(l.leg) + '</b> km' + (k > 0 && l.brk ? ' <span class="muted small">(휴식기 뒤라 세지 않음)</span>' : k > 0 && l.leg === 0 ? ' <span class="muted small">(같은 구장)</span>' : k === 0 ? ' <span class="muted small">(시즌 첫 경기)</span>' : '') + '</dd>' +
       '<dt>누적</dt><dd><b class="mono">' + fmt.km(l.cum) + '</b> km <span class="muted small">/ ' + fmt.km(total) + '</span></dd></dl>' +
       '<div class="progress" style="margin-top:6px" aria-hidden="true"><i style="width:' + (total ? (l.cum / total * 100).toFixed(1) : 0) + '%"></i></div>';

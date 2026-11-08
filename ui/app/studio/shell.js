@@ -136,7 +136,6 @@
     return '<span class="title">시즌 운영</span>' +
       '<div class="tabs" role="tablist">' +
         '<button role="tab" class="' + (t === 'games' ? 'on' : '') + '" data-act="ops-tab" data-tab="games">' + icon('cal') + '경기 기록</button>' +
-        '<button role="tab" class="' + (t === 'reschedule' ? 'on' : '') + '" data-act="ops-tab" data-tab="reschedule">' + icon('bolt') + '재편성</button>' +
         (S.feature('A6') ? '<button role="tab" class="' + (t === 'route' ? 'on' : '') + '" data-act="ops-tab" data-tab="route" data-feature="A6">' + icon('map') + '이동 경로</button>' : '') +
       '</div>' +
       '<span class="pane-desc">' + (t === 'route' ? '구단마다 시즌 이동을 지도 위에 차례로 그립니다. 취소 경기는 따로 표시합니다.' : '취소 경기를 날짜 단위로 기록하고, 잔여·취소 경기를 9~10월에 다시 배치합니다.') + '</span>' +

@@ -126,8 +126,13 @@ final class JobManager {
 
     /** unattended: 서버가 스스로 낸 작업이라 지켜보는 사람이 없어도 빼지 않는다. */
     SolveJob submit(JSONObject problem, SolveOptions options, String clientIp, boolean unattended) {
-        if (!"INITIAL".equals(options.mode())) {
-            throw new RejectedException(400, "이번 버전은 mode=INITIAL만 지원합니다.");
+        if (SolveOptions.RESCHEDULE.equals(options.mode())) {
+            // 형식 오류·규칙을 어긴 발표 일정은 큐에 넣기 전에 400으로 돌려준다
+            RescheduleCodec.parse(problem);
+            return enqueue(problem, options, clientIp, unattended, RescheduleJobs.cacheKey(problem, options), false);
+        }
+        if (!SolveOptions.INITIAL.equals(options.mode())) {
+            throw new RejectedException(400, "모르는 편성 방식입니다: " + options.mode());
         }
         // 문제를 먼저 변환해 본다: 형식 오류는 큐에 넣기 전에 400으로 돌려준다.
         BaseballSolution probe = ProblemCodec.toSolution(problem);
@@ -137,6 +142,12 @@ final class JobManager {
             ProblemCodec.checkPinnedSeries(probe);
         }
         String cacheKey = cacheKey(problem, options, fullPlan, fromScratch ? ProblemCodec.pinnedThreeGameSeries(probe) : null);
+        return enqueue(problem, options, clientIp, unattended, cacheKey, true);
+    }
+
+    /** 캐시에 있으면 바로 DONE, 아니면 큐에 넣는다. useStore: 저장해 둔 결과(공유 링크)에서도 찾는다. */
+    private SolveJob enqueue(JSONObject problem, SolveOptions options, String clientIp, boolean unattended, String cacheKey,
+            boolean useStore) {
         String id = UUID.randomUUID().toString().substring(0, 8);
         SolveJob job = new SolveJob(id, cacheKey, clientIp, problem, options);
         job.unattended = unattended;
@@ -144,7 +155,7 @@ final class JobManager {
         synchronized (this) {
             cached = cache.get(cacheKey);
         }
-        if (cached == null && store != null) {
+        if (cached == null && store != null && useStore) {
             cached = store.load(resultId(cacheKey)).orElse(null);
         }
         if (cached != null) {
@@ -193,7 +204,7 @@ final class JobManager {
                 for (int i = 0; i < seeds.length; i++) {
                     seeds[i] = WARM_UP_SEED + i;
                 }
-                MultiStartSolver.Result r = new MultiStartSolver().run(seed -> {
+                MultiStartSolver.Result<BaseballSolution> r = MultiStartSolver.baseball().run(seed -> {
                     BaseballSolution solution = ProblemCodec.toSolution(problem);
                     BaseballSolutionInitializer.initialize(solution, seed);
                     return solution;
@@ -205,7 +216,7 @@ final class JobManager {
         });
     }
 
-    private static final MultiStartSolver.Sink NO_SINK = new MultiStartSolver.Sink() {
+    private static final MultiStartSolver.Sink<BaseballSolution> NO_SINK = new MultiStartSolver.Sink<>() {
         @Override
         public void seedBest(long seed, BendableLongScore score, long elapsedMs) {
         }
@@ -220,7 +231,7 @@ final class JobManager {
         if (cancelQueued(job, "STOPPED")) {
             return;
         }
-        MultiStartSolver s = job.solver;
+        MultiStartSolver<?> s = job.solver;
         if (s != null) {
             s.stop();
         }
@@ -275,10 +286,22 @@ final class JobManager {
                 return;
             }
             job.running();
+            if (SolveOptions.RESCHEDULE.equals(job.options.mode())) {
+                JSONObject payload = RescheduleJobs.run(job);
+                if (!"STOPPED".equals(payload.get("reason"))) {
+                    JSONObject forCache = (JSONObject) payload.clone();
+                    forCache.remove("jobId");
+                    synchronized (this) {
+                        cache.put(job.cacheKey, forCache);
+                    }
+                }
+                job.done(payload, "STOPPED".equals(payload.get("reason")));
+                return;
+            }
             long start = System.currentTimeMillis();
-            MultiStartSolver solver = new MultiStartSolver();
+            MultiStartSolver<BaseballSolution> solver = MultiStartSolver.baseball();
             job.solver = solver;
-            MultiStartSolver.Sink sink = new MultiStartSolver.Sink() {
+            MultiStartSolver.Sink<BaseballSolution> sink = new MultiStartSolver.Sink<>() {
                 @Override
                 public void seedBest(long seed, BendableLongScore score, long elapsedMs) {
                     job.seedBest(Json.obj("jobId", job.id, "seed", seed, "score", Json.score(score),
@@ -293,7 +316,7 @@ final class JobManager {
                             "seed", seed));
                 }
             };
-            MultiStartSolver.Result result = solver.run(seed -> problemFor(job, seed), job.options.seedList(),
+            MultiStartSolver.Result<BaseballSolution> result = solver.run(seed -> problemFor(job, seed), job.options.seedList(),
                     job.options.stop(), sink);
             JSONObject payload = donePayload(job, result);
             if (!"STOPPED".equals(result.reason())) {
@@ -359,7 +382,7 @@ final class JobManager {
         return solution;
     }
 
-    private static JSONObject donePayload(SolveJob job, MultiStartSolver.Result result) throws ParseException {
+    private static JSONObject donePayload(SolveJob job, MultiStartSolver.Result<BaseballSolution> result) throws ParseException {
         JSONArray seeds = new JSONArray();
         for (MultiStartSolver.SeedResult s : result.seeds()) {
             seeds.add(Json.obj("seed", s.seed(), "score", Json.score(s.score()), "scoreString", s.score().toString(),
@@ -458,7 +481,7 @@ final class JobManager {
         return sha256(Json.canonical(key));
     }
 
-    private static String sha256(String s) {
+    static String sha256(String s) {
         try {
             byte[] d = MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();

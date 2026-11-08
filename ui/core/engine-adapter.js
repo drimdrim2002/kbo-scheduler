@@ -30,21 +30,22 @@
   SolveHandle.prototype.resume = function () { if (this._controls && this.status === 'PAUSED') { this._controls.resume(); this._setStatus('RUNNING'); } };
   SolveHandle.prototype.stop = function () { if (this._controls && (this.status === 'RUNNING' || this.status === 'PAUSED' || this.status === 'STARTING')) this._controls.stop(); };
 
+  /** 날짜 단위 재편성 요청인가. 재편성은 이 방식 하나다(reschedule.targets를 화면이 만들어 보낸다) */
+  function isDaily(problem, mode) {
+    return mode === 'RESCHEDULE';
+  }
+
   /** 엔진 입력을 Mock 탐색기 문제로 바꾼다 */
   function toSolverProblem(problem, mode) {
-    if (mode === 'RESCHEDULE') return { mode, input: KBO.Reschedule.buildInput(problem) };
+    if (isDaily(problem, mode)) return { mode: 'RESCHEDULE_DAILY', input: { project: problem } };
     const input = KBO.Score.buildInput(problem);
     input.plan = Array.from(KBO.Score.planArrayFrom(problem));
     return { mode: 'INITIAL', input };
   }
 
   function scoreLocal(problem, plan, mode) {
+    if (isDaily(problem, mode)) return KBO.RescheduleDaily.score(problem, plan || problem.reschedule.plan || []);
     const p = Object.assign({}, problem);
-    if (mode === 'RESCHEDULE') {
-      if (plan) p.reschedule = Object.assign({}, problem.reschedule, { plan });
-      const ex = KBO.Reschedule.explain(p);
-      return { score: ex.score, violations: ex.violations, teamMetrics: ex.teamMetrics, scoreString: KBO.Score.scoreString(ex.score) };
-    }
     if (plan) p.plan = plan;
     const ex = KBO.Score.scoreProject(p);
     return { score: ex.score, violations: ex.violations, teamMetrics: ex.teamMetrics.map((t) => { const c = Object.assign({}, t); delete c.visits; delete c.runs; return c; }), scoreString: KBO.Score.scoreString(ex.score) };
@@ -53,7 +54,7 @@
   /** Worker 소스: 코어 팩토리 함수 문자열을 이어 붙인다(file://에서도 fetch 없이 동작) */
   function workerSource() {
     const f = KBO.__factories;
-    const parts = ['calendar', 'score', 'reschedule', 'mockSolver'].map((n) => {
+    const parts = ['calendar', 'score', 'rescheduleDaily', 'mockSolver'].map((n) => {
       if (!f[n]) throw new Error('코어 모듈 누락: ' + n);
       return '(' + f[n].toString() + ')(self.KBO);';
     });
@@ -80,7 +81,10 @@
       return handle;
     }
     const self = this;
+    const daily = solverProblem.mode === 'RESCHEDULE_DAILY';
     const decorate = (p) => Object.assign(p, { explanation: KBO.Score.scoreString(p.score) });
+    // 날짜 단위 재편성: 끝난 결과를 서버 done과 같은 모양(평가 숫자·못 넣은 이유·engine: 'browser')으로
+    const finish = (p) => (daily ? decorate(KBO.RescheduleDaily.finishPayload(problem, p)) : decorate(p));
     function runMain(note) {
       self.lastTransport = 'main';
       handle.transport = 'main';
@@ -88,7 +92,7 @@
       const search = KBO.MockSolver.createSearch(solverProblem, o);
       handle._controls = KBO.MockSolver.runDriver(search, o, {
         onBest: (p) => handle._emit('best', decorate(p)),
-        onDone: (p) => { handle._setStatus('DONE'); handle._emit('done', decorate(p)); }
+        onDone: (p) => { handle._setStatus('DONE'); handle._emit('done', finish(p)); }
       });
       handle._setStatus('RUNNING');
     }
@@ -136,7 +140,7 @@
       } else if (msg.type === 'best') handle._emit('best', decorate(msg.payload));
       else if (msg.type === 'done') {
         handle._setStatus('DONE');
-        handle._emit('done', decorate(msg.payload));
+        handle._emit('done', finish(msg.payload));
         try { worker.terminate(); U.revokeObjectURL(url); } catch (err) { /* 무시 */ }
       } else if (msg.type === 'error') { handle._setStatus('ERROR'); handle._emit('error', msg.payload); }
     };
@@ -201,7 +205,14 @@
       es.addEventListener('status', (e) => { handle.queue = null; handle._emit('server-status', JSON.parse(e.data)); });
       es.addEventListener('seed-best', (e) => handle._emit('seed-best', withString(JSON.parse(e.data))));
       es.addEventListener('error', (e) => { if (e && e.data) { es.close(); handle._setStatus('ERROR'); let msg = e.data; try { msg = JSON.parse(e.data).message || msg; } catch (err) { /* 그대로 */ } handle._emit('error', { message: msg }); } });
-      es.addEventListener('done', (e) => { es.close(); handle._setStatus('DONE'); handle._emit('done', withString(JSON.parse(e.data))); });
+      es.addEventListener('done', (e) => {
+        es.close();
+        const p = withString(JSON.parse(e.data));
+        // 서버와 브라우저 채점이 어긋나면 오류로 남긴다(화면 점검의 data-errors가 잡는다). 설계 §6.4의 6
+        if (isDaily(problem, o.mode) && p.plan && p.scoreString) { const why = KBO.RescheduleDaily.crossCheck(problem, p); if (why) console.error(why); }
+        handle._setStatus('DONE');
+        handle._emit('done', p);
+      });
       es.onerror = () => { if (handle.status === 'RUNNING' || handle.status === 'PAUSED') { es.close(); handle._setStatus('ERROR'); handle._emit('error', { message: '이벤트 스트림 연결이 끊어졌습니다.' }); } };
     }).catch((e) => { handle._setStatus('ERROR'); handle._emit('error', { message: e.message }); });
     handle._controls = {

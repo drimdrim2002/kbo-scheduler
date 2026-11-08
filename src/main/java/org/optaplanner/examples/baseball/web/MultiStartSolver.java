@@ -20,6 +20,8 @@ import org.optaplanner.core.impl.solver.DefaultSolver;
 import org.optaplanner.examples.baseball.bench.BenchSupport;
 import org.optaplanner.examples.baseball.bench.SolveTrace;
 import org.optaplanner.examples.baseball.domain.BaseballSolution;
+import org.optaplanner.examples.baseball.reschedule.RescheduleSolution;
+import org.optaplanner.examples.baseball.reschedule.RescheduleSolverRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,30 +31,107 @@ import org.slf4j.LoggerFactory;
  * 시드마다 step 수로 멈추므로({@link StopRule}) 같은 입력·같은 시드 목록이면 컴퓨터 속도와 상관없이 같은 해가 나온다.
  * 점수가 같으면 시드 목록에서 앞선 시드를 고른다.
  * 끝난 까닭(reason): CALC_LIMIT(정한 계산 수), UNIMPROVED(75% 뒤 개선 없음), TIME_LIMIT(고른 시간 — 이때는 재현을 보장하지 않음), STOPPED.
+ * 1차 편성({@link #baseball()})과 날짜 단위 재편성({@link #reschedule()})이 함께 쓴다. 다른 점은 {@link Engine}에 있다.
+ * 계산 수로 멈추는 것은 1차 편성뿐이다. 재편성은 고른 시간·개선 없는 시간(초)으로 멈춘다(계산 수 비율은 1차 편성 서버 실측값이라 맞지 않는다).
  */
-final class MultiStartSolver {
+final class MultiStartSolver<S> {
+
+    /** 해 종류마다 다른 것: 솔버 설정, 계산 수로 멈추는지, 해의 점수, 재생 기록(없으면 null). */
+    interface Engine<S> {
+        /** @param searchMs 첫 일정을 만들고 남은 탐색 시간(계산 수로 멈추는 엔진만 쓴다) */
+        SolverConfig config(long seed, StopRule stop, long searchMs);
+
+        /** true면 {@link StopRule#calcLimit()}·step 기준으로 멈춘다(재현 가능). false면 시간으로만 멈춘다. */
+        boolean workLimited();
+
+        BendableLongScore scoreOf(S solution);
+
+        SolveTrace trace(S problem, long seed, BendableLongScore initialScore);
+    }
+
+    static final Engine<BaseballSolution> BASEBALL = new Engine<>() {
+        @Override
+        public SolverConfig config(long seed, StopRule stop, long searchMs) {
+            SolverConfig config = BenchSupport.withWorkLimits(BenchSupport.solverConfig(seed, stop.timeSec(), "NONE", null, null),
+                    stop.calcLimit(), stop.unimprovedStepsOrNull());
+            config.setTerminationConfig(new TerminationConfig().withMillisecondsSpentLimit(searchMs));
+            return config;
+        }
+
+        @Override
+        public boolean workLimited() {
+            return true;
+        }
+
+        @Override
+        public BendableLongScore scoreOf(BaseballSolution solution) {
+            return solution.getBendableLongScore();
+        }
+
+        @Override
+        public SolveTrace trace(BaseballSolution problem, long seed, BendableLongScore initialScore) {
+            return new SolveTrace(problem, seed, initialScore);
+        }
+    };
+
+    static final Engine<RescheduleSolution> RESCHEDULE = new Engine<>() {
+        @Override
+        public SolverConfig config(long seed, StopRule stop, long searchMs) {
+            long unimprovedSec = stop.unimprovedSteps() / BenchSupport.STEPS_PER_SECOND; // StopRule.fromSeconds가 곱한 것을 되돌린다
+            return RescheduleSolverRunner.config(seed, stop.timeSec(), unimprovedSec > 0 ? unimprovedSec : null);
+        }
+
+        @Override
+        public boolean workLimited() {
+            return false;
+        }
+
+        @Override
+        public BendableLongScore scoreOf(RescheduleSolution solution) {
+            return solution.getScore();
+        }
+
+        @Override
+        public SolveTrace trace(RescheduleSolution problem, long seed, BendableLongScore initialScore) {
+            return null;
+        }
+    };
+
+    static MultiStartSolver<BaseballSolution> baseball() {
+        return new MultiStartSolver<>(BASEBALL);
+    }
+
+    static MultiStartSolver<RescheduleSolution> reschedule() {
+        return new MultiStartSolver<>(RESCHEDULE);
+    }
+
+    private final Engine<S> engine;
+
+    MultiStartSolver(Engine<S> engine) {
+        this.engine = engine;
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiStartSolver.class);
 
     /** 진행 알림. 모든 호출은 솔버 스레드에서 온다. */
-    interface Sink {
+    interface Sink<S> {
         void seedBest(long seed, BendableLongScore score, long elapsedMs);
 
-        void best(BaseballSolution solution, long seed, BendableLongScore score, long elapsedMs, int improvementCount);
+        void best(S solution, long seed, BendableLongScore score, long elapsedMs, int improvementCount);
     }
 
     record SeedResult(long seed, BendableLongScore initialScore, BendableLongScore score, long elapsedMs,
             long lastImprovementMs, int improvementCount, long steps, long calcCount, String reason) {
     }
 
-    record Result(BaseballSolution best, long bestSeed, BendableLongScore bestScore, SolveTrace bestTrace,
+    record Result<S>(S best, long bestSeed, BendableLongScore bestScore, SolveTrace bestTrace,
             List<SeedResult> seeds, String reason, long elapsedMs) {
     }
 
     /** 첫 일정을 만드는 데 고른 시간을 다 써도 탐색은 이만큼 한다(아주 짧은 시간을 골랐을 때만 고른 시간을 조금 넘긴다). */
     static final long MIN_SEARCH_MS = 1_000L;
 
-    private final List<Solver<BaseballSolution>> solvers = new ArrayList<>();
+    private final List<Solver<S>> solvers = new ArrayList<>();
     private volatile boolean stopRequested;
 
     /**
@@ -60,7 +139,7 @@ final class MultiStartSolver {
      * @param stop 계산 수·고른 시간·개선 없음. 고른 시간은 이 호출이 시작된 때부터 센다: 시드마다 첫 일정을 만드는 시간까지
      *        포함하고, 탐색은 남은 시간만 쓴다(사용자 결정 2026-11-08)
      */
-    Result run(LongFunction<BaseballSolution> problemForSeed, long[] seeds, StopRule stop, Sink sink)
+    Result<S> run(LongFunction<S> problemForSeed, long[] seeds, StopRule stop, Sink<S> sink)
             throws InterruptedException {
         long start = System.currentTimeMillis();
         ExecutorService pool = Executors.newFixedThreadPool(seeds.length, r -> {
@@ -70,15 +149,15 @@ final class MultiStartSolver {
         });
         Object lock = new Object();
         BendableLongScore[] globalBest = new BendableLongScore[1];
-        List<Future<SeedRun>> futures = new ArrayList<>();
+        List<Future<SeedRun<S>>> futures = new ArrayList<>();
         try {
             for (long seed : seeds) {
                 futures.add(pool.submit(() -> runOne(seed, problemForSeed, stop, sink, lock,
                         globalBest, start)));
             }
-            List<SeedRun> runs = new ArrayList<>();
+            List<SeedRun<S>> runs = new ArrayList<>();
             Throwable firstFailure = null;
-            for (Future<SeedRun> f : futures) {
+            for (Future<SeedRun<S>> f : futures) {
                 try {
                     runs.add(f.get());
                 } catch (java.util.concurrent.ExecutionException e) {
@@ -92,20 +171,20 @@ final class MultiStartSolver {
                 String why = firstFailure == null ? "" : firstFailure.getMessage();
                 throw new IllegalStateException("편성을 시작할 수 없습니다" + (why == null || why.isBlank() ? "" : ": " + why), firstFailure);
             }
-            SeedRun best = runs.get(0);
-            for (SeedRun r : runs) {
+            SeedRun<S> best = runs.get(0);
+            for (SeedRun<S> r : runs) {
                 if (r.score.compareTo(best.score) > 0) {
                     best = r;
                 }
             }
             List<SeedResult> results = new ArrayList<>();
-            for (SeedRun r : runs) {
+            for (SeedRun<S> r : runs) {
                 results.add(new SeedResult(r.seed, r.initialScore, r.score, r.elapsedMs, r.lastImprovementMs,
                         r.improvementCount, r.steps, r.calcCount, r.reason));
             }
             long elapsed = System.currentTimeMillis() - start;
             String reason = stopRequested ? "STOPPED" : overallReason(runs);
-            return new Result(best.solution, best.seed, best.score, best.trace, results, reason, elapsed);
+            return new Result<>(best.solution, best.seed, best.score, best.trace, results, reason, elapsed);
         } finally {
             pool.shutdownNow();
             pool.awaitTermination(5, TimeUnit.SECONDS);
@@ -113,9 +192,9 @@ final class MultiStartSolver {
     }
 
     /** 시드 하나라도 시간에 걸렸으면 TIME_LIMIT(재현 보장 없음), 아니면 계산 수를 다 채운 시드가 있으면 CALC_LIMIT. */
-    private static String overallReason(List<SeedRun> runs) {
+    private static String overallReason(List<? extends SeedRun<?>> runs) {
         boolean calcLimit = false;
-        for (SeedRun r : runs) {
+        for (SeedRun<?> r : runs) {
             if ("TIME_LIMIT".equals(r.reason)) {
                 return "TIME_LIMIT";
             }
@@ -127,45 +206,48 @@ final class MultiStartSolver {
     void stop() {
         stopRequested = true;
         synchronized (solvers) {
-            for (Solver<BaseballSolution> s : solvers) {
+            for (Solver<S> s : solvers) {
                 s.terminateEarly();
             }
         }
     }
 
-    private record SeedRun(long seed, BaseballSolution solution, BendableLongScore initialScore, BendableLongScore score,
+    private record SeedRun<S>(long seed, S solution, BendableLongScore initialScore, BendableLongScore score,
             SolveTrace trace, long elapsedMs, long lastImprovementMs, int improvementCount, long steps, long calcCount,
             String reason) {
     }
 
-    private SeedRun runOne(long seed, LongFunction<BaseballSolution> problemForSeed, StopRule stop,
-            Sink sink, Object lock, BendableLongScore[] globalBest, long start) {
-        BaseballSolution problem = problemForSeed.apply(seed);
+    private SeedRun<S> runOne(long seed, LongFunction<S> problemForSeed, StopRule stop,
+            Sink<S> sink, Object lock, BendableLongScore[] globalBest, long start) {
+        S problem = problemForSeed.apply(seed);
         // 첫 일정을 만드는 데 쓴 시간을 뺀 나머지가 탐색 시간. 이미 다 썼어도 탐색은 MIN_SEARCH_MS만큼은 한다
         long searchMs = Math.max(MIN_SEARCH_MS, stop.timeSec() * 1000L - (System.currentTimeMillis() - start));
-        SolverConfig config = BenchSupport.withWorkLimits(BenchSupport.solverConfig(seed, stop.timeSec(), "NONE", null, null),
-                stop.calcLimit(), stop.unimprovedStepsOrNull());
-        config.setTerminationConfig(new TerminationConfig().withMillisecondsSpentLimit(searchMs));
-        SolverFactory<BaseballSolution> factory = SolverFactory.create(config);
+        SolverConfig config = engine.config(seed, stop, searchMs);
+        SolverFactory<S> factory = SolverFactory.create(config);
         BendableLongScore initialScore = (BendableLongScore) SolutionManager.create(factory).update(problem);
-        SolveTrace trace = new SolveTrace(problem, seed, initialScore);
-        Solver<BaseballSolution> solver = factory.buildSolver();
+        SolveTrace trace = engine.trace(problem, seed, initialScore);
+        Solver<S> solver = factory.buildSolver();
         long[] lastImprovement = {0L};
         int[] improvements = {0};
         long[] steps = {0L};
         long[] calcs = {0L};
-        ((DefaultSolver<BaseballSolution>) solver).addPhaseLifecycleListener(new PhaseLifecycleListenerAdapter<>() {
+        ((DefaultSolver<S>) solver).addPhaseLifecycleListener(new PhaseLifecycleListenerAdapter<>() {
             @Override
-            public void stepEnded(AbstractStepScope<BaseballSolution> stepScope) {
+            public void stepEnded(AbstractStepScope<S> stepScope) {
                 steps[0] = stepScope.getStepIndex() + 1L;
             }
 
             @Override
-            public void phaseEnded(AbstractPhaseScope<BaseballSolution> phaseScope) {
+            public void phaseEnded(AbstractPhaseScope<S> phaseScope) {
                 calcs[0] = phaseScope.getScoreDirector().getCalculationCount();
             }
         });
-        solver.addEventListener(trace);
+        if (trace != null) {
+            @SuppressWarnings("unchecked")
+            org.optaplanner.core.api.solver.event.SolverEventListener<S> listener =
+                    (org.optaplanner.core.api.solver.event.SolverEventListener<S>) (Object) trace;
+            solver.addEventListener(listener);
+        }
         solver.addEventListener(event -> {
             BendableLongScore score = (BendableLongScore) event.getNewBestScore();
             long elapsed = System.currentTimeMillis() - start;
@@ -182,28 +264,29 @@ final class MultiStartSolver {
         });
         synchronized (solvers) {
             if (stopRequested) {
-                return new SeedRun(seed, problem, initialScore, initialScore, trace, 0L, 0L, 0, 0L, 0L, "STOPPED");
+                return new SeedRun<>(seed, problem, initialScore, initialScore, trace, 0L, 0L, 0, 0L, 0L, "STOPPED");
             }
             solvers.add(solver);
         }
         long t0 = System.currentTimeMillis();
-        BaseballSolution solved = solver.solve(problem);
+        S solved = solver.solve(problem);
         long solveMs = System.currentTimeMillis() - t0;
         String reason = stopRequested ? "STOPPED"
+                : !engine.workLimited() ? (solveMs >= stop.timeSec() * 1000L - 500L ? "TIME_LIMIT" : "UNIMPROVED")
                 : calcs[0] >= stop.calcLimit() ? "CALC_LIMIT"
                 : solveMs >= searchMs - 250L ? "TIME_LIMIT" : "UNIMPROVED";
-        if ("TIME_LIMIT".equals(reason)) {
+        if ("TIME_LIMIT".equals(reason) && engine.workLimited()) {
             LOG.warn("seed {} hit the {}s time limit ({}ms left for search after setup) after {} of {} calculations; "
                     + "this run is not reproducible", seed, stop.timeSec(), searchMs, calcs[0], stop.calcLimit());
         }
-        BendableLongScore score = solved.getBendableLongScore();
+        BendableLongScore score = engine.scoreOf(solved);
         synchronized (lock) {
             if (globalBest[0] == null || score.compareTo(globalBest[0]) > 0) {
                 globalBest[0] = score;
                 sink.best(solved, seed, score, System.currentTimeMillis() - start, improvements[0]);
             }
         }
-        return new SeedRun(seed, solved, initialScore, score, trace, solveMs, lastImprovement[0], improvements[0], steps[0],
+        return new SeedRun<>(seed, solved, initialScore, score, trace, solveMs, lastImprovement[0], improvements[0], steps[0],
                 calcs[0], reason);
     }
 }

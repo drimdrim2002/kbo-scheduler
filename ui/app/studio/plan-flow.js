@@ -366,9 +366,10 @@
       '<div class="small muted">' + esc(C.bottomNote).replace('{추정}', '<span class="pf-tag est">추정</span>') + '</div>' +
       // 검토 다음이 실행 결과다: 결과는 단계 아래에 둔다
       (hasResult ? row('', '<b>' + esc(C.resultLine) + '</b><span>' + esc(C.resultNote1) + '</span><span>' + esc(C.resultNote2) + '</span>', '<button class="btn primary" data-act="pf-open-2027" data-to="result">' + esc(C.resultButton) + icon('right') + '</button>') : '') +
-      '</div></div></div>';
+      '</div>' + (S.rsView && S.rsView.homeEntry ? S.rsView.homeEntry() : '') + '</div></div>';
   }
   /** 저장해 둔 2027이 개막 대진을 정하기 전 것이고 아직 검토하지 않았으면 기본 제공 값으로 다시 연다 */
+  P.open2027 = () => open2027();
   function open2027() {
     const rec = S.repo.load(YEAR_NEW), bad = rec && !rec.project.meta.review && !(rec.project.meta.flow || {}).teams && !((rec.project.events || []).find((e) => e.type === 'OPENING') || {}).basis;
     let fresh = bad ? S.builtinOf(YEAR_NEW).build() : null;
@@ -987,6 +988,7 @@
       op.stadiums = op.teams.map((t) => (s.teams.find((x) => x.name === t) || {}).stadium).filter(Boolean);
     }
   }
+  P.applyVersion = applyVersion; // 재편성(reschedule-parts.js)이 고른 버전으로 문제를 만든다
   function loadVersion(v) {
     if (S.locked && S.locked()) return;
     const base = v.inputs || preset27(), before = app().state;
@@ -1148,7 +1150,8 @@
     }
     if (u.step === 2) { const running = isRunning(), ok = app().preflight().ok; return (running ? '' : '<button class="btn" data-act="pf-stage" data-stage="1">' + icon('left') + '이전: 편성 조건 입력·검증</button>') + '<span class="hint pf-policy">' + (running ? '<b>실행 중</b> — ' : '') + policyText(objective()) + (running || !inputsEdited(app().state) ? '' : homeEdited(app().state) ? ' · 홈 지정이 바뀌어 처음부터 다시' : ' · 지금 결과에서 이어서') + '</span>' + (running ? '<button class="btn primary" data-act="run-stop">멈추고 이 결과 쓰기</button>' : timeBox() + '<button class="btn primary" data-act="pf-run"' + (ok ? '' : ' disabled title="' + esc('사전 점검에 진행 불가: ' + blockNames(app().preflight())) + '"') + '>' + icon('play') + '이 방침으로 실행</button>'); } // 실행 시간은 단추 바로 옆, 「이어서」는 편성 조건을 고친 뒤에만(사용자 결정 2026-11-04)
     if (u.step === 5) return '<button class="btn" data-act="pf-stage" data-stage="2">' + icon('left') + '운영 방침 바꿔 다시 실행</button><span class="hint"><b>현재 결과 분석</b> — 평가 기준 4개와 구단별 표를 한 장에 봅니다</span><button class="btn primary" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
-    if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
+    if (u.step === 7) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2027 확정 일정</b> — 다른 버전으로 바꾸거나 확정을 취소하려면 실행 결과 비교로 갑니다</span><button class="btn" data-act="rs-open">재편성</button><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교' + icon('right') + '</button>';
+    if (u.step === 9 && S.rsView) return S.rsView.footer();
     if (u.step === 6) return '<button class="btn" data-act="pf-stage" data-stage="3">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>실행 결과 비교</b> — 저장한 버전을 순위대로 보고, 두 개를 골라 비교합니다</span>';
     if (u.step === 3 || u.step === 4) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>' + (u.step === 3 ? '일정 자세히 보기' : '구단별 보기') + '</b></span>';
     if (u.step === 8) return '<button class="btn" data-act="go-step" data-step="5">' + icon('left') + '현재 결과 분석</button><span class="hint"><b>요구 사항 점검</b> — 서버가 완성된 일정을 날짜별 경기로 풀어 요구 사항마다 다시 셉니다. 근거를 펼쳐 직접 세어 볼 수 있습니다</span><button class="btn" data-act="go-step" data-step="3">일정 자세히 보기' + icon('right') + '</button>';
@@ -1177,7 +1180,8 @@
     const home = S.ui.step === 1 && !S.ui.ops && (G.mode === 'year' || G.mode === 'resume');
     document.body.classList.toggle('pf-home', home);
     document.body.classList.toggle('pf-nores', !freshResult(app().state)); // 실행 전에는 규칙 위반 표시를 띄우지 않는다
-    document.body.classList.toggle('pf-ro', home || (S.seasonYear() === YEAR_VIEW && S.ui.step === 5) || (S.seasonYear() === YEAR_NEW && S.ui.step === 7));
+    document.body.classList.toggle('pf-ro', home || (S.seasonYear() === YEAR_VIEW && S.ui.step === 5) || (S.seasonYear() === YEAR_NEW && (S.ui.step === 7 || S.ui.step === 9)));
+    document.body.classList.toggle('pf-rs', S.seasonYear() === YEAR_NEW && S.ui.step === 9 && !S.ui.ops); // 재편성(reschedule-view.js): 단계 띠 없이 한 화면
   };
 
   // 달력에서 수정 화면도 주소에 남긴다(ce=1): 브라우저 뒤로를 누르면 검토 화면으로 돌아온다

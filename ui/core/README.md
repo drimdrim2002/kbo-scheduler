@@ -10,7 +10,8 @@
 | `calendar-gen.js` | 날짜 유틸, 슬롯 자동 생성, 시리즈 목록 생성, 내장 공휴일(2025~2028). 공휴일 가중치 합(`slotWeights`·`applyWeights`, 주말 하루 1 · 공휴일 weight 기본 2 · 어린이날 3), 묶음에서 휴식기·휴식일 경기 만들기(`deriveRestDays`), 규칙대로 채우기 설정(`ruleSettings`: 「휴식 요일이어도 경기」가 켜진 공휴일 · 올스타 휴식기). 격년 홈 73/71(`defaultHomeTotals`·`flipHomeTotals`·`homeTotalsTargets`)과 그 원칙의 시리즈 생성(`generateSeriesByHomeTotals`, `seriesOptions`) | §5.2.1, FR-S6, FR-S7 |
 | `xlsx-lite.js` | 바깥 라이브러리 없는 .xlsx 쓰기(압축 없는 zip · 날짜 서식 · 수식)와 읽기(deflate zip · 공유 문자열 · 수식 값). 압축 풀기는 호출하는 쪽이 넘긴다(브라우저 `DecompressionStream`, Node `zlib`) | ① 엑셀 서식 |
 | `score.js` | `ScoreFormulas.evaluate` 1:1 포팅, 위반 설명, 구단 지표, Soft 분해 | §6.1, §6.2 |
-| `reschedule.js` | 경기 상태, 잔여·취소 집계, 재편성 묶음, RH/RS 채점, 재편성 탐색 | §5.8, §6.3 |
+| `season-games.js` | 1차 편성 경기(일자 단위)와 상태(예정·완료·취소), 취소 기록(`M:<시리즈>\|<날짜>` · 재편성 경기 `G:<경기 id>\|<날짜>`), 잔여·취소 집계(`computeTargets`), 홈 73/71로 잔여 경기 홈 나누기(`fitHomeTotals`), **재편성 배정 대상 만들기**(`buildTargets` → `reschedule.targets`, 홈이 맞지 않으면 `ok: false`와 구단별 차이). 옛 묶음 방식 `reschedule.js`는 지웠다 | 재편성 요구 §2·§7 |
+| `reschedule-daily.js` | **날짜 단위 재편성**(`KBO.RescheduleDaily`, `docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md`). 서버(Java `reschedule` 패키지)와 같은 계산식·같은 문장: 입력 검사, 점수(Hard 2 · Soft 6), 평가 숫자, 규칙 위반, 못 넣은 이유. 간단한 배정기(서버보다 약함)와 `file://`용 탐색기. 서버와 답이 어긋나면 오류다(golden `reschedule-golden.json`). 스튜디오 재편성 화면(`app/studio/reschedule-parts.js`·`reschedule-view.js`, step=9)이 쓴다 | 재편성 요구 §4~§10 |
 | `mock-solver.js` | Late Acceptance 로컬서치, 완전 매칭 구성 휴리스틱, time-slicing 드라이버, Worker 진입점 | §7.2 |
 | `engine-adapter.js` | `MockEngineAdapter`(Blob Worker → 실패 시 메인 스레드), `RestEngineAdapter`(§7.3) | §7.1, FR-R5 |
 | `store.js` | 상태, undo/redo(100단계), 스냅샷, localStorage 자동 저장, JSON/CSV 입출력, 필드 단위 검증 | FR-M6, FR-M7, FR-D |
@@ -41,7 +42,7 @@
   - 반환에 `homeTargets: [{ team, initial, total, remaining, openingHost }]`와 `openingPairs`가 붙는다.
   - 맞지 않으면 `errors`에 이유와 고칠 곳을 적는다. 예: `'same'`에서 68/67을 주면 「3의 배수만 된다 · 4연전 설정을 홈 바꿈으로」, `'swap'`에서 홈 68 구단이 개막전 원정이면 「홈 68은 개막전 홈 구단만」, 잠실 두 구단이 둘 다 개막전 홈이거나 서로 맞붙지 않고 둘 다 원정이면 잠실 오류.
   - 2025 데이터에 `defaultHomeTotals(2025, teams)`(`'same'`)를 넣으면 2025 실제 1차 편성 홈(SSG·KT·두산·한화·롯데 69, 나머지 66)이 그대로 나온다.
-- **미편성 홈** `Reschedule.computeTargets`: `homeTotals`가 있으면 구단별 「전체 홈 − 1차 편성 홈(취소 포함)」이 되도록 잔여 경기 홈을 고친다. `remainingHomeRule`은 출발점으로만 쓴다. 결과는 `homeTotals: { ok, message, byTeam }`에 담긴다.
+- **미편성 홈** `SeasonGames.computeTargets`: `homeTotals`가 있으면 구단별 「전체 홈 − 1차 편성 홈(취소 포함)」이 되도록 잔여 경기 홈을 고친다. `remainingHomeRule`은 출발점으로만 쓴다. 결과는 `homeTotals: { ok, message, byTeam }`에 담긴다.
 - **기본값** `defaultHomeTotals(year, teams, { moreTeams?, initial?, fourGameHome? })`: 홀수 해는 한화·SSG·KT·롯데·두산이 홈 73, 짝수 해는 나머지 다섯 구단이다. 1차 편성 홈은 69/66(`fourGameHome: 'swap'`이면 68/67, `initial: false`면 비움). `flipHomeTotals(ht, teams)`는 다음 해 값을 만든다.
 - **격년제 기본값**(새 연도를 만들 때 채움, 이미 있는 값은 덮지 않음): `defaultHomeMoreTeams(year, teams?)` = 홈 73 구단(홀수 해 한화·SSG·KT·롯데·두산 / 짝수 해 LG·NC·KIA·삼성·키움), `defaultChildrenHosts(year, teams?)` = 어린이날 홈 구단(홀수 해 두산·키움·한화·롯데·NC / 짝수 해 LG·SSG·KT·삼성·KIA). 어린이날 대진은 정하지 않는다.
 
@@ -69,14 +70,14 @@ node core/test/run-tests.js          # 헤드리스 테스트 (AC-1~8, 10, 11 �
 | `POST` | `/api/v1/solve/{jobId}/stop` | - | `{ status }` |
 | `POST` | `/api/v1/score` | `{ problem, plan, mode }` | `{ score, violations, teamMetrics }` |
 
-- `problem`은 §8 프로젝트 JSON이다. `plan`은 INITIAL이면 `[{ match, calendar }]`, RESCHEDULE이면 `[{ unit, start, dh }]`이다.
-- 점수 문자열은 OptaPlanner `BendableLongScore` 표기(`[0/0]hard/[0/-400/-573307/-13/-72955]soft`)를 함께 쓴다. RESCHEDULE은 Hard `[RH-1~4, RH-5]`, Soft `[RS-1, RS-2a, RS-2b, RS-3]`이다.
+- `problem`은 §8 프로젝트 JSON이다. `plan`은 INITIAL이면 `[{ match, calendar }]`이다.
+- **RESCHEDULE**(날짜 단위 재편성, 설계 `docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md` §5): `problem` = 고른 1차 편성 버전 + `games[]`(취소 기록) + `reschedule { start, end, lastDayToleranceDays, maxConsecutiveDays, maxDoubleHeadersPerTeam, order, targets[], plan[] }`. `targets`는 화면이 만든 배정 대상(취소 `M:<시리즈>|<날짜>` · 잔여 `R:<홈>-<원정>`), `plan`은 고정할(발표한) 일정 `[{ game, date }]`. 결과(done·score)는 `{ mode, engine: 'server' | 'browser', plan: [{ game, date, doubleHeader, fixed, played? }], score: { hard: [위반, 못 넣은 경기], soft: [6단계] }, scoreString, levels, metrics, violations[], unplaced[], teamLimits[], fixes[], period }`. 고칠 곳 확인(`fixes`의 `confirmed: true`)은 서버만 한다.
+- 점수 문자열은 OptaPlanner `BendableLongScore` 표기(`[0/0]hard/[0/-400/-573307/-13/-72955]soft`)를 함께 쓴다. RESCHEDULE은 Hard `[규칙 위반, 못 넣은 경기]`, Soft는 `levels` 순서(기본 `lastDay, fairMoves, fairDistance, addedDistance, monday, doubleHeader`)다. 재편성은 이 방식 하나다(옛 묶음 방식은 지웠다). 화면은 결과를 `reschedule.result`에 두고, `reschedule.plan`은 발표해서 고정할 일정에만 쓴다.
 - 일시정지는 계약에 없다. `RestEngineAdapter`는 일시정지 중 받은 해를 보류했다가 재개할 때 반영한다.
 
 ## 결정·가정
 
 - 잔여 경기 홈 결정(O-1): 그 구단쌍에서 홈 경기가 적은 쪽(설정으로 많은 쪽 선택 가능). 동률이면 리그 전체 홈 경기가 적은 구단.
-- 재편성 Soft 순서(O-3): RS-1 마지막 경기일 → RS-2a 이동 증가분 편차(50km 단계) → RS-2b 증가분 합계 → RS-3 DH·월요일 경기 수.
-- 더블헤더(O-4): DH 묶음은 첫날 2경기, 이후 하루 1경기. 요일 제한은 두지 않는다.
+- 재편성 기준 순서·더블헤더는 `docs/RESCHEDULE_DAILY_REQUIREMENTS.md` §4·§5를 따른다(옛 O-3·O-4 묶음 규칙은 지웠다).
 - 결과 미입력(FR-P2) 기준일은 설정에서 바꿀 수 있다. 비우면 오늘이다.
 - 2025 공휴일 기본값은 §5.2.1 검증 기준(5/5·6/6·8/15)에 9~10월 공휴일을 더한 것이다. 6/3 임시공휴일은 원본 데이터에 반영되지 않아 제외했다.

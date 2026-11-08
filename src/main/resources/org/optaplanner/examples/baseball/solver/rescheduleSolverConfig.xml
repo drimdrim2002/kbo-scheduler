@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 날짜 단위 재편성(설계 docs/RESCHEDULE_DAILY_ENGINE_DESIGN.md §3.2). 첫 배정은 RescheduleInitializer가 솔버 전에 만든다. -->
+<solver xmlns="https://www.optaplanner.org/xsd/solver"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://www.optaplanner.org/xsd/solver https://www.optaplanner.org/xsd/solver/solver.xsd">
+  <environmentMode>REPRODUCIBLE</environmentMode>
+  <randomSeed>0</randomSeed>
+  <solutionClass>org.optaplanner.examples.baseball.reschedule.RescheduleSolution</solutionClass>
+  <entityClass>org.optaplanner.examples.baseball.reschedule.RGame</entityClass>
+  <scoreDirectorFactory>
+    <easyScoreCalculatorClass>org.optaplanner.examples.baseball.reschedule.RescheduleEasyScoreCalculator</easyScoreCalculatorClass>
+  </scoreDirectorFactory>
+  <termination>
+    <secondsSpentLimit>10</secondsSpentLimit>
+  </termination>
+  <localSearch>
+    <unionMoveSelector>
+      <moveIteratorFactory>
+        <fixedProbabilityWeight>4.0</fixedProbabilityWeight>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.reschedule.RescheduleMoves$Shift</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+      <moveIteratorFactory>
+        <fixedProbabilityWeight>3.0</fixedProbabilityWeight>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.reschedule.RescheduleMoves$Swap</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+      <moveIteratorFactory>
+        <fixedProbabilityWeight>0.5</fixedProbabilityWeight>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.reschedule.RescheduleMoves$DoubleHeader</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+      <moveIteratorFactory>
+        <fixedProbabilityWeight>1.0</fixedProbabilityWeight>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.reschedule.RescheduleMoves$EjectInsert</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+      <moveIteratorFactory>
+        <fixedProbabilityWeight>2.0</fixedProbabilityWeight>
+        <moveIteratorFactoryClass>org.optaplanner.examples.baseball.reschedule.RescheduleMoves$DayChain</moveIteratorFactoryClass>
+      </moveIteratorFactory>
+    </unionMoveSelector>
+    <acceptor>
+      <lateAcceptanceSize>400</lateAcceptanceSize>
+    </acceptor>
+    <forager>
+      <acceptedCountLimit>4</acceptedCountLimit>
+    </forager>
+  </localSearch>
+</solver>

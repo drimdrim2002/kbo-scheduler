@@ -28,10 +28,10 @@ class ReproducibleSolveTest {
 
     @Test
     void sameSeedsAndCalculationsGiveTheSamePlanAtAnySpeed() throws Exception {
-        MultiStartSolver.Result alone = solve(SEEDS, STOP);
+        MultiStartSolver.Result<BaseballSolution> alone = solve(SEEDS, STOP);
 
         ExecutorService noise = Executors.newFixedThreadPool(1);
-        MultiStartSolver.Result loaded;
+        MultiStartSolver.Result<BaseballSolution> loaded;
         try {
             Future<?> busy = noise.submit(() -> solve(new long[] {101L, 102L, 103L, 104L}, STOP));
             loaded = solve(SEEDS, STOP);
@@ -56,7 +56,7 @@ class ReproducibleSolveTest {
     @Test
     void noImprovementStopWaitsUntilThreeQuartersOfTheCalculations() throws Exception {
         StopRule stop = new StopRule(80_000, 5, 600);
-        MultiStartSolver.Result r = solve(new long[] {108L, 116L}, stop);
+        MultiStartSolver.Result<BaseballSolution> r = solve(new long[] {108L, 116L}, stop);
         assertEquals(60_000L, stop.minCalcs());
         for (MultiStartSolver.SeedResult s : r.seeds()) {
             assertTrue(s.calcCount() >= 60_000 && s.calcCount() <= 80_000, "seed " + s.seed() + " did " + s.calcCount());
@@ -70,7 +70,7 @@ class ReproducibleSolveTest {
     void timeLimitStillEndsTheRunAndIncludesSetup() throws Exception {
         solve(new long[] {7L}, new StopRule(1_000, 0, 60)); // 예열: 처음 한 번은 준비가 느리다
         long start = System.currentTimeMillis();
-        MultiStartSolver.Result r = solve(new long[] {7L, 8L}, new StopRule(1_000_000_000L, 0, 4));
+        MultiStartSolver.Result<BaseballSolution> r = solve(new long[] {7L, 8L}, new StopRule(1_000_000_000L, 0, 4));
         long ms = System.currentTimeMillis() - start;
         assertEquals("TIME_LIMIT", r.reason());
         assertTrue(ms < 4_000 + 1_000, "took " + ms + "ms for a 4-second run");
@@ -122,11 +122,11 @@ class ReproducibleSolveTest {
         return done;
     }
 
-    private static MultiStartSolver.Result solve(long[] seeds, StopRule stop) throws InterruptedException {
-        return new MultiStartSolver().run(BenchSupport::initializedProblem, seeds, stop, NO_SINK);
+    private static MultiStartSolver.Result<BaseballSolution> solve(long[] seeds, StopRule stop) throws InterruptedException {
+        return MultiStartSolver.baseball().run(BenchSupport::initializedProblem, seeds, stop, NO_SINK);
     }
 
-    private static final MultiStartSolver.Sink NO_SINK = new MultiStartSolver.Sink() {
+    private static final MultiStartSolver.Sink<BaseballSolution> NO_SINK = new MultiStartSolver.Sink<>() {
         @Override
         public void seedBest(long seed, BendableLongScore score, long elapsedMs) {
         }

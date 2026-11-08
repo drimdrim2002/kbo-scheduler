@@ -94,14 +94,14 @@ public final class SeedCountBench {
         log("done " + label + " T=" + seconds);
     }
 
-    private record Round(String kind, int group, char part, MultiStartSolver.Result result) {
+    private record Round(String kind, int group, char part, MultiStartSolver.Result<BaseballSolution> result) {
     }
 
     private Round round(String kind, int group, char part, long[] seeds, long sec) throws Exception {
         double[] load = waitForQuiet();
         log("round-start " + kind + " g=" + group + part + " seeds=" + seeds[0] + ".." + seeds[seeds.length - 1]
                 + String.format(Locale.ROOT, " load1=%.2f othersCpu=%.0f waited=%.0fs", load[0], load[1], load[2]));
-        MultiStartSolver.Result r = new MultiStartSolver().run(this::problemFor, seeds, StopRule.fromSeconds(sec, unimprovedSec), NO_SINK);
+        MultiStartSolver.Result<BaseballSolution> r = MultiStartSolver.baseball().run(this::problemFor, seeds, StopRule.fromSeconds(sec, unimprovedSec), NO_SINK);
         double[] after = loadNow();
         log("round-end " + kind + " g=" + group + part + " best=" + r.bestScore() + " elapsedMs=" + r.elapsedMs() + " reason=" + r.reason());
         if (!"warmup".equals(kind)) {
@@ -224,7 +224,7 @@ public final class SeedCountBench {
         out.flush();
     }
 
-    private static final MultiStartSolver.Sink NO_SINK = new MultiStartSolver.Sink() {
+    private static final MultiStartSolver.Sink<BaseballSolution> NO_SINK = new MultiStartSolver.Sink<>() {
         @Override
         public void seedBest(long seed, BendableLongScore score, long elapsedMs) {
         }

@@ -19,7 +19,6 @@ s7-a2|step=4&qv=a2|classic=1
 s7-a3|step=4&qv=a3&team=KT|classic=1
 s7-export|step=4&qv=export|classic=1
 s8-games|ops=games|classic=1
-s8-reschedule|ops=reschedule&demo=result|classic=1
 s8-route|ops=route&team=KT&leg=14.55|classic=1
 s9-settings|step=1&tab=slots&drawer=settings|classic=1
 s9-settings-dev|step=1&tab=slots&drawer=settings&dev=1|classic=1
@@ -111,3 +110,19 @@ pf-edit-strip-low|step=3&year=2027&demo=edit27low
 pf-edit-strip-after|step=3&year=2027&demo=edit27after
 pf-edit-strip-saveblock|step=3&year=2027&demo=edit27save
 pf-edit-strip-step2|step=2&year=2027&demo=edit27run
+pf-rs-none|step=9&year=2027
+pf-rs-input|step=9&year=2027&demo=rsin
+pf-rs-grid|step=9&year=2027&demo=rs
+pf-rs-grid-team|step=9&year=2027&demo=rs&rt=KIA
+pf-rs-days|step=9&year=2027&demo=rs&rv=days
+pf-rs-metrics|step=9&year=2027&demo=rs&rv=metrics
+pf-rs-unplaced|step=9&year=2027&demo=rsun&rv=unplaced
+pf-rs-bad|step=9&year=2027&demo=rsbad
+pf-rs-final|step=7&year=2027
+pf-rs-page2|step=9&year=2027&demo=rsin&rp=2
+pf-rs-page3-none|step=9&year=2027&demo=rsin&rp=3
+pf-rs-page1-result|step=9&year=2027&demo=rs&rp=1
+pf-rs-cal|step=9&year=2027&demo=rs&rv=cal
+pf-rs-cal-day|step=9&year=2027&demo=rs&rv=cal&rd=2027-09-14
+pf-rs-cal-oct|step=9&year=2027&demo=rs&rv=cal&rm=2027-10
+pf-rs-cal-short|step=9&year=2027&demo=rsun&rv=cal
