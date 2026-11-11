@@ -357,7 +357,7 @@
       row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>',
         '<button class="btn" data-act="pf-open-final">' + esc(C.checkButton) + icon('right') + '</button><button class="btn" data-act="rs-open" title="' + esc(C.rsHint) + '">' + esc(C.rsButton) + icon('right') + '</button>') +
       '</div>' : '';
-    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>' + esc(C.heading) + '</h1><div class="pf-choices' + (check ? '' : ' one') + '">' + check +
+    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<div class="pf-choices' + (check ? '' : ' one') + '">' + check +
       '<div class="pf-ch"><h2>' + esc(C.title) + '</h2><p class="what">' + esc(C.lead) + '</p>' +
       row(YEAR_NEW, new27, res ? '<button class="btn' + (hasResult ? '' : ' primary') + '" data-act="pf-open-2027">' + esc(C.reviewButton) + icon('right') + '</button>' : '<button class="btn primary" data-act="pf-open-2027">' + esc(C.startButton) + icon('right') + '</button>') +
       '<ul>' + step(1, esc(C.step1), esc(C.step1Note)) + step(2, esc(C.step2), esc(C.step2Note), 3) + step(3, esc(C.step3), esc(C.step3Note), 2) + step(4, esc(C.step4), esc(C.step4Note)) + '</ul>' +

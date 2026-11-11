@@ -76,7 +76,6 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 /* 처음 화면은 가운데에 두되, 창이 높으면 카드가 아래까지 차고(680px까지) 줄 간격·글자가 함께 커진다 */
 .pf-choices { flex: 1 0 auto; max-height: 680px; }
 .pf-ch ul { flex: 1 0 auto; } .pf-ch li { flex: 1 0 auto; max-height: 64px; } /* 줄이 다 커지면 남는 높이는 목록 밑으로, 아래 안내는 카드 밑에 붙는다 */
-.pf-start h1 { margin: 0; font-size: clamp(24px, 3vh, 32px); color: var(--navy); letter-spacing: -.5px; }
 .pf-choices { display: grid; grid-template-columns: repeat(2, 540px); gap: 18px; align-items: stretch; }
 .pf-choices.one { grid-template-columns: 540px; } /* 확정한 일정이 없으면 「새 계획 만들기」 카드 하나만 */
 .pf-ch { background: #fff; border: 1px solid var(--line-2); border-radius: 12px; padding: clamp(18px, 2.8vh, 30px) 24px clamp(16px, 2.6vh, 28px); display: flex; flex-direction: column; gap: clamp(10px, calc(10px + (100vh - 790px) * .022), 18px); box-shadow: 0 8px 24px rgba(10,30,60,.06); }
