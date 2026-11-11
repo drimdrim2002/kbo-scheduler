@@ -1134,7 +1134,7 @@
     const u = S.ui, y = S.seasonYear();
     if (u.step === 5 && y === YEAR_VIEW) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>2025 계획 보기</b> — 같은 조건에서 KBO 실제 일정과 자동 편성의 일정을 비교합니다</span>' + (!P.builtin['2025-best'] ? '' : P.view25 === 'dash' ? '<button class="btn primary" data-act="pf-25" data-v="compare">KBO와 비교로 돌아가기</button>' : '<button class="btn primary" data-act="pf-25" data-v="dash">평가 기준별 자세히 보기' + icon('right') + '</button>');
     if (u.step === 1) {
-      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — ' + esc(S.homeCopy.footer) + '</span>';
+      if (G.mode === 'year' || G.mode === 'resume') return '<span class="hint"><b>처음 화면</b> — ' + esc(P.final.version(YEAR_NEW) ? S.homeCopy.footer : S.homeCopy.footerNew) + '</span>'; // 확정 전에는 결과 확인 카드가 없다
       if (G.mode === 'all') return '<button class="btn" data-act="g1-cal">' + icon('left') + '단계별로 돌아가기</button><span class="hint"><b>모든 표 보기</b> — 표에서 직접 고칩니다. 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span>';
       if (P.calEdit) return '<span class="hint"><b>달력에서 수정</b> — 고치면 바로 저장됩니다</span><span class="kbd-hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 실행 취소</span><button class="btn primary" data-act="pf-cal-done">검토로 돌아가기' + icon('right') + '</button>';
       const n = G.fs, steps = S.FLOW_STEPS, st = app().state;
