@@ -347,26 +347,24 @@
   function savedResult27() { const r = S.repo.load(YEAR_NEW); return r && r.project.meta && r.project.meta.result ? r.project.meta.result : app().state.meta.result && inPlan() ? app().state.meta.result : null; }
   const runningNote = () => '<div class="pf-note warn" style="margin:0 0 12px">계획을 실행하는 중입니다. 끝나면 결과 화면으로 넘어갑니다. <button class="pf-link" data-act="pf-stage" data-stage="2">실행 화면으로 ›</button></div>';
   function renderStart() {
-    const ours = P.builtin['2025-best'], kbo = kboData();
-    const pct = ours ? Math.round((1 - ours.gaps.totalKm / kbo.gaps.totalKm) * 100) : null;
     const step = (n, t, s, est) => '<li><b>' + n + ' ' + t + '</b><span>' + s + (est ? ' <span class="pf-tag est">추정 ' + est + '개</span>' : '') + '</span></li>';
     const res = savedResult27(), stale27 = res && inPlan() && resultStale(app().state), hasResult = res && !stale27, final27 = P.final.version(YEAR_NEW);
     const row = (y, what, act) => '<div class="pf-yr"><div class="y">' + y + '</div><div class="what">' + what + '</div><div class="acts">' + act + '</div></div>';
-    const r25 = ours ? '<b class="good">전체 이동 거리 ' + pct + '% 짧음</b><span>KBO ' + num(kbo.gaps.totalKm) + 'km → ' + num(ours.gaps.totalKm) + 'km</span>' : '<span>' + (P.builtinFailed ? '저장된 결과를 읽지 못했습니다' : '저장된 결과를 불러오는 중입니다') + '</span>';
     const C = S.homeCopy; // 처음 화면 카드 문구는 home-copy.js에 모아 둔다
     const new27 = stale27 ? '<b>' + esc(C.staleLine) + '</b><span>' + esc(C.staleNote) + '</span>' : '<b>' + esc(C.newLine) + '</b>';
-    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>' + esc(C.heading) + '</h1><div class="pf-choices">' +
-      '<div class="pf-ch"><h2>' + esc(C.checkTitle) + '</h2><p class="what">' + esc(C.checkLead) + '</p>' +
-      row(2025, '<b>' + esc(C.check2025) + '</b>' + r25, '<button class="btn" data-act="pf-open-2025">' + esc(C.checkButton) + icon('right') + '</button>') +
-      (final27 ? row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>', '<button class="btn" data-act="pf-open-final">' + esc(C.checkButton) + icon('right') + '</button>') : '') +
-      '</div>' +
+    // 「결과 확인」은 확정한 일정이 있을 때만(2025 비교 줄은 두지 않는다). 재편성은 확정한 일정으로만 하므로 그 줄에 단추를 둔다(사용자 결정 2026-11-11)
+    const check = final27 ? '<div class="pf-ch"><h2>' + esc(C.checkTitle) + '</h2><p class="what">' + esc(C.checkLead) + '</p>' +
+      row(YEAR_NEW, '<b>' + esc(final27.name) + ' <span class="pf-tag ok">확정</span></b><span>전체 이동 거리 ' + num(final27.gaps.totalKm) + 'km</span>',
+        '<button class="btn" data-act="pf-open-final">' + esc(C.checkButton) + icon('right') + '</button><button class="btn" data-act="rs-open" title="' + esc(C.rsHint) + '">' + esc(C.rsButton) + icon('right') + '</button>') +
+      '</div>' : '';
+    return '<div class="pf-start">' + (isRunning() ? runningNote() : '') + '<h1>' + esc(C.heading) + '</h1><div class="pf-choices' + (check ? '' : ' one') + '">' + check +
       '<div class="pf-ch"><h2>' + esc(C.title) + '</h2><p class="what">' + esc(C.lead) + '</p>' +
       row(YEAR_NEW, new27, res ? '<button class="btn' + (hasResult ? '' : ' primary') + '" data-act="pf-open-2027">' + esc(C.reviewButton) + icon('right') + '</button>' : '<button class="btn primary" data-act="pf-open-2027">' + esc(C.startButton) + icon('right') + '</button>') +
       '<ul>' + step(1, esc(C.step1), esc(C.step1Note)) + step(2, esc(C.step2), esc(C.step2Note), 3) + step(3, esc(C.step3), esc(C.step3Note), 2) + step(4, esc(C.step4), esc(C.step4Note)) + '</ul>' +
       '<div class="small muted">' + esc(C.bottomNote).replace('{추정}', '<span class="pf-tag est">추정</span>') + '</div>' +
       // 검토 다음이 실행 결과다: 결과는 단계 아래에 둔다
       (hasResult ? row('', '<b>' + esc(C.resultLine) + '</b><span>' + esc(C.resultNote1) + '</span><span>' + esc(C.resultNote2) + '</span>', '<button class="btn primary" data-act="pf-open-2027" data-to="result">' + esc(C.resultButton) + icon('right') + '</button>') : '') +
-      '</div>' + (S.rsView && S.rsView.homeEntry ? S.rsView.homeEntry() : '') + '</div></div>';
+      '</div></div></div>';
   }
   /** 저장해 둔 2027이 개막 대진을 정하기 전 것이고 아직 검토하지 않았으면 기본 제공 값으로 다시 연다 */
   P.open2027 = () => open2027();
@@ -439,7 +437,7 @@
     return '직접 고친 값입니다. 처음 추정값은 ' + was + '였습니다.';
   }
   // 2단계 줄의 「수정」은 화면을 옮기지 않고 그 줄 안에 입력칸을 펼친다(season-calendar.js S.seasonInlineEditor)
-  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', seasonEnd: 'seasonEnd', rules: 'rules' };
+  const INLINE = { opening: 'opening', rest: 'rest', allStar: 'allstar', initialEnd: 'initialEnd', rules: 'rules' };
   const inlineEd = (r) => { const k = r.key || r.to; return G.fs === 2 && P.inline && P.inline === k ? '<div class="pf-rv-ed">' + (k === 'rules' ? S.homeTotalsEditor() : S.seasonInlineEditor(INLINE[k])) + '<button class="btn sm" data-act="pf-cal-done">닫기</button></div>' : ''; };
   /** 2단계 아래 달력: 「달력 고치기」를 누르면 수정 화면과 같은 달력으로 바뀐다 */
   const seasonCal = () => {
@@ -470,8 +468,7 @@
       { key: 'opening', t: '개막일', tag: 'est', v: fmt.date(s.seasonStart) + ' · 개막 2연전', ...BASIS.opening },
       { key: 'allStar', t: '올스타 휴식기·후반기 첫 4연전', tag: 'est', v: star ? fmt.date(star.start) + ' ~ ' + fmt.date(star.end) : '없음', v2: '후반기 첫 4연전 ' + (four ? Dates.fmtDate(four.datetime) + ' ~ ' + Dates.fmtDate(Dates.addDays(four.datetime, 3)) : '없음'), ...BASIS.allStar },
       { key: 'initialEnd', t: '1차 편성 종료일', tag: 'est', v: fmt.date(s.initialEnd) + ' · 경기일 ' + gd.have + '일', ...BASIS.initialEnd },
-      // 시즌 종료일: 재편성 기간의 끝. 1차 편성에는 쓰지 않지만 여기서 바꿀 수 있게(사용자 결정 2026-11-08; 전에는 모든 표 보기 → 시즌 기본 설정에만 있었다)
-      { t: '시즌 종료일', to: 'seasonEnd', tag: 'got', tagText: '기본', v: fmt.date(s.seasonEnd || s.seasonStart.slice(0, 4) + '-10-31') + ' · 재편성 기간의 끝', why: '1차 편성 뒤 남은 경기와 취소 경기를 넣는 재편성 기간이 이 날 끝납니다. 1차 편성에는 쓰지 않습니다.' },
+      // 시즌 종료일은 두지 않는다: 1차 편성에 쓰지 않고, 재편성 화면의 「마감일」로 고친다(사용자 결정 2026-11-12, 11-08 결정을 되돌림)
       // 홈 경기 수: 날짜에 붙는 값이 아니라 시즌 전체의 편성 조건이라 2단계에 둔다(수정은 4 확인의 시리즈 규칙)
       ht ? { t: '홈 경기 수', to: 'rules', tag: 'rule', v: (ht.more && ht.more.total) + '경기: ' + esc(ht.moreTeams.join(' · ')) + ' &nbsp;/&nbsp; ' + (ht.less && ht.less.total) + '경기: 나머지 5구단', ...BASIS.homeTotals, more: more('pf-basis-homes') } : null
     ].filter(Boolean);
@@ -1168,7 +1165,7 @@
     document.body.classList.add('pf');
     // 주소를 직접 쳐도 흐름 밖 화면으로 가지 않게: 2025는 비교 화면만, 다른 해는 처음 화면으로
     const y = S.seasonYear(), onHome = S.ui.step === 1 && (G.mode === 'year' || G.mode === 'resume');
-    if (y === YEAR_NEW && S.ui.step === 7 && !P.final.id(y)) { S.ui.step = 1; G.mode = 'year'; } // 확정이 없으면 볼 일정도 없다
+    if (y === YEAR_NEW && (S.ui.step === 7 || S.ui.step === 9) && !P.final.id(y)) { S.ui.step = 1; G.mode = 'year'; } // 확정이 없으면 볼 일정도, 재편성할 일정도 없다
     if (y === YEAR_NEW && S.ui.step === 1 && !S.ui.ops && G.mode === 'flow' && !P.calEdit && S.flowLocked(G.fs)) G.fs = S.flowStatus().stop; // 주소로도 앞 단계를 건너뛰지 못한다
     if (y === YEAR_NEW && S.ui.step === 2 && !isRunning() && !reviewDone()) { S.ui.step = 1; G.mode = 'flow'; G.fs = S.flowStatus().stop; }
     if (y === YEAR_NEW && !isRunning() && resultStale(app().state)) S.ui.modal = 'pfCalChange'; // 어느 화면에서 바꿨든 여기서 묻는다

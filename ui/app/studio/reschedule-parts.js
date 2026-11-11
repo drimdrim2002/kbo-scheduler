@@ -38,9 +38,12 @@
   const rs = () => app().state.reschedule;
 
   // ───────── 버전 · 문제 ─────────
-  /** 고를 수 있는 1차 편성 버전: 2027에 저장한 것 중 꼭 지킬 규칙을 지킨 것 */
-  R.versions = () => (PF() ? PF().versions.all(YEAR).filter((v) => v.feasible !== false) : []);
+  /** 재편성할 1차 편성: 확정한 버전 하나뿐(꼭 지킬 규칙을 지킨 것). 계획을 확정한 뒤에 재편성한다(사용자 결정 2026-11-11) */
+  R.versions = () => { const f = PF() && PF().final.version(YEAR); return f && f.feasible !== false ? [f] : []; };
   R.version = () => { const id = rs().version; return id && PF() ? PF().versions.get(YEAR, id) : null; };
+  /** 재편성을 시작한 뒤 다른 버전을 확정했으면 그 옛 버전(작업이 남아 있어 저절로 바꾸지 않는다), 아니면 null */
+  R.mismatch = () => { const v = R.version(), f = R.versions()[0]; return v && f && v.id !== f.id ? v : null; };
+  const hasWork = (st) => !!((st.games || []).length || st.result || (st.plan || []).length);
   R.versionTag = (v) => (PF() && PF().final.id(YEAR) === v.id ? '<span class="pf-tag ok">확정</span>' : v.engine && v.engine !== 'REST' && !v.builtin ? '<span class="pf-tag est">시험 엔진</span>' : '');
 
   const memo = { base: null, prob: null, model: null, cross: null };
@@ -233,12 +236,19 @@
   };
 
   // ───────── 입력 부품 ─────────
-  /** 버전 고르기 */
+  /** 재편성하는 1차 편성(확정한 일정) 이름. 고르는 칸은 없다 */
   R.versionPicker = function () {
-    const list = R.versions(), cur = R.version();
-    if (!list.length) return '<div class="rs-empty"><b>고를 1차 편성 버전이 없습니다</b><span>운영 방침·실행에서 실행하면 결과가 버전으로 저장됩니다. 꼭 지킬 규칙을 모두 지킨 버전만 고를 수 있습니다.</span><button class="btn" data-act="pf-stage" data-stage="2">운영 방침·실행으로</button></div>';
-    return '<label class="rs-vpick"><span class="rs-lab">1차 편성 버전</span><select class="select" data-in="rs-version" aria-label="1차 편성 버전">' + (cur ? '' : '<option value="">버전을 고르세요</option>') +
-      list.map((v) => '<option value="' + esc(v.id) + '"' + (cur && cur.id === v.id ? ' selected' : '') + '>' + esc(v.name) + (PF().final.id(YEAR) === v.id ? ' (확정)' : '') + '</option>').join('') + '</select>' + (cur ? R.versionTag(cur) : '') + '</label>';
+    const f = R.versions()[0], cur = R.version();
+    if (!f) return '<div class="rs-empty"><b>확정한 일정이 없습니다</b><span>재편성은 확정한 일정으로 합니다. 실행 결과 비교에서 버전을 확정하세요.</span><button class="btn" data-act="pf-stage" data-stage="4">실행 결과 비교로</button></div>';
+    if (R.mismatch()) return R.mismatchBox();
+    return '<div class="rs-vpick"><span class="rs-lab">1차 편성</span><b class="rs-vname">' + esc((cur || f).name) + '</b>' + R.versionTag(cur || f) + '</div>';
+  };
+  /** 재편성을 시작한 뒤 다른 버전을 확정했을 때: 새 확정 일정으로 다시 시작할지 묻는 칸 */
+  R.mismatchBox = function () {
+    const old = R.mismatch(), f = R.versions()[0], st = rs(), n = (st.games || []).length;
+    const lost = ['표시한 취소 경기 ' + n + '개'].concat(st.result ? ['재편성 결과'] : [], R.published() ? ['발표한 재편성 일정'] : []).join(', ');
+    return '<div class="rs-empty"><b>확정한 일정이 바뀌었습니다</b><span>지금 재편성은 「' + esc(old.name) + '」으로 한 것입니다. 확정한 「' + esc(f.name) + '」으로 새로 시작하면 ' + esc(lost) + '을 지웁니다.</span>' +
+      '<button class="btn primary" data-act="rs-version-final">확정한 일정으로 새로 시작</button></div>';
   };
 
   /** 취소 표시 달력(한 달). 날을 누르면 그날 경기가 옆(또는 아래)에 나온다 */
@@ -637,13 +647,12 @@
     if (had) { R.ui.date = null; R.ui.month = null; } // 처음 고를 때는 주소의 날짜를 그대로(st는 commit 뒤 바뀐 값일 수 있어 미리 봐 둔다)
     return true;
   };
-  /** 처음 들어올 때: 확정한 버전 → 첫 버전을 저절로 고른다 */
+  /** 들어올 때 확정한 버전을 저절로 고른다. 다른 버전으로 해 둔 작업(취소 표시·결과·발표)이 남아 있으면 그대로 두고 묻는다(R.mismatchBox) */
   R.ensureVersion = function () {
-    if (R.version() || !PF()) return;
-    const list = R.versions();
-    if (!list.length) return;
-    const fin = PF().final.id(YEAR), v = list.find((x) => x.id === fin) || list[0];
-    S.quiet = true; try { R.chooseVersion(v.id, true); } finally { S.quiet = false; }
+    const f = R.versions()[0], st = rs();
+    if (!f || st.version === f.id) return;
+    if (st.version && R.version() && hasWork(st)) return;
+    S.quiet = true; try { R.chooseVersion(f.id, true); } finally { S.quiet = false; }
   };
   function setCancel(keys0, on, reason) {
     const b = R.base();
@@ -735,10 +744,10 @@
     'rs-team': (el) => { R.ui.team = R.ui.team === el.dataset.v ? '' : el.dataset.v; S.writeHash(); S.render(); },
     'rs-goto-day': (el) => { R.ui.date = el.dataset.date; R.ui.view = 'days'; R.scrollDay = el.dataset.date; S.writeHash(); S.render(); },
     'rs-xlsx': () => R.downloadXlsx(),
-    'rs-open': () => { if (S.locked && S.locked()) return; PF().open2027(); S.go({ step: 9, ops: null, modal: null, drawer: null }); }
+    'rs-open': () => { if (S.locked && S.locked()) return; PF().open2027(); S.go({ step: 9, ops: null, modal: null, drawer: null }); },
+    'rs-version-final': () => { const f = R.versions()[0]; if (f && R.chooseVersion(f.id, true)) { R.ui.page = 1; S.writeHash(); S.render(); } }
   });
   Object.assign(S.inputs, {
-    'rs-version': (el) => { if (el.value) R.chooseVersion(el.value); },
     'rs-rereason': (el) => { const id = el.dataset.g, d = el.dataset.date; commit('재편성 경기 취소 사유', (r) => { for (const g of r.games) if (g.game === id && g.date === d) g.reason = el.value; }); R.ui.dayReason = el.value; },
     'rs-reason': (el) => { const k = el.dataset.key; commit('취소 사유', (r) => { for (const g of r.games) if ('M:' + g.match + '|' + g.date === k) g.reason = el.value; }); R.ui.dayReason = el.value; },
     'rs-dayreason': (el) => { R.ui.dayReason = el.value; },

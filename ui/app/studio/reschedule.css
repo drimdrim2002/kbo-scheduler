@@ -13,7 +13,7 @@
 .rs-empty { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-size: 12.5px; color: var(--text-2); }
 .rs-vpick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rs-vpick .rs-lab { margin: 0; }
-.rs-vpick .select { min-width: 0; flex: 1 1 200px; max-width: 100%; }
+.rs-vpick .rs-vname { font-size: 14px; color: var(--navy); }
 
 /* 취소 달력 */
 .rs-mtabs { display: flex; gap: 2px; margin: 4px 0 6px; flex-wrap: wrap; }
@@ -209,14 +209,6 @@
 .rsc-chip.fx { border-color: var(--ok-line); }
 .rsc-chip.cx { text-decoration: line-through; color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
 .rsc-side tr.cx td.v { color: var(--bad); }
-
-/* 처음 화면 줄 */
-.pf-choices:has(.rs-home) { grid-template-rows: minmax(0, 1fr) auto; }
-.pf-choices .rs-home { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 18px; padding: 14px 24px; }
-.rs-home .rs-home-t { flex: 1; min-width: 0; }
-.rs-home h2 { font-size: 18px; }
-.rs-home .what { margin: 2px 0 0; }
-.rs-home-s { font-size: 13px; color: var(--text-2); }
 
 /* ───── 대안 B 배치: 세 쪽(취소 경기 → 기간·조건 → 결과) ───── */
 .rs-steps { overflow: hidden; }

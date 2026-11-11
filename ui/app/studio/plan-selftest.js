@@ -27,8 +27,8 @@
     try {
       // ── 처음 화면: 목적 아래에 연도
       const heads = qa('.pf-ch h2').map((h) => h.innerText), yrs = (i) => [...qa('.pf-ch')[i].querySelectorAll('.pf-yr .y')].map((y) => y.innerText);
-      ok('처음 화면: 결과 확인(2025) / 새 계획 만들기(2027) / 시즌 중 재편성 줄 — 확정 전 2027은 결과 확인에 없음', heads.join() === S.homeCopy.checkTitle + ',' + S.homeCopy.title + ',' + S.homeCopy.rsTitle && q('.pf-start h1').innerText === S.homeCopy.heading && yrs(0).join() === '2025' && yrs(1).join() === '2027', heads + ' / ' + yrs(0) + ' / ' + yrs(1));
-      ok('결과가 없으면 새 계획 > 2027은 검토 시작 단추(문구는 home-copy.js)', !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[1].querySelector('[data-act="pf-open-2027"]').innerText.includes(S.homeCopy.startButton));
+      ok('처음 화면: 확정 전에는 새 계획 만들기(2027) 카드 하나 — 2025 결과 확인·재편성 없음', heads.join() === S.homeCopy.title && q('.pf-start h1').innerText === S.homeCopy.heading && yrs(0).join() === '2027' && !q('.pf-start [data-act="pf-open-2025"]') && !q('.pf-start [data-act="rs-open"]'), heads + ' / ' + yrs(0));
+      ok('결과가 없으면 새 계획 > 2027은 검토 시작 단추(문구는 home-copy.js)', !q('[data-act="pf-open-2027"][data-to="result"]') && qa('.pf-ch')[0].querySelector('[data-act="pf-open-2027"]').innerText.includes(S.homeCopy.startButton));
       // ── 검토 게이트
       click('[data-act="pf-open-2027"]'); flush();
       ok('처음 들어가면 값은 있어도 「검토 전」', !S.flowStatus().allDone && S.flowStatus().stop === 1 && S.seasonYear() === 2027);
@@ -393,11 +393,11 @@
 
       // ── 처음 화면: 결과가 생긴 뒤 · 확정
       S.actions['pf-home'](); flush();
-      const cards = () => qa('.pf-ch'), yrsOf = (c) => [...c.querySelectorAll('.pf-yr .y')].map((y) => y.innerText).join();
-      ok('실행만 끝나면 결과 확인에 2027이 나오지 않음', yrsOf(cards()[0]) === '2025' && !cards()[0].querySelector('[data-act="pf-open-2027"]'));
-      ok('실행 결과는 새 계획 > 2027에서 결과 보기 · 다시 검토 단추(문구는 home-copy.js)', cards()[1].querySelector('[data-act="pf-open-2027"][data-to="result"]').innerText.includes(S.homeCopy.resultButton) && cards()[1].querySelector('[data-act="pf-open-2027"]:not([data-to])').innerText.includes(S.homeCopy.reviewButton));
-      const reviewBtn = cards()[1].querySelector('[data-act="pf-open-2027"]:not([data-to])'), resultBtn = cards()[1].querySelector('[data-to="result"]');
-      ok('편성 조건 검토가 먼저, 실행 결과 보기는 네 단계 아래', !!(reviewBtn.compareDocumentPosition(cards()[1].querySelector('ul')) & 4) && !!(cards()[1].querySelector('ul').compareDocumentPosition(resultBtn) & 4));
+      const cards = () => qa('.pf-ch'), yrsOf = (c) => [...c.querySelectorAll('.pf-yr .y')].map((y) => y.innerText).join(), newCard = () => cards()[cards().length - 1];
+      ok('실행만 끝나면 결과 확인 카드가 나오지 않음(확정 전)', cards().length === 1 && !q('[data-act="pf-open-final"]'));
+      ok('실행 결과는 새 계획 > 2027에서 결과 보기 · 다시 검토 단추(문구는 home-copy.js)', newCard().querySelector('[data-act="pf-open-2027"][data-to="result"]').innerText.includes(S.homeCopy.resultButton) && newCard().querySelector('[data-act="pf-open-2027"]:not([data-to])').innerText.includes(S.homeCopy.reviewButton));
+      const reviewBtn = newCard().querySelector('[data-act="pf-open-2027"]:not([data-to])'), resultBtn = newCard().querySelector('[data-to="result"]');
+      ok('편성 조건 검토가 먼저, 실행 결과 보기는 네 단계 아래', !!(reviewBtn.compareDocumentPosition(newCard().querySelector('ul')) & 4) && !!(newCard().querySelector('ul').compareDocumentPosition(resultBtn) & 4));
       click('[data-act="pf-open-2027"][data-to="result"]'); flush();
       ok('실행 결과 보기 → 현재 결과 화면', S.ui.step === 5 && S.seasonYear() === 2027);
       const finalKeep = P.versions.list(2027), vFinal = Object.assign({}, finalKeep[0], { id: 'v-final', name: '확정할 버전', engine: 'REST', feasible: true, inputs: finalKeep[0].inputs, gaps: Object.assign({}, finalKeep[0].gaps, { distanceKm: 1234.5 }) }), vTest = Object.assign({}, vFinal, { id: 'v-test', name: '시험 버전', engine: 'MOCK' }), vRule = Object.assign({}, vFinal, { id: 'v-bad', name: '규칙 어긴 버전', feasible: false }), vNext = Object.assign({}, vFinal, { id: 'v-next', name: '다음 버전' });
@@ -416,16 +416,19 @@
       click('[data-act="pf-final"][data-id="v-final"]'); flush();
       const planAtFinal = JSON.stringify(st().plan), resAtFinal = JSON.stringify(st().meta.result);
       S.actions['pf-home'](); flush();
-      ok('확정하면 결과 확인에 2027 줄', yrsOf(cards()[0]) === '2025,2027' && /확정할 버전/.test(cards()[0].innerText) && !!cards()[0].querySelector('[data-act="pf-open-final"]'));
+      ok('확정하면 결과 확인 카드에 2027 줄 · 보기·재편성 단추', cards().length === 2 && yrsOf(cards()[0]) === '2027' && /확정할 버전/.test(cards()[0].innerText) && !!cards()[0].querySelector('[data-act="pf-open-final"]') && !!cards()[0].querySelector('[data-act="rs-open"]'));
       click('[data-act="pf-open-final"]'); flush();
       ok('결과 확인 > 2027 → 확정 일정 화면(단계 띠 없음 · 확정한 숫자)', S.ui.step === 7 && document.body.classList.contains('pf-ro') && /확정할 버전/.test(page()) && /1,234.5km/.test(page()), S.ui.step);
       ok('확정 일정을 봐도 작업 중인 값·결과는 그대로', JSON.stringify(st().plan) === planAtFinal && JSON.stringify(st().meta.result) === resAtFinal);
       S.go({ step: 6 }); flush();
       click('[data-act="pf-final-off"]'); flush();
       S.actions['pf-home'](); flush();
-      ok('확정 취소 → 결과 확인에서 빠지고 버전은 남음', !P.final.id(2027) && yrsOf(cards()[0]) === '2025' && !!P.versions.get(2027, 'v-final'));
+      ok('확정 취소 → 결과 확인 카드가 빠지고 버전은 남음', !P.final.id(2027) && cards().length === 1 && !!P.versions.get(2027, 'v-final'));
       S.go({ step: 7 }); flush();
       ok('확정 없이 확정 화면 주소로 오면 처음 화면', S.ui.step === 1);
+      click('[data-act="pf-open-2027"]:not([data-to])'); flush();
+      S.go({ step: 9 }); flush();
+      ok('확정 없이 재편성 주소로 오면 처음 화면', S.ui.step === 1, S.ui.step + ' / ' + S.seasonYear());
       window.confirm = askedConfirm; P.versions.put(2027, finalKeep); P.cmp = []; P.cmpPicked = false; flush();
 
       // ── 2025 · 주소
@@ -442,14 +445,13 @@
       {
         const R = S.rs, rsSt = () => st().reschedule, cf0 = window.confirm;
         window.confirm = () => true;
+        P.final.set(2027, '2027-rank1');
         S.actions['pf-home'](); flush();
-        ok('처음 화면: 「시즌 중 재편성」 줄 · 재편성 단추', !!q('.rs-home [data-act="rs-open"]'));
-        click('.rs-home [data-act="rs-open"]'); flush();
-        ok('재편성 화면(단계 띠 없음) · 버전을 저절로 고름', S.ui.step === 9 && document.body.classList.contains('pf-rs') && !!rsSt().version && !!q('select[data-in="rs-version"]'));
-        const sel = q('select[data-in="rs-version"]');
-        ok('버전 목록: 규칙을 지킨 2027 버전만', [...sel.options].every((o) => !o.value || (P.versions.get(2027, o.value) || {}).feasible !== false) && [...sel.options].some((o) => o.value === '2027-rank1'));
-        sel.value = '2027-rank1'; sel.dispatchEvent(new Event('change', { bubbles: true })); flush();
-        ok('버전 고름 → 기간 시작 = 1차 편성 마지막 날 다음 날', rsSt().version === '2027-rank1' && rsSt().start === Dates.isoDate(Dates.dayNum(R.base().last) + 1) && !rsSt().games.length);
+        ok('처음 화면: 확정한 일정 줄에 재편성 단추(따로 재편성 줄은 없음)', !!q('.pf-ch [data-act="rs-open"]') && !q('.rs-home'));
+        click('.pf-ch [data-act="rs-open"]'); flush();
+        ok('재편성 화면(단계 띠 없음) · 확정한 버전을 저절로 고름 · 고르는 칸 없음', S.ui.step === 9 && document.body.classList.contains('pf-rs') && rsSt().version === '2027-rank1' && !q('select[data-in="rs-version"]') && /확정/.test((q('.rs-vpick') || {}).innerText || ''));
+        ok('재편성 대상: 확정한 버전 하나', R.versions().length === 1 && R.versions()[0].id === '2027-rank1');
+        ok('기간 시작 = 1차 편성 마지막 날 다음 날', rsSt().start === Dates.isoDate(Dates.dayNum(R.base().last) + 1) && !rsSt().games.length);
         click('[data-act="rs-month"][data-m="8"]'); flush();
         click('.rs-cal .rs-d.has'); flush();
         const day = R.ui.date, n0 = R.base().byDate.get(day).length;
@@ -539,8 +541,14 @@
         click('.rs-cal .rs-d.has'); flush();
         click('.rs-day [data-act="rs-cancel"][data-v="1"]'); flush();
         ok('결과 뒤 취소를 더하면 「다시 실행」 안내', R.stale(R.result()) && /발표함 · 새 취소 있음/.test(page()));
-        const other = [...q('select[data-in="rs-version"]').options].find((o) => o.value && o.value !== '2027-rank1');
-        if (other) { setIn('select[data-in="rs-version"]', other.value); ok('다른 버전 → 취소 표시·결과·발표한 일정 지움', rsSt().version === other.value && !rsSt().games.length && !rsSt().result && !rsSt().plan.length && !rsSt().published); }
+        const other = P.versions.get(2027, '2027-rank2');
+        if (other && other.feasible !== false) {
+          const g0 = rsSt().games.length;
+          P.final.set(2027, other.id); S.go({ step: 9 }); flush();
+          ok('다른 버전을 확정하면 작업을 지우지 않고 묻는다', rsSt().version === '2027-rank1' && rsSt().games.length === g0 && !!q('[data-act="rs-version-final"]') && !q('.rs-band'));
+          click('[data-act="rs-version-final"]'); flush();
+          ok('「확정한 일정으로 새로 시작」 → 취소 표시·결과·발표한 일정 지움', rsSt().version === other.id && !rsSt().games.length && !rsSt().result && !rsSt().plan.length && !rsSt().published && !!q('.rs-band'));
+        }
         R.ui.view = 'grid'; S.go({ step: 9 }); flush();
         ok('재편성 아래 줄: 처음 화면으로', !!q('.footer [data-act="pf-home"]'));
         window.confirm = cf0;

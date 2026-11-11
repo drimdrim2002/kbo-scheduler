@@ -140,14 +140,16 @@
   S.steps[9] = {
     render() {
       R.ensureVersion();
-      if (!R.versions().length && S.planFlow && !S.planFlow.builtinFailed && !Object.keys(S.planFlow.builtin).length) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>저장한 버전을 불러오는 중입니다</h3></div></div></div>';
+      if (!R.versions().length && S.planFlow && !S.planFlow.builtinFailed && !Object.keys(S.planFlow.builtin).length) return '<div class="stepview no-band"><div class="pf-page"><div class="pf-sec"><h3>확정한 일정을 불러오는 중입니다</h3></div></div></div>';
+      const head = '<div class="rs-head"><h2>재편성</h2><span>확정한 일정 뒤, 취소 경기와 잔여 경기를 날짜마다 넣습니다</span></div>';
+      if (R.mismatch()) return '<div class="stepview no-band"><div class="pf-page rs-page rs-steps">' + head + '<div class="pf-sec">' + R.mismatchBox() + '</div></div></div>';
       // 실행이 끝나 결과가 생기면 결과 쪽으로
       const run = R.running();
       if (wasRunning && !run && R.result() && !R.stale(R.result())) { R.ui.page = 3; setTimeout(() => S.writeHash(), 0); }
       wasRunning = run;
       const p = page();
       return '<div class="stepview no-band"><div class="pf-page rs-page rs-steps">' +
-        '<div class="rs-head"><h2>재편성</h2><span>1차 편성 뒤, 취소 경기와 잔여 경기를 날짜마다 넣습니다</span></div>' + R.publishedLine() + band() +
+        head + R.publishedLine() + band() +
         '<div class="rs-pg rs-pg' + p + '">' + (p === 1 ? page1() : p === 2 ? page2() : page3()) + '</div></div></div>';
     },
     after() {
@@ -168,6 +170,7 @@
     goRecancel(date) { R.ui.page = 1; R.ui.date = date; R.ui.month = Number(date.slice(5, 7)); S.writeHash(); S.render(); },
     goRerun() { R.ui.page = 2; S.writeHash(); S.render(); },
     footer() {
+      if (R.mismatch()) return '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button><span class="hint"><b>재편성</b> — 확정한 일정으로 새로 시작하거나 처음 화면으로 갑니다</span>';
       const p = page(), r = R.result();
       const prev = p === 1 ? '<button class="btn" data-act="pf-home">' + icon('left') + '처음 화면</button>' : '<button class="btn" data-act="rs-page" data-p="' + (p - 1) + '">' + icon('left') + '이전: ' + PAGES[p - 2][1] + '</button>';
       const hint = '<span class="hint"><b>' + p + ' / 3 ' + PAGES[p - 1][1] + '</b> — ' + PAGES[p - 1][2] + '</span>';
@@ -175,10 +178,6 @@
         : p === 2 ? (r ? '<button class="btn" data-act="rs-page" data-p="3">결과 보기' + icon('right') + '</button>' : '')
           : r ? (R.isPublished(r) ? (R.stale(r) ? '<button class="btn primary" data-act="rs-page" data-p="2">다시 짜기' + icon('right') + '</button>' : '<button class="btn" data-act="rs-page" data-p="1">발표한 경기 취소 표시' + icon('right') + '</button>') : R.publishButton(r)) : '';
       return prev + hint + next;
-    },
-    homeEntry() {
-      const C = S.homeCopy, n = R.versions().length;
-      return '<div class="pf-ch rs-home"><div class="rs-home-t"><h2>' + esc(C.rsTitle) + '</h2><p class="what">' + esc(C.rsLead) + '</p></div><div class="rs-home-s">' + (n ? '2027 저장한 버전 ' + n + '개 중 하나로' : '2027 버전을 저장하면 쓸 수 있습니다') + '</div><button class="btn' + (n ? ' primary' : '') + '" data-act="rs-open">' + esc(C.rsButton) + icon('right') + '</button></div>';
     }
   };
 })();
