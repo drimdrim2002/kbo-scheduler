@@ -38,6 +38,9 @@ final class SolveJob {
     volatile java.util.function.Consumer<JSONObject> onDone;
     /** 서버가 스스로 낸 작업(기본 결과). 지켜보는 사람이 없어도 취소하지 않는다. */
     volatile boolean unattended;
+    /** 끝날 때 한 줄 남긴다(없으면 남기지 않는다). */
+    volatile CallHistory history;
+    private boolean recorded;
 
     SolveJob(String id, String cacheKey, String clientIp, JSONObject problem, SolveOptions options) {
         this.id = id;
@@ -87,20 +90,43 @@ final class SolveJob {
         return finishedAt;
     }
 
-    synchronized void done(JSONObject payload, boolean stopped) {
-        status = stopped ? Status.STOPPED : Status.DONE;
-        finishedAt = System.currentTimeMillis();
-        terminal = new Event("done", Json.str(payload));
-        publish(terminal);
-        subscribers.clear();
+    void done(JSONObject payload, boolean stopped) {
+        boolean first;
+        synchronized (this) {
+            status = stopped ? Status.STOPPED : Status.DONE;
+            finishedAt = System.currentTimeMillis();
+            terminal = new Event("done", Json.str(payload));
+            publish(terminal);
+            subscribers.clear();
+            first = markRecorded();
+        }
+        CallHistory h = history;
+        if (first && h != null) {
+            h.finished(this, stopped ? Status.STOPPED.name() : Status.DONE.name(), payload, null);
+        }
     }
 
-    synchronized void error(String message) {
-        status = Status.ERROR;
-        finishedAt = System.currentTimeMillis();
-        terminal = new Event("error", Json.str(Json.obj("jobId", id, "message", message)));
-        publish(terminal);
-        subscribers.clear();
+    void error(String message) {
+        boolean first;
+        synchronized (this) {
+            status = Status.ERROR;
+            finishedAt = System.currentTimeMillis();
+            terminal = new Event("error", Json.str(Json.obj("jobId", id, "message", message)));
+            publish(terminal);
+            subscribers.clear();
+            first = markRecorded();
+        }
+        CallHistory h = history;
+        if (first && h != null) {
+            h.finished(this, Status.ERROR.name(), null, message);
+        }
+    }
+
+    /** 이력은 작업마다 한 줄: 처음 끝날 때만 true. */
+    private boolean markRecorded() {
+        boolean first = !recorded;
+        recorded = true;
+        return first;
     }
 
     /** 현재 상태를 먼저 재생하고 이후 이벤트를 받는 큐를 돌려준다. */

@@ -52,6 +52,8 @@ final class JobManager {
     private final Map<String, JSONObject> cache;
     private final Map<String, Integer> activePerIp = new HashMap<>();
     private final ResultStore store;
+    /** 엔진 호출 이력(없으면 남기지 않는다). */
+    private volatile CallHistory history;
 
     JobManager(ServerLimits limits, ResultStore store) {
         this(limits, store, Executors.newSingleThreadExecutor(r -> {
@@ -85,6 +87,14 @@ final class JobManager {
 
     SolveJob get(String id) {
         return jobs.get(id);
+    }
+
+    void history(CallHistory history) {
+        this.history = history;
+    }
+
+    CallHistory history() {
+        return history;
     }
 
     synchronized int queueLength() {
@@ -126,6 +136,26 @@ final class JobManager {
 
     /** unattended: 서버가 스스로 낸 작업이라 지켜보는 사람이 없어도 빼지 않는다. */
     SolveJob submit(JSONObject problem, SolveOptions options, String clientIp, boolean unattended) {
+        try {
+            return submitChecked(problem, options, clientIp, unattended);
+        } catch (RejectedException e) {
+            recordRejected(problem, options, clientIp, e.httpStatus, e);
+            throw e;
+        } catch (RuntimeException e) {
+            // 서버는 IllegalArgumentException을 400, 그 밖을 500으로 돌려준다(BaseballWebServer.dispatch)
+            recordRejected(problem, options, clientIp, e instanceof IllegalArgumentException ? 400 : 500, e);
+            throw e;
+        }
+    }
+
+    private void recordRejected(JSONObject problem, SolveOptions options, String clientIp, int httpStatus, RuntimeException e) {
+        CallHistory h = history;
+        if (h != null) {
+            h.rejected(problem, options, clientIp, httpStatus, e.getMessage() == null ? e.toString() : e.getMessage());
+        }
+    }
+
+    private SolveJob submitChecked(JSONObject problem, SolveOptions options, String clientIp, boolean unattended) {
         if (SolveOptions.RESCHEDULE.equals(options.mode())) {
             // 형식 오류·규칙을 어긴 발표 일정은 큐에 넣기 전에 400으로 돌려준다
             RescheduleCodec.parse(problem);
@@ -151,6 +181,7 @@ final class JobManager {
         String id = UUID.randomUUID().toString().substring(0, 8);
         SolveJob job = new SolveJob(id, cacheKey, clientIp, problem, options);
         job.unattended = unattended;
+        job.history = history;
         JSONObject cached;
         synchronized (this) {
             cached = cache.get(cacheKey);

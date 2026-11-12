@@ -13,6 +13,9 @@ data/results/*
 # 연도별 구단 간 거리(서버에 저장한 값)
 data/distances/
 
+# 엔진 호출 이력(보낸 입력 포함, 서버에만 쌓인다)
+data/history/
+
 # 비밀 값·만든 설정(카카오 지도 키 등). 예시는 .env.example
 .env
 ui/config.local.json

@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import org.optaplanner.core.api.score.buildin.bendablelong.BendableLongScore;
@@ -61,8 +62,13 @@ import org.slf4j.LoggerFactory;
  * GET  /api/v1/distances/{year}          그 해 구단 간 거리 → { year, savedAt, teams, distances }
  * POST /api/v1/distances/{year}          { password, teams, distances } → { year, savedAt, count }
  *                                        (data/distances/{year}.json, 서버 환경 변수 KBO_ADMIN_PASSWORD가 있을 때만)
+ * POST /api/v1/history                  { password, date? } → { dates[], date, entries[] } 편성 기록(그 날, 입력·일정 뺌, index 붙음)
+ * POST /api/v1/history/entry            { password, date, index } → 기록 한 건 전체(보낸 입력 포함). 둘 다 KBO_ADMIN_PASSWORD
+ * GET  /studio/admin                     → /studio/admin/ (ui/admin/, 편성 기록 화면)
  * GET  /...                              ui/ 아래 정적 파일 (/ → index.html)
  * </pre>
+ *
+ * 편성 요청은 한 번마다 결과 폴더 옆 history/<한국 날짜>.jsonl에 한 줄씩 남는다(보낸 입력 포함, {@link CallHistory}).
  *
  * 실행: {@code java ... BaseballWebServer [--port 8080] [--ui ui] [--max-seconds 30] [--seeds N]}
  */
@@ -104,6 +110,11 @@ public final class BaseballWebServer {
         this.showRoot = this.uiRoot == null ? null : this.uiRoot.resolve("show");
         ResultStore store = new ResultStore(dataDir);
         this.jobs = new JobManager(limits, store);
+        try {
+            this.jobs.history(new CallHistory(dataDir.toAbsolutePath().normalize().resolveSibling("history"))); // 결과 폴더 옆
+        } catch (IOException e) {
+            LOG.warn("call history off: folder not writable", e); // 이력을 못 남겨도 서버는 뜬다
+        }
         jobs.startSweeper();
         this.showcase = new Showcase(jobs, store, limits, inputFile);
         SolverConfig config = BenchSupport.solverConfig(0, 1, "NONE", null, null);
@@ -251,6 +262,25 @@ public final class BaseballWebServer {
             sendJson(ex, 200, distances.save(year, body));
             return;
         }
+        if (("history".equals(rest) || "history/entry".equals(rest)) && "POST".equals(method)) {
+            JSONObject body = readJsonObject(ex);
+            admin.check(Json.asString(body.get("password"), ""), clientIp(ex));
+            CallHistory history = jobs.history();
+            if (history == null) {
+                throw new JobManager.RejectedException(503, "이 서버는 편성 기록을 남기지 않습니다.");
+            }
+            if ("history/entry".equals(rest)) {
+                sendJson(ex, 200, history.entry(Json.asString(body.get("date"), null), Json.asLong(body.get("index"), -1)));
+                return;
+            }
+            JSONArray dates = history.dates();
+            String date = Json.asString(body.get("date"), null);
+            if (date == null) {
+                date = dates.isEmpty() ? java.time.LocalDate.now(CallHistory.KST).toString() : (String) dates.get(0);
+            }
+            sendJson(ex, 200, Json.obj("dates", dates, "date", CallHistory.checkDate(date), "entries", history.summaries(date)));
+            return;
+        }
         if ("solve".equals(rest) && "POST".equals(method)) {
             JSONObject body = readJsonObject(ex);
             JSONObject problem = Json.object(body.get("problem"));
@@ -396,6 +426,9 @@ public final class BaseballWebServer {
         if ("/engine".equals(rel) && showRoot != null) {
             return showRoot.resolve("engine.html");
         }
+        if ("/studio/admin".equals(rel)) {
+            return null; // serveStatic이 /studio/admin/으로 보낸다(상대 주소가 맞게)
+        }
         if (rel.startsWith("/studio/")) {
             String sub = rel.substring("/studio/".length());
             return uiRoot.resolve(sub.isEmpty() ? "index.html" : sub).normalize();
@@ -418,6 +451,12 @@ public final class BaseballWebServer {
             return;
         }
         Path file = resolveStatic(path);
+        if (file == null) {
+            ex.getResponseHeaders().set("Location", path + "/");
+            ex.sendResponseHeaders(302, -1);
+            ex.close();
+            return;
+        }
         if (!file.startsWith(uiRoot) || !Files.isRegularFile(file)) {
             sendJson(ex, 404, Json.obj("error", "없는 파일: " + path));
             return;
