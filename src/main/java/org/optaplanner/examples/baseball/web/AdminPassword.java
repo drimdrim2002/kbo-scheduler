@@ -35,7 +35,7 @@ final class AdminPassword {
     /** 맞으면 그대로 돌아오고, 아니면 RejectedException: 설정 없음 503 · 시도 초과 429 · 틀림 403. */
     synchronized void check(String password, String ip) {
         if (!configured()) {
-            throw new JobManager.RejectedException(503, "서버에 관리자 비밀번호가 설정되어 있지 않아 저장할 수 없습니다.");
+            throw new JobManager.RejectedException(503, "서버에 관리자 비밀번호가 설정되어 있지 않습니다.");
         }
         long now = System.currentTimeMillis();
         String who = ip == null ? "?" : ip;
