@@ -109,24 +109,27 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-num .v { font-size: 20px; font-weight: 800; color: var(--navy); } .pf-num .v small { font-size: 12px; font-weight: 600; }
 .pf-num .s { font-size: 11.5px; color: var(--text-3); }
 
-/* 운영 방침(사용자 확정 2026-11-12, 선택안 B): ① 머리글(형평성 설명) ② 카드 둘 — 어느 쪽의 형평성을 먼저 맞출지 ③ 접어 둔 허용 수준(요약 한 줄, 「바꾸기」로 펼치면 관점별 세 칸).
+/* 운영 방침(사용자 확정 2026-11-12, 선택안 B에서 허용 수준만 늘 펼침): ① 머리글(형평성 설명) ② 카드 둘 — 어느 쪽의 형평성을 먼저 맞출지 ③ 허용 수준(관점별 두 칸이 고른 순서대로).
    칸은 내용 높이만 쓴다. 창이 내용보다 높아도 칸을 늘리지 않고 남는 자리는 아래에 둔다(늘리면 카드가 비어 보인다). 창 크기에 따라 배치를 바꾸지 않는다 */
-.pf-page.pf-spread { padding-top: 10px; padding-bottom: 10px; gap: 10px; } /* 노트북(1440×790)에서 허용 수준을 펼쳐도 한 화면에 들어오는 여백 */
+.pf-page.pf-spread { padding-top: 10px; padding-bottom: 10px; gap: 10px; } /* 노트북(1440×790)에서 한 화면에 들어오는 여백 */
 .pf-spread .pf-sec { padding: 12px 18px; }
 .pf-spread .pf-sec > .pf-d { margin: 2px 0 8px; font-size: 13px; }
 .pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
 .pf-head h2 .r { margin-left: 4px; font-weight: 400; font-size: 12.5px; } /* 제목 바로 오른쪽(사용자 결정 2026-11-02) */
 .pf-spread .pf-head > .pf-d { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; max-width: 1040px; text-wrap: balance; }
 .pf-head .pf-d b { color: var(--navy); }
+/* 순서 표 「먼저」(남색) · 「그다음」(테두리만): 카드와 허용 수준 칸이 같은 표를 쓴다 */
+.pf-rk.next { background: #fff; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line-2); }
 /* 관점 표시: 「선수」「구단」 */
 .pf-who { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 6px; line-height: 18px; flex: none; white-space: nowrap; }
-/* ② 카드 둘(직접 정하기를 켜면 셋): 이름 → 설명 한 줄 → 재는 것 · 지키는 것 · 내주는 것 */
+/* ② 카드 둘(직접 정하기를 켜면 셋): 「먼저」/「그다음」 표 + 관점 이름 → 설명 한 줄 → 재는 것 · 지키는 것 · 내주는 것 */
 .pf-orders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .pf-orders.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .pf-oc { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 16px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
 .pf-oc:hover { border-color: var(--blue-line); }
 .pf-oc.on { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
 .pf-oc h4 { margin: 0 0 4px; font-size: 16px; color: var(--navy); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pf-oc h4 small { font-size: 12px; font-weight: 400; color: var(--text-3); }
 .pf-oc p { margin: 0 0 8px; font-size: 13px; color: var(--text-2); }
 .pf-kg { margin: 0; display: grid; gap: 3px; font-size: 12.5px; line-height: 1.5; }
 .pf-kg div { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
@@ -144,12 +147,9 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-mv { display: inline-flex; gap: 2px; vertical-align: 1px; }
 .pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
 .pf-mv button:disabled { opacity: .3; cursor: default; }
-/* ③ 허용 수준: 접힌 한 줄(제목 · 「기본값 그대로」/「바꾼 값」 + 세 숫자 · 「바꾸기」). 펼치면 선수 칸(이동 횟수 · 이동 거리)이 2, 구단 칸(휴일 홈경기)이 1 */
-.pf-fold { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; font-size: 13.5px; }
-.pf-fold h3 { margin: 0; font-size: 15px; color: var(--navy); }
-.pf-fold .sum b { color: var(--navy); }
-.pf-fold .pf-link { font-weight: 700; }
-.pf-spread #pf-levels > .pf-d { margin: 6px 0 0; }
+/* ③ 허용 수준: 늘 펼쳐 보인다. 관점별 두 칸은 고른 순서대로 — 먼저 맞출 쪽이 왼쪽. 선수 칸(이동 횟수 · 이동 거리)이 2, 구단 칸(휴일 홈경기)이 1 */
+.pf-spread #pf-levels > .pf-d { margin: 2px 0 0; }
+.pf-lv3.club-first { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 .pf-lv3 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-top: 8px; align-items: start; }
 .pf-lv3 .grp { border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px 10px; min-width: 0; }
 .pf-lv3 .grp > h4 { margin: 0; font-size: 13px; color: var(--navy); display: flex; gap: 6px; align-items: center; }

@@ -15,7 +15,8 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const page = () => (q('#app') || document.body).innerText;
   const ev = (t) => st().events.find((e) => e.type === t);
-  const setBox = (i, v) => { const el = qa('input[data-in="pf-gap"]:not([type=range])')[i]; el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
+  // 허용 수준 숫자 칸: 0 이동 횟수 · 1 이동 거리 · 2 휴일 홈경기(화면의 칸 순서는 고른 쪽에 따라 바뀌므로 이름으로 찾는다)
+  const setBox = (i, v) => { const el = q('#pf-levels input[data-in="pf-gap"][data-k="' + ['moveGap', 'distanceGapKm', 'holidayGap'][i] + '"]:not([type=range])'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); flush(); };
   const ob = () => st().settings.objective;
   // 규칙을 어긴 결과는 저장하지 않는다. 시험 엔진은 짧은 시간에 규칙을 다 맞추지 못할 수 있어, 그때는 지킨 결과처럼 다시 기록해 이후 점검(저장·번호·불러오기)을 이어 간다
   let forcedRuns = 0;
@@ -89,11 +90,12 @@
       const hasKT = (ms) => ms.some((m) => m.home === 'KIA' && m.away === '키움') && ms.some((m) => m.home === '삼성' && m.away === 'NC');
       ok('다음 → 시리즈를 다시 만들어 개막전·후반기 첫 4연전이 새 대진을 따름', S.ui.step === 2 && S.seriesOkOf(st()) && hasKT(slotMatches(0)) && hasKT(slotMatches(four)));
 
-      // ── 운영 방침 → settings.objective (선택안 B, 사용자 확정 2026-11-12: 카드 둘 + 접어 둔 허용 수준)
-      const cardNames = () => qa('.pf-oc h4').map((h) => h.textContent.replace(/^선택/, '').replace(/^(선수|구단)/, '').trim()).join();
+      // ── 운영 방침 → settings.objective (선택안 B, 사용자 확정 2026-11-12: 카드 둘 + 늘 보이는 허용 수준, 고른 쪽이 「먼저」)
+      const cardNames = () => qa('.pf-oc h4 .nm').map((h) => h.innerText.trim()).join();
+      const cardTags = () => qa('.pf-oc[data-id]').map((c) => c.dataset.id + ':' + ((c.querySelector('h4 .pf-rk') || {}).innerText || '')).join();
       const policy = () => q('.footer .pf-policy').innerText;
       const pageText = () => q('.pf-page').innerText;
-      const sumText = () => q('#pf-levels .pf-fold .sum').innerText;
+      const grpOrder = () => qa('#pf-levels .pf-lv3 > .grp').map((g) => g.dataset.view + ':' + ((g.querySelector('h4 .pf-rk') || {}).innerText || '')).join();
       const stepBtn = (k, d) => q('[data-act="pf-gap-step"][data-k="' + k + '"][data-d="' + d + '"]');
       const rangeOf = (k) => q('#pf-levels input[type=range][data-k="' + k + '"]');
       const boxOf = (k) => q('#pf-levels input[data-in="pf-gap"][data-k="' + k + '"]:not([type=range])');
@@ -102,35 +104,35 @@
       ok('머리글: 「운영 방침 정하기」 · 첫 문장은 형평성 · 두 관점(선수의 이동 부담 · 구단의 휴일 관중) · 설명 링크(제목 바로 오른쪽)', /운영 방침 정하기/.test(q('.pf-head h2').innerText) && /운영 방침은 일정의 형평성을 기준으로 정합니다\./.test(q('.pf-head .pf-d').innerText) && /선수의 이동 부담과 구단의 휴일 관중입니다/.test(q('.pf-head .pf-d').innerText) && /구단마다 고르게/.test(q('.pf-head .pf-d').innerText) && q('.pf-head h2 [data-act="pf-explain"]').getBoundingClientRect().left - q('.pf-head h2').getBoundingClientRect().left < 320);
       ok('없어진 것: 가로 띠 · 목표 네 칸 · 「지금 순위」 칸 · 옛 말(격차 · 순위 · 목표 · 운영의 묘 · 만족)', !q('.pf-band') && !q('.pf-goals') && !q('.pf-goals-lead') && !q('#pf-order-now') && !q('.pf-bridge') && !/격차|순위|목표|운영의 묘|만족|리그 전체 효율/.test(pageText()), (pageText().match(/격차|순위|목표|운영의 묘|만족/) || []).join());
       ok('단계 띠: 「운영 방침·실행」 · 아래 줄: 방침 요약 + 실행 단추 하나(화면 안에는 없음)', /운영 방침·실행/.test(q('#stepper').innerText) && /지금 방침/.test(policy()) && qa('[data-act="pf-run"]').length === 1 && !!q('.footer [data-act="pf-run"]') && !q('.pf-page [data-act="pf-run"]'));
-      ok('카드 둘: 이동 부담 먼저 (기본) · 휴일 관중 먼저(직접 정하기는 숨김) · 관점 표시 선수/구단 · 고른 카드는 「선택」 · 두 제목이 한 줄', /어느 쪽의 형평성을 먼저 맞출까요/.test(pageText()) && cardNames() === '이동 부담 먼저 (기본),휴일 관중 먼저' && !q('[data-act="pf-order-custom"]') && !q('[data-act="pf-move"]') && qa('.pf-oc .pf-who').map((e) => e.innerText).join() === '선수,구단' && /선택/.test(q('.pf-oc.on h4').innerText) && q('.pf-oc.on').dataset.id === 'balance' && new Set(qa('.pf-orders h4').map((h) => Math.round(h.getBoundingClientRect().top))).size === 1, cardNames());
+      ok('카드 둘: 선수 · 이동 부담(기본은 이쪽이 먼저) · 구단 · 휴일 관중(직접 정하기는 숨김) · 고른 카드는 「먼저」, 다른 카드는 「그다음」(「선택」 표 없음) · 두 제목이 한 줄', /어느 쪽의 형평성을 먼저 맞출까요/.test(pageText()) && cardNames() === '이동 부담,휴일 관중' && !q('[data-act="pf-order-custom"]') && !q('[data-act="pf-move"]') && qa('.pf-oc .pf-who').map((e) => e.innerText).join() === '선수,구단' && cardTags() === 'balance:먼저,holiday:그다음' && !/선택/.test(q('#pf-first').innerText) && /기본은 이쪽이 먼저/.test(q('.pf-oc[data-id="balance"] h4').innerText) && !/기본/.test(q('.pf-oc[data-id="holiday"] h4').innerText) && q('.pf-oc.on').dataset.id === 'balance' && new Set(qa('.pf-orders h4').map((h) => Math.round(h.getBoundingClientRect().top))).size === 1, cardNames());
       ok('카드마다 설명 한 줄 · 재는 것 · 지키는 것 · 내주는 것(단정하지 않음) · 모두의 이동은 선수 쪽에 「늘 마지막」', qa('.pf-oc[data-id]').every((c) => !!c.querySelector('p').innerText && [...c.querySelectorAll('.pf-kg dt')].map((d) => d.innerText).join() === '재는 것,지키는 것,내주는 것') && qa('.pf-oc[data-id] .pf-kg div:nth-child(3) dd').every((d) => /수 있음$/.test(d.innerText)) && /이동 횟수 · 이동 거리 · 모두의 이동\(늘 마지막\)/.test(q('.pf-oc[data-id="balance"]').innerText) && /휴일 홈경기 점수/.test(q('.pf-oc[data-id="holiday"]').innerText));
       ok('규칙 설명은 한 문장(「조금이라도 나은 결과」와 함께 적지 않음)', /먼저인 쪽이 허용 수준 안에 들어오면 그다음 쪽을 맞춥니다\. 둘 다 들어오면 모두의 이동을 줄입니다\. 반드시 지킬 규칙은 어느 순서든 지킵니다\./.test(pageText()) && !/조금이라도 나은/.test(pageText()));
-      ok('허용 수준은 접혀 있음: 요약 한 줄 「기본값 그대로」 + 세 숫자 + 「바꾸기」', !q('#pf-levels .pf-lv') && !q('#pf-levels input') && /^기본값 그대로 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점$/.test(sumText().trim()) && q('[data-act="pf-levels-toggle"]').innerText.trim() === '바꾸기' && q('[data-act="pf-levels-toggle"]').getAttribute('aria-expanded') === 'false', sumText());
+      ok('둘 다 맞춘다는 말이 카드 위에 있음(「하나를 고릅니다」로만 쓰지 않음)', /둘 다 맞춥니다\. 먼저 맞출 쪽을 고릅니다\./.test(q('#pf-first .pf-d').innerText) && !/하나를 고릅니다/.test(pageText()));
+      ok('허용 수준은 늘 펼쳐 보임(접기 · 바꾸기 단추 없음) · 처음에는 선수 칸이 「먼저」, 구단 칸이 「그다음」', qa('#pf-levels .pf-lv').length === 3 && !q('[data-act="pf-levels-toggle"]') && !q('#pf-levels .pf-fold') && grpOrder() === 'player:먼저,club:그다음' && qa('#pf-levels .pf-lv').map((e) => e.dataset.goal).join() === 'moves,distance,holiday', grpOrder());
       click('[data-act="pf-order"][data-id="holiday"]'); flush();
-      ok('「휴일 관중 먼저」 → 순서(모두의 이동은 마지막) · 그 카드가 「선택」 · 아래 줄 「구단의 휴일 관중 먼저」', ob().order.join() === 'holiday,moves,distance,total' && q('.pf-oc.on').dataset.id === 'holiday' && qa('.pf-oc.on').length === 1 && /지금 방침: 구단의 휴일 관중 먼저 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점/.test(policy()), policy());
+      ok('「휴일 관중 먼저」 → 순서(모두의 이동은 마지막) · 그 카드가 「먼저」, 다른 카드가 「그다음」 · 허용 수준도 구단 칸이 왼쪽 「먼저」 · 아래 줄 「구단의 휴일 관중 먼저」', ob().order.join() === 'holiday,moves,distance,total' && q('.pf-oc.on').dataset.id === 'holiday' && qa('.pf-oc.on').length === 1 && cardTags() === 'balance:그다음,holiday:먼저' && grpOrder() === 'club:먼저,player:그다음' && qa('#pf-levels .pf-lv').map((e) => e.dataset.goal).join() === 'holiday,moves,distance' && q('#pf-levels .pf-lv3').getBoundingClientRect().left <= q('.grp[data-view="club"]').getBoundingClientRect().left && q('.grp[data-view="club"]').getBoundingClientRect().left < q('.grp[data-view="player"]').getBoundingClientRect().left && /지금 방침: 구단의 휴일 관중 먼저 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점/.test(policy()), policy());
       // 옛 프로젝트·저장 버전: 두 카드와 다른 순서는 그대로 두고 「직접 정한 순서」로 부른다
       setOb({ order: ['moves', 'holiday', 'distance', 'total'] });
-      ok('두 카드와 다른 순서 → 고른 카드 없음 · 카드 아래 「직접 정한 순서」 한 줄(화살표 없음) · 아래 줄도 같은 이름', !q('.pf-oc.on') && /직접 정한 순서/.test(q('#pf-order-now').innerText) && qa('#pf-order-now li .nm').map((e) => e.innerText).join() === '이동 횟수,휴일 홈경기,이동 거리,모두의 이동' && /마지막/.test(qa('#pf-order-now li')[3].innerText) && !q('#pf-order-now [data-act="pf-move"]') && /카드를 고르면 그 순서로 바뀝니다/.test(q('#pf-order-now').innerText) && /지금 방침: 직접 정한 순서 · /.test(policy()) && P.optionOf(ob()) === 'custom');
+      ok('두 카드와 다른 순서 → 고른 카드 없음(카드에 먼저/그다음 표도 없음) · 카드 아래 「직접 정한 순서」 한 줄(화살표 없음) · 아래 줄도 같은 이름 · 허용 수준 칸에는 먼저/그다음 표가 없음', !q('.pf-oc.on') && cardTags() === 'balance:,holiday:' && /직접 정한 순서/.test(q('#pf-order-now').innerText) && qa('#pf-order-now li .nm').map((e) => e.innerText).join() === '이동 횟수,휴일 홈경기,이동 거리,모두의 이동' && /마지막/.test(qa('#pf-order-now li')[3].innerText) && !q('#pf-order-now [data-act="pf-move"]') && /카드를 고르면 그 순서로 바뀝니다/.test(q('#pf-order-now').innerText) && /지금 방침: 직접 정한 순서 · /.test(policy()) && P.optionOf(ob()) === 'custom' && grpOrder() === 'player:,club:' && qa('#pf-levels .pf-lv').map((e) => e.dataset.goal).join() === 'moves,distance,holiday');
       S.actions['pf-move']({ dataset: { k: '0', d: '1' } }); S.actions['pf-order-custom']({}); flush();
       ok('꺼 둔 「직접 정하기」 동작은 불러도 그대로', ob().order.join() === 'moves,holiday,distance,total' && !P.customOrder && P.showDiy === false);
       // 스위치 하나로 다시 보인다(코드는 남겨 두었다)
       P.showDiy = true; flush();
-      ok('스위치를 켜면: 「직접 정하기」 카드 · 순서 줄에 화살표(모두의 이동 줄에는 없음)', cardNames() === '이동 부담 먼저 (기본),휴일 관중 먼저,직접 정하기' && /직접 정하기/.test(q('.pf-oc.on').innerText) && qa('#pf-order-now [data-act="pf-move"]').length === 6 && !q('[data-act="pf-move"][data-k="3"]') && q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="2"][data-d="1"]').disabled);
+      ok('스위치를 켜면: 「직접 정하기」 카드 · 순서 줄에 화살표(모두의 이동 줄에는 없음)', cardNames() === '이동 부담,휴일 관중,직접 정하기' && /선택/.test(q('.pf-oc.on h4').innerText) && /직접 정하기/.test(q('.pf-oc.on').innerText) && qa('#pf-order-now [data-act="pf-move"]').length === 6 && !q('[data-act="pf-move"][data-k="3"]') && q('[data-act="pf-move"][data-k="0"][data-d="-1"]').disabled && q('[data-act="pf-move"][data-k="2"][data-d="1"]').disabled);
       click('[data-act="pf-move"][data-k="0"][data-d="1"]'); flush();
       S.actions['pf-move']({ dataset: { k: '2', d: '1' } }); flush();
       ok('켠 채로 ▼ → 순서가 바뀌고 직접 정하기로 남음 · 모두의 이동은 마지막 그대로', ob().order.join() === 'holiday,moves,distance,total' && /직접 정하기/.test(q('.pf-oc.on').innerText) && /지금 방침: 직접 정한 순서/.test(policy()));
       P.showDiy = false; P.customOrder = false; flush();
-      ok('스위치를 끄면 카드 둘로 돌아오고 같은 순서의 카드가 「선택」', cardNames() === '이동 부담 먼저 (기본),휴일 관중 먼저' && q('.pf-oc.on').dataset.id === 'holiday' && !q('#pf-order-now'));
-      // 허용 수준 펼치기
-      click('[data-act="pf-levels-toggle"]'); flush();
-      ok('「바꾸기」 → 펼침: 선수 · 이동 부담 아래 이동 횟수 · 이동 거리, 구단 · 휴일 관중 아래 휴일 홈경기 · 단추는 「접기」', qa('#pf-levels .grp[data-view="player"] .pf-lv').map((e) => e.dataset.goal).join() === 'moves,distance' && qa('#pf-levels .grp[data-view="club"] .pf-lv').map((e) => e.dataset.goal).join() === 'holiday' && /^선수\s*이동 부담$/.test(q('.grp[data-view="player"] > h4').innerText.trim()) && /^구단\s*휴일 관중$/.test(q('.grp[data-view="club"] > h4').innerText.trim()) && q('[data-act="pf-levels-toggle"]').innerText.trim() === '접기' && q('[data-act="pf-levels-toggle"]').getAttribute('aria-expanded') === 'true');
+      ok('스위치를 끄면 카드 둘로 돌아오고 같은 순서의 카드가 「먼저」', cardNames() === '이동 부담,휴일 관중' && q('.pf-oc.on').dataset.id === 'holiday' && cardTags() === 'balance:그다음,holiday:먼저' && !q('#pf-order-now'));
+      // 허용 수준(지금은 휴일 관중 먼저)
+      ok('허용 수준: 구단 · 휴일 관중 아래 휴일 홈경기, 선수 · 이동 부담 아래 이동 횟수 · 이동 거리', qa('#pf-levels .grp[data-view="player"] .pf-lv').map((e) => e.dataset.goal).join() === 'moves,distance' && qa('#pf-levels .grp[data-view="club"] .pf-lv').map((e) => e.dataset.goal).join() === 'holiday' && /^그다음\s*선수\s*이동 부담$/.test(q('.grp[data-view="player"] > h4').innerText.trim()) && /^먼저\s*구단\s*휴일 관중$/.test(q('.grp[data-view="club"] > h4').innerText.trim()), q('.grp[data-view="club"] > h4').innerText.replace(/\s+/g, ' '));
       ok('모두의 이동 줄이기: 선수 칸 아래 한 줄 · 허용 수준 없음 · 늘 마지막', /모두의 이동 줄이기/.test(q('.grp[data-view="player"] .pf-total').innerText) && /허용 수준이 없고, 늘 마지막에 봅니다/.test(q('.pf-total').innerText) && !q('.pf-total input') && !q('.grp[data-view="club"] .pf-total'));
       ok('칸마다 문장 「구단 사이 차이를 …까지 괜찮다고 봅니다」(겹친 부정 없음) · 「기본값」 표시', qa('.pf-lv .pf-st').every((e) => /^구단 사이 차이를/.test(e.innerText.trim()) && /까지 괜찮다고 봅니다/.test(e.innerText)) && !/넘게 많지 않으면|만족/.test(q('#pf-levels').innerText) && ['moveGap', 'distanceGapKm', 'holidayGap'].every((k) => chipOf(k).innerText === '기본값' && !chipOf(k).classList.contains('moved')));
       const ends = (goal) => qa('.pf-lv[data-goal="' + goal + '"] .pf-lr span').map((e) => e.innerText).join(' / ');
       ok('눈금: 양 끝 「엄격」「느슨」 · 이동 횟수 1~9 · 이동 거리 100~999 · 휴일 홈경기 1~9', ends('moves') === '1 엄격 / 9 느슨' && ends('distance') === '100 엄격 / 999 느슨' && ends('holiday') === '1 엄격 / 9 느슨' && rangeOf('moveGap').min === '1' && rangeOf('moveGap').max === '9' && rangeOf('distanceGapKm').min === '100' && rangeOf('distanceGapKm').step === '50' && rangeOf('holidayGap').max === '9' && rangeOf('distanceGapKm').value === '600', ends('moves') + ' | ' + ends('distance') + ' | ' + ends('holiday'));
       ok('숫자가 작을수록 엄격 · 클수록 느슨이라는 머리말 · 지난 결과 숫자는 없음', /숫자가 작을수록 엄격하게 맞추고, 클수록 느슨하게 봅니다/.test(q('#pf-levels .pf-d').innerText) && !/2025|KBO \d/.test(q('#pf-levels').innerText));
       setBox(1, '800');
-      ok('숫자 칸 800 → 저장 · 눈금도 800 · 「기본 600km에서 바꿈」 · 요약은 「바꾼 값」', ob().distanceGapKm === 800 && rangeOf('distanceGapKm').value === '800' && chipOf('distanceGapKm').innerText === '기본 600km에서 바꿈' && chipOf('distanceGapKm').classList.contains('moved') && /^바꾼 값 · 이동 횟수 4회 · 이동 거리 800km · 휴일 홈경기 3점$/.test(sumText().trim()) && chipOf('moveGap').innerText === '기본값', sumText());
+      ok('숫자 칸 800 → 저장 · 눈금도 800 · 「기본 600km에서 바꿈」 · 아래 줄 요약도 800km', ob().distanceGapKm === 800 && rangeOf('distanceGapKm').value === '800' && chipOf('distanceGapKm').innerText === '기본 600km에서 바꿈' && chipOf('distanceGapKm').classList.contains('moved') && /이동 횟수 4회 · 이동 거리 800km · 휴일 홈경기 3점/.test(policy()) && chipOf('moveGap').innerText === '기본값', policy());
       setBox(1, '');
       ok('빈 칸은 받지 않고 칸은 지금 값으로 돌아옴', ob().distanceGapKm === 800 && boxOf('distanceGapKm').value === '800');
       setBox(1, 'abc');
@@ -165,7 +167,7 @@
       setBox(0, '4');
       const drag = (k, v) => { const r = rangeOf(k); r.value = v; r.dispatchEvent(new Event('input', { bubbles: true })); return r; };
       const r1 = drag('moveGap', '7');
-      ok('눈금을 끄는 동안: 숫자 칸 · 기본값 표시 · 요약 줄 · 아래 줄의 숫자가 따라오고 저장은 아직', ob().moveGap === 4 && boxOf('moveGap').value === '7' && chipOf('moveGap').innerText === '기본 4회에서 바꿈' && /이동 횟수 7회/.test(sumText()) && /이동 횟수 7회/.test(policy()) && rangeOf('moveGap') === r1, sumText());
+      ok('눈금을 끄는 동안: 숫자 칸 · 기본값 표시 · 아래 줄의 숫자가 따라오고 저장은 아직', ob().moveGap === 4 && boxOf('moveGap').value === '7' && chipOf('moveGap').innerText === '기본 4회에서 바꿈' && /이동 횟수 7회/.test(policy()) && rangeOf('moveGap') === r1, policy());
       r1.dispatchEvent(new Event('change', { bubbles: true })); flush();
       ok('눈금에서 손을 떼면 저장 · 숫자 칸과 같은 값', ob().moveGap === 7 && boxOf('moveGap').value === '7' && rangeOf('moveGap').value === '7');
       const r2 = drag('distanceGapKm', '1000'); const live999 = boxOf('distanceGapKm').value; r2.dispatchEvent(new Event('change', { bubbles: true })); flush();
@@ -182,10 +184,9 @@
       app().undo(); flush();
       ok('되돌리면 다시 1~9', JSON.stringify(st().settings.holidays) === hol && P.levelRange('holidayGap').max === 9 && ends('holiday') === '1 엄격 / 9 느슨');
       setBox(1, '600'); setBox(0, '4'); setBox(2, '3');
-      click('[data-act="pf-levels-toggle"]'); flush();
-      ok('「접기」 → 다시 한 줄 요약(기본값 그대로)', !q('#pf-levels .pf-lv') && /^기본값 그대로 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점$/.test(sumText().trim()) && q('[data-act="pf-levels-toggle"]').innerText.trim() === '바꾸기');
+      ok('기본값으로 돌리면 세 칸 모두 「기본값」', ['moveGap', 'distanceGapKm', 'holidayGap'].every((k) => chipOf(k).innerText === '기본값'));
       click('[data-act="pf-order"][data-id="balance"]'); flush();
-      ok('방침 요약: 선수의 이동 부담 먼저 · 허용 수준 셋', /지금 방침: 선수의 이동 부담 먼저 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점/.test(policy()) && ob().order.join() === 'moves,distance,holiday,total', policy());
+      ok('「이동 부담 먼저」로 돌리면 허용 수준도 선수 칸이 다시 왼쪽 · 방침 요약: 선수의 이동 부담 먼저 · 허용 수준 셋', /지금 방침: 선수의 이동 부담 먼저 · 이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점/.test(policy()) && ob().order.join() === 'moves,distance,holiday,total' && grpOrder() === 'player:먼저,club:그다음', policy());
       ok('실행 단추: 「이 방침으로 실행」 · 실행 시간 입력은 아래 줄 단추 옆 · 화면 안에 실행 칸 없음', /^이 방침으로 실행$/.test(q('[data-act="pf-run"]').innerText.trim()) && !!q('.footer .pf-ftime input[data-in="pf-time"]') && !q('.pf-page .pf-run') && !q('.pf-page input[data-in="pf-time"]'));
       // ── 운영 방침 설명하기 → 오른쪽 설명 창(뒤 화면은 가리지 않음)
       click('[data-act="pf-explain"]'); flush();
@@ -235,8 +236,7 @@
       ok('방침과 견주기: 결과의 실제 차이와 허용 수준을 견줌(1순위부터)', (() => { const gaps = app().derived().ex.objectiveGaps, o = ob(), key = { moves: ['moves', 'moveGap'], distance: ['distanceKm', 'distanceGapKm'], holiday: ['holiday', 'holidayGap'] };
         return o.order.filter((id) => key[id]).every((id, i) => { const it = qa('.pf-vs .it')[i], inside = gaps[key[id][0]] <= o[key[id][1]]; return it.classList.contains(inside ? 'ok' : 'over') && (inside ? /허용 안$/ : /넘음$/).test(it.innerText); }); })());
       click('[data-act="pf-relevel"]'); flush();
-      ok('「수준 다시 정하기」 → 운영 방침 화면의 허용 수준이 펼쳐진 채로', S.ui.step === 2 && !!q('#pf-levels') && P.levelsOpen === true && qa('#pf-levels .pf-lv').length === 3 && q('[data-act="pf-levels-toggle"]').innerText.trim() === '접기');
-      click('[data-act="pf-levels-toggle"]'); flush();
+      ok('「수준 다시 정하기」 → 운영 방침 화면의 허용 수준(늘 펼쳐 있음)', S.ui.step === 2 && !!q('#pf-levels') && qa('#pf-levels .pf-lv').length === 3);
       S.go({ step: 5 }); flush();
       ok('시험 엔진 결과임을 표시(서버 없을 때만)', app().engineConfig.kind === 'REST' || /시험용 자동 편성으로 낸 결과/.test(page()));
 

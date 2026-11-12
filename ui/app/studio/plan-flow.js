@@ -3,7 +3,7 @@
  *  처음 화면: 결과 확인(2025 · 확정한 해) / 새 계획 만들기(2027). 목적 아래에 연도를 둔다. 실행만 끝난 결과는 확정 전까지 결과 확인에 나오지 않는다(사용자 결정 2026-11-01).
  *  단계 띠 4칸: 값 입력·검증 → 운영 방침·실행 → 현재 결과 분석 → 실행 결과 비교.
  *   1 값 입력·검증: 기존 4단계(구단 정보 → 시즌 기간 → 주요 이벤트 일정 → 확인) 위에 추정값 검토 줄과 말풍선 안내. 「수정」은 기존 달력을 연다.
- *   2 운영 방침(사용자 확정 2026-11-12): 머리글(운영 방침은 일정의 형평성을 기준으로 — 선수의 이동 부담, 구단의 휴일 관중) → 카드 둘(이동 부담 먼저·휴일 관중 먼저) → 접어 둔 허용 수준(요약 한 줄, 「바꾸기」로 펼치면 관점별 세 칸) → settings.objective로 서버에 보낸다. 「직접 정하기」는 P.showDiy로 꺼 두었다. 실행 시간·실행 단추는 아래 줄에만. 값 형식은 그대로.
+ *   2 운영 방침(사용자 확정 2026-11-12): 머리글(운영 방침은 일정의 형평성을 기준으로 — 선수의 이동 부담, 구단의 휴일 관중) → 카드 둘(이동 부담 먼저·휴일 관중 먼저) → 허용 수준(늘 펼쳐 보임, 관점별 두 칸이 고른 순서대로 「먼저」「그다음」) → settings.objective로 서버에 보낸다. 「직접 정하기」는 P.showDiy로 꺼 두었다. 실행 시간·실행 단추는 아래 줄에만. 값 형식은 그대로.
  *   3 현재 결과 분석: 한 장 대시보드 + 자동 저장한 이름(바꿀 수 있음). 기존 ③·④ 화면은 「일정 자세히 보기」·「구단별 보기」으로 들어간다.
  *   4 실행 결과 비교: 저장한 버전을 고른 운영 방침의 순위대로 한 표에 세우고, 고른 둘을 평가 기준마다 비교한다. 저장한 버전이 있으면 언제든 들어간다.
  *  S.ui.step: 1·3·4는 기존 화면, 2는 여기서 다시 그리고, 5 = 현재 결과 분석, 6 = 실행 결과 비교.
@@ -40,7 +40,7 @@
     player: { who: '선수', name: '이동 부담', why: '시즌 내내 옮겨 다니는 피로가 어느 구단에만 쏠리지 않게 합니다.', keys: ['moveGap', 'distanceGapKm'] },
     club: { who: '구단', name: '휴일 관중', why: '주말·공휴일은 관중이 많은 날입니다. 그날의 홈경기가 어느 구단에만 몰리지 않게 합니다.', keys: ['holidayGap'] }
   };
-  // 카드 둘: 어느 쪽의 형평성을 먼저 맞추는지. policy = 아래 줄 요약에 쓰는 이름. 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
+  // 카드 둘: 어느 쪽의 형평성을 먼저 맞추는지. name = 되돌리기 목록에 남는 이름(카드 제목은 관점 이름과 「먼저」「그다음」 표), policy = 아래 줄 요약에 쓰는 이름. 「내주는 것」은 단정하지 않고 「~할 수 있음」으로 쓴다.
   const ORDERS = [
     { id: 'balance', view: 'player', name: '이동 부담 먼저 (기본)', policy: '선수의 이동 부담 먼저', measure: '이동 횟수 · 이동 거리 · 모두의 이동(늘 마지막)', keep: '구단 사이 이동 횟수·거리의 차이를 좁힘', give: '휴일 홈경기의 차이가 벌어질 수 있음', order: ['moves', 'distance', 'holiday', 'total'] },
     { id: 'holiday', view: 'club', name: '휴일 관중 먼저', policy: '구단의 휴일 관중 먼저', measure: '휴일 홈경기 점수', keep: '구단 사이 휴일 홈경기의 차이를 좁힘', give: '이동 횟수·거리의 차이가 벌어질 수 있음', order: ['holiday', 'moves', 'distance', 'total'] }
@@ -606,13 +606,14 @@
   };
 
   // ───────── 2 운영 방침·실행 ─────────
-  // 화면의 글과 모양은 사용자와 합의한 설계(2026-11-12, 선택안 B)다. 관점(왜 재는지)을 먼저 세우고 지표는 그 아래에 묶는다.
+  // 화면의 글과 모양은 사용자와 합의한 설계(2026-11-12, 선택안 B에서 허용 수준만 늘 펼침)다. 관점(왜 재는지)을 먼저 세우고 지표는 그 아래에 묶는다.
   // 같은 선택을 여러 군데서 되풀이하지 않는다: 고르는 곳은 카드 둘, 요약은 아래 줄 하나. 「파레토」 같은 말과 2025 숫자(이 엔진·KBO 실제)는 화면에 쓰지 않는다.
   P.policyCopy = {
     title: '운영 방침 정하기',
     // 굵은 글씨가 들어가 글자 그대로 넣는다(사용자가 정한 첫 문장)
     lead: '<b>운영 방침은 일정의 형평성을 기준으로 정합니다.</b> 형평성은 두 가지로 봅니다. <b>선수</b>의 이동 부담과 <b>구단</b>의 휴일 관중입니다. 둘 다 구단마다 고르게 하려 하지만 함께 가장 좋게 만들 수는 없어, 어느 쪽을 먼저 맞출지와 어디까지 괜찮다고 볼지를 운영자가 정합니다.',
     firstTitle: '어느 쪽의 형평성을 먼저 맞출까요',
+    firstLead: '둘 다 맞춥니다. 먼저 맞출 쪽을 고릅니다.', // 「하나를 고릅니다」로만 쓰면 둘 중 하나만 하는 것처럼 읽혔다(사용자 지적 2026-11-12)
     rule: '먼저인 쪽이 허용 수준 안에 들어오면 그다음 쪽을 맞춥니다. 둘 다 들어오면 모두의 이동을 줄입니다. 반드시 지킬 규칙은 어느 순서든 지킵니다.', // 규칙 설명은 이 한 문장뿐(「조금이라도 나은 결과」와 「허용 안이면 다음으로」를 함께 적지 않는다)
     levelsTitle: '허용 수준',
     levelsLead: '구단 사이 차이를 어디까지 괜찮다고 볼지 정합니다. 숫자가 작을수록 엄격하게 맞추고, 클수록 느슨하게 봅니다.',
@@ -629,14 +630,16 @@
       ob.order.map((i, k) => '<li><span class="pf-rk">' + (lastFixed && i === LAST ? '마지막' : k + 1) + '</span><span class="nm">' + GOAL_LABEL[i] + '</span>' + (P.showDiy && !(lastFixed && i === LAST) ? '<span class="pf-mv"><button data-act="pf-move" data-k="' + k + '" data-d="-1"' + (k === 0 ? ' disabled' : '') + ' aria-label="앞으로">▲</button><button data-act="pf-move" data-k="' + k + '" data-d="1"' + (k >= top ? ' disabled' : '') + ' aria-label="뒤로">▼</button></span>' : '') + '</li>').join('') + '</ol>' +
       (P.showDiy ? '' : '<span class="s">카드를 고르면 그 순서로 바뀝니다.</span>') + '</div>';
   }
-  /** 카드 둘: 어느 쪽의 형평성을 먼저 맞추는지. 카드마다 설명 한 줄 · 재는 것 · 지키는 것 · 내주는 것 */
+  /** 카드 둘: 두 관점. 둘 다 맞추되 어느 쪽이 먼저인지를 고른다 — 고른 카드에 「먼저」, 다른 카드에 「그다음」(허용 수준 칸과 같은 표. 사용자 결정 2026-11-12:
+   *  고른 카드에만 「선택」이 붙으면 둘 중 하나만 하는 것처럼 읽혔다). 표가 순서를 말하므로 카드 제목은 관점 이름만 쓴다(「휴일 관중 먼저」에 「그다음」이 붙으면 말이 어긋난다).
+   *  카드마다 설명 한 줄 · 재는 것 · 지키는 것 · 내주는 것. 두 카드와 다른 순서면 표를 붙이지 않는다 */
   function orderCards(ob) {
     const hit = orderHit(ob), custom = !hit;
-    const pick = (on) => (on ? '<span class="pf-tag blue">선택</span>' : '');
+    const pick = (on) => (on ? '<span class="pf-tag blue">선택</span>' : ''); // 직접 정하기 카드에만
     const card = (o) => { const on = !!hit && hit.id === o.id, v = VIEWS[o.view];
-      return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"><h4>' + pick(on) + '<span class="pf-who">' + v.who + '</span>' + esc(o.name) + '</h4><p>' + esc(v.why) + '</p>' +
+      return '<div class="pf-oc' + (on ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order" data-id="' + o.id + '" aria-pressed="' + on + '"' + (hit && !on ? ' title="누르면 이쪽을 먼저 맞춥니다"' : '') + '><h4>' + (hit ? '<span class="pf-rk' + (on ? '' : ' next') + '">' + (on ? '먼저' : '그다음') + '</span>' : '') + '<span class="pf-who">' + v.who + '</span><span class="nm">' + v.name + '</span>' + (o.id === ORDERS[0].id ? '<small>기본은 이쪽이 먼저</small>' : '') + '</h4><p>' + esc(v.why) + '</p>' +
         '<dl class="pf-kg"><div><dt class="m">재는 것</dt><dd>' + esc(o.measure) + '</dd></div><div><dt class="k">지키는 것</dt><dd>' + esc(o.keep) + '</dd></div><div><dt class="g">내주는 것</dt><dd>' + esc(o.give) + '</dd></div></dl></div>'; };
-    const diy = P.showDiy ? '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + pick(custom) + '직접 정하기</h4><p>재는 것 넷의 순서를 아래에서 화살표로 바꿉니다. 모두의 이동은 늘 마지막입니다.</p></div>' : '';
+    const diy = P.showDiy ? '<div class="pf-oc' + (custom ? ' on' : '') + '" role="button" tabindex="0" data-act="pf-order-custom" aria-pressed="' + custom + '"><h4>' + pick(custom) + '<span class="nm">직접 정하기</span></h4><p>재는 것 넷의 순서를 아래에서 화살표로 바꿉니다. 모두의 이동은 늘 마지막입니다.</p></div>' : '';
     return '<div class="pf-orders' + (P.showDiy ? ' three' : '') + '">' + ORDERS.map(card).join('') + diy + '</div>' + (custom ? orderNow(ob) : '');
   }
   // 허용 수준은 폭(가장 많은 구단 − 가장 적은 구단)이다. 결과가 어디에 놓일지는 실행 전에 모르므로 2025년 실제 값 같은 견줄 숫자는 붙이지 않고,
@@ -672,8 +675,6 @@
   Object.assign(P, { tolFacts, DEFAULT_OBJECTIVE, VIEWS, LEVELS, LEVEL_KEYS, levelRange });
   /** 기본값 표시: 기본값이면 「기본값」, 바꿨으면 「기본 4회에서 바꿈」 */
   const defText = (k, v) => (v === DEFAULT_OBJECTIVE[k] ? '기본값' : '기본 ' + num(DEFAULT_OBJECTIVE[k]) + LEVELS[k].unit + '에서 바꿈');
-  const levelsMoved = (ob) => LEVEL_KEYS.some((k) => ob[k] !== DEFAULT_OBJECTIVE[k]);
-  const movedText = (ob) => (levelsMoved(ob) ? '바꾼 값' : '기본값 그대로');
   /** 「이동 횟수 4회 · 이동 거리 600km · 휴일 홈경기 3점」. 숫자는 눈금을 끄는 동안 바로 고칠 수 있게 표시를 달아 둔다(pf-gap-live) */
   const levelSum = (ob) => LEVEL_KEYS.map((k) => LEVELS[k].name + ' <span data-pfv="' + k + '">' + num(ob[k]) + '</span>' + LEVELS[k].unit).join(' · ');
   /** 허용 수준 한 칸: 이름 · 무엇을 세는지 · 기본값 표시 → 문장 한 줄(숫자 칸과 −·+) → 눈금(양 끝 「엄격」「느슨」). 숫자 칸·단추·눈금은 같은 값을 가리킨다 */
@@ -688,14 +689,15 @@
       (out ? '<div class="pf-lv-n out">지금 값(' + num(v) + m.unit + ')이 고를 수 있는 범위 ' + num(m.min) + '~' + num(m.max) + m.unit + ' 밖입니다. 고치면 범위 안으로 맞춥니다.</div>' : '') +
       (k === 'holidayGap' ? '<div class="pf-lv-n">' + (f.even ? '' : '이 달력은 점수가 ' + f.n + '구단에 똑같이 나뉘지 않아, 가장 좁혀도 1점입니다. ') + '1단계에서 휴일 점수를 키우면 이 범위도 함께 커집니다.</div>' : '') + '</div>';
   }
-  /** 허용 수준: 접어 둔 요약 한 줄(「기본값 그대로」 또는 「바꾼 값」 + 세 숫자 + 「바꾸기」). 펼치면 관점별로 묶인 세 칸. 「수준 다시 정하기」(pf-relevel)는 펼친 채로 연다 */
+  /** 허용 수준: 늘 펼쳐 보인다(사용자 결정 2026-11-12: 접어 두면 둘 중 하나만 하는 것처럼 읽혔다 — 둘 다 맞추되 순서와 범위를 정하는 화면이다).
+   *  관점별 두 칸은 고른 순서대로 놓는다: 먼저 맞출 쪽이 왼쪽 「먼저」, 다른 쪽이 「그다음」. 카드를 바꾸면 칸의 자리도 바뀐다.
+   *  두 카드와 다른 순서(옛 프로젝트 · 직접 정하기)는 첫째로 둔 것이 속한 쪽을 왼쪽에 두고 표는 붙이지 않는다 */
   function levelsSec(ob, f) {
-    const C = P.policyCopy, open = !!P.levelsOpen;
-    const grp = (id) => { const v = VIEWS[id];
-      return '<div class="grp' + (v.keys.length > 1 ? ' two' : '') + '" data-view="' + id + '"><h4><span class="pf-who">' + v.who + '</span>' + v.name + '</h4><div class="pf-lvs">' + v.keys.map((k) => levelBox(k, ob, f)).join('') + '</div>' + (id === 'player' ? '<p class="pf-total">' + C.total + '</p>' : '') + '</div>'; };
-    return '<div class="pf-sec" id="pf-levels"><div class="pf-fold"><h3>' + esc(C.levelsTitle) + '</h3><span class="sum"><b data-pfmoved>' + movedText(ob) + '</b> · ' + levelSum(ob) + '</span>' +
-      '<button class="pf-link" data-act="pf-levels-toggle" aria-expanded="' + open + '">' + (open ? '접기' : '바꾸기') + '</button></div>' +
-      (open ? '<p class="pf-d">' + esc(C.levelsLead) + '</p><div class="pf-lv3">' + grp('player') + grp('club') + '</div>' : '') + '</div>';
+    const C = P.policyCopy, hit = orderHit(ob), at = (k) => ob.order.indexOf(LEVELS[k].goal);
+    const ids = ob.order[0] === 'holiday' ? ['club', 'player'] : ['player', 'club'];
+    const grp = (id, i) => { const v = VIEWS[id], keys = v.keys.slice().sort((x, y) => at(x) - at(y));
+      return '<div class="grp' + (keys.length > 1 ? ' two' : '') + '" data-view="' + id + '"><h4>' + (hit ? '<span class="pf-rk' + (i ? ' next' : '') + '">' + (i ? '그다음' : '먼저') + '</span>' : '') + '<span class="pf-who">' + v.who + '</span>' + v.name + '</h4><div class="pf-lvs">' + keys.map((k) => levelBox(k, ob, f)).join('') + '</div>' + (id === 'player' ? '<p class="pf-total">' + C.total + '</p>' : '') + '</div>'; };
+    return '<div class="pf-sec" id="pf-levels"><h3>' + esc(C.levelsTitle) + '</h3><p class="pf-d">' + esc(C.levelsLead) + '</p><div class="pf-lv3' + (ids[0] === 'club' ? ' club-first' : '') + '">' + ids.map(grp).join('') + '</div></div>';
   }
   /** 「운영 방침 설명하기」 → 설명 창(objective-help.js). 운영 방침 화면(머리글 오른쪽)과 실행 중 화면(오른쪽 위)에만 둔다 */
   const explainBtn = () => '<button class="pf-link' + (S.ui.drawer === 'explain' ? ' on' : '') + '" data-act="pf-explain">' + icon('info') + '운영 방침 설명하기</button>';
@@ -717,7 +719,7 @@
       (pf.ok ? '' : '<div class="pf-note warn">사전 점검에 진행 불가 ' + pf.counts.block + '건이 있어 실행할 수 없습니다 — ' + esc(blockNames(pf)) + '. 편성 조건 입력·검증으로 돌아가 고치세요.</div>');
     return '<div class="pf-page pf-spread">' +
       '<div class="pf-sec pf-head"><h2>' + esc(C.title) + '<span class="r">' + explainBtn() + '</span></h2><p class="pf-d">' + C.lead + '</p></div>' +
-      '<div class="pf-sec" id="pf-first"><h3>' + esc(C.firstTitle) + '</h3><p class="pf-d">하나를 고릅니다. ' + esc(C.rule) + '</p>' + orderCards(ob) + '</div>' +
+      '<div class="pf-sec" id="pf-first"><h3>' + esc(C.firstTitle) + '</h3><p class="pf-d">' + esc(C.firstLead) + ' ' + esc(C.rule) + '</p>' + orderCards(ob) + '</div>' +
       levelsSec(ob, f) +
       (notes ? '<div class="pf-runnotes">' + notes + '</div>' : '') + '</div>';
   }
@@ -1301,8 +1303,7 @@
     'pf-tour-again': () => { for (const n of [1, 2, 3, 4]) S.ls.del(tourKey(n)); S.render(); },
     'pf-order': (el) => { const o = ORDERS.find((x) => x.id === el.dataset.id); if (!o) return; P.customOrder = false; app().updateSettings({ objective: Object.assign({}, objective(), { order: o.order.slice() }) }, '운영 방침: ' + o.name); },
     'pf-order-custom': (el, e) => { if (!P.showDiy || (e && e.target.closest('[data-act="pf-move"]'))) return; P.customOrder = true; S.render(); }, // 직접 정하기는 꺼 두었다(P.showDiy)
-    'pf-levels-toggle': () => { P.levelsOpen = !P.levelsOpen; refocus('[data-act="pf-levels-toggle"]'); S.render(); },
-    'pf-relevel': () => { P.levelsOpen = true; const jump = () => { const el = document.getElementById('pf-levels'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }; S.afterRender(jump); S.actions['pf-stage']({ dataset: { stage: '2' } }); setTimeout(jump, 50); }, // 접어 둔 허용 수준을 펼친 채로 열고, 그리고 난 뒤 그 구역으로(뒤따르는 다시 그리기가 있어도 한 번 더)
+    'pf-relevel': () => { const jump = () => { const el = document.getElementById('pf-levels'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }; S.afterRender(jump); S.actions['pf-stage']({ dataset: { stage: '2' } }); setTimeout(jump, 50); }, // 그리고 난 뒤 허용 수준 구역으로(뒤따르는 다시 그리기가 있어도 한 번 더)
     'pf-move': (el, e) => {
       if (e) e.stopPropagation();
       if (!P.showDiy) return;
@@ -1408,13 +1409,12 @@
     if (objective()[k] === v) { S.render(); return; }
     app().updateSettings({ objective: Object.assign({}, objective(), { [k]: v }) }, '허용 수준 바꾸기');
   };
-  /** 눈금을 끄는 동안: 숫자 칸 · 기본값 표시 · 요약 줄(접힌 줄과 아래 줄)의 숫자만 고친다. 다시 그리면 끌기가 끊기므로 저장은 손을 뗄 때(pf-gap) 한다 */
+  /** 눈금을 끄는 동안: 숫자 칸 · 기본값 표시 · 아래 줄 요약의 숫자만 고친다. 다시 그리면 끌기가 끊기므로 저장은 손을 뗄 때(pf-gap) 한다 */
   S.inputs['pf-gap-live'] = (el) => {
-    const k = el.dataset.k, v = clampLevel(k, Number(el.value)), ob = Object.assign({}, objective(), { [k]: v });
-    const box = document.querySelector('#pf-levels input[data-in="pf-gap"][data-k="' + k + '"]:not([type=range])'), chip = document.querySelector('[data-pfdef="' + k + '"]'), moved = document.querySelector('[data-pfmoved]');
+    const k = el.dataset.k, v = clampLevel(k, Number(el.value));
+    const box = document.querySelector('#pf-levels input[data-in="pf-gap"][data-k="' + k + '"]:not([type=range])'), chip = document.querySelector('[data-pfdef="' + k + '"]');
     if (box) box.value = v;
     if (chip) { chip.textContent = defText(k, v); chip.classList.toggle('moved', v !== DEFAULT_OBJECTIVE[k]); }
-    if (moved) moved.textContent = movedText(ob);
     document.querySelectorAll('[data-pfv="' + k + '"]').forEach((sp) => { sp.textContent = num(v); });
   };
   S.actions['pf-gap-step'] = (el) => {
