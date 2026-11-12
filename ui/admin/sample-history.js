@@ -1,0 +1,336 @@
+/* 편성 기록 화면의 예시 기록. file://로 열었을 때(서버 없음)만 쓴다. 서버 응답과 같은 모양이다. */
+window.KBO_ADMIN_SAMPLE = {
+ "dates": [
+  "2026-11-12",
+  "2026-11-11",
+  "2026-11-09"
+ ],
+ "byDate": {
+  "2026-11-12": [
+   {
+    "unattended": true,
+    "reason": "CALC_LIMIT",
+    "resultId": "default",
+    "ip": "server-default",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 0,
+    "finishedAt": "2026-11-12T01:13:10.300Z",
+    "mode": "INITIAL",
+    "jobId": "a0d1e2f3",
+    "inputBytes": 47209,
+    "at": "2026-11-12T01:12:05.100Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 65200
+   },
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "600f66d56871",
+    "ip": "203.0.113.7",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 1,
+    "finishedAt": "2026-11-12T06:04:23.134305Z",
+    "mode": "INITIAL",
+    "jobId": "c1cd5ba0",
+    "inputBytes": 47209,
+    "at": "2026-11-12T06:04:16.477Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 6657
+   },
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "600f66d56871",
+    "ip": "203.0.113.7",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 2,
+    "finishedAt": "2026-11-12T06:04:23.142730Z",
+    "mode": "INITIAL",
+    "jobId": "c7f9e757",
+    "inputBytes": 47209,
+    "at": "2026-11-12T06:04:23.140Z",
+    "cached": true,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 2
+   },
+   {
+    "unattended": false,
+    "reason": "STOPPED",
+    "ip": "198.51.100.9",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-62397]soft",
+    "index": 3,
+    "finishedAt": "2026-11-12T06:04:31.155187Z",
+    "mode": "INITIAL",
+    "jobId": "165e5275",
+    "inputBytes": 47209,
+    "at": "2026-11-12T06:04:23.147Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 21,
+     "timeLimitSec": 40,
+     "seeds": 2,
+     "calcLimit": 192500,
+     "minCalcs": 144375
+    },
+    "status": "STOPPED",
+    "elapsedMs": 8008
+   },
+   {
+    "mode": "INITIAL",
+    "inputBytes": 35081,
+    "at": "2026-11-12T06:04:31.157583Z",
+    "ip": "198.51.100.9",
+    "httpStatus": 400,
+    "options": {
+     "mode": "INITIAL",
+     "init": "KEEP",
+     "unimprovedSteps": 0,
+     "seed": 0,
+     "timeLimitSec": 5,
+     "seeds": 2,
+     "calcLimit": 16500,
+     "minCalcs": 12375
+    },
+    "index": 4,
+    "error": "problem.matches 배열이 없습니다.",
+    "finishedAt": "2026-11-12T06:04:31.157583Z",
+    "status": "REJECTED"
+   },
+   {
+    "at": "2026-11-12T06:20:11.000Z",
+    "finishedAt": "2026-11-12T06:20:21.400Z",
+    "mode": "RESCHEDULE",
+    "jobId": "5b7c9d01",
+    "ip": "203.0.113.7",
+    "unattended": false,
+    "status": "DONE",
+    "reason": "UNIMPROVED",
+    "cached": false,
+    "scoreString": "[0/0]hard/[-2/0/-310/-4/-1]soft",
+    "elapsedMs": 10400,
+    "options": {
+     "mode": "RESCHEDULE",
+     "timeLimitSec": 10,
+     "unimprovedSec": 3,
+     "seed": 0,
+     "seeds": 2,
+     "init": "KEEP"
+    },
+    "index": 5,
+    "inputBytes": 61234
+   },
+   {
+    "at": "2026-11-12T06:25:40.000Z",
+    "finishedAt": "2026-11-12T06:25:46.000Z",
+    "mode": "INITIAL",
+    "jobId": "9e8d7c6b",
+    "ip": "203.0.113.7",
+    "unattended": false,
+    "status": "ERROR",
+    "cached": false,
+    "error": "고정한 3연전 시리즈 2개를 그 자리에 둔 채로는 편성을 처음부터 짤 수 없었습니다. 고정을 몇 개 풀고 다시 시도해 주세요.",
+    "elapsedMs": 6000,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "index": 6,
+    "inputBytes": 47302
+   },
+   {
+    "at": "2026-11-12T06:31:02.000Z",
+    "finishedAt": "2026-11-12T06:31:14.000Z",
+    "mode": "INITIAL",
+    "jobId": "1f2e3d4c",
+    "ip": "192.0.2.44",
+    "unattended": false,
+    "status": "STOPPED",
+    "reason": "ABANDONED",
+    "cached": false,
+    "elapsedMs": 12000,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "index": 7,
+    "inputBytes": 47209
+   },
+   {
+    "at": "2026-11-12T06:31:05.000Z",
+    "finishedAt": "2026-11-12T06:31:05.000Z",
+    "mode": "INITIAL",
+    "ip": "192.0.2.44",
+    "status": "REJECTED",
+    "httpStatus": 429,
+    "error": "이미 실행 중인 편성이 있습니다. 끝난 뒤 다시 시도하세요.",
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 12,
+     "seeds": 2,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "index": 8,
+    "inputBytes": 47209
+   },
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "0c1ec214e6c0",
+    "ip": "192.0.2.44",
+    "scoreString": "[0/0]hard/[0/0/-1/-5/-70210]soft",
+    "index": 9,
+    "finishedAt": "2026-11-12T07:03:41.000Z",
+    "mode": "INITIAL",
+    "jobId": "77aa88bb",
+    "inputBytes": 47209,
+    "at": "2026-11-12T07:02:44.000Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "KEEP",
+     "unimprovedSteps": 0,
+     "seed": 0,
+     "timeLimitSec": 60,
+     "seeds": 8,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 57000
+   }
+  ],
+  "2026-11-11": [
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "09403b05da52",
+    "ip": "203.0.113.7",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 0,
+    "finishedAt": "2026-11-11T08:16:02.000Z",
+    "mode": "INITIAL",
+    "jobId": "3c4d5e6f",
+    "inputBytes": 47209,
+    "at": "2026-11-11T08:15:00.000Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 60,
+     "seeds": 8,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 62000
+   },
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "09403b05da52",
+    "ip": "203.0.113.7",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 1,
+    "finishedAt": "2026-11-11T08:40:30.010Z",
+    "mode": "INITIAL",
+    "jobId": "4d5e6f70",
+    "inputBytes": 47209,
+    "at": "2026-11-11T08:40:30.000Z",
+    "cached": true,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 60,
+     "seeds": 8,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 10
+   }
+  ],
+  "2026-11-09": [
+   {
+    "unattended": false,
+    "reason": "CALC_LIMIT",
+    "resultId": "09403b05da52",
+    "ip": "203.0.113.7",
+    "scoreString": "[0/0]hard/[0/0/0/-6/-68591]soft",
+    "index": 0,
+    "finishedAt": "2026-11-11T08:16:02.000Z",
+    "mode": "INITIAL",
+    "jobId": "3c4d5e6f",
+    "inputBytes": 47209,
+    "at": "2026-11-09T02:00:00.000Z",
+    "cached": false,
+    "options": {
+     "mode": "INITIAL",
+     "init": "SCRATCH",
+     "unimprovedSteps": 0,
+     "seed": 11,
+     "timeLimitSec": 60,
+     "seeds": 8,
+     "calcLimit": 38500,
+     "minCalcs": 28875
+    },
+    "status": "DONE",
+    "elapsedMs": 62000
+   }
+  ]
+ }
+};
