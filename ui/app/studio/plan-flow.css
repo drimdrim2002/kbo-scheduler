@@ -109,91 +109,73 @@ body.pf-ro .tb-group, body.pf-ro .tb-sep, body.pf .tb-btn[data-act="open-ops"], 
 .pf-num .v { font-size: 20px; font-weight: 800; color: var(--navy); } .pf-num .v small { font-size: 12px; font-weight: 600; }
 .pf-num .s { font-size: 11.5px; color: var(--text-3); }
 
-/* 운영 방침: 읽는 순서대로 네 띠 — ① 머리글(왜 운영자가 정하나 + 목표 넷은 무엇을 재나 + 저울) ② 우선순위 카드 셋(가로 한 줄) ③ 허용 수준 | 실행.
-   창이 내용보다 높으면 남는 높이를 ① 1 : ② 1 : ③ 2 로 나눠 받고(③만 받으면 머리글이 눌려 보였다, 사용자 요청 2026-11-04) 안의 칸·카드·줄이 나눠 갖는다; 내용이 더 높으면 그대로 스크롤.
-   창 크기에 따라 배치를 바꾸지 않는다(2026-11-04: 두 단 배치는 왼쪽 우선순위가 길게 늘어나 비어 보였다) */
-.pf-page.pf-spread { padding-top: clamp(8px, 1.2vh, 20px); padding-bottom: clamp(8px, 1.2vh, 20px); gap: clamp(8px, 1vh, 16px); }
-.pf-spread .pf-sec { padding-top: clamp(8px, 1.2vh, 18px); padding-bottom: clamp(8px, 1.2vh, 18px); }
-.pf-spread .pf-sec > .pf-d { margin-bottom: clamp(4px, .7vh, 12px); }
-/* ① 머리글 안의 목표 넷: 이름 + 무엇을 재는지 한 줄. 우선순위를 고르기 전에 읽힌다(사용자 요청 2026-11-04).
-   머리글이 남는 높이를 받으면 그 높이는 목표 넷 칸이 커지는 데 쓴다(제목·한 줄은 위에 그대로) */
-.pf-page.pf-spread > .pf-head { flex: 1 0 auto; }
-.pf-goals { grid-column: 1 / -1; grid-row: 2; align-self: stretch; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.pf-goals .g { border: 1px solid var(--line); border-radius: 8px; padding: 10px 10px 8px; min-width: 0; display: flex; flex-direction: column; justify-content: flex-start; } /* 네 칸 제목이 한 줄에(설명이 한 줄인 칸도 가운데로 내려가지 않게) */
-.pf-goals .g b { display: block; font-size: 13px; color: var(--navy); }
-.pf-goals .g span { display: block; font-size: 12px; color: var(--text-2); line-height: 1.4; margin-top: 1px; }
-.pf-goals .g.sum b::after { content: ' · 늘 마지막 순위'; font-weight: 600; color: var(--text-3); font-size: 11.5px; }
-.pf-goals-lead { margin: clamp(4px, .8vh, 10px) 0 0; font-size: 12.5px; color: var(--text-2); }
-.pf-goals-lead b { color: var(--navy); }
-/* ② 우선순위: 카드 셋(이름 + 지키는 것·내주는 것) + 오른쪽 「지금 순위」 칸, 가로 한 줄 네 칸(위 목표 네 칸과 줄이 맞는다).
-   순서 1~4는 카드마다 되풀이하지 않고 「지금 순위」 한 곳에만(사용자 결정 2026-11-04). ②③ 묶음이 남는 높이의 3/4을 받아 ② 1 : ③ 2 로 나눈다 */
-.pf-spread > .pf-pair { display: flex; flex-direction: column; gap: clamp(8px, 1vh, 16px); flex: 2 0 auto; }
-.pf-pair > .pf-sec { flex: 0 0 auto; display: flex; flex-direction: column; } /* 우선순위 띠는 내용 높이만(2026-11-05: 남는 높이를 받으니 카드가 비어 보였다). 남는 높이는 머리글 1 : 허용 수준 2 */
-.pf-pair .pf-orders { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; flex: 1 0 auto; }
-.pf-pair .pf-oc { display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(10px, 1.3vh, 14px) 14px clamp(8px, 1vh, 12px); } /* 네 칸 모두 위에서 시작해 제목이 한 줄에 선다 */
-.pf-pair .pf-oc h4 { margin-bottom: 6px; } /* 「선택」 표는 제목 왼쪽 같은 줄(사용자 결정 2026-11-05) */
-.pf-pair .pf-oc .pf-kg, .pf-pair .pf-oc p { margin: 0; line-height: 1.35; }
-.pf-now { border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: clamp(10px, 1.3vh, 14px) 14px clamp(8px, 1vh, 12px); display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
-.pf-now h4 { margin: 0 0 2px; font-size: 14.5px; color: var(--navy); line-height: inherit; }
-.pf-now p { margin: 1px 0 6px; font-size: 12px; color: var(--text-2); }
-.pf-now ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.pf-now li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--navy); min-width: 0; }
-.pf-now li .nm { flex: 1 1 auto; min-width: 0; }
-.pf-now li .pf-rk { flex: none; }
-.pf-now .pf-mv, .pf-now .pf-last { margin-left: 0; flex: none; }
-.pf-pair .pf-bridge { margin-top: 8px; }
-/* ③ 허용 수준: 셋째 띠 전체 폭, 남는 높이를 받는다(실행 칸은 2026-11-04에 없앰 — 방침 요약·실행 시간은 아래 줄에). 줄은 늘어나도 문장·좁히면/넓히면이 가운데에 붙어 있다 */
-.pf-pair > #pf-levels { flex: 2 0 auto; }
-#pf-levels .pf-sl { flex: 1 0 auto; align-content: center; grid-template-columns: 170px minmax(0, 1fr); row-gap: 2px; padding: clamp(3px, .5vh, 12px) 0; }
-#pf-levels .pf-tn, #pf-levels .pf-th { margin-top: 0; }
-#pf-levels > .pf-runbar, #pf-levels > .pf-note { margin-top: 8px; flex: none; }
+/* 운영 방침(사용자 확정 2026-11-12, 선택안 B에서 허용 수준만 늘 펼침): ① 머리글(형평성 설명) ② 카드 둘 — 어느 쪽의 형평성을 먼저 맞출지 ③ 허용 수준(관점별 두 칸이 고른 순서대로).
+   칸은 내용 높이만 쓴다. 창이 내용보다 높아도 칸을 늘리지 않고 남는 자리는 아래에 둔다(늘리면 카드가 비어 보인다). 창 크기에 따라 배치를 바꾸지 않는다 */
+.pf-page.pf-spread { padding-top: 10px; padding-bottom: 10px; gap: 10px; } /* 노트북(1440×790)에서 한 화면에 들어오는 여백 */
+.pf-spread .pf-sec { padding: 12px 18px; }
+.pf-spread .pf-sec > .pf-d { margin: 2px 0 8px; font-size: 13px; }
+.pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
+.pf-head h2 .r { margin-left: 4px; font-weight: 400; font-size: 12.5px; } /* 제목 바로 오른쪽(사용자 결정 2026-11-02) */
+.pf-spread .pf-head > .pf-d { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; max-width: 1040px; text-wrap: balance; }
+.pf-head .pf-d b { color: var(--navy); }
+/* 순서 표 「먼저」(남색) · 「그다음」(테두리만): 카드와 허용 수준 칸이 같은 표를 쓴다 */
+.pf-rk.next { background: #fff; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+/* 관점 표시: 「선수」「구단」 */
+.pf-who { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 6px; line-height: 18px; flex: none; white-space: nowrap; }
+/* ② 카드 둘(직접 정하기를 켜면 셋): 「먼저」/「그다음」 표 + 관점 이름 → 설명 한 줄 → 재는 것 · 지키는 것 · 내주는 것 */
+.pf-orders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pf-orders.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pf-oc { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 16px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.pf-oc:hover { border-color: var(--blue-line); }
+.pf-oc.on { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
+.pf-oc h4 { margin: 0 0 4px; font-size: 16px; color: var(--navy); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pf-oc h4 small { font-size: 12px; font-weight: 400; color: var(--text-3); }
+.pf-oc p { margin: 0 0 8px; font-size: 13px; color: var(--text-2); }
+.pf-kg { margin: 0; display: grid; gap: 3px; font-size: 12.5px; line-height: 1.5; }
+.pf-kg div { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
+.pf-kg dt { font-weight: 800; white-space: nowrap; }
+.pf-kg dt.m { color: var(--text-3); } .pf-kg dt.k { color: var(--ok); } .pf-kg dt.g { color: var(--warn); }
+.pf-kg dd { margin: 0; color: var(--fg); }
+.pf-link.xs { font-size: 12px; }
+/* 두 카드와 다른 순서(옛 프로젝트 · 직접 정하기)일 때만 카드 아래에 한 줄 */
+.pf-now { margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; }
+.pf-now > b { color: var(--navy); }
+.pf-now ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px 16px; flex-wrap: wrap; }
+.pf-now li { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--navy); }
+.pf-now .s { color: var(--text-2); font-size: 12.5px; }
+.pf-last { font-size: 11px; color: var(--text-3); margin-left: 6px; }
+.pf-mv { display: inline-flex; gap: 2px; vertical-align: 1px; }
+.pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
+.pf-mv button:disabled { opacity: .3; cursor: default; }
+/* ③ 허용 수준: 늘 펼쳐 보인다. 관점별 두 칸은 고른 순서대로 — 먼저 맞출 쪽이 왼쪽. 선수 칸(이동 횟수 · 이동 거리)이 2, 구단 칸(휴일 홈경기)이 1 */
+.pf-spread #pf-levels > .pf-d { margin: 2px 0 0; }
+.pf-lv3.club-first { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.pf-lv3 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-top: 8px; align-items: start; }
+.pf-lv3 .grp { border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px 10px; min-width: 0; }
+.pf-lv3 .grp > h4 { margin: 0; font-size: 13px; color: var(--navy); display: flex; gap: 6px; align-items: center; }
+.pf-lvs { display: grid; }
+.pf-lv3 .grp.two .pf-lvs { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.pf-lv { padding: 8px 0 2px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.pf-lv .h { display: flex; align-items: center; gap: 2px 8px; flex-wrap: wrap; }
+.pf-lv .h b { color: var(--navy); font-size: 14px; }
+.pf-lv .h span { color: var(--text-3); font-size: 12px; }
+.pf-lv .h .pf-def { margin-left: auto; } /* 기본값 표시는 이름 줄 오른쪽 끝 */
+/* 눈금: 왼쪽 끝 「엄격」, 오른쪽 끝 「느슨」. 숫자 칸 · −/+ 단추와 같은 값을 가리킨다 */
+.pf-lr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+.pf-lr input { width: 100%; margin: 0; accent-color: var(--blue); cursor: pointer; }
+.pf-lv .h .pf-def { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; line-height: 18px; background: var(--surface-2); color: var(--text-2); white-space: nowrap; }
+.pf-lv .h .pf-def.moved { background: var(--warn-bg); color: var(--warn); }
+.pf-lv-n { font-size: 12px; color: var(--text-3); }
+.pf-lv-n.out { color: var(--warn); font-weight: 600; }
+.pf-total { margin: 6px 0 0; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); font-size: 12.5px; color: var(--text-2); }
+.pf-total b { color: var(--navy); }
+/* 실행에 관한 알림(시험용 자동 편성 · 서버 한도 · 사전 점검)은 화면 끝에 */
+.pf-runnotes { display: grid; gap: 8px; }
+.pf-runnotes .pf-note { margin: 0; }
 /* 아래 줄의 실행 시간 입력(단추 왼쪽) */
 .footer .pf-ftime { margin: 0 10px 0 12px; font-size: 13px; white-space: nowrap; }
 .footer .pf-ftime input { width: 48px; font-size: 14px; padding: 2px 6px; }
 .footer .pf-ftime button { height: 26px; width: 22px; font-size: 14px; }
-/* 키운 뒤 높이가 960 아래(노트북 1440×790·점검 창 877·1920×970)면 실행 칸의 보조 설명 줄을 접고 여백을 줄여 스크롤 없이 한 화면에.
-   zoom을 쓰므로 @media 높이로는 못 재고, plan-flow.js fitZoom이 html.pf-tall을 켜고 끈다 */
-html:not(.pf-tall) .pf-page.pf-spread { padding-top: 6px; padding-bottom: 6px; }
-html:not(.pf-tall) .pf-spread .pf-sec { padding-top: 6px; padding-bottom: 6px; }
-html:not(.pf-tall) #pf-levels .pf-sl { padding: 0; }
-html:not(.pf-tall) .pf-pair .pf-oc, html:not(.pf-tall) .pf-now { padding-top: 8px; padding-bottom: 5px; } /* 제목이 위 테두리에 붙지 않게 위쪽은 조금 남긴다(사용자 요청 2026-11-05) */
-html:not(.pf-tall) .pf-now p { display: none; } /* 낮은 창에서는 지금 순위의 부제(방침 이름)를 접는다 — 같은 이름이 고른 카드와 아래 줄에 있다 */
-html:not(.pf-tall) .pf-now ol { gap: 2px; }
-html:not(.pf-tall) .pf-goals-lead { display: none; } /* 격차의 뜻은 허용 수준 머리말에, 합이라는 것은 전체 이동 거리 칸에 있어 낮은 창에서는 접는다 */
-html:not(.pf-tall) .pf-head { row-gap: 3px; }
-html:not(.pf-tall) .pf-band figcaption { margin-top: 1px; }
-/* 운영 방침 — 머리글(제목·한 줄·수평 저울) */
-/* 윗줄: 제목·한 줄·목표는 넷(왼쪽) | 가로 띠(오른쪽, 글 덩이와 세로 가운데). 아랫줄: 목표 네 칸이 전체 폭을 쓰고 남는 높이를 받는다 */
-.pf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: clamp(6px, 1vh, 12px) 24px; align-items: start; } /* 띠는 제목과 위 끝을 맞춘다(2026-11-05: 가운데 맞춤이면 띠가 제목 위로 삐져나왔다) */
-.pf-head .t { min-width: 0; grid-column: 1; grid-row: 1; }
-.pf-head .pf-band { grid-column: 2; grid-row: 1; }
-.pf-head h2 { margin: 0; font-size: 19px; color: var(--navy); display: flex; align-items: center; gap: 10px; }
-.pf-head h2 .r { margin-left: 4px; font-weight: 400; font-size: 12.5px; } /* 제목 바로 오른쪽(사용자 결정 2026-11-02) */
-.pf-head .pf-d { margin: 4px 0 0; font-size: 13.5px; }
-/* 머리글 그림: 가로 띠(저울 대신, 2026-11-04). 점은 고른 방침의 자리, 누르는 것이 아니다 */
-.pf-band { margin: 0; width: 380px; flex: none; }
-.pf-band .tr { position: relative; height: 36px; }
-.pf-band .tr::before { content: ''; position: absolute; left: 0; right: 0; top: 26px; height: 4px; border-radius: 2px; background: var(--line-2); }
-.pf-band .tr::after { content: ''; position: absolute; left: 0; right: 0; top: 22px; height: 12px; border-left: 2px solid var(--navy); border-right: 2px solid var(--navy); }
-.pf-band .dot { position: absolute; top: 21px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--blue); border: 2px solid #fff; box-shadow: 0 0 0 1.5px var(--blue); transition: left .25s; z-index: 1; }
-.pf-band .now { position: absolute; top: 2px; transform: translateX(-50%); font-size: 11.5px; font-weight: 700; color: var(--blue); white-space: nowrap; transition: left .25s; }
-.pf-band .ends { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 700; color: var(--navy); margin-top: 5px; }
-.pf-band figcaption { font-size: 11.5px; color: var(--text-3); margin-top: 3px; text-align: center; }
-/* 우선순위 카드: 지키는 것 / 내주는 것 + 순서 목록(늘 보임) */
-.pf-kg { margin: 0 0 8px; display: grid; gap: 4px; font-size: 12px; line-height: 1.45; }
-.pf-kg div { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px; }
-.pf-kg dt { font-weight: 700; color: var(--ok); white-space: nowrap; }
-.pf-kg div:nth-child(2) dt { color: var(--warn); }
-.pf-kg dd { margin: 0; color: var(--text-2); }
-.pf-link.xs { font-size: 12px; }
-.pf-oc ol { margin-top: 6px; }
-.pf-bridge { margin: 12px 0 0; font-size: 12.5px; font-weight: 600; color: var(--navy); }
-/* 허용 수준: 줄마다 좁히면/넓히면 두 토막, 주말·공휴일의 나누어떨어지지 않음, 두 끝(0 · 아주 넓음)에서만 안내 */
-.pf-sl .k { grid-row: 1 / -1; }
-.pf-tn { grid-column: 2; font-size: 12px; color: var(--text-3); margin-top: -4px; }
-.pf-th { grid-column: 2; justify-self: start; font-size: 12px; font-weight: 700; margin-top: -2px; padding: 3px 9px; border-radius: 6px; border: 1px solid; }
-.pf-th[data-tolstate="zero"] { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
-.pf-th[data-tolstate="wide"] { color: var(--text-2); border-color: var(--line-2); background: var(--surface-2); }
 /* 아래 줄의 방침 요약(실행 단추 옆) */
 .footer .pf-policy b { color: var(--navy); }
 /* 결과 화면 맨 위: 방침과 견주기 */
@@ -202,24 +184,13 @@ html:not(.pf-tall) .pf-band figcaption { margin-top: 1px; }
 .pf-vs .it i { font-style: normal; font-weight: 800; }
 .pf-vs .it.ok i { color: var(--ok); }
 .pf-vs .it.over { color: var(--bad); font-weight: 600; }
-.pf-orders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
-.pf-last { font-size: 11px; color: var(--text-3); margin-left: 6px; }
-.pf-oc { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; }
-.pf-oc.on { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-weak); }
-.pf-oc h4 { margin: 0 0 2px; font-size: 14.5px; color: var(--navy); display: flex; gap: 6px; align-items: center; }
-.pf-oc p { margin: 0 0 8px; font-size: 12px; color: var(--text-2); }
-.pf-oc ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.75; }
-.pf-mv { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: 1px; }
-.pf-mv button { border: 1px solid var(--line-2); background: #fff; border-radius: 3px; width: 18px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; padding: 0; color: var(--text-2); }
-.pf-mv button:disabled { opacity: .3; cursor: default; }
-.pf-sl { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: clamp(5px, .8vh, 12px) 0; border-top: 1px solid var(--line); }
-.pf-sl:first-of-type { border-top: 0; }
-.pf-sl .k b { display: block; color: var(--navy); font-size: 14px; } .pf-sl .k small { color: var(--text-2); font-size: 11.5px; }
-/* 허용 수준: 문장 한 줄 안의 숫자 칸과 −·+ 단추. 그림·축·눈금·구단 점은 없다 */
+/* 허용 수준 · 실행 시간: 문장 한 줄 안의 숫자 칸과 −·+ 단추 */
 .pf-st { font-size: 13.5px; color: var(--fg); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pf-st .n { display: inline-flex; align-items: center; gap: 2px; }
 .pf-st input { width: 64px; font: 700 15px var(--font, inherit); text-align: right; border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; }
 .pf-st button { width: 24px; height: 28px; border: 1px solid var(--line-2); background: #fff; border-radius: 6px; font-size: 15px; line-height: 1; cursor: pointer; color: var(--navy); }
+.pf-st button:disabled { opacity: .35; cursor: default; }
+.pf-lv .pf-st input { text-align: center; padding: 3px 4px; }
 .pf-runbar { display: flex; gap: 12px; align-items: center; }
 .pf-runbar .grow { flex: 1; }
 
