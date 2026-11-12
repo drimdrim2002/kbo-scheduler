@@ -75,6 +75,7 @@ One server splits the paths between two apps (`BaseballWebServer.resolveStatic`)
 | `/`, `/compare`, `/r/<id>` | **The showcase** (보여주는 문), `ui/show/` — three pages for fans on phones. A single `show.js` serves all three, switched by `body[data-page]`. Designed from 375px up |
 | `/studio/` | **The scheduling studio** (만져보는 문), `ui/index.html` + `app/studio/` — a desktop wizard. `app/common/` holds shared screen parts |
 | replay player | `app/replay/` + `core/replay-model.js` — animates the search process. Used by both the showcase and the studio |
+| `/studio/admin` | **Run history** (편성 기록), `ui/admin/` — owner only, admin password, linked from no menu. One table per day of every solve call (`/api/v1/history`). Under `file://` it shows `sample-history.js`. Check: `bash ui/tools/admin/check.sh` → `data-errors="0" data-scroll="none" data-admin="list"` |
 
 - `ui/core/` is pure core code with no DOM dependency (scoring, calendar generation, rescheduling, mock solver, store, SVG charts). It is classic-script, attaches to `globalThis.KBO`, and can also be `require`d from Node. See `ui/core/README.md` for the full table.
 - There are two engine adapters. `RestEngineAdapter` talks to the server; `MockEngineAdapter` runs in a browser Worker when there is no server (`file://`). The showcase's `SHOW.api` likewise falls back to the JSON in `fixtures/` under `file://`. If you change the server API's shape, change the fixtures too.

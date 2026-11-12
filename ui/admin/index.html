@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>편성 기록 — 매치봇 관리</title>
+<script>
+  /* 콘솔 오류 수집 (AC-P5 점검용). 화면 동작에는 영향이 없다. */
+  (function () {
+    var errs = [];
+    window.__studioErrors = errs;
+    function mark() { try { document.documentElement.setAttribute('data-errors', String(errs.length)); if (errs.length) document.documentElement.setAttribute('data-error-list', errs.slice(0, 5).join(' | ')); } catch (e) { /* 무시 */ } }
+    window.addEventListener('error', function (e) { errs.push('error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || '')); mark(); }, true);
+    window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + (e.reason && e.reason.message || e.reason)); mark(); });
+    var ce = console.error;
+    console.error = function () { errs.push('console: ' + Array.prototype.join.call(arguments, ' ')); mark(); return ce.apply(console, arguments); };
+    mark();
+  })();
+</script>
+<link rel="stylesheet" href="../app/studio/studio.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="adm">
+<header class="adm-top"><b>매치봇</b><span>관리</span></header>
+<main id="adm" class="adm-main"></main>
+<noscript>JavaScript가 필요합니다.</noscript>
+<script src="sample-history.js"></script>
+<script src="admin-data.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

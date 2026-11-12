@@ -1,0 +1,61 @@
+/* 편성 기록 화면 — 안 A(표준). 색·단추·입력은 ../app/studio/studio.css를 쓴다. 데스크톱 전용 */
+html { height: auto; overflow: auto; }
+body.adm { display: block; height: auto; min-height: 100%; overflow: visible; background: var(--bg); }
+
+.adm-top { height: var(--top-h); background: var(--navy); color: #fff; display: flex; align-items: center; gap: 8px; padding: 0 20px; }
+.adm-top b { font-size: var(--fs-l); }
+.adm-top span { color: var(--navy-text); font-size: var(--fs-s); }
+
+.adm-main { max-width: 1320px; margin: 0 auto; padding: 24px 24px 48px; }
+.adm-main h1 { font-size: 20px; margin: 0; }
+.adm-lead { margin: 4px 0 0; color: var(--text-2); font-size: var(--fs-s); }
+.adm-err { margin: 12px 0 0; color: var(--bad); font-size: var(--fs-s); }
+.adm-dim { color: var(--text-3); }
+
+/* 비밀번호 */
+.adm-signin { max-width: 380px; margin: 64px auto 0; }
+.adm-form { margin-top: 20px; display: flex; align-items: flex-end; gap: 8px; }
+.adm-form .field { flex: 1; }
+.adm-signin > .btn { margin-top: 12px; }
+
+/* 목록 머리 */
+.adm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.adm-sample { margin: 0; font-size: var(--fs-s); color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--r); padding: 4px 10px; }
+.adm-bar { margin: 18px 0 10px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.adm-day { display: flex; align-items: center; gap: 4px; }
+.adm-day .select { min-width: 132px; }
+.adm-tally { display: flex; gap: 14px; flex-wrap: wrap; font-size: var(--fs-s); color: var(--text-2); }
+.adm-n b { color: var(--text); }
+.adm-tools { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: var(--fs-s); color: var(--text-2); }
+.adm-check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+
+/* 표 */
+.adm-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; table-layout: fixed; }
+.adm-table th { text-align: left; font-size: var(--fs-xs); color: var(--text-3); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2, #FAFBFC); }
+.adm-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: keep-all; overflow-wrap: anywhere; }
+.adm-table tr:last-child td { border-bottom: 0; }
+.adm-table tbody tr:hover { background: var(--hover); }
+.adm-table tr.is-server td { color: var(--text-3); background: #FAFBFC; }
+.c-time { width: 76px; font-variant-numeric: tabular-nums; }
+.c-who { width: 150px; }
+.c-kind { width: 74px; }
+.c-st { width: 230px; }
+.c-rule { width: 116px; }
+.c-took { width: 80px; font-variant-numeric: tabular-nums; }
+.c-cond { width: 190px; }
+.c-act { width: 196px; text-align: right; white-space: nowrap; }
+.c-act .btn + .btn { margin-left: 6px; }
+a.btn { text-decoration: none; color: var(--blue); }
+
+.adm-st { display: inline-block; font-weight: 600; font-size: var(--fs-s); padding: 1px 7px; border-radius: 10px; }
+.tone-ok.adm-st { color: var(--ok); background: var(--ok-bg); }
+.tone-info.adm-st { color: var(--blue); background: var(--blue-weak); }
+.tone-muted.adm-st { color: var(--mock); background: var(--mock-bg); }
+.tone-bad.adm-st { color: var(--bad); background: var(--bad-bg); }
+.tone-warn.adm-st { color: var(--warn); background: var(--warn-bg); }
+.adm-n.tone-bad b { color: var(--bad); }
+.adm-n.tone-warn b { color: var(--warn); }
+.adm-sub { margin-top: 3px; font-size: var(--fs-xs); color: var(--text-3); }
+.adm-sub.is-err { color: var(--bad); }
+.rule-ok { color: var(--ok); font-size: var(--fs-s); }
+.rule-bad { color: var(--bad); font-size: var(--fs-s); font-weight: 600; }
